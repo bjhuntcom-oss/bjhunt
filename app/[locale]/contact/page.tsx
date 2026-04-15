@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import HCaptcha from "@hcaptcha/react-hcaptcha";
-import { SignalWaveSVG } from "@/components/animations/signal-wave";
+import { RobotAvatar } from "@/components/animations/robot-avatar";
 import { useTranslations } from "next-intl";
 import { Check, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -93,7 +93,7 @@ export default function ContactPage() {
           </p>
         </div>
         <div className="hidden lg:flex items-center justify-center border-l border-[var(--border)] p-12">
-          <SignalWaveSVG className="w-full max-w-xs opacity-70" />
+          <RobotAvatar size={260} />
         </div>
       </div>
       {/* Form */}
