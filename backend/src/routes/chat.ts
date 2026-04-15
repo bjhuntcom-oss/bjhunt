@@ -1,3 +1,4 @@
+import type { AppVariables } from "../types.js";
 /**
  * Chat routes — SSE streaming proxy + DB persistence.
  *
@@ -15,7 +16,7 @@ import { withOrg, sql } from "../db/client.js";
 import { config } from "../config.js";
 import type { AuthUser } from "../middleware/auth.js";
 
-export const chatRoutes = new Hono();
+export const chatRoutes = new Hono<{ Variables: AppVariables }>();
 
 chatRoutes.use("*", requireAuth);
 chatRoutes.use("*", rateLimit(config.rateLimit.api));

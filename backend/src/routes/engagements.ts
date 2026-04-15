@@ -1,3 +1,4 @@
+import type { AppVariables } from "../types.js";
 /**
  * Engagement routes — CRUD + launch agent + status tracking.
  */
@@ -12,7 +13,7 @@ import { langgraphClient } from "../lib/langgraph-client.js";
 import { config } from "../config.js";
 import type { AuthUser } from "../middleware/auth.js";
 
-export const engagementRoutes = new Hono();
+export const engagementRoutes = new Hono<{ Variables: AppVariables }>();
 
 engagementRoutes.use("*", requireAuth);
 engagementRoutes.use("*", rateLimit(config.rateLimit.api));

@@ -8,6 +8,7 @@
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
+import type { AppVariables } from "./types.js";
 
 import { config } from "./config.js";
 import { corsMiddleware } from "./middleware/cors.js";
@@ -24,7 +25,7 @@ import { adminUserRoutes } from "./routes/admin/users.js";
 import { adminSettingsRoutes } from "./routes/admin/settings.js";
 import { notificationRoutes } from "./routes/notifications.js";
 
-const app = new Hono();
+const app = new Hono<{ Variables: AppVariables }>();
 
 // ── Global middleware ────────────────────────────────────────────────────
 

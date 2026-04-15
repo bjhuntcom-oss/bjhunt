@@ -1,3 +1,4 @@
+import type { AppVariables } from "../types.js";
 /**
  * API key management routes.
  */
@@ -12,7 +13,7 @@ import { sql } from "../db/client.js";
 import { config } from "../config.js";
 import type { AuthUser } from "../middleware/auth.js";
 
-export const apiKeyRoutes = new Hono();
+export const apiKeyRoutes = new Hono<{ Variables: AppVariables }>();
 
 apiKeyRoutes.use("*", requireAuth);
 apiKeyRoutes.use("*", rateLimit(config.rateLimit.api));

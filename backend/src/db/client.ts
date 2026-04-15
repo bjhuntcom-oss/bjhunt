@@ -23,15 +23,5 @@ export async function withOrg<T>(
   return sql.begin(async (tx) => {
     await tx`SELECT set_config('app.current_org_id', ${orgId}, true)`;
     return fn(tx);
-  });
-}
-
-/**
- * Execute a query without RLS (for platform admin operations).
- * Uses the connection directly — no org scope set.
- */
-export async function withoutRLS<T>(
-  fn: (sql: typeof import("postgres").default.prototype) => Promise<T>,
-): Promise<T> {
-  return fn(sql as any);
+  }) as Promise<T>;
 }

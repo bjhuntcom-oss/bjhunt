@@ -1,3 +1,4 @@
+import type { AppVariables } from "../../types.js";
 /**
  * Admin routes — user management.
  */
@@ -10,7 +11,7 @@ import { requireAuth, requireAdmin } from "../../middleware/auth.js";
 import { rateLimit } from "../../middleware/rate-limit.js";
 import { config } from "../../config.js";
 
-export const adminUserRoutes = new Hono();
+export const adminUserRoutes = new Hono<{ Variables: AppVariables }>();
 
 adminUserRoutes.use("*", requireAuth);
 adminUserRoutes.use("*", requireAdmin);
@@ -30,9 +31,10 @@ adminUserRoutes.get("/", async (c) => {
     LIMIT ${limit} OFFSET ${offset}
   `;
 
-  const [{ count }] = await sql`SELECT count(*) FROM users`;
+  const [countRow] = await sql`SELECT count(*)::int as total FROM users`;
+  const count = (countRow as any)?.total ?? 0;
 
-  return c.json({ users, total: Number(count) });
+  return c.json({ users, total: count });
 });
 
 // Get single user

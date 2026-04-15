@@ -1,3 +1,4 @@
+import type { AppVariables } from "../../types.js";
 /**
  * Admin routes — platform settings + audit logs.
  */
@@ -10,7 +11,7 @@ import { requireAuth, requireAdmin } from "../../middleware/auth.js";
 import { rateLimit } from "../../middleware/rate-limit.js";
 import { config } from "../../config.js";
 
-export const adminSettingsRoutes = new Hono();
+export const adminSettingsRoutes = new Hono<{ Variables: AppVariables }>();
 
 adminSettingsRoutes.use("*", requireAuth);
 adminSettingsRoutes.use("*", requireAdmin);

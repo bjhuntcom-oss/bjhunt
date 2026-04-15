@@ -1,3 +1,4 @@
+import type { AppVariables } from "../types.js";
 /**
  * Notification routes — list, mark read, unread count.
  */
@@ -7,7 +8,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { withOrg, sql } from "../db/client.js";
 import type { AuthUser } from "../middleware/auth.js";
 
-export const notificationRoutes = new Hono();
+export const notificationRoutes = new Hono<{ Variables: AppVariables }>();
 
 notificationRoutes.use("*", requireAuth);
 
@@ -41,11 +42,11 @@ notificationRoutes.get("/count", async (c) => {
   const orgId = c.get("orgId") as string;
   const user = c.get("user") as AuthUser;
 
-  const [{ count }] = await withOrg(orgId, (tx) =>
-    tx`SELECT count(*) FROM notifications WHERE user_id = ${user.id} AND read_at IS NULL`,
+  const [countRow] = await withOrg(orgId, (tx) =>
+    tx`SELECT count(*)::int as total FROM notifications WHERE user_id = ${user.id} AND read_at IS NULL`,
   );
 
-  return c.json({ unread: Number(count) });
+  return c.json({ unread: (countRow as any)?.total ?? 0 });
 });
 
 // Mark notification(s) as read

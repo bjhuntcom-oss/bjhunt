@@ -1,3 +1,4 @@
+import type { AppVariables } from "../types.js";
 /**
  * Auth routes — register, login, logout, me, password reset.
  */
@@ -12,7 +13,7 @@ import { config } from "../config.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import type { AuthUser } from "../middleware/auth.js";
 
-export const authRoutes = new Hono();
+export const authRoutes = new Hono<{ Variables: AppVariables }>();
 
 // ── Schemas ──────────────────────────────────────────────────────────────
 

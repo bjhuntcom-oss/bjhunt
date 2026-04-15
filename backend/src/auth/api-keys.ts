@@ -78,5 +78,5 @@ export async function listApiKeys(orgId: string): Promise<ApiKey[]> {
     FROM api_keys WHERE org_id = ${orgId}
     ORDER BY created_at DESC
   `;
-  return keys as ApiKey[];
+  return keys as unknown as ApiKey[];
 }
