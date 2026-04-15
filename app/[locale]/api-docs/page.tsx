@@ -164,9 +164,8 @@ export default async function ApiDocsPage({
             : "Integrate BJHUNT into your CI/CD — launch autonomous security audits, retrieve findings, and continuously protect your infrastructure."}
         </p>
         <div className="flex items-center gap-3 mb-8 text-[9px] uppercase tracking-wider">
-          <span className="px-2 py-1 bg-[var(--warning-dim)] text-[var(--warning)]">Pro</span>
-          <span className="px-2 py-1 bg-[var(--success-dim)] text-[var(--success)]">Enterprise</span>
-          <span className="text-[var(--text-subtle)]">{isFr ? "Disponible avec les plans Pro et Enterprise" : "Available with Pro and Enterprise plans"}</span>
+          <span className="px-2 py-1 bg-[var(--success-dim)] text-[var(--success)]">Enterprise only</span>
+          <span className="text-[var(--text-subtle)]">{isFr ? "Accès réservé au plan Enterprise ($2,000/mois)" : "Restricted to Enterprise plan ($2,000/mo)"}</span>
         </div>
 
         {/* Quick Start */}
@@ -328,11 +327,11 @@ export default async function ApiDocsPage({
               </div>
             </div>
             <div className="hidden md:block text-right">
-              <div className="text-[9px] uppercase tracking-wider text-[var(--text-subtle)] mb-2">{isFr ? "Limites par plan" : "Plan limits"}</div>
+              <div className="text-[9px] uppercase tracking-wider text-[var(--text-subtle)] mb-2">{isFr ? "Accès API v1" : "API v1 Access"}</div>
               <div className="space-y-1 text-[10px] font-mono">
-                <div className="flex justify-between gap-6"><span className="text-[var(--text-muted)]">Free</span><span className="text-[var(--danger)]">{isFr ? "Pas d'accès API" : "No API access"}</span></div>
-                <div className="flex justify-between gap-6"><span className="text-[var(--warning)]">Pro</span><span className="text-white">50 scans/mois · 5 agents</span></div>
-                <div className="flex justify-between gap-6"><span className="text-[var(--success)]">Enterprise</span><span className="text-white">{isFr ? "Illimité · 17 agents" : "Unlimited · 17 agents"}</span></div>
+                <div className="flex justify-between gap-6"><span className="text-[var(--text-muted)]">Free</span><span className="text-[var(--danger)]">{isFr ? "Aucun accès" : "No access"}</span></div>
+                <div className="flex justify-between gap-6"><span className="text-[var(--warning)]">Pro</span><span className="text-[var(--danger)]">{isFr ? "Pas d'accès API" : "No API access"}</span></div>
+                <div className="flex justify-between gap-6"><span className="text-[var(--success)]">Enterprise</span><span className="text-white">20 scans/mois · 17 agents</span></div>
               </div>
             </div>
           </div>
