@@ -79,12 +79,16 @@ export function ToolCallBlock({ tool }: { tool: ToolCall }) {
         </span>
 
         {/* Args preview */}
-        {"command" in tool.args && tool.args.command && (
-          <span className="text-[10px] font-mono text-[var(--text-subtle)] truncate max-w-[300px]">
-            {String(tool.args.command as string).slice(0, 60)}
-            {String(tool.args.command as string).length > 60 ? "..." : ""}
-          </span>
-        )}
+        {(() => {
+          const cmd = tool.args.command;
+          if (!cmd) return null;
+          const s = String(cmd);
+          return (
+            <span className="text-[10px] font-mono text-[var(--text-subtle)] truncate max-w-[300px]">
+              {s.slice(0, 60)}{s.length > 60 ? "..." : ""}
+            </span>
+          );
+        })()}
 
         <span className="ml-auto flex items-center gap-2">
           {tool.duration !== undefined && (
