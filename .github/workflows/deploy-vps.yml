@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'backend/**'
       - 'engine/**'
       - 'ops/**'
       - 'docker-compose.yml'
@@ -27,34 +28,35 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -p 443 82.25.117.79 >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh-keyscan 82.25.117.79 >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Deploy
         run: |
-          ssh -p 443 -o StrictHostKeyChecking=no root@82.25.117.79 << 'DEPLOY'
+          ssh -o StrictHostKeyChecking=no root@82.25.117.79 << 'DEPLOY'
             set -euo pipefail
-            cd /opt/bjhunt
+            cd /opt/bjhunt/app
 
-            # Pull latest
-            git -C app pull origin main || git clone https://github.com/bjhuntcom-oss/bjhunt.git app
+            # Pull latest code
+            git pull origin main
 
-            # Rebuild and restart
-            cd /opt/bjhunt/stack
-            docker compose pull
-            docker compose up -d --build --force-recreate
+            # Rebuild and restart changed services
+            docker compose up -d --build backend langgraph
 
-            # Health check
+            # Wait for health
             for i in $(seq 1 30); do
               if curl -sf http://localhost:3001/api/health/live > /dev/null 2>&1; then
-                echo "Deploy OK"
-                exit 0
+                echo "Backend healthy"
+                break
               fi
               sleep 3
             done
-            echo "Health check failed"
-            exit 1
+
+            echo "Deploy complete at $(date -u)"
           DEPLOY
 
       - name: Verify production
         run: |
-          curl -sf https://api.bjhunt.com/api/health/live || echo "Warning: production health check failed"
+          sleep 5
+          curl -sf https://api.bjhunt.com/api/health/live
+          echo ""
+          curl -sf https://api.bjhunt.com/api/health/version
