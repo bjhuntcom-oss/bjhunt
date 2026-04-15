@@ -15,6 +15,8 @@ import { langgraphClient } from "../lib/langgraph-client.js";
 import { withOrg, sql } from "../db/client.js";
 import { config } from "../config.js";
 import type { AuthUser } from "../middleware/auth.js";
+import { join } from "node:path";
+import { mkdir, stat } from "node:fs/promises";
 
 export const chatRoutes = new Hono<{ Variables: AppVariables }>();
 
@@ -214,4 +216,194 @@ chatRoutes.get("/conversations", async (c) => {
   );
 
   return c.json({ conversations });
+});
+
+// ── Create a new conversation ───────────────────────────────────────────
+
+const createConversationSchema = z.object({
+  engagementId: z.string().uuid().optional(),
+  title: z.string().max(200).optional(),
+  initialMessage: z.string().max(10000).optional(),
+  webSearch: z.boolean().optional(),
+  attachmentIds: z.array(z.string().uuid()).optional(),
+});
+
+chatRoutes.post("/conversations", zValidator("json", createConversationSchema), async (c) => {
+  const orgId = c.get("orgId") as string;
+  const user = c.get("user") as AuthUser;
+  const body = c.req.valid("json");
+
+  const title = body.title || "New conversation";
+
+  const [conversation] = await sql`
+    INSERT INTO chat_conversations (org_id, user_id, engagement_id, title)
+    VALUES (${orgId}, ${user.id}, ${body.engagementId || null}, ${title})
+    RETURNING id, org_id, user_id, engagement_id, title, model, status, created_at, updated_at
+  `;
+
+  // If an initial message was provided, save it
+  const messages: Record<string, unknown>[] = [];
+  if (body.initialMessage) {
+    const [userMsg] = await sql`
+      INSERT INTO chat_messages (org_id, conversation_id, role, content)
+      VALUES (${orgId}, ${conversation!.id}, 'user', ${body.initialMessage})
+      RETURNING id, role, content, tool_calls, thinking, tokens_input, tokens_output, model, created_at
+    `;
+    messages.push(userMsg!);
+
+    // Link any uploaded attachments to this conversation
+    if (body.attachmentIds && body.attachmentIds.length > 0) {
+      await sql`
+        UPDATE file_uploads
+        SET conversation_id = ${conversation!.id}
+        WHERE id = ANY(${body.attachmentIds}::uuid[])
+          AND org_id = ${orgId}
+          AND user_id = ${user.id}
+      `;
+    }
+  }
+
+  // Audit log
+  await sql`
+    INSERT INTO audit_logs (org_id, user_id, action, resource, details)
+    VALUES (${orgId}, ${user.id}, 'chat.conversation.create', ${"conversation:" + conversation!.id},
+            ${JSON.stringify({ title, hasInitialMessage: !!body.initialMessage })})
+  `.catch(() => {});
+
+  return c.json({ conversation, messages }, 201);
+});
+
+// ── Delete a conversation ───────────────────────────────────────────────
+
+chatRoutes.delete("/conversations/:id", async (c) => {
+  const orgId = c.get("orgId") as string;
+  const user = c.get("user") as AuthUser;
+  const convId = c.req.param("id");
+
+  // Soft delete — set status to 'deleted'
+  const result = await withOrg(orgId, (tx) =>
+    tx`UPDATE chat_conversations
+       SET status = 'deleted', updated_at = now()
+       WHERE id = ${convId} AND user_id = ${user.id}
+       RETURNING id`,
+  );
+
+  if (result.length === 0) {
+    return c.json({ error: "Conversation not found" }, 404);
+  }
+
+  // Audit log
+  await sql`
+    INSERT INTO audit_logs (org_id, user_id, action, resource)
+    VALUES (${orgId}, ${user.id}, 'chat.conversation.delete', ${"conversation:" + convId})
+  `.catch(() => {});
+
+  return c.json({ ok: true });
+});
+
+// ── Upload a file ───────────────────────────────────────────────────────
+
+const UPLOAD_DIR = process.env.BJHUNT_UPLOAD_DIR || "/tmp/bjhunt-uploads";
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
+const ALLOWED_MIMETYPES = new Set([
+  "application/pdf",
+  "text/plain",
+  "text/markdown",
+  "application/json",
+  "text/csv",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+]);
+
+chatRoutes.post("/files", async (c) => {
+  const orgId = c.get("orgId") as string;
+  const user = c.get("user") as AuthUser;
+
+  const body = await c.req.parseBody();
+  const file = body["file"];
+
+  if (!file || typeof file === "string") {
+    return c.json({ error: "No file provided" }, 400);
+  }
+
+  const uploadedFile = file as File;
+
+  // Validate size
+  if (uploadedFile.size > MAX_FILE_SIZE) {
+    return c.json({ error: "File too large (max 10MB)" }, 413);
+  }
+
+  // Validate mimetype
+  if (uploadedFile.type && !ALLOWED_MIMETYPES.has(uploadedFile.type)) {
+    return c.json({ error: `Unsupported file type: ${uploadedFile.type}` }, 415);
+  }
+
+  // Sanitize filename — strip path separators, limit length
+  const safeName = uploadedFile.name
+    .replace(/[/\\:*?"<>|]/g, "_")
+    .slice(0, 200);
+
+  // Ensure upload directory exists (org-scoped subdirectory)
+  const orgDir = join(UPLOAD_DIR, orgId);
+  await mkdir(orgDir, { recursive: true });
+
+  // Generate unique storage path
+  const fileId = crypto.randomUUID();
+  const storagePath = join(orgDir, `${fileId}-${safeName}`);
+
+  // Write file to disk
+  const arrayBuffer = await uploadedFile.arrayBuffer();
+  await Bun.write(storagePath, arrayBuffer);
+
+  // Save metadata to DB
+  const [record] = await sql`
+    INSERT INTO file_uploads (org_id, user_id, filename, mimetype, size_bytes, storage_path)
+    VALUES (${orgId}, ${user.id}, ${safeName}, ${uploadedFile.type || null},
+            ${uploadedFile.size}, ${storagePath})
+    RETURNING id, filename, mimetype, size_bytes, created_at
+  `;
+
+  return c.json({
+    id: record!.id,
+    filename: record!.filename,
+    mimetype: record!.mimetype,
+    url: `/api/chat/files/${record!.id}`,
+  }, 201);
+});
+
+// ── Serve a file ────────────────────────────────────────────────────────
+
+chatRoutes.get("/files/:id", async (c) => {
+  const orgId = c.get("orgId") as string;
+  const fileId = c.req.param("id");
+
+  const [record] = await withOrg(orgId, (tx) =>
+    tx`SELECT id, filename, mimetype, size_bytes, storage_path
+       FROM file_uploads
+       WHERE id = ${fileId}`,
+  );
+
+  if (!record) {
+    return c.json({ error: "File not found" }, 404);
+  }
+
+  // Verify file exists on disk
+  try {
+    await stat(record.storagePath as string);
+  } catch {
+    return c.json({ error: "File not found on disk" }, 404);
+  }
+
+  const file = Bun.file(record.storagePath as string);
+
+  return new Response(file.stream(), {
+    headers: {
+      "Content-Type": (record.mimetype as string) || "application/octet-stream",
+      "Content-Length": String(record.sizeBytes),
+      "Content-Disposition": `inline; filename="${record.filename}"`,
+      "Cache-Control": "private, max-age=3600",
+    },
+  });
 });

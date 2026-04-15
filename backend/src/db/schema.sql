@@ -257,6 +257,60 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id, read_at) WHERE read_at IS NULL;
 
 -- ============================================================================
+-- File Uploads
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS file_uploads (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    conversation_id UUID REFERENCES chat_conversations(id) ON DELETE SET NULL,
+    filename TEXT NOT NULL,
+    mimetype TEXT,
+    size_bytes INTEGER,
+    storage_path TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_file_uploads_conv ON file_uploads(conversation_id);
+
+-- ============================================================================
+-- Gateway Providers (LLM provider configs — platform-global, not tenant-scoped)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS gateway_providers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    provider_type TEXT NOT NULL, -- 'anthropic', 'openai', 'ollama', 'ollama-cloud', 'google'
+    api_key_encrypted TEXT, -- AES-256-GCM encrypted
+    api_base TEXT,
+    enabled BOOLEAN NOT NULL DEFAULT true,
+    is_default BOOLEAN NOT NULL DEFAULT false,
+    models JSONB NOT NULL DEFAULT '[]',
+    config JSONB NOT NULL DEFAULT '{}',
+    last_tested_at TIMESTAMPTZ,
+    last_test_status TEXT, -- 'success', 'error'
+    last_test_latency INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ============================================================================
+-- Agent Profiles (AI agent personality & config profiles — platform-global)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS agent_profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    description TEXT,
+    soul_md TEXT NOT NULL DEFAULT '',
+    agents_md TEXT NOT NULL DEFAULT '',
+    identity_name TEXT,
+    identity_emoji TEXT,
+    is_default BOOLEAN NOT NULL DEFAULT false,
+    is_active BOOLEAN NOT NULL DEFAULT false,
+    visible_to_users BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ============================================================================
 -- Row-Level Security (RLS) — multi-tenant isolation
 -- ============================================================================
 
@@ -272,6 +326,7 @@ ALTER TABLE chat_conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agent_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE file_uploads ENABLE ROW LEVEL SECURITY;
 
 -- Policy: users can only see users in their own org
 CREATE POLICY users_org_isolation ON users
@@ -305,6 +360,9 @@ CREATE POLICY agent_runs_org_isolation ON agent_runs
 CREATE POLICY notifications_org_isolation ON notifications
     USING (org_id = current_setting('app.current_org_id', true)::UUID);
 
+CREATE POLICY file_uploads_org_isolation ON file_uploads
+    USING (org_id = current_setting('app.current_org_id', true)::UUID);
+
 -- ============================================================================
 -- Updated_at trigger
 -- ============================================================================
@@ -325,6 +383,10 @@ CREATE TRIGGER trg_engagements_updated BEFORE UPDATE ON engagements
 CREATE TRIGGER trg_findings_updated BEFORE UPDATE ON findings
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER trg_chat_conv_updated BEFORE UPDATE ON chat_conversations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER trg_gateway_providers_updated BEFORE UPDATE ON gateway_providers
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER trg_agent_profiles_updated BEFORE UPDATE ON agent_profiles
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 COMMIT;

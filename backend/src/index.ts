@@ -23,6 +23,8 @@ import { chatRoutes } from "./routes/chat.js";
 import { apiKeyRoutes } from "./routes/api-keys.js";
 import { adminUserRoutes } from "./routes/admin/users.js";
 import { adminSettingsRoutes } from "./routes/admin/settings.js";
+import { gatewayRoutes, ollamaRoutes } from "./routes/admin/gateway.js";
+import { agentRoutes } from "./routes/admin/agents.js";
 import { notificationRoutes } from "./routes/notifications.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
 
@@ -55,6 +57,9 @@ app.route("/api/dashboard", dashboardRoutes);
 // Admin routes (platform admin only)
 app.route("/api/admin/users", adminUserRoutes);
 app.route("/api/admin/settings", adminSettingsRoutes);
+app.route("/api/admin/gateway", gatewayRoutes);
+app.route("/api/admin/ollama", ollamaRoutes);
+app.route("/api/admin/agents", agentRoutes);
 
 // ── 404 fallback ─────────────────────────────────────────────────────────
 
