@@ -25,116 +25,108 @@ const DELAYS = {
 // Visual data blocks — hardcoded technical data, not translated
 const DATA_BLOCKS: Record<ScenarioId, React.ReactNode> = {
   t1: (
-    <div className="space-y-1 text-[10px] font-mono">
-      <div className="grid grid-cols-4 gap-2 text-[#777777] uppercase text-[8px] tracking-widest pb-1 border-b border-[#1a1a1a]">
-        <span>HOST</span><span>PORT</span><span>SERVICE</span><span>STATUS</span>
-      </div>
-      {[
-        ["192.168.1.1", "22",   "SSH",   true],
-        ["192.168.1.1", "80",   "HTTP",  true],
-        ["192.168.1.4", "3306", "MySQL", false],
-        ["192.168.1.7", "443",  "HTTPS", true],
-      ].map(([host, port, svc, ok]) => (
-        <div key={`${host}-${port}`} className="grid grid-cols-4 gap-2">
-          <span className="text-white">{host}</span>
-          <span className="text-[#888]">{port}</span>
-          <span className="text-[#888]">{svc}</span>
-          <span style={{ color: ok ? "#00cc8a" : "#ff9900" }}>
-            {ok ? "● OPEN" : "⚠ EXP"}
-          </span>
-        </div>
-      ))}
-    </div>
-  ),
-
-  t2: (
-    <div className="space-y-1.5 text-[10px] font-mono">
-      {[
-        ["DNS A",   "→", "104.26.10.239"],
-        ["DNS MX",  "→", "mail.target.com"],
-        ["WHOIS",   "→", "Cloudflare, Inc."],
-        ["SSL",     "→", "Let's Encrypt · exp 2025-09"],
-        ["SUBS",    "→", "14 sous-domaines trouvés"],
-      ].map(([k, arrow, v]) => (
-        <div key={k} className="flex gap-3">
-          <span className="text-[#777777] w-14 flex-shrink-0">{k}</span>
-          <span className="text-[#444]">{arrow}</span>
-          <span className="text-white">{v}</span>
-        </div>
-      ))}
-    </div>
-  ),
-
-  t3: (
-    <div className="space-y-2 text-[10px] font-mono">
-      <div className="flex items-center justify-between border border-[#ff444430] px-3 py-2 bg-[#ff44440a]">
-        <div>
-          <span className="text-[#ff4444] font-bold">CVE-2024-3094</span>
-          <span className="text-[var(--text-muted)] ml-3">xz-utils 5.6.0→5.6.1</span>
-        </div>
-        <span className="text-[#ff4444] text-[8px] uppercase tracking-widest border border-[#ff4444] px-1.5 py-0.5">
-          CVSS 10.0
-        </span>
-      </div>
-      <div className="space-y-1">
+    <div className="space-y-2 text-[10px]">
+      <p className="text-[#999] italic">Agent Exploit analyse vos endpoints...</p>
+      <div className="space-y-1 font-mono">
         {[
-          { host: "prod-api-01",  affected: true },
-          { host: "prod-api-02",  affected: true },
-          { host: "staging-main", affected: false },
-        ].map(({ host, affected }) => (
-          <div key={host} className="flex justify-between">
-            <span className="text-[#888]">{host}</span>
-            <span style={{ color: affected ? "#ff4444" : "#00cc8a" }}>
-              {affected ? "● VULNÉRABLE" : "✓ PATCHÉ"}
-            </span>
+          ["/api/users",    "SQLi", "CRITIQUE", "#ff4444"],
+          ["/api/search",   "XSS",  "HIGH",     "#ff9900"],
+          ["/api/upload",   "SSRF", "MEDIUM",   "#ff9900"],
+        ].map(([path, vuln, sev, color]) => (
+          <div key={path} className="flex items-center gap-2">
+            <span className="w-3 h-3 flex items-center justify-center text-[8px]" style={{ color: color as string }}>●</span>
+            <span className="text-white">{path}</span>
+            <span className="text-[#666]">→</span>
+            <span style={{ color: color as string }}>{vuln}</span>
+            <span className="ml-auto text-[8px] px-1.5 py-0.5" style={{ color: color as string, background: (color as string) + "15" }}>{sev}</span>
           </div>
         ))}
       </div>
     </div>
   ),
 
-  t4: (
-    <div className="space-y-2 text-[10px] font-mono">
-      {[
-        { id: "#247", title: "fix: SQLi vuln /api/users",    status: "MERGÉ",  ok: true  },
-        { id: "#251", title: "chore: update OpenSSL 3.2.1",  status: "MERGÉ",  ok: true  },
-        { id: "#253", title: "sec: XSS in search endpoint",  status: "OUVERT", ok: false },
-        { id: "#255", title: "fix: SSRF protection headers",  status: "REVIEW", ok: null  },
-      ].map(({ id, title, status, ok }) => (
-        <div key={id} className="flex items-center gap-3">
-          <span className="text-[#4488ff] w-8 flex-shrink-0">{id}</span>
-          <span className="text-[#888] flex-1 truncate">{title}</span>
-          <span
-            className="text-[8px] tracking-widest flex-shrink-0"
-            style={{ color: ok === true ? "#00cc8a" : ok === false ? "#ff4444" : "#ff9900" }}
-          >
-            {status}
-          </span>
+  t2: (
+    <div className="space-y-2 text-[10px]">
+      <p className="text-[#999] italic">Agent Recon cartographie la surface d'attaque...</p>
+      <div className="space-y-1 font-mono">
+        {[
+          ["7 sous-domaines",    "trouvés",       "#00cc8a"],
+          ["2 ports ouverts",    "sans auth",     "#ff9900"],
+          ["TLS 1.2",           "à mettre à jour", "#ff9900"],
+          ["Cloudflare WAF",    "détecté",        "#00cc8a"],
+        ].map(([item, status, color]) => (
+          <div key={item} className="flex items-center gap-2">
+            <span style={{ color: color as string }}>›</span>
+            <span className="text-white">{item}</span>
+            <span className="text-[#666]">{status}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  ),
+
+  t3: (
+    <div className="space-y-2 text-[10px]">
+      <p className="text-[#999] italic">Agent Analyst corrèle les événements suspects...</p>
+      <div className="space-y-1.5 font-mono">
+        <div className="flex items-center gap-2 px-2 py-1.5 border border-[#ff444430] bg-[#ff44440a]">
+          <span className="text-[#ff4444]">⚠</span>
+          <span className="text-white">185.220.101.47</span>
+          <span className="text-[#888]">→ Nœud TOR</span>
+          <span className="ml-auto text-[#ff4444] text-[8px]">248 tentatives</span>
         </div>
-      ))}
+        <div className="flex items-center gap-2 px-2 py-1">
+          <span className="text-[#00cc8a]">✓</span>
+          <span className="text-[#888]">IP bloquée automatiquement</span>
+        </div>
+        <div className="flex items-center gap-2 px-2 py-1">
+          <span className="text-[#00cc8a]">✓</span>
+          <span className="text-[#888]">Alerte configurée</span>
+        </div>
+      </div>
+    </div>
+  ),
+
+  t4: (
+    <div className="space-y-2 text-[10px]">
+      <p className="text-[#999] italic">Compilation du rapport exécutif...</p>
+      <div className="space-y-2 font-mono">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl font-black text-white">94</span>
+          <span className="text-[#888] text-[9px]">/100</span>
+          <span className="text-[#00cc8a] text-[9px]">▲ +12</span>
+        </div>
+        <div className="space-y-1">
+          {[
+            ["ISO 27001", true], ["PCI-DSS", true], ["OWASP Top 10", true], ["SOC 2", false],
+          ].map(([std, ok]) => (
+            <div key={std as string} className="flex items-center gap-2">
+              <span style={{ color: ok ? "#00cc8a" : "#666" }}>{ok ? "✓" : "○"}</span>
+              <span className={ok ? "text-white" : "text-[#555]"}>{std as string}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   ),
 
   t5: (
-    <div className="space-y-1.5 text-[10px] font-mono">
-      {[
-        { check: "SAST",    label: "Static analysis",   ok: true,  note: "0 vulnérabilités" },
-        { check: "DEPS",    label: "Dependencies",      ok: true,  note: "CVE database OK" },
-        { check: "SECRETS", label: "Secret scanning",   ok: true,  note: "Aucun secret exposé" },
-        { check: "HEADERS", label: "Security headers",  ok: false, note: "X-Frame-Options absent" },
-        { check: "DAST",    label: "Dynamic scan",      ok: true,  note: "API endpoints clean" },
-      ].map(({ check, ok, note }) => (
-        <div key={check} className="flex items-center gap-3">
-          <span
-            className="w-4 flex-shrink-0"
-            style={{ color: ok ? "#00cc8a" : "#ff9900" }}
-          >
-            {ok ? "✓" : "⚠"}
-          </span>
-          <span className="text-[#777777] w-16 flex-shrink-0 text-[8px] uppercase tracking-widest">{check}</span>
-          <span className="text-[#666]">{note}</span>
-        </div>
-      ))}
+    <div className="space-y-2 text-[10px]">
+      <p className="text-[#999] italic">Agent Cloud Hunter inspecte vos conteneurs...</p>
+      <div className="space-y-1 font-mono">
+        {[
+          { svc: "API Gateway",  status: "✓ Sécurisé",         color: "#00cc8a" },
+          { svc: "PostgreSQL",   status: "✓ Sécurisé",         color: "#00cc8a" },
+          { svc: "Redis",        status: "⚠ Port 6379 exposé", color: "#ff9900" },
+          { svc: "Nginx",        status: "⚠ SSL expire J-18",  color: "#ff9900" },
+          { svc: "Docker env",   status: "✗ Clé API exposée",  color: "#ff4444" },
+        ].map(({ svc, status, color }) => (
+          <div key={svc} className="flex items-center justify-between">
+            <span className="text-white">{svc}</span>
+            <span style={{ color }} className="text-[9px]">{status}</span>
+          </div>
+        ))}
+      </div>
     </div>
   ),
 };
@@ -234,17 +226,22 @@ export function HeroTerminal({ className }: { className?: string }) {
         {/* Visual data block */}
         {step >= 3 && (
           <div
-            className="pl-3 border-l py-1"
+            className="pl-3 border-l py-1 space-y-2"
             style={{ borderColor: accent + "40" }}
           >
             {DATA_BLOCKS[sid]}
+            {/* AI findings in natural language */}
+            <div className="space-y-1 pt-1">
+              <p className="text-[10px] text-[#aaa] leading-relaxed">{tx(`${sid}.find1`)}</p>
+              <p className="text-[10px] text-[#aaa] leading-relaxed">{tx(`${sid}.find2`)}</p>
+            </div>
           </div>
         )}
 
         {/* Result */}
         {step >= 4 && (
           <p className="font-bold text-[11px]" style={{ color: accent }}>
-            ✓ {tx(`${sid}.result`)}
+            {tx(`${sid}.result`)}
           </p>
         )}
 
