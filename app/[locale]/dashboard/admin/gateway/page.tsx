@@ -18,7 +18,14 @@ export default async function AdminGatewayPage({
 
   // Build gateway config from platform settings
   const gatewayConfig = settingsData.settings?.find?.((s: any) => s.key === 'gateway_config')
-  const config = gatewayConfig?.value ?? {
+  // Value may be double-encoded JSON string or already parsed object
+  const parsedGateway = (() => {
+    const v = gatewayConfig?.value
+    if (!v) return null
+    if (typeof v === 'string') { try { return JSON.parse(v) } catch { return null } }
+    return v
+  })()
+  const config = parsedGateway ?? {
     providers: {
       anthropic: { name: 'Anthropic', enabled: true, models: ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5'] },
       openai: { name: 'OpenAI', enabled: true, models: ['gpt-5.4', 'gpt-4.1'] },

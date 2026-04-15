@@ -8,8 +8,22 @@ import { config } from "../config.js";
 
 const STATE_CHANGING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
+// Auth endpoints that don't need CSRF (public or cookie-setting)
+const CSRF_EXEMPT = new Set([
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/logout",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
+]);
+
 export const csrfMiddleware: MiddlewareHandler = async (c, next) => {
   if (!STATE_CHANGING.has(c.req.method)) {
+    return next();
+  }
+
+  // Auth endpoints are CSRF-exempt (they set/clear cookies)
+  if (CSRF_EXEMPT.has(c.req.path)) {
     return next();
   }
 
@@ -20,7 +34,11 @@ export const csrfMiddleware: MiddlewareHandler = async (c, next) => {
   }
 
   const origin = c.req.header("origin");
+
+  // No origin = server-side call (Next.js server actions), allow if authenticated
   if (!origin) {
+    const hasCookie = c.req.header("cookie")?.includes("bjhunt_session");
+    if (hasCookie) return next();
     return c.json({ error: "Missing Origin header" }, 403);
   }
 
