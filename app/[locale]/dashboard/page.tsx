@@ -53,30 +53,52 @@ export default async function DashboardPage({
   let cpData: Record<string, unknown> = {}
   let healthData: { ready?: boolean; checks?: Record<string, boolean> } = {}
   if (isAdmin) {
-    const [cpRes, healthRes] = await Promise.all([
-      serverBackendFetch('/api/admin/overview', {}, cookieHeader),
+    const [usersRes, logsRes, healthRes] = await Promise.all([
+      serverBackendFetch('/api/admin/users?limit=1', {}, cookieHeader),
+      serverBackendFetch('/api/admin/settings/audit-logs?limit=5', {}, cookieHeader),
       serverBackendFetch('/api/health/ready', {}, cookieHeader),
     ])
-    if (cpRes.ok) cpData = await cpRes.json() as Record<string, unknown>
-    if (healthRes.ok) healthData = await healthRes.json() as { ready?: boolean; checks?: Record<string, boolean> }
+    if (usersRes.ok) {
+      const ud = await usersRes.json() as { total?: number }
+      cpData.counts = { users: ud.total ?? 0, activeSessions: 0, usersOnline: 0, auditLogs24h: 0 }
+    }
+    if (logsRes.ok) {
+      const ld = await logsRes.json() as { logs?: Array<Record<string, unknown>> }
+      cpData.recentLogs = ld.logs ?? []
+    }
+    if (healthRes.ok) {
+      const hd = await healthRes.json() as { status?: string; db?: string }
+      healthData = { ready: hd.status === 'ready', checks: { database: hd.db === 'connected' } }
+    }
   }
 
-  // Fetch recent scans — graceful fallback
+  // Fetch recent engagements (replaces /api/scans)
   let scans: Scan[] = [];
-  const scansRes = await serverBackendFetch("/api/scans", {}, cookieHeader);
-  if (scansRes.ok) {
-    const body = (await scansRes.json()) as { scans?: Scan[] };
-    scans = body.scans ?? [];
+  const engRes = await serverBackendFetch("/api/engagements?limit=10", {}, cookieHeader);
+  if (engRes.ok) {
+    const body = (await engRes.json()) as { engagements?: Array<Record<string, unknown>> };
+    scans = (body.engagements ?? []).map((e: any) => ({
+      id: e.id,
+      target: e.target || e.name,
+      status: e.status === "running" ? "scanning" as const : e.status === "completed" ? "complete" as const : e.status === "draft" ? "queued" as const : "error" as const,
+      result: e.status === "completed" ? "Done" : undefined,
+      duration: e.completedAt && e.startedAt ? `${Math.round((new Date(e.completedAt).getTime() - new Date(e.startedAt).getTime()) / 1000)}s` : undefined,
+      createdAt: e.createdAt,
+    }));
   }
 
   const hasScans = scans.length > 0;
 
-  // Fetch dashboard stats
+  // Dashboard stats — built from engagements + health check
   let stats: DashboardStats | null = null;
-  const statsRes = await serverBackendFetch("/api/dashboard/stats", {}, cookieHeader);
-  if (statsRes.ok) {
-    stats = (await statsRes.json()) as DashboardStats;
-  }
+  const healthRes2 = await serverBackendFetch("/api/health/ready", {}, cookieHeader);
+  const healthOk = healthRes2.ok;
+  stats = {
+    health: { status: healthOk ? 'operational' : 'down', latencyMs: 0 },
+    tokens: { used: 0, limit: 2_000_000 },
+    scans: { total: scans.length, perDay: [0, 0, 0, 0, 0, 0, scans.length], severity: { critical: 0, high: 0, medium: 0, low: 0 } },
+    plan: { slug: 'free', displayName: 'Free', scansLimit: 5 },
+  };
 
   const name = mePayload.user.displayName || mePayload.user.email.split("@")[0] || "vous";
   const healthStatus = stats?.health.status ?? 'operational';
@@ -205,7 +227,7 @@ export default async function DashboardPage({
             </span>
           </div>
           <Button asChild>
-            <a href={`${process.env.NEXT_PUBLIC_BACKEND_URL ?? 'https://api.bjhunt.com'}/api/auth/gateway-redirect`}>Nouveau scan →</a>
+            <a href={`/${locale}/dashboard/chat`}>Nouveau scan →</a>
           </Button>
         </div>
       </div>
@@ -357,7 +379,7 @@ export default async function DashboardPage({
               Aucun scan pour le moment.
             </p>
             <Button asChild>
-              <a href={`${process.env.NEXT_PUBLIC_BACKEND_URL ?? 'https://api.bjhunt.com'}/api/auth/gateway-redirect`}>Lancer votre premier scan →</a>
+              <a href={`/${locale}/dashboard/chat`}>Lancer votre premier scan →</a>
             </Button>
           </div>
         )}

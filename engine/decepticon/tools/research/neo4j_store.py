@@ -7,11 +7,11 @@ multi-agent / multi-process workloads.
 Activation is controlled by environment variables consumed by
 ``decepticon.research._state``:
 
-- ``DECEPTICON_KG_BACKEND=neo4j``
-- ``DECEPTICON_NEO4J_URI``
-- ``DECEPTICON_NEO4J_USER``
-- ``DECEPTICON_NEO4J_PASSWORD``
-- ``DECEPTICON_NEO4J_DATABASE`` (optional, default: ``neo4j``)
+- ``BJHUNT_KG_BACKEND=neo4j``
+- ``BJHUNT_NEO4J_URI``
+- ``BJHUNT_NEO4J_USER``
+- ``BJHUNT_NEO4J_PASSWORD``
+- ``BJHUNT_NEO4J_DATABASE`` (optional, default: ``neo4j``)
 
 Implementation note:
 All writes go through MERGE-based upserts (individual nodes/edges or batches).
@@ -60,18 +60,18 @@ class Neo4jConfig:
 
     @classmethod
     def from_env(cls) -> Neo4jConfig:
-        uri = os.environ.get("DECEPTICON_NEO4J_URI", "").strip()
-        user = os.environ.get("DECEPTICON_NEO4J_USER", "").strip()
-        password = os.environ.get("DECEPTICON_NEO4J_PASSWORD", "").strip()
-        database = os.environ.get("DECEPTICON_NEO4J_DATABASE", "neo4j").strip() or "neo4j"
+        uri = os.environ.get("BJHUNT_NEO4J_URI", "").strip()
+        user = os.environ.get("BJHUNT_NEO4J_USER", "").strip()
+        password = os.environ.get("BJHUNT_NEO4J_PASSWORD", "").strip()
+        database = os.environ.get("BJHUNT_NEO4J_DATABASE", "neo4j").strip() or "neo4j"
 
         missing: list[str] = []
         if not uri:
-            missing.append("DECEPTICON_NEO4J_URI")
+            missing.append("BJHUNT_NEO4J_URI")
         if not user:
-            missing.append("DECEPTICON_NEO4J_USER")
+            missing.append("BJHUNT_NEO4J_USER")
         if not password:
-            missing.append("DECEPTICON_NEO4J_PASSWORD")
+            missing.append("BJHUNT_NEO4J_PASSWORD")
 
         if missing:
             joined = ", ".join(missing)

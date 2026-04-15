@@ -57,14 +57,14 @@ class TestInterpretExitCode:
 
 class TestPS1Pattern:
     def test_matches_canonical_marker(self) -> None:
-        screen = "ls\nfoo bar\n[DCPTN:0:/workspace] "
+        screen = "ls\nfoo bar\n[BJH:0:/workspace] "
         match = PS1_PATTERN.search(screen)
         assert match is not None
         assert match.group(1) == "0"
         assert match.group(2) == "/workspace"
 
     def test_matches_nonzero_exit(self) -> None:
-        match = PS1_PATTERN.search("[DCPTN:127:/tmp] ")
+        match = PS1_PATTERN.search("[BJH:127:/tmp] ")
         assert match is not None
         assert match.group(1) == "127"
         assert match.group(2) == "/tmp"
@@ -75,16 +75,16 @@ class TestPS1Pattern:
 
 class TestExtractOutput:
     def test_single_marker_returns_full_screen_minus_marker(self) -> None:
-        screen = "command output line 1\nline 2\n[DCPTN:0:/workspace] "
+        screen = "command output line 1\nline 2\n[BJH:0:/workspace] "
         out, exit_code, cwd = _extract_output(screen, command="ls", initial_count=0)
         assert exit_code == 0
         assert cwd == "/workspace"
         assert "line 1" in out
         assert "line 2" in out
-        assert "DCPTN" not in out
+        assert "BJH" not in out
 
     def test_two_markers_returns_slice_between(self) -> None:
-        screen = "[DCPTN:0:/workspace] ls\nfile1.txt\nfile2.txt\n[DCPTN:0:/workspace] "
+        screen = "[BJH:0:/workspace] ls\nfile1.txt\nfile2.txt\n[BJH:0:/workspace] "
         out, exit_code, cwd = _extract_output(screen, command="ls", initial_count=1)
         assert exit_code == 0
         assert cwd == "/workspace"
@@ -100,20 +100,20 @@ class TestExtractOutput:
     def test_strips_echoed_command(self) -> None:
         # Single echo of the command (typical tmux capture):
         # the helper strips exactly one leading line if it ends with the command.
-        screen = "echo hi\nhi\n[DCPTN:0:/workspace] "
+        screen = "echo hi\nhi\n[BJH:0:/workspace] "
         out, exit_code, _ = _extract_output(screen, command="echo hi", initial_count=0)
         assert exit_code == 0
         lines = out.split("\n")
         assert lines == ["hi"]
 
     def test_does_not_strip_when_first_line_unrelated(self) -> None:
-        screen = "unrelated banner\nhi\n[DCPTN:0:/workspace] "
+        screen = "unrelated banner\nhi\n[BJH:0:/workspace] "
         out, _, _ = _extract_output(screen, command="echo hi", initial_count=0)
         # First line does not end with command — must be preserved
         assert out.split("\n")[0] == "unrelated banner"
 
     def test_nonzero_exit_code(self) -> None:
-        screen = "error: file not found\n[DCPTN:1:/workspace] "
+        screen = "error: file not found\n[BJH:1:/workspace] "
         out, exit_code, cwd = _extract_output(screen, command="cat missing", initial_count=0)
         assert exit_code == 1
         assert "error" in out
@@ -150,12 +150,12 @@ class TestTruncate:
 
 class TestExtractInteractiveOutput:
     def test_returns_content_after_marker_in_baseline(self) -> None:
-        baseline = "old output\n[DCPTN:0:/workspace] "
-        screen = "old output\n[DCPTN:0:/workspace] msfconsole\n\nmsf6 > "
+        baseline = "old output\n[BJH:0:/workspace] "
+        screen = "old output\n[BJH:0:/workspace] msfconsole\n\nmsf6 > "
         result = _extract_interactive_output(screen, baseline)
         assert "msf6" in result
         # PS1 marker should not appear in extracted output
-        assert "DCPTN" not in result or "msf6" in result
+        assert "BJH" not in result or "msf6" in result
 
     def test_no_marker_falls_back_to_diff(self) -> None:
         baseline = "line1\nline2"

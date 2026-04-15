@@ -59,7 +59,7 @@ def create_defender_agent():
       - No SubAgentMiddleware: Decepticon orchestrator handles agent delegation
 
     NOTE: The defense backend uses the same sandbox container as the recon agent.
-    In production, point DECEPTICON_DOCKER__SANDBOX_CONTAINER_NAME (or a dedicated
+    In production, point BJHUNT_DOCKER__SANDBOX_CONTAINER_NAME (or a dedicated
     defense container env var) at the hardened target container, not the attacker sandbox.
     """
     config = load_config()
@@ -76,7 +76,7 @@ def create_defender_agent():
 
     # Build DockerDefenseBackend and inject into defense tools.
     # NOTE: In production, this should target a separate defense/hardening container,
-    # not the offensive sandbox. Override DECEPTICON_DOCKER__SANDBOX_CONTAINER_NAME
+    # not the offensive sandbox. Override BJHUNT_DOCKER__SANDBOX_CONTAINER_NAME
     # or configure a dedicated container name for the defender.
     defense_backend = DockerDefenseBackend(
         container_name=config.docker.sandbox_container_name,

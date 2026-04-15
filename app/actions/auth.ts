@@ -50,7 +50,7 @@ export async function registerAction(email: string, password: string, displayNam
     '/api/auth/register',
     {
       method: 'POST',
-      body: JSON.stringify({ email, password, display_name: displayName }),
+      body: JSON.stringify({ email, password, displayName }),
     },
     undefined,
     process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.bjhunt.com'

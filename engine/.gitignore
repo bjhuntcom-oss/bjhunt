@@ -78,7 +78,7 @@ config/*.local.*
 reference/
 demo.tape
 
-# Decepticon runtime data
+# BJHUNT runtime data
 .decepticon/
 workspace/
 .bg-shell/

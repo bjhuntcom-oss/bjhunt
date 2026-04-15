@@ -12,16 +12,16 @@ export default async function AdminLogsPage({
   const cookieHeader = (await headers()).get('cookie') ?? ''
   if (!cookieHeader) redirect(`/${locale}/login`)
 
-  const [logsRes, overviewRes] = await Promise.all([
-    serverBackendFetch('/api/admin/audit-logs?limit=50&offset=0', {}, cookieHeader),
-    serverBackendFetch('/api/admin/overview', {}, cookieHeader),
+  const [logsRes, usersRes] = await Promise.all([
+    serverBackendFetch('/api/admin/settings/audit-logs?limit=50', {}, cookieHeader),
+    serverBackendFetch('/api/admin/users?limit=200', {}, cookieHeader),
   ])
 
   const initial = logsRes.ok
     ? await logsRes.json()
     : { logs: [], total: 0, limit: 50, offset: 0 }
-  const overviewData = overviewRes.ok ? await overviewRes.json() : {}
-  const users: { id: string; email: string }[] = (overviewData.users ?? []).map(
+  const usersData = usersRes.ok ? await usersRes.json() : { users: [] }
+  const users: { id: string; email: string }[] = (usersData.users ?? []).map(
     (u: { id: string; email: string }) => ({ id: u.id, email: u.email })
   )
 

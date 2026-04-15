@@ -1,7 +1,7 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "decepticon": "./decepticon/agents/decepticon.py:graph",
+    "bjhunt": "./decepticon/agents/decepticon.py:graph",
     "recon": "./decepticon/agents/recon.py:graph",
     "soundwave": "./decepticon/agents/soundwave.py:graph",
     "exploit": "./decepticon/agents/exploit.py:graph",
@@ -18,6 +18,9 @@
     "patcher": "./decepticon/agents/patcher.py:graph",
     "exploiter": "./decepticon/agents/exploiter.py:graph",
     "defender": "./decepticon/agents/defender.py:graph"
+  },
+  "auth": {
+    "path": "./decepticon/middleware/api_auth.py:auth"
   },
   "env": ".env",
   "python_version": "3.13"

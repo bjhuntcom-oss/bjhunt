@@ -12,11 +12,19 @@ Architecture:
 from __future__ import annotations
 
 import asyncio
+import re
+import shlex
 import subprocess
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 
 from decepticon.core.logging import get_logger
+
+# ── Input validation patterns ────────────────────────────────────────────────
+_SAFE_SERVICE_NAME = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._@:-]*$")
+_SAFE_PORT = re.compile(r"^\d{1,5}$")
+_SAFE_PROTO = re.compile(r"^(tcp|udp|icmp)$")
+_SAFE_PATH = re.compile(r"^/[a-zA-Z0-9_./-]+$")
 from decepticon.schemas.defense_brief import (
     DefenseActionResult,
     DefenseActionType,
@@ -214,8 +222,20 @@ class DockerDefenseBackend(AbstractDefenseBackend):
         else:
             proto, port = "tcp", parts[0]
 
-        apply_cmd = f"iptables -A INPUT -p {proto} --dport {port} -j DROP"
-        rollback_cmd = f"iptables -D INPUT -p {proto} --dport {port} -j DROP"
+        # Validate inputs to prevent command injection
+        if not _SAFE_PROTO.match(proto):
+            return self._make_result(
+                action, success=False,
+                message=f"Invalid protocol: {proto!r}", rollback_command=None,
+            )
+        if not _SAFE_PORT.match(port):
+            return self._make_result(
+                action, success=False,
+                message=f"Invalid port: {port!r}", rollback_command=None,
+            )
+
+        apply_cmd = f"iptables -A INPUT -p {shlex.quote(proto)} --dport {shlex.quote(port)} -j DROP"
+        rollback_cmd = f"iptables -D INPUT -p {shlex.quote(proto)} --dport {shlex.quote(port)} -j DROP"
 
         rc, output = await self._exec(apply_cmd)
         success = rc == 0
@@ -240,6 +260,15 @@ class DockerDefenseBackend(AbstractDefenseBackend):
                 action,
                 success=False,
                 message="Missing required parameter 'rule'",
+                rollback_command=None,
+            )
+
+        # Reject shell metacharacters in firewall rules
+        if any(c in rule for c in ";|&$`\n\\"):
+            return self._make_result(
+                action,
+                success=False,
+                message="Firewall rule contains forbidden shell characters",
                 rollback_command=None,
             )
 
@@ -268,8 +297,14 @@ class DockerDefenseBackend(AbstractDefenseBackend):
         target: service name, e.g. 'sshd'
         """
         service = action.target
-        apply_cmd = f"systemctl stop {service} && systemctl disable {service}"
-        rollback_cmd = f"systemctl enable {service} && systemctl start {service}"
+        if not _SAFE_SERVICE_NAME.match(service):
+            return self._make_result(
+                action, success=False,
+                message=f"Invalid service name: {service!r}", rollback_command=None,
+            )
+        safe_svc = shlex.quote(service)
+        apply_cmd = f"systemctl stop {safe_svc} && systemctl disable {safe_svc}"
+        rollback_cmd = f"systemctl enable {safe_svc} && systemctl start {safe_svc}"
 
         rc, output = await self._exec(apply_cmd)
         success = rc == 0
@@ -291,7 +326,12 @@ class DockerDefenseBackend(AbstractDefenseBackend):
         target: service name, e.g. 'nginx'
         """
         service = action.target
-        apply_cmd = f"systemctl restart {service}"
+        if not _SAFE_SERVICE_NAME.match(service):
+            return self._make_result(
+                action, success=False,
+                message=f"Invalid service name: {service!r}", rollback_command=None,
+            )
+        apply_cmd = f"systemctl restart {shlex.quote(service)}"
 
         rc, output = await self._exec(apply_cmd)
         success = rc == 0
@@ -313,7 +353,13 @@ class DockerDefenseBackend(AbstractDefenseBackend):
         target: process name or pattern, e.g. 'malware_payload'
         """
         process = action.target
-        apply_cmd = f"pkill -f {process}"
+        # Reject shell metacharacters and overly broad patterns
+        if any(c in process for c in ";|&$`\n\\") or process in (".*", "*", ""):
+            return self._make_result(
+                action, success=False,
+                message=f"Invalid process pattern: {process!r}", rollback_command=None,
+            )
+        apply_cmd = f"pkill -f {shlex.quote(process)}"
 
         rc, output = await self._exec(apply_cmd)
         # pkill returns 1 if no processes matched — treat as partial success
@@ -351,18 +397,30 @@ class DockerDefenseBackend(AbstractDefenseBackend):
                 rollback_command=None,
             )
 
+        # Validate path to prevent injection
+        if not _SAFE_PATH.match(path):
+            return self._make_result(
+                action,
+                success=False,
+                message=f"Invalid config path: {path!r} — must be absolute, alphanumeric",
+                rollback_command=None,
+            )
+
+        safe_path = shlex.quote(path)
+
         # Back up existing file before overwriting
         backup_path = f"{path}.dcptn_bak"
-        backup_cmd = f"cp {path} {backup_path} 2>/dev/null || true"
+        safe_backup = shlex.quote(backup_path)
+        backup_cmd = f"cp {safe_path} {safe_backup} 2>/dev/null || true"
         await self._exec(backup_cmd)
 
         # Write new content via printf to handle special characters safely
         escaped = content.replace("'", "'\\''")
-        write_cmd = f"printf '%s' '{escaped}' > {path}"
+        write_cmd = f"printf '%s' '{escaped}' > {safe_path}"
         rc, output = await self._exec(write_cmd)
 
         success = rc == 0
-        rollback_cmd = f"cp {backup_path} {path} && rm -f {backup_path}" if success else None
+        rollback_cmd = f"cp {safe_backup} {safe_path} && rm -f {safe_backup}" if success else None
         message = (
             output
             if output
@@ -388,12 +446,23 @@ class DockerDefenseBackend(AbstractDefenseBackend):
 
         if cred_type == "ssh_key" or target.startswith("key:"):
             key_path = target.removeprefix("key:")
-            apply_cmd = f"rm -f {key_path}"
+            if not _SAFE_PATH.match(key_path):
+                return self._make_result(
+                    action, success=False,
+                    message=f"Invalid key path: {key_path!r}", rollback_command=None,
+                )
+            apply_cmd = f"rm -f {shlex.quote(key_path)}"
         elif cred_type == "user_account" or target.startswith("user:"):
             username = target.removeprefix("user:")
-            apply_cmd = f"usermod -L {username}"
+            if not _SAFE_SERVICE_NAME.match(username):
+                return self._make_result(
+                    action, success=False,
+                    message=f"Invalid username: {username!r}", rollback_command=None,
+                )
+            apply_cmd = f"usermod -L {shlex.quote(username)}"
         else:
-            apply_cmd = f"passwd -l {target} 2>/dev/null || usermod -L {target} 2>/dev/null"
+            safe_target = shlex.quote(target)
+            apply_cmd = f"passwd -l {safe_target} 2>/dev/null || usermod -L {safe_target} 2>/dev/null"
 
         rc, output = await self._exec(apply_cmd)
         success = rc == 0
@@ -481,7 +550,9 @@ class DockerDefenseBackend(AbstractDefenseBackend):
         if result.action_type == DefenseActionType.BLOCK_PORT:
             parts = result.target.split("/")
             proto, port = (parts[0].lower(), parts[1]) if len(parts) == 2 else ("tcp", parts[0])
-            cmd = f"iptables -C INPUT -p {proto} --dport {port} -j DROP"
+            if not _SAFE_PROTO.match(proto) or not _SAFE_PORT.match(port):
+                return False
+            cmd = f"iptables -C INPUT -p {shlex.quote(proto)} --dport {shlex.quote(port)} -j DROP"
             rc, _ = await self._exec(cmd)
             return rc == 0
 
@@ -498,27 +569,33 @@ class DockerDefenseBackend(AbstractDefenseBackend):
 
         if result.action_type == DefenseActionType.DISABLE_SERVICE:
             service = result.target
-            cmd = f"systemctl is-active {service}"
+            if not _SAFE_SERVICE_NAME.match(service):
+                return False
+            cmd = f"systemctl is-active {shlex.quote(service)}"
             rc, output = await self._exec(cmd)
-            # Service should be inactive (stopped) — is-active returns non-zero when inactive
             return rc != 0 and output.strip() in ("inactive", "failed", "unknown")
 
         if result.action_type == DefenseActionType.RESTART_SERVICE:
             service = result.target
-            cmd = f"systemctl is-active {service}"
+            if not _SAFE_SERVICE_NAME.match(service):
+                return False
+            cmd = f"systemctl is-active {shlex.quote(service)}"
             rc, _ = await self._exec(cmd)
             return rc == 0
 
         if result.action_type == DefenseActionType.KILL_PROCESS:
             process = result.target
-            cmd = f"pgrep -f {process}"
+            if any(c in process for c in ";|&$`\n\\"):
+                return False
+            cmd = f"pgrep -f {shlex.quote(process)}"
             rc, _ = await self._exec(cmd)
-            # Process is gone if pgrep finds nothing (exit 1)
             return rc != 0
 
         if result.action_type == DefenseActionType.UPDATE_CONFIG:
             path = result.target
-            cmd = f"test -f {path}"
+            if not _SAFE_PATH.match(path):
+                return False
+            cmd = f"test -f {shlex.quote(path)}"
             rc, _ = await self._exec(cmd)
             return rc == 0
 
@@ -526,13 +603,16 @@ class DockerDefenseBackend(AbstractDefenseBackend):
             target = result.target
             if target.startswith("user:"):
                 username = target.removeprefix("user:")
-                cmd = f"passwd -S {username}"
+                if not _SAFE_SERVICE_NAME.match(username):
+                    return False
+                cmd = f"passwd -S {shlex.quote(username)}"
                 rc, output = await self._exec(cmd)
-                # 'L' in output means account is locked
                 return rc == 0 and " L " in output
             if target.startswith("key:"):
                 key_path = target.removeprefix("key:")
-                cmd = f"test ! -f {key_path}"
+                if not _SAFE_PATH.match(key_path):
+                    return False
+                cmd = f"test ! -f {shlex.quote(key_path)}"
                 rc, _ = await self._exec(cmd)
                 return rc == 0
             return False

@@ -14,7 +14,10 @@ export async function browserBackendFetch(path: string, init: RequestInit = {}) 
     headers.set('Content-Type', 'application/json')
   }
 
-  return fetch(path, {
+  // Use absolute URL so cookies are sent correctly cross-domain
+  const url = path.startsWith('http') ? path : `${getBackendBaseUrl()}${path}`
+
+  return fetch(url, {
     ...init,
     credentials: 'include',
     headers,

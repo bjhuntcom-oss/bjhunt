@@ -111,7 +111,7 @@ demo:
 	$(COMPOSE) --profile victims up -d
 	@echo "Waiting for services..."
 	@until curl -sf http://localhost:$${LANGGRAPH_PORT:-2024}/ok >/dev/null 2>&1; do sleep 2; done
-	$(COMPOSE_CLI) run --rm -e DECEPTICON_INITIAL_MESSAGE="Resume the demo engagement and execute all objectives." cli
+	$(COMPOSE_CLI) run --rm -e BJHUNT_INITIAL_MESSAGE="Resume the demo engagement and execute all objectives." cli
 
 # ── Cleanup ──────────────────────────────────────────────────────
 

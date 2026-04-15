@@ -115,8 +115,8 @@ class TestConfigureLogging:
         assert root.level == logging.WARNING
 
     def test_env_var_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("DECEPTICON_LOG_FORMAT", "json")
-        monkeypatch.setenv("DECEPTICON_LOG_LEVEL", "DEBUG")
+        monkeypatch.setenv("BJHUNT_LOG_FORMAT", "json")
+        monkeypatch.setenv("BJHUNT_LOG_LEVEL", "DEBUG")
         dlog.configure_logging()
         root = logging.getLogger("decepticon")
         assert root.level == logging.DEBUG

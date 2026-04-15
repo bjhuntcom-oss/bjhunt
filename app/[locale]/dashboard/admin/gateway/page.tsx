@@ -13,15 +13,21 @@ export default async function AdminGatewayPage({
   const cookieHeader = (await headers()).get('cookie') ?? ''
   if (!cookieHeader) redirect(`/${locale}/login`)
 
-  const [gatewayRes, ollamaRes] = await Promise.all([
-    serverBackendFetch('/api/admin/gateway/config', {}, cookieHeader),
-    serverBackendFetch('/api/admin/ollama/models', {}, cookieHeader),
-  ])
+  const settingsRes = await serverBackendFetch('/api/admin/settings', {}, cookieHeader)
+  const settingsData = settingsRes.ok ? await settingsRes.json() : { settings: [] }
 
-  const config = gatewayRes.ok
-    ? await gatewayRes.json()
-    : { providers: {}, defaults: { model: '' }, ui: { assistant: { name: 'BJHUNT', avatar: 'B' } } }
-  const ollamaData = ollamaRes.ok ? await ollamaRes.json() : { models: [] }
+  // Build gateway config from platform settings
+  const gatewayConfig = settingsData.settings?.find?.((s: any) => s.key === 'gateway_config')
+  const config = gatewayConfig?.value ?? {
+    providers: {
+      anthropic: { name: 'Anthropic', enabled: true, models: ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5'] },
+      openai: { name: 'OpenAI', enabled: true, models: ['gpt-5.4', 'gpt-4.1'] },
+      'ollama-cloud': { name: 'Ollama Cloud', enabled: true, models: ['deepseek-v3.2', 'kimi-k2'] },
+    },
+    defaults: { model: 'claude-sonnet-4-6' },
+    ui: { assistant: { name: 'BJHUNT ALPHA 1.0', avatar: 'B' } },
+  }
+  const ollamaData = { models: [] }
 
   return (
     <div className="p-6 md:p-8 max-w-5xl">

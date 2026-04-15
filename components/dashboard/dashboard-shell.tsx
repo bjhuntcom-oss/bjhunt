@@ -18,7 +18,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
-  Cpu,
 } from "lucide-react";
 
 const COLLAPSE_KEY = "bjhunt:sidebar-collapsed";
@@ -33,10 +32,8 @@ interface DashboardShellProps {
   children: React.ReactNode;
 }
 
-const GATEWAY_REDIRECT_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL ?? 'https://api.bjhunt.com'}/api/auth/gateway-redirect`
-
 const getUserNav = (locale: string) => [
-  { href: GATEWAY_REDIRECT_URL,       label: "Chat AI",                                          icon: MessageSquare, external: true },
+  { href: "/dashboard/chat",          label: "Chat AI",                                          icon: MessageSquare },
   { href: "/dashboard",               label: locale === "fr" ? "Aperçu" : "Overview",            icon: BarChart2     },
   { href: "/dashboard/audits",        label: "Audits",                                           icon: ShieldCheck   },
   { href: "/dashboard/settings",      label: locale === "fr" ? "Paramètres" : "Settings",        icon: Settings      },
@@ -45,8 +42,7 @@ const getUserNav = (locale: string) => [
 const getAdminNav = (locale: string) => [
   { href: "/dashboard/admin/users",      label: locale === "fr" ? "Utilisateurs" : "Users",  icon: Users      },
   { href: "/dashboard/admin/agents",     label: "Agents",                                     icon: Bot        },
-  { href: "/dashboard/admin/gateway",    label: "Gateway",                                    icon: Network    },
-  { href: "/dashboard/admin/llm",          label: "LLM Config",                                 icon: Cpu        },
+  { href: "/dashboard/admin/gateway",    label: "LLM Gateway",                                icon: Network    },
   { href: "/dashboard/admin/logs",       label: "Logs",                                       icon: ScrollText },
   { href: "/dashboard/admin/monitoring", label: "Monitoring",                                 icon: Activity   },
   { href: "/dashboard/admin/settings",   label: locale === "fr" ? "Paramètres" : "Settings", icon: Settings   },

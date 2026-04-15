@@ -23,11 +23,18 @@ export default async function AdminUsersPage({
 
   if (!cookieHeader) redirect(`/${locale}/login`)
 
-  const cpResponse = await serverBackendFetch('/api/admin/overview', {}, cookieHeader)
-  const cpData = cpResponse.ok ? await cpResponse.json() : {}
+  const usersRes = await serverBackendFetch('/api/admin/users', {}, cookieHeader)
+  const cpData = usersRes.ok ? await usersRes.json() : { users: [], total: 0 }
 
-  const users: User[] = cpData.users ?? []
-  const counts = cpData.counts ?? {}
+  const users: User[] = (cpData.users ?? []).map((u: any) => ({
+    id: u.id,
+    email: u.email,
+    displayName: u.displayName || u.email.split('@')[0],
+    role: u.isPlatformAdmin ? 'platform_admin' : u.role,
+    status: 'active',
+    sessions: { lastLoginAt: null, isOnline: false },
+  }))
+  const counts = { users: cpData.total ?? 0 }
 
   const total    = counts.users         ?? users.length
   const active   = counts.usersActive   ?? users.filter((u) => u.status === 'active').length

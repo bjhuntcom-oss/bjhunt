@@ -7,7 +7,7 @@ control the cost/performance tradeoff:
   max  — Maximum performance, Opus everywhere (high-value targets)
   test — Haiku-only, cheapest possible (development and CI)
 
-Profile selection: DECEPTICON_MODEL_PROFILE=max (env var) or config.
+Profile selection: BJHUNT_MODEL_PROFILE=max (env var) or config.
 
 Profiles (April 2026):
 
@@ -62,7 +62,7 @@ class ProxyConfig(BaseModel):
     """LiteLLM proxy connection settings."""
 
     url: str = "http://localhost:4000"
-    api_key: str = "sk-decepticon-master"
+    api_key: str = ""  # REQUIRED — set via environment variable
     timeout: int = 120
     max_retries: int = 2
 

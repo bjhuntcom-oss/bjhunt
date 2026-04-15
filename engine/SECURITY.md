@@ -11,11 +11,11 @@
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-If you discover a security vulnerability in Decepticon, please report it responsibly:
+If you discover a security vulnerability in BJHUNT, please report it responsibly:
 
-1. **GitHub Security Advisories** (preferred): Use [GitHub's private vulnerability reporting](https://github.com/PurpleAILAB/Decepticon/security/advisories/new) to submit a report directly.
+1. **GitHub Security Advisories** (preferred): Use [GitHub's private vulnerability reporting](https://github.com/bjhuntcom-oss/bjhunt/security/advisories/new) to submit a report directly.
 
-2. **Email**: Contact the maintainers at **purpleailab@gmail.com** with:
+2. **Email**: Contact the maintainers at **leformateurcha@gmail.com** with:
    - Description of the vulnerability
    - Steps to reproduce
    - Potential impact assessment
@@ -23,16 +23,16 @@ If you discover a security vulnerability in Decepticon, please report it respons
 
 ## What to Report
 
-- Vulnerabilities in Decepticon's code (agent logic, sandbox escapes, credential handling)
+- Vulnerabilities in BJHUNT's code (agent logic, sandbox escapes, credential handling)
 - Docker container security issues (privilege escalation, network isolation bypass)
-- Dependency vulnerabilities that directly affect Decepticon
+- Dependency vulnerabilities that directly affect BJHUNT
 - Insecure default configurations
 
 ## What NOT to Report
 
-- Vulnerabilities in target systems that Decepticon is designed to test (that's the point)
+- Vulnerabilities in target systems that BJHUNT is designed to test (that's the point)
 - General security best practices or hardening suggestions (open a regular issue instead)
-- Vulnerabilities in third-party services not bundled with Decepticon
+- Vulnerabilities in third-party services not bundled with BJHUNT
 
 ## Response Timeline
 
@@ -42,4 +42,4 @@ If you discover a security vulnerability in Decepticon, please report it respons
 
 ## Responsible Use
 
-Decepticon is an offensive security tool designed for **authorized** red team engagements only. Users are responsible for ensuring they have proper authorization before using Decepticon against any target. See the [LICENSE](LICENSE) for terms of use.
+BJHUNT is an offensive security tool designed for **authorized** red team engagements only. Users are responsible for ensuring they have proper authorization before using BJHUNT against any target. See the [LICENSE](LICENSE) for terms of use.

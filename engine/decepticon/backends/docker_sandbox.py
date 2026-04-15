@@ -30,7 +30,7 @@ from deepagents.backends.protocol import (
 )
 from deepagents.backends.sandbox import BaseSandbox
 
-log = logging.getLogger("decepticon.backends.docker_sandbox")
+log = logging.getLogger("bjhunt.backends.docker_sandbox")
 
 
 @functools.lru_cache(maxsize=1)
@@ -43,7 +43,7 @@ def _docker_cfg():
 
 # ─── Constants ───────────────────────────────────────────────────────────
 
-PS1_PATTERN = re.compile(r"\[DCPTN:(\d+):(.+?)\]")
+PS1_PATTERN = re.compile(r"\[BJH:(\d+):(.+?)\]")
 
 # Backwards-compatible module-level defaults. Code that reads these at
 # import time gets the hardcoded values; runtime code should prefer
@@ -177,14 +177,14 @@ class TmuxSessionManager:
             time.sleep(0.3)
 
         # Inject PS1 marker + disable PS2 + clear screen
-        ps1_cmd = "export PROMPT_COMMAND='export PS1=\"[DCPTN:$?:$PWD] \"'; export PS2=''; clear"
+        ps1_cmd = "export PROMPT_COMMAND='export PS1=\"[BJH:$?:$PWD] \"'; export PS2=''; clear"
         self._send(ps1_cmd)
         time.sleep(0.5)
         self._clear_screen()
         time.sleep(0.2)
 
         if not session_exists:
-            log_path = f"/tmp/.dcptn_log_{self.session}"
+            log_path = f"/tmp/.bjh_log_{self.session}"
             try:
                 self._docker_tmux(
                     [
@@ -587,11 +587,15 @@ class DockerSandbox(BaseSandbox):
     support interactive input.
     """
 
+    _VALID_CONTAINER_NAME = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
+
     def __init__(
         self,
         container_name: str = "decepticon-sandbox",
         default_timeout: int = 120,
     ) -> None:
+        if not self._VALID_CONTAINER_NAME.match(container_name):
+            raise ValueError(f"Invalid container name: {container_name!r}")
         self._container_name = container_name
         self._default_timeout = default_timeout
         self._managers: dict[str, TmuxSessionManager] = {}
@@ -637,7 +641,8 @@ class DockerSandbox(BaseSandbox):
     def upload_files(self, files: list[tuple[str, bytes]]) -> list[FileUploadResponse]:
         responses: list[FileUploadResponse] = []
         for path, content in files:
-            if not path.startswith("/"):
+            # Validate: absolute path, no shell metacharacters, no traversal
+            if not path.startswith("/") or ".." in path or any(c in path for c in ";|&$`\n"):
                 responses.append(FileUploadResponse(path=path, error="invalid_path"))
                 continue
             with tempfile.NamedTemporaryFile(delete=False) as tmp:
@@ -659,7 +664,8 @@ class DockerSandbox(BaseSandbox):
     def download_files(self, paths: list[str]) -> list[FileDownloadResponse]:
         responses: list[FileDownloadResponse] = []
         for path in paths:
-            if not path.startswith("/"):
+            # Validate: absolute path, no traversal, no shell metacharacters
+            if not path.startswith("/") or ".." in path or any(c in path for c in ";|&$`\n"):
                 responses.append(
                     FileDownloadResponse(path=path, content=None, error="invalid_path")
                 )

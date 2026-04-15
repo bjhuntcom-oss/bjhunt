@@ -15,8 +15,9 @@ export default async function AuditsPage({
   const meRes = await serverBackendFetch('/api/auth/me', {}, cookieHeader)
   if (!meRes.ok) redirect(`/${locale}/login`)
 
-  const runsRes = await serverBackendFetch('/api/audit/runs?limit=20&offset=0', {}, cookieHeader)
-  const data = runsRes.ok ? await runsRes.json() : { runs: [], total: 0 }
+  const engRes = await serverBackendFetch('/api/engagements?limit=20', {}, cookieHeader)
+  const engData = engRes.ok ? await engRes.json() : { engagements: [] }
+  const data = { runs: engData.engagements ?? [], total: (engData.engagements ?? []).length }
 
   return (
     <div className="p-6 md:p-8 max-w-5xl">

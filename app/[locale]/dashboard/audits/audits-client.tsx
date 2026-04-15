@@ -49,13 +49,14 @@ export function AuditsClient({
 
   const handleCreate = () => {
     startTransition(async () => {
-      const res = await browserBackendFetch('/api/audit/runs', {
+      const res = await browserBackendFetch('/api/engagements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: form.title, target: form.target || undefined }),
+        body: JSON.stringify({ name: form.title, target: form.target || 'pending' }),
       })
       if (!res.ok) return
-      const { run } = await res.json()
+      const { engagement } = await res.json()
+      const run = { ...engagement, title: engagement.name }
       setRuns((prev) => [run, ...prev])
       setTotal((t) => t + 1)
       setForm({ title: '', target: '' })
@@ -66,9 +67,14 @@ export function AuditsClient({
   const handleCancel = (id: string) => {
     if (!confirm('Annuler cet audit ?')) return
     startTransition(async () => {
-      const res = await browserBackendFetch(`/api/audit/runs/${id}/cancel`, { method: 'POST' })
+      const res = await browserBackendFetch(`/api/engagements/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' }),
+      })
       if (!res.ok) return
-      const { run } = await res.json()
+      const { engagement } = await res.json()
+      const run = { ...engagement, title: engagement.name }
       setRuns((prev) => prev.map((r) => (r.id === id ? run : r)))
     })
   }

@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 # generic SKILLS_SYSTEM_PROMPT. Uses {skills_locations} and {skills_list}
 # placeholders that the base class populates.
 
-DECEPTICON_SKILLS_PROMPT = """
+BJHUNT_SKILLS_PROMPT = """
 <SKILLS>
 ## Red Team Knowledge Base — Progressive Disclosure
 
@@ -110,7 +110,7 @@ class DecepticonSkillsMiddleware(SkillsMiddleware):
 
     def __init__(self, *, backend, sources: list[str]) -> None:
         super().__init__(backend=backend, sources=sources)
-        self.system_prompt_template = DECEPTICON_SKILLS_PROMPT
+        self.system_prompt_template = BJHUNT_SKILLS_PROMPT
 
     def _format_skills_list(self, skills: list[SkillMetadata]) -> str:
         """Format skills grouped by subdomain with MITRE ATT&CK tags.

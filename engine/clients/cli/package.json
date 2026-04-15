@@ -1,11 +1,11 @@
 {
-  "name": "@decepticon/cli",
+  "name": "@bjhunt/cli",
   "version": "1.0.0",
-  "description": "Decepticon Ink CLI — terminal interface for LangGraph Platform agents",
+  "description": "BJHUNT ALPHA 1.0 CLI",
   "type": "module",
   "main": "src/index.tsx",
   "bin": {
-    "decepticon-ink": "src/index.tsx"
+    "bjhunt-cli": "src/index.tsx"
   },
   "scripts": {
     "start": "node --import tsx/esm src/index.tsx",

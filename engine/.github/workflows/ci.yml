@@ -103,18 +103,18 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: false
           load: true
-          tags: decepticon-${{ matrix.image }}:ci
+          tags: bjhunt-${{ matrix.image }}:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Trivy image scan
         uses: aquasecurity/trivy-action@0.35.0
         with:
-          image-ref: decepticon-${{ matrix.image }}:ci
+          image-ref: bjhunt-${{ matrix.image }}:ci
           format: sarif
           output: trivy-${{ matrix.image }}.sarif
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          exit-code: "0"
+          exit-code: "1"
       - name: Upload Trivy SARIF
         if: always()
         uses: actions/upload-artifact@v4
@@ -141,10 +141,9 @@ jobs:
       - name: Export requirements
         run: uv export --format requirements-txt --no-hashes --no-dev > requirements.txt
       - name: Run pip-audit
-        run: uv tool run pip-audit --requirement requirements.txt --ignore-vuln GHSA-xxxx-xxxx-xxxx || true
+        run: uv tool run pip-audit --requirement requirements.txt
       - name: Gitleaks
         uses: gitleaks/gitleaks-action@v2
-        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}

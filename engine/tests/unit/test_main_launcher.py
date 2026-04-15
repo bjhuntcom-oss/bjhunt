@@ -37,7 +37,7 @@ class TestResolveEnv:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.delenv("LANGGRAPH_PORT", raising=False)
-        monkeypatch.delenv("DECEPTICON_HOME", raising=False)
+        monkeypatch.delenv("BJHUNT_HOME", raising=False)
         monkeypatch.setenv("HOME", str(tmp_path))  # so ~ expansion is deterministic
         port, home = _resolve_env(tmp_path)
         assert port == 2024
@@ -47,9 +47,9 @@ class TestResolveEnv:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.delenv("LANGGRAPH_PORT", raising=False)
-        monkeypatch.delenv("DECEPTICON_HOME", raising=False)
+        monkeypatch.delenv("BJHUNT_HOME", raising=False)
         workspace = tmp_path / "custom"
-        (tmp_path / ".env").write_text(f"LANGGRAPH_PORT=9999\nDECEPTICON_HOME={workspace}\n")
+        (tmp_path / ".env").write_text(f"LANGGRAPH_PORT=9999\nBJHUNT_HOME={workspace}\n")
         port, home = _resolve_env(tmp_path)
         assert port == 9999
         assert home == workspace.resolve()
@@ -63,7 +63,7 @@ class TestResolveEnv:
     def test_tilde_is_expanded(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         # Compose cannot expand ~; the launcher must.
         monkeypatch.setenv("HOME", str(tmp_path))
-        monkeypatch.setenv("DECEPTICON_HOME", "~/.decepticon")
+        monkeypatch.setenv("BJHUNT_HOME", "~/.decepticon")
         _, home = _resolve_env(tmp_path)
         assert str(home).startswith(str(tmp_path))
         assert "~" not in str(home)

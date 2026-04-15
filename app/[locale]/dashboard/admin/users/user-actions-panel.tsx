@@ -18,10 +18,11 @@ export function UserActionsPanel({ userId, isBlocked }: Props) {
 
   const handleToggleBlock = async () => {
     setActionError(null)
+    // Toggle role to 'viewer' (blocked) or 'member' (active)
     const res = await browserBackendFetch(`/api/admin/users/${userId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: isBlocked ? 'active' : 'suspended' }),
+      body: JSON.stringify({ role: isBlocked ? 'member' : 'viewer' }),
     })
     if (!res.ok) { setActionError('Erreur'); return }
     startTransition(() => router.refresh())

@@ -99,7 +99,7 @@ function extractText(content: LangChainMessage["content"]): string {
 const ASSISTANT_ID = "decepticon";
 
 export function useAgent({
-  apiUrl = process.env.DECEPTICON_API_URL || "http://localhost:2024",
+  apiUrl = process.env.BJHUNT_API_URL || "http://localhost:2024",
 }: UseAgentOptions = {}): UseAgentReturn {
   const clientRef = useRef(new Client({ apiUrl }));
   const threadIdRef = useRef<string | null>(null);

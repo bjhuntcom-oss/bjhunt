@@ -17,13 +17,13 @@ jobs:
     strategy:
       matrix:
         include:
-          - image: decepticon-langgraph
+          - image: bjhunt-langgraph
             dockerfile: containers/langgraph.Dockerfile
             platforms: linux/amd64,linux/arm64
-          - image: decepticon-sandbox
+          - image: bjhunt-sandbox
             dockerfile: containers/sandbox.Dockerfile
             platforms: linux/amd64
-          - image: decepticon-cli
+          - image: bjhunt-cli
             dockerfile: containers/cli.Dockerfile
             platforms: linux/amd64,linux/arm64
     steps:
@@ -57,8 +57,8 @@ jobs:
           provenance: mode=max
           sbom: true
           tags: |
-            ghcr.io/purpleailab/${{ matrix.image }}:${{ steps.version.outputs.version }}
-            ghcr.io/purpleailab/${{ matrix.image }}:latest
+            ghcr.io/bjhuntcom-oss/${{ matrix.image }}:${{ steps.version.outputs.version }}
+            ghcr.io/bjhuntcom-oss/${{ matrix.image }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -68,12 +68,12 @@ jobs:
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           cosign sign --yes \
-            "ghcr.io/purpleailab/${{ matrix.image }}@${DIGEST}"
+            "ghcr.io/bjhuntcom-oss/${{ matrix.image }}@${DIGEST}"
 
       - name: Generate CycloneDX SBOM
         uses: anchore/sbom-action@v0
         with:
-          image: ghcr.io/purpleailab/${{ matrix.image }}:${{ steps.version.outputs.version }}
+          image: ghcr.io/bjhuntcom-oss/${{ matrix.image }}:${{ steps.version.outputs.version }}
           format: cyclonedx-json
           output-file: sbom-${{ matrix.image }}.cdx.json
 
@@ -85,7 +85,7 @@ jobs:
           cosign attest --yes \
             --predicate sbom-${{ matrix.image }}.cdx.json \
             --type cyclonedx \
-            "ghcr.io/purpleailab/${{ matrix.image }}@${DIGEST}"
+            "ghcr.io/bjhuntcom-oss/${{ matrix.image }}@${DIGEST}"
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v4

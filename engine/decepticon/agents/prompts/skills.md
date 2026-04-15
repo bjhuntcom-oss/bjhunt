@@ -17,5 +17,5 @@ Now agents use:
 
 And the middleware handles skill catalog injection on every LLM call.
 
-See: decepticon/middleware/skills.py :: DECEPTICON_SKILLS_PROMPT
+See: decepticon/middleware/skills.py :: BJHUNT_SKILLS_PROMPT
 -->

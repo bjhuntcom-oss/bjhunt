@@ -1,0 +1,63 @@
+/**
+ * Notification routes — list, mark read, unread count.
+ */
+
+import { Hono } from "hono";
+import { requireAuth } from "../middleware/auth.js";
+import { withOrg, sql } from "../db/client.js";
+import type { AuthUser } from "../middleware/auth.js";
+
+export const notificationRoutes = new Hono();
+
+notificationRoutes.use("*", requireAuth);
+
+// List notifications for current user
+notificationRoutes.get("/", async (c) => {
+  const orgId = c.get("orgId") as string;
+  const user = c.get("user") as AuthUser;
+  const limit = Math.min(parseInt(c.req.query("limit") || "50", 10), 100);
+  const unreadOnly = c.req.query("unread") === "true";
+
+  const notifications = await withOrg(orgId, (tx) => {
+    if (unreadOnly) {
+      return tx`
+        SELECT * FROM notifications
+        WHERE user_id = ${user.id} AND read_at IS NULL
+        ORDER BY created_at DESC LIMIT ${limit}
+      `;
+    }
+    return tx`
+      SELECT * FROM notifications
+      WHERE user_id = ${user.id}
+      ORDER BY created_at DESC LIMIT ${limit}
+    `;
+  });
+
+  return c.json({ notifications });
+});
+
+// Unread count
+notificationRoutes.get("/count", async (c) => {
+  const orgId = c.get("orgId") as string;
+  const user = c.get("user") as AuthUser;
+
+  const [{ count }] = await withOrg(orgId, (tx) =>
+    tx`SELECT count(*) FROM notifications WHERE user_id = ${user.id} AND read_at IS NULL`,
+  );
+
+  return c.json({ unread: Number(count) });
+});
+
+// Mark notification(s) as read
+notificationRoutes.post("/read", async (c) => {
+  const user = c.get("user") as AuthUser;
+  const body = await c.req.json<{ ids?: string[]; all?: boolean }>();
+
+  if (body.all) {
+    await sql`UPDATE notifications SET read_at = now() WHERE user_id = ${user.id} AND read_at IS NULL`;
+  } else if (body.ids?.length) {
+    await sql`UPDATE notifications SET read_at = now() WHERE user_id = ${user.id} AND id = ANY(${body.ids})`;
+  }
+
+  return c.json({ ok: true });
+});

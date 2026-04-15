@@ -50,7 +50,7 @@ export function AuditLogsViewer({
       if (filterResourceType) q.set('resourceType', filterResourceType)
       if (filterFrom) q.set('from', filterFrom)
       if (filterTo) q.set('to', filterTo)
-      const res = await browserBackendFetch(`/api/admin/audit-logs?${q}`)
+      const res = await browserBackendFetch(`/api/admin/settings/audit-logs?${q}`)
       if (res.ok) setData(await res.json())
     })
   }

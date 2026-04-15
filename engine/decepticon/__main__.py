@@ -77,10 +77,10 @@ def _resolve_env(root: Path) -> tuple[int, Path]:
     ``docker compose --env-file``. Returns ``(port, home)``:
 
     - ``port``: LangGraph API port to poll, honoring ``LANGGRAPH_PORT``.
-    - ``home``: Absolute path used for ``DECEPTICON_HOME``. Tilde is
+    - ``home``: Absolute path used for ``BJHUNT_HOME``. Tilde is
       expanded here because Docker Compose cannot expand ``~`` on its
       own (see .env.example), and the compose file's default
-      ``${DECEPTICON_HOME:-~/.decepticon}`` would otherwise create a
+      ``${BJHUNT_HOME:-~/.decepticon}`` would otherwise create a
       literal ``~`` directory on the host.
     """
     env_file = _parse_env_file(root / ".env")
@@ -93,7 +93,7 @@ def _resolve_env(root: Path) -> tuple[int, Path]:
         sys.exit(2)
 
     home_raw = (
-        os.environ.get("DECEPTICON_HOME") or env_file.get("DECEPTICON_HOME") or "~/.decepticon"
+        os.environ.get("BJHUNT_HOME") or env_file.get("BJHUNT_HOME") or "~/.decepticon"
     )
     home = Path(home_raw).expanduser().resolve()
     return port, home
@@ -129,13 +129,13 @@ def main() -> None:
     compose = _compose(root)
     port, home = _resolve_env(root)
 
-    # Propagate the expanded DECEPTICON_HOME into the compose subprocess
+    # Propagate the expanded BJHUNT_HOME into the compose subprocess
     # so the sandbox workspace bind mount (docker-compose.yml:69) resolves
     # to an absolute path rather than a literal ``~``.
     home.mkdir(parents=True, exist_ok=True)
-    child_env = {**os.environ, "DECEPTICON_HOME": str(home)}
+    child_env = {**os.environ, "BJHUNT_HOME": str(home)}
 
-    print(f"{DIM}Building and starting services (DECEPTICON_HOME={home}, port={port})...{NC}")
+    print(f"{DIM}Building and starting services (BJHUNT_HOME={home}, port={port})...{NC}")
     # Do NOT swallow stdout/stderr — build + pull errors should stream
     # live so a failure is visible immediately rather than masquerading
     # as a "Server failed to start within 90s" timeout later.

@@ -11,7 +11,7 @@ export type AgentMode = (typeof AGENT_MODES)[number];
 
 /** Display labels for the mode bar. */
 export const AGENT_LABELS: Record<AgentMode, string> = {
-  decepticon: "Decepticon",
+  decepticon: "BJHUNT",
   soundwave: "Soundwave",
   recon: "Recon",
   exploit: "Exploit",

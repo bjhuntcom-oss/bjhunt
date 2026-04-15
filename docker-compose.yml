@@ -1,0 +1,235 @@
+# BJHUNT ALPHA 1.0 — Production Docker Compose
+# Assembles: backend API + engine (LangGraph) + databases + sandbox
+# Usage: docker compose up -d
+
+services:
+  # ── Backend API (Hono + Bun) ────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bjhunt-backend
+    ports:
+      - "127.0.0.1:3001:3001"
+    env_file: .env
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://bjhunt:${POSTGRES_PASSWORD:?required}@postgres:5432/bjhunt
+      - REDIS_URL=redis://redis:6379
+      - SESSION_SECRET=${SESSION_SECRET:?required}
+      - BJHUNT_API_SECRET=${BJHUNT_API_SECRET:?required}
+      - LANGGRAPH_URL=http://langgraph:2024
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://bjhunt.com,https://www.bjhunt.com}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    mem_limit: 512m
+    cpus: 0.5
+    pids_limit: 128
+    networks:
+      - bjhunt-mgmt
+    restart: unless-stopped
+
+  # ── PostgreSQL (app data + LiteLLM) ────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    container_name: bjhunt-postgres
+    environment:
+      POSTGRES_DB: bjhunt
+      POSTGRES_USER: bjhunt
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    mem_limit: 1g
+    cpus: 0.5
+    pids_limit: 128
+    networks:
+      - bjhunt-mgmt
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bjhunt -d bjhunt"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Redis ───────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: bjhunt-redis
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    mem_limit: 512m
+    cpus: 0.25
+    pids_limit: 64
+    networks:
+      - bjhunt-mgmt
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # ── LiteLLM Proxy ──────────────────────────────────────────────────
+  litellm:
+    image: ghcr.io/berriai/litellm:main-v1.82.3-stable.patch.2
+    container_name: bjhunt-litellm
+    volumes:
+      - ./engine/config/litellm.yaml:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    ports:
+      - "127.0.0.1:4000:4000"
+    env_file: .env
+    environment:
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?required}
+      - LITELLM_SALT_KEY=${LITELLM_SALT_KEY:?required}
+      - DATABASE_URL=postgresql://bjhunt:${POSTGRES_PASSWORD}@postgres:5432/litellm
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: 512m
+    cpus: 0.5
+    pids_limit: 128
+    networks:
+      - bjhunt-mgmt
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/readiness')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  # ── Neo4j (Attack Chain Graph) ─────────────────────────────────────
+  neo4j:
+    image: neo4j:5.24-community
+    container_name: bjhunt-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?required}
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 2G
+      NEO4J_server_memory_pagecache_size: 1G
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: "apoc.merge.*,apoc.create.*,apoc.path.*,apoc.algo.*"
+      NEO4J_apoc_export_file_enabled: "false"
+      NEO4J_apoc_import_file_enabled: "false"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    ports:
+      - "127.0.0.1:7474:7474"
+      - "127.0.0.1:7687:7687"
+    networks:
+      - bjhunt-sandbox-net
+      - bjhunt-mgmt
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ── Kali Sandbox ───────────────────────────────────────────────────
+  sandbox:
+    image: ghcr.io/bjhuntcom-oss/bjhunt-sandbox:${BJHUNT_VERSION:-latest}
+    build:
+      context: ./engine
+      dockerfile: containers/sandbox.Dockerfile
+    container_name: bjhunt-sandbox
+    networks:
+      - bjhunt-sandbox-net
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+      - NET_BIND_SERVICE
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
+    volumes:
+      - workspace_data:/workspace
+    mem_limit: 4g
+    cpus: 2.0
+    pids_limit: 1024
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── LangGraph (Agent API) ──────────────────────────────────────────
+  langgraph:
+    image: ghcr.io/bjhuntcom-oss/bjhunt-langgraph:${BJHUNT_VERSION:-latest}
+    build:
+      context: ./engine
+      dockerfile: containers/langgraph.Dockerfile
+    container_name: bjhunt-langgraph
+    ports:
+      - "127.0.0.1:2024:2024"
+    env_file: .env
+    environment:
+      - BJHUNT_LLM__PROXY_URL=http://litellm:4000
+      - BJHUNT_LLM__PROXY_API_KEY=${LITELLM_MASTER_KEY}
+      - BJHUNT_DOCKER__SANDBOX_CONTAINER_NAME=bjhunt-sandbox
+      - BJHUNT_NEO4J_URI=bolt://neo4j:7687
+      - BJHUNT_NEO4J_USER=neo4j
+      - BJHUNT_NEO4J_PASSWORD=${NEO4J_PASSWORD}
+      - BJHUNT_API_SECRET=${BJHUNT_API_SECRET}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      litellm:
+        condition: service_healthy
+      sandbox:
+        condition: service_started
+      neo4j:
+        condition: service_healthy
+    mem_limit: 2g
+    cpus: 1.0
+    pids_limit: 256
+    networks:
+      - bjhunt-mgmt
+    restart: unless-stopped
+
+  # ── Caddy (Reverse Proxy) ─────────────────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    container_name: bjhunt-caddy
+    ports:
+      - "80:80"
+      - "8443:443"
+    volumes:
+      - ./ops/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - langgraph
+    networks:
+      - bjhunt-mgmt
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  neo4j_data:
+  neo4j_logs:
+  workspace_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  bjhunt-mgmt:
+    driver: bridge
+  bjhunt-sandbox-net:
+    driver: bridge

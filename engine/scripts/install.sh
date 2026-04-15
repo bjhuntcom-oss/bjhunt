@@ -7,7 +7,7 @@
 #
 # Environment variables:
 #   VERSION              — Install a specific version (default: latest)
-#   DECEPTICON_HOME      — Install directory (default: ~/.decepticon)
+#   BJHUNT_HOME      — Install directory (default: ~/.decepticon)
 #   SKIP_PULL            — Skip Docker image pull (default: false)
 # ─────────────────────────────────────────────────────────────────────
 
@@ -68,7 +68,7 @@ preflight() {
 # ── Version resolution ───────────────────────────────────────────
 resolve_version() {
     if [[ -n "${VERSION:-}" ]]; then
-        DECEPTICON_VERSION="$VERSION"
+        BJHUNT_VERSION="$VERSION"
         return
     fi
 
@@ -79,10 +79,10 @@ resolve_version() {
 
     if [[ -z "$latest" ]]; then
         # No releases yet — use branch
-        DECEPTICON_VERSION="latest"
+        BJHUNT_VERSION="latest"
         info "No releases found, using latest from $BRANCH branch."
     else
-        DECEPTICON_VERSION="$latest"
+        BJHUNT_VERSION="$latest"
     fi
 }
 
@@ -99,12 +99,12 @@ download_files() {
     if [[ ! -f "$install_dir/.env" ]]; then
         curl -fsSL "$RAW_BASE/.env.example" -o "$install_dir/.env"
         # Inject the actual install path (Docker Compose can't expand ~)
-        echo "DECEPTICON_HOME=$install_dir" >> "$install_dir/.env"
+        echo "BJHUNT_HOME=$install_dir" >> "$install_dir/.env"
         info "Created .env from template. You'll need to add your API keys."
     else
-        # Ensure DECEPTICON_HOME is set in existing .env (upgrade path)
-        if ! grep -q "^DECEPTICON_HOME=" "$install_dir/.env" 2>/dev/null; then
-            echo "DECEPTICON_HOME=$install_dir" >> "$install_dir/.env"
+        # Ensure BJHUNT_HOME is set in existing .env (upgrade path)
+        if ! grep -q "^BJHUNT_HOME=" "$install_dir/.env" 2>/dev/null; then
+            echo "BJHUNT_HOME=$install_dir" >> "$install_dir/.env"
         fi
         info ".env already exists, preserving your configuration."
     fi
@@ -117,7 +117,7 @@ download_files() {
     mkdir -p "$install_dir/workspace"
 
     # Version marker
-    echo "$DECEPTICON_VERSION" > "$install_dir/.version"
+    echo "$BJHUNT_VERSION" > "$install_dir/.version"
 }
 
 # ── Create launcher script ───────────────────────────────────────
@@ -135,12 +135,12 @@ create_launcher() {
 {
 set -euo pipefail
 
-DECEPTICON_HOME="${DECEPTICON_HOME:-$HOME/.decepticon}"
+BJHUNT_HOME="${BJHUNT_HOME:-$HOME/.decepticon}"
 REPO="PurpleAILAB/Decepticon"
-BRANCH="${DECEPTICON_BRANCH:-main}"
+BRANCH="${BJHUNT_BRANCH:-main}"
 RAW_BASE="https://raw.githubusercontent.com/$REPO/$BRANCH"
-COMPOSE_FILE="$DECEPTICON_HOME/docker-compose.yml"
-COMPOSE="docker compose -f $COMPOSE_FILE --env-file $DECEPTICON_HOME/.env"
+COMPOSE_FILE="$BJHUNT_HOME/docker-compose.yml"
+COMPOSE="docker compose -f $COMPOSE_FILE --env-file $BJHUNT_HOME/.env"
 COMPOSE_PROFILES="$COMPOSE --profile cli"
 
 # Colors
@@ -154,7 +154,7 @@ NC='\033[0m'
 
 check_api_key() {
     # Warn only if ALL API keys are still placeholders (any one real key is enough)
-    local env_file="$DECEPTICON_HOME/.env"
+    local env_file="$BJHUNT_HOME/.env"
     [[ ! -f "$env_file" ]] && return
     local has_real_key=false
     while IFS='=' read -r key value; do
@@ -177,7 +177,7 @@ check_api_key() {
 
 check_for_update() {
     local current
-    current=$(cat "$DECEPTICON_HOME/.version" 2>/dev/null || echo "")
+    current=$(cat "$BJHUNT_HOME/.version" 2>/dev/null || echo "")
     [[ -z "$current" ]] && return
 
     # Background check — don't block startup
@@ -256,7 +256,7 @@ case "${1:-}" in
         fi
 
         # Resolve latest version
-        local_version=$(cat "$DECEPTICON_HOME/.version" 2>/dev/null || echo "unknown")
+        local_version=$(cat "$BJHUNT_HOME/.version" 2>/dev/null || echo "unknown")
         echo -e "${DIM}Current version: v${local_version}${NC}"
 
         latest=$(curl -sf --max-time 5 "https://api.github.com/repos/$REPO/releases/latest" \
@@ -275,21 +275,21 @@ case "${1:-}" in
             version_changed=true
         fi
 
-        echo "$latest" > "$DECEPTICON_HOME/.version"
+        echo "$latest" > "$BJHUNT_HOME/.version"
 
         # Always sync config files and launcher (even for same version —
         # the release tag may have been updated with hotfixes)
         tag_base="https://raw.githubusercontent.com/$REPO/v${latest}"
         echo -e "${DIM}Updating configuration files...${NC}"
-        curl -fsSL "$tag_base/docker-compose.yml" -o "$DECEPTICON_HOME/docker-compose.yml"
-        mkdir -p "$DECEPTICON_HOME/config"
-        curl -fsSL "$tag_base/config/litellm.yaml" -o "$DECEPTICON_HOME/config/litellm.yaml"
+        curl -fsSL "$tag_base/docker-compose.yml" -o "$BJHUNT_HOME/docker-compose.yml"
+        mkdir -p "$BJHUNT_HOME/config"
+        curl -fsSL "$tag_base/config/litellm.yaml" -o "$BJHUNT_HOME/config/litellm.yaml"
         echo -e "${GREEN}Configuration files updated.${NC}"
 
         # Pull images only when version changed or --force
         if [[ "$version_changed" == true || "$force" == true ]]; then
             echo -e "${DIM}Pulling images (v${latest})...${NC}"
-            DECEPTICON_VERSION="$latest" $COMPOSE_PROFILES pull \
+            BJHUNT_VERSION="$latest" $COMPOSE_PROFILES pull \
                 || echo -e "${YELLOW}Warning: Some images failed to pull.${NC}"
 
             # Restart services if running
@@ -332,7 +332,7 @@ case "${1:-}" in
         ;;
 
     config)
-        ${EDITOR:-${VISUAL:-nano}} "$DECEPTICON_HOME/.env"
+        ${EDITOR:-${VISUAL:-nano}} "$BJHUNT_HOME/.env"
         ;;
 
     demo)
@@ -342,17 +342,17 @@ case "${1:-}" in
         echo ""
 
         # Fix workspace ownership if Docker created it as root
-        if [[ -d "$DECEPTICON_HOME/workspace" && ! -w "$DECEPTICON_HOME/workspace" ]]; then
-            sudo chown -R "$(id -u):$(id -g)" "$DECEPTICON_HOME/workspace" 2>/dev/null || true
+        if [[ -d "$BJHUNT_HOME/workspace" && ! -w "$BJHUNT_HOME/workspace" ]]; then
+            sudo chown -R "$(id -u):$(id -g)" "$BJHUNT_HOME/workspace" 2>/dev/null || true
         fi
 
         # Download demo engagement files (skip if already present or offline)
-        demo_dir="$DECEPTICON_HOME/workspace/demo/plan"
+        demo_dir="$BJHUNT_HOME/workspace/demo/plan"
         mkdir -p "$demo_dir"
-        mkdir -p "$DECEPTICON_HOME/workspace/demo/recon"
-        mkdir -p "$DECEPTICON_HOME/workspace/demo/exploit"
-        mkdir -p "$DECEPTICON_HOME/workspace/demo/post-exploit"
-        touch "$DECEPTICON_HOME/workspace/demo/findings.md"
+        mkdir -p "$BJHUNT_HOME/workspace/demo/recon"
+        mkdir -p "$BJHUNT_HOME/workspace/demo/exploit"
+        mkdir -p "$BJHUNT_HOME/workspace/demo/post-exploit"
+        touch "$BJHUNT_HOME/workspace/demo/findings.md"
         for f in roe.json conops.json opplan.json; do
             if [[ ! -f "$demo_dir/$f" ]]; then
                 curl -fsSL "$RAW_BASE/demo/plan/$f" -o "$demo_dir/$f" 2>/dev/null || {
@@ -379,7 +379,7 @@ case "${1:-}" in
         echo ""
 
         # Run CLI with auto-start message
-        $COMPOSE_PROFILES run --rm -e DECEPTICON_INITIAL_MESSAGE="Resume the demo engagement and execute all objectives." cli
+        $COMPOSE_PROFILES run --rm -e BJHUNT_INITIAL_MESSAGE="Resume the demo engagement and execute all objectives." cli
         ;;
 
     victims)
@@ -393,7 +393,7 @@ case "${1:-}" in
         echo ""
         echo -e "This will remove:"
         echo -e "  ${DIM}•${NC} All Decepticon Docker containers, images, volumes, and networks"
-        echo -e "  ${DIM}•${NC} Configuration directory: ${BOLD}$DECEPTICON_HOME${NC}"
+        echo -e "  ${DIM}•${NC} Configuration directory: ${BOLD}$BJHUNT_HOME${NC}"
         echo -e "  ${DIM}•${NC} Launcher script: ${BOLD}$(which decepticon 2>/dev/null || echo "$HOME/.local/bin/decepticon")${NC}"
         echo -e "  ${DIM}•${NC} PATH entries from shell config"
 
@@ -428,10 +428,10 @@ case "${1:-}" in
         echo -e "${GREEN}Images removed.${NC}"
 
         # 3. Remove install directory
-        if [[ -d "$DECEPTICON_HOME" ]]; then
+        if [[ -d "$BJHUNT_HOME" ]]; then
             # Preserve workspace if user wants it
-            if [[ -d "$DECEPTICON_HOME/workspace" ]]; then
-                echo -ne "${YELLOW}Keep workspace data ($DECEPTICON_HOME/workspace)? [Y/n] ${NC}"
+            if [[ -d "$BJHUNT_HOME/workspace" ]]; then
+                echo -ne "${YELLOW}Keep workspace data ($BJHUNT_HOME/workspace)? [Y/n] ${NC}"
                 if [[ "${2:-}" == "--yes" ]]; then
                     keep_ws="n"
                 else
@@ -441,20 +441,20 @@ case "${1:-}" in
                     echo -e "${DIM}Removing workspace...${NC}"
                 else
                     echo -e "${DIM}Preserving workspace...${NC}"
-                    mv "$DECEPTICON_HOME/workspace" "/tmp/decepticon-workspace-backup-$$" 2>/dev/null || true
+                    mv "$BJHUNT_HOME/workspace" "/tmp/decepticon-workspace-backup-$$" 2>/dev/null || true
                 fi
             fi
             # Docker containers create root-owned files in workspace/;
             # try normal rm first, fall back to sudo if needed.
-            if ! rm -rf "$DECEPTICON_HOME" 2>/dev/null; then
+            if ! rm -rf "$BJHUNT_HOME" 2>/dev/null; then
                 echo -e "${DIM}Root-owned files detected (created by Docker). Using sudo...${NC}"
-                sudo rm -rf "$DECEPTICON_HOME"
+                sudo rm -rf "$BJHUNT_HOME"
             fi
             # Restore workspace if preserved
             if [[ -d "/tmp/decepticon-workspace-backup-$$" ]]; then
-                mkdir -p "$(dirname "$DECEPTICON_HOME")"
-                mv "/tmp/decepticon-workspace-backup-$$" "$DECEPTICON_HOME/workspace"
-                echo -e "${DIM}Workspace saved at $DECEPTICON_HOME/workspace${NC}"
+                mkdir -p "$(dirname "$BJHUNT_HOME")"
+                mv "/tmp/decepticon-workspace-backup-$$" "$BJHUNT_HOME/workspace"
+                echo -e "${DIM}Workspace saved at $BJHUNT_HOME/workspace${NC}"
             fi
             echo -e "${GREEN}Configuration removed.${NC}"
         fi
@@ -488,7 +488,7 @@ case "${1:-}" in
         ;;
 
     --version|-v)
-        echo "decepticon $(cat "$DECEPTICON_HOME/.version" 2>/dev/null || echo 'dev')"
+        echo "decepticon $(cat "$BJHUNT_HOME/.version" 2>/dev/null || echo 'dev')"
         ;;
 
     --help|-h|help)
@@ -600,7 +600,7 @@ pull_images() {
 
 # ── Main ──────────────────────────────────────────────────────────
 main() {
-    local install_dir="${DECEPTICON_HOME:-$HOME/.decepticon}"
+    local install_dir="${BJHUNT_HOME:-$HOME/.decepticon}"
     local bin_dir="$HOME/.local/bin"
 
     # Quick path: only regenerate the launcher script (used by `decepticon update`)
@@ -621,7 +621,7 @@ main() {
 
     mkdir -p "$install_dir"
 
-    info "Installing Decepticon $DECEPTICON_VERSION"
+    info "Installing Decepticon $BJHUNT_VERSION"
     info "Directory: $install_dir"
     echo ""
 

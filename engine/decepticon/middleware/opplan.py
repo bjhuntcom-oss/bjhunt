@@ -142,9 +142,9 @@ _VALID_TRANSITIONS: dict[str, set[str]] = {
 #: render into the system prompt. Past this cap, completed/cancelled
 #: objectives collapse into a single summary line and only the
 #: actionable (pending / in-progress / blocked) ones retain a full
-#: table row. Overridable via ``DECEPTICON_OPPLAN_MAX_ROWS``.
+#: table row. Overridable via ``BJHUNT_OPPLAN_MAX_ROWS``.
 try:
-    _OPPLAN_MAX_ROWS = int(os.environ.get("DECEPTICON_OPPLAN_MAX_ROWS", "40"))
+    _OPPLAN_MAX_ROWS = int(os.environ.get("BJHUNT_OPPLAN_MAX_ROWS", "40"))
 except ValueError:
     _OPPLAN_MAX_ROWS = 40
 

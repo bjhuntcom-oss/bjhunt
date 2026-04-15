@@ -22,10 +22,16 @@ export function SessionsPanel({ userId }: { userId: string }) {
     }
     setOpen(true)
     startTransition(async () => {
-      const res = await browserBackendFetch(`/api/admin/users/${userId}/sessions`)
-      if (res.ok) {
-        const data = await res.json()
-        setSessions(data.sessions)
+      try {
+        const res = await browserBackendFetch(`/api/admin/users/${userId}/sessions`)
+        if (res.ok) {
+          const data = await res.json()
+          setSessions(data.sessions ?? [])
+        } else {
+          setSessions([])
+        }
+      } catch {
+        setSessions([])
       }
     })
   }

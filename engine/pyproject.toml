@@ -1,14 +1,14 @@
 [project]
-name = "decepticon"
+name = "bjhunt-engine"
 version = "1.0.3"
-description = "AI-powered autonomous red team testing framework"
+description = "BJHUNT ALPHA 1.0 — AI-powered autonomous cybersecurity platform"
 readme = "README.md"
 license = { text = "Apache-2.0" }
 license-files = ["LICENSE"]
 requires-python = ">=3.13"
 
 authors = [
-    { name = "Decepticon Team" }
+    { name = "BJHUNT Team" }
 ]
 
 keywords = [
@@ -64,8 +64,8 @@ decepticon = "decepticon.__main__:main"
 decepticon-kg-health = "decepticon.tools.research.health:main"
 
 [project.urls]
-Homepage = "https://github.com/PurpleAILAB/Decepticon"
-Repository = "https://github.com/PurpleAILAB/Decepticon"
+Homepage = "https://github.com/bjhuntcom-oss/bjhunt"
+Repository = "https://github.com/bjhuntcom-oss/bjhunt"
 
 [build-system]
 requires = ["hatchling"]

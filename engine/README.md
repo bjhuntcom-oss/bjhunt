@@ -3,35 +3,29 @@
 
 
 <div align="center">
-  <img src="assets/logo_banner.png" alt="Decepticon Logo">
+  <img src="assets/logo_banner.png" alt="BJHUNT Logo">
 </div>
 
-<h1 align="center">Decepticon — Autonomous Hacking Agent</h1>
+<h1 align="center">BJHUNT ALPHA 1.0 — AI-Powered Autonomous Cybersecurity Platform</h1>
 
-<p align="center"><i>"Another AI hacker? Let us guess — it runs nmap and writes a report. How original. Then what?"</i></p>
+<p align="center"><i>Offensive security powered by autonomous AI agents.</i></p>
 
 <div align="center">
 
-<a href="https://github.com/PurpleAILAB/Decepticon/blob/main/LICENSE">
-  <img src="https://img.shields.io/github/license/PurpleAILAB/Decepticon?style=for-the-badge&color=blue" alt="License: Apache 2.0">
+<a href="https://github.com/bjhuntcom-oss/bjhunt/blob/main/LICENSE">
+  <img src="https://img.shields.io/github/license/bjhuntcom-oss/bjhunt?style=for-the-badge&color=blue" alt="License: Apache 2.0">
 </a>
-<a href="https://github.com/PurpleAILAB/Decepticon/stargazers">
-  <img src="https://img.shields.io/github/stars/PurpleAILAB/Decepticon?style=for-the-badge&color=yellow" alt="Stargazers">
+<a href="https://github.com/bjhuntcom-oss/bjhunt/stargazers">
+  <img src="https://img.shields.io/github/stars/bjhuntcom-oss/bjhunt?style=for-the-badge&color=yellow" alt="Stargazers">
 </a>
-<a href="https://github.com/PurpleAILAB/Decepticon/graphs/contributors">
-  <img src="https://img.shields.io/github/contributors/PurpleAILAB/Decepticon?style=for-the-badge&color=orange" alt="Contributors">
+<a href="https://github.com/bjhuntcom-oss/bjhunt/graphs/contributors">
+  <img src="https://img.shields.io/github/contributors/bjhuntcom-oss/bjhunt?style=for-the-badge&color=orange" alt="Contributors">
 </a>
 
 <br/>
 
-<a href="https://discord.gg/TZUYsZgrRG">
-  <img src="https://img.shields.io/badge/Discord-Join%20Us-7289DA?logo=discord&logoColor=white&style=for-the-badge" alt="Join us on Discord">
-</a>
-<a href="https://decepticon.red">
-  <img src="https://img.shields.io/badge/Website-decepticon.red-brightgreen?logo=vercel&logoColor=white&style=for-the-badge" alt="Website">
-</a>
-<a href="https://docs.decepticon.red">
-  <img src="https://img.shields.io/badge/Docs-docs.decepticon.red-8B5CF6?logo=bookstack&logoColor=white&style=for-the-badge" alt="Documentation">
+<a href="https://bjhunt.com">
+  <img src="https://img.shields.io/badge/Website-bjhunt.com-brightgreen?logo=vercel&logoColor=white&style=for-the-badge" alt="Website">
 </a>
 
 </div>
@@ -42,15 +36,12 @@
   <video src="https://github.com/user-attachments/assets/b3fd40d8-e859-4a39-97f4-bd825694ad96" width="800" controls></video>
 </div>
 
-## 💖 Support Decepticon
+## Support BJHUNT
 
-[![Sponsor](https://img.shields.io/badge/Sponsor-Decepticon-red?style=for-the-badge&logo=github)](https://github.com/sponsors/PurpleCHOIms)
-[![GitHub Sponsors](https://img.shields.io/github/sponsors/PurpleCHOIms?style=for-the-badge&logo=github)](https://github.com/sponsors/PurpleCHOIms)
-
-We are building Decepticon — an **Offensive Vaccine** for the AI-driven threat landscape.
+We are building BJHUNT — an **Offensive Vaccine** for the AI-driven threat landscape.
 
 As attackers leverage AI, traditional defenses become obsolete.  
-Decepticon aims to automate red team operations through autonomous agents.
+BJHUNT aims to automate red team operations through autonomous agents.
 
 If you believe in the future of **Autonomous Hacking Agents for Red Team Testing**, consider supporting.
 
@@ -60,14 +51,14 @@ If you believe in the future of **Autonomous Hacking Agents for Red Team Testing
 **Prerequisites**: [Docker](https://docs.docker.com/get-docker/) and Docker Compose v2. That's it.
 
 ```bash
-curl -fsSL https://decepticon.red/install | bash
+curl -fsSL https://bjhunt.com/install | bash
 ```
 
 Then configure your API key and start:
 
 ```bash
-decepticon config    # Set your Anthropic or OpenAI API key
-decepticon           # Launch
+bjhunt config    # Set your Anthropic or OpenAI API key
+bjhunt           # Launch
 ```
 
 ## Try the Demo
@@ -75,8 +66,8 @@ decepticon           # Launch
 Configure your API key first, then run the demo — nothing else needed.
 
 ```bash
-decepticon config    # Set your API key (one-time)
-decepticon demo
+bjhunt config    # Set your API key (one-time)
+bjhunt demo
 ```
 
 Launches Metasploitable 2 as a target, loads a pre-built engagement, and runs the full kill chain automatically: port scan, vsftpd exploit, Sliver C2 implant deployment, credential harvesting via C2, and internal network reconnaissance.
@@ -118,37 +109,37 @@ Red Team Testing is a **regulated, authorized, professional discipline**. Before
 - **Deconfliction Plan** — Separates red team activity from real threats. Source IPs, user-agents, time windows, and a shared code for real-time deconfliction calls with the SOC.
 - **OPPLAN (Operations Plan)** — The full mission plan. Objectives, kill chain phases, acceptance criteria. Every action maps to a purpose.
 
-**Decepticon supports all of this. Obviously.**
+**BJHUNT supports all of this. Obviously.**
 
 Every engagement starts with proper documentation. Every objective is tracked. Every action operates within defined boundaries. The agent doesn't just hack — it operates under a formal operations plan, respects the Rules of Engagement, and produces auditable findings.
 
 This isn't a toy. It's a professional Red Team platform that happens to be autonomous.
 
-## Why Decepticon?
+## Why BJHUNT?
 
 Penetration testing finds vulnerabilities. Red teaming answers a harder question: *can your organization survive a real attack?*
 
-Most security tools stop at the scan report. Decepticon doesn't. It thinks in kill chains — reconnaissance, exploitation, privilege escalation, lateral movement, persistence — executing multi-stage operations the way a real adversary would, not the way a scanner does.
+Most security tools stop at the scan report. BJHUNT doesn't. It thinks in kill chains — reconnaissance, exploitation, privilege escalation, lateral movement, persistence — executing multi-stage operations the way a real adversary would, not the way a scanner does.
 
 Four principles guide everything we build:
 
 **Real Red Teaming, Not Checkbox Security**
-Decepticon emulates actual adversary behavior — not just running CVE checks against a list of ports. It reads an operations plan, adapts to what it finds, and pursues objectives through whatever path opens up. The goal is to test your defenses the way they'll actually be tested.
+BJHUNT emulates actual adversary behavior — not just running CVE checks against a list of ports. It reads an operations plan, adapts to what it finds, and pursues objectives through whatever path opens up. The goal is to test your defenses the way they'll actually be tested.
 
 **Interactive Shell Sessions**
-Real offensive security tools are interactive — `sliver-client`, `msfconsole`, `evil-winrm`, `sqlmap`, `impacket-psexec`. They don't just take a command and exit. They drop you into a prompt, wait for input, and expect a conversation. Most AI agents can't handle this — they fire one-shot commands via `subprocess.run()` and call it a day. Decepticon runs every command inside persistent tmux sessions with automatic prompt detection. When a tool presents an interactive prompt (`sliver >`, `msf6 >`, `PS C:\>`), the agent detects it and sends follow-up commands — the same way a human operator would. Parallel named sessions, control signals (`C-c`, `C-z`), and stall detection are built in. No workarounds, no hacks. The agent actually *operates* the tools.
+Real offensive security tools are interactive — `sliver-client`, `msfconsole`, `evil-winrm`, `sqlmap`, `impacket-psexec`. They don't just take a command and exit. They drop you into a prompt, wait for input, and expect a conversation. Most AI agents can't handle this — they fire one-shot commands via `subprocess.run()` and call it a day. BJHUNT runs every command inside persistent tmux sessions with automatic prompt detection. When a tool presents an interactive prompt (`sliver >`, `msf6 >`, `PS C:\>`), the agent detects it and sends follow-up commands — the same way a human operator would. Parallel named sessions, control signals (`C-c`, `C-z`), and stall detection are built in. No workarounds, no hacks. The agent actually *operates* the tools.
 
 **Complete Isolation — Real Red Team Infrastructure**
-Every command runs inside a hardened Kali Linux sandbox on a dedicated operational network (`sandbox-net`), fully isolated from the management infrastructure (`decepticon-net`). The C2 team server, victim targets, and the operator sandbox live on one network; the LLM gateway, agent API server, and database live on another. No cross-network access. LangGraph reaches the sandbox exclusively via Docker socket — not the network. You get the full offensive toolkit — nmap, Sliver C2, sqlmap, Impacket — without any risk of leaking credentials or touching the host.
+Every command runs inside a hardened Kali Linux sandbox on a dedicated operational network (`sandbox-net`), fully isolated from the management infrastructure (`bjhunt-net`). The C2 team server, victim targets, and the operator sandbox live on one network; the LLM gateway, agent API server, and database live on another. No cross-network access. LangGraph reaches the sandbox exclusively via Docker socket — not the network. You get the full offensive toolkit — nmap, Sliver C2, sqlmap, Impacket — without any risk of leaking credentials or touching the host.
 
 **CLI-First**
-Security work belongs in the terminal. Decepticon's interface is a real-time streaming CLI built with Ink — no browser tabs, no dashboards, no context switching. You see what the agent sees, as it happens.
+Security work belongs in the terminal. BJHUNT's interface is a real-time streaming CLI built with Ink — no browser tabs, no dashboards, no context switching. You see what the agent sees, as it happens.
 
 ## The Bigger Picture: Offense Serves Defense
 
 Here's what most "offensive AI" projects get wrong: they treat the attack as the destination.
 
-**Decepticon is not the destination. It's Step 1.**
+**BJHUNT is not the destination. It's Step 1.**
 
 > There are already plenty of offensive AI agents out there. The world doesn't need another "look, AI can hack things" demo.
 
@@ -158,7 +149,7 @@ What the world actually needs is a system that turns offensive capabilities into
 2. **Step 2 — Infinite Offensive Feedback**: Deploy the agent to generate continuous, diverse attack scenarios — an endless stream of real-world threat simulation.
 3. **Step 3 — Defensive Evolution**: Channel that feedback into Blue Team capabilities — detection rules, response playbooks, hardening strategies. The defense evolves because the offense never stops.
 
-Think of it as an **Offensive Vaccine**. Just as a biological vaccine exposes the body to weakened pathogens to build immunity, Decepticon exposes your infrastructure to relentless AI-driven attacks to build resilience.
+Think of it as an **Offensive Vaccine**. Just as a biological vaccine exposes the body to weakened pathogens to build immunity, BJHUNT exposes your infrastructure to relentless AI-driven attacks to build resilience.
 
 The true value isn't in the attack. It's in the defense system that emerges from surviving it.
 
@@ -214,38 +205,38 @@ Each role has automatic fallback (e.g., Opus → GPT-5.4). Provider outage or ra
 
 ## Architecture
 
-Two isolated networks. Management (`decepticon-net`) and operations (`sandbox-net`) share zero network access. LangGraph controls the sandbox exclusively via Docker socket.
+Two isolated networks. Management (`bjhunt-net`) and operations (`sandbox-net`) share zero network access. LangGraph controls the sandbox exclusively via Docker socket.
 
 <div align="center">
-  <img src="assets/decepticon_infra.svg" alt="Decepticon Infrastructure" width="680">
+  <img src="assets/decepticon_infra.svg" alt="BJHUNT Infrastructure" width="680">
 </div>
 
 ## Agents
 
-Five specialist agents, each with its own tools, skills, and clean context window: **Decepticon** (orchestrator), **Soundwave** (engagement planning), **Recon**, **Exploit**, and **Post-Exploit**. Each agent spawns fresh per objective — no accumulated noise, no degraded reasoning.
+Five specialist agents, each with its own tools, skills, and clean context window: **BJHUNT** (orchestrator), **Soundwave** (engagement planning), **Recon**, **Exploit**, and **Post-Exploit**. Each agent spawns fresh per objective — no accumulated noise, no degraded reasoning.
 
 **[Agent details and middleware stack →](docs/agents.md)**
 
 ## CLI
 
 ```bash
-decepticon           # Start all services and open the interactive CLI
-decepticon demo      # Run guided demo (full kill chain + Sliver C2)
-decepticon config    # Edit API keys and settings
-decepticon stop      # Stop all services
+bjhunt           # Start all services and open the interactive CLI
+bjhunt demo      # Run guided demo (full kill chain + Sliver C2)
+bjhunt config    # Edit API keys and settings
+bjhunt stop      # Stop all services
 ```
 
 **[Full CLI reference →](docs/cli.md)**
 
 ## Vision & Philosophy
 
-This README covers the essentials — but there's a deeper story behind why Decepticon exists, where it's headed, and the philosophy that drives every design decision.
+This README covers the essentials — but there's a deeper story behind why BJHUNT exists, where it's headed, and the philosophy that drives every design decision.
 
-**[Read the full vision and philosophy at docs.decepticon.red](https://docs.decepticon.red)**
+**[Read the full vision and philosophy at bjhunt.com](https://bjhunt.com)**
 
 Topics covered in the documentation:
 - **Core Philosophy** — Reasoning over signatures, hybrid intelligence, stealth as foundation
-- **Pentesting vs. Red Teaming** — Why the distinction matters and where Decepticon sits
+- **Pentesting vs. Red Teaming** — Why the distinction matters and where BJHUNT sits
 - **History & Evolution** — From Purple Team AI (2021) through RL and GANs to today's autonomous agents
 - **Target Architecture** — Multi-agent hybrid architecture, C2-based stealth execution
 - **Why Open Source** — Collective intelligence and the Red/Blue Team feedback loop
@@ -257,8 +248,8 @@ We welcome contributions. Whether you're a security researcher, an AI engineer, 
 **Developer Setup** (for contributors):
 
 ```bash
-git clone https://github.com/PurpleAILAB/Decepticon.git
-cd Decepticon
+git clone https://github.com/bjhuntcom-oss/bjhunt.git
+cd bjhunt
 
 # Start with hot-reload (builds Docker images + watches for source changes)
 make dev
@@ -284,7 +275,7 @@ make help         # Show all available targets
 3. Commit with clear messages
 4. Open a Pull Request
 
-For architecture details and contribution guidelines, visit the [documentation](https://docs.decepticon.red).
+For architecture details and contribution guidelines, visit the [documentation](https://bjhunt.com).
 
 ## Community
 
@@ -297,5 +288,5 @@ Join the [Discord](https://discord.gg/TZUYsZgrRG) — ask questions, share engag
 ---
 
 <div align="center">
-  <img src="assets/main.png" alt="Decepticon">
+  <img src="assets/main.png" alt="BJHUNT">
 </div>

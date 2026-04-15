@@ -12,17 +12,17 @@ export default async function AdminMonitoringPage({
   const cookieHeader = (await headers()).get('cookie') ?? ''
   if (!cookieHeader) redirect(`/${locale}/login`)
 
-  const [queueRes, healthRes] = await Promise.all([
-    serverBackendFetch('/api/admin/queue-stats', {}, cookieHeader),
-    serverBackendFetch('/api/health/ready', {}, cookieHeader),
-  ])
+  const healthRes = await serverBackendFetch('/api/health/ready', {}, cookieHeader)
 
-  const queueStats = queueRes.ok
-    ? await queueRes.json()
-    : { waiting: 0, active: 0, completed: 0, failed: 0 }
-  const healthData = healthRes.ok
+  const healthResult = healthRes.ok
     ? await healthRes.json()
-    : { ready: false, checks: {} }
+    : { status: 'not ready', db: 'disconnected' }
+  // Map to expected format
+  const queueStats = { waiting: 0, active: 0, completed: 0, failed: 0 }
+  const healthData = {
+    ready: healthResult.status === 'ready',
+    checks: { database: healthResult.db === 'connected', langgraph: false, redis: false }
+  }
 
   return (
     <div className="p-6 md:p-8">

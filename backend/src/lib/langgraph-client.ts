@@ -1,0 +1,137 @@
+/**
+ * LangGraph API client — communicates with the BJHUNT ALPHA 1.0 engine.
+ *
+ * All requests include the BJHUNT_API_SECRET as a Bearer token
+ * for authentication (handled by api_auth.py middleware).
+ */
+
+import { config } from "../config.js";
+
+const BASE_URL = config.langgraph.url;
+const HEADERS = {
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${config.langgraph.apiSecret}`,
+};
+
+interface Thread {
+  threadId: string;
+}
+
+interface RunStatus {
+  runId: string;
+  status: string;
+  result?: unknown;
+}
+
+async function request(path: string, options: RequestInit = {}): Promise<Response> {
+  const url = `${BASE_URL}${path}`;
+  const res = await fetch(url, {
+    ...options,
+    headers: { ...HEADERS, ...(options.headers || {}) },
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`LangGraph API error: ${res.status} ${res.statusText} — ${body}`);
+  }
+
+  return res;
+}
+
+export const langgraphClient = {
+  /**
+   * Create a new LangGraph thread (conversation context).
+   */
+  async createThread(): Promise<Thread> {
+    const res = await request("/threads", { method: "POST", body: "{}" });
+    const data = (await res.json()) as { thread_id: string };
+    return { threadId: data.thread_id };
+  },
+
+  /**
+   * Create a run (agent invocation) on a thread.
+   */
+  async createRun(
+    threadId: string,
+    assistantId: string,
+    input: Record<string, unknown>,
+  ): Promise<RunStatus> {
+    const res = await request(`/threads/${threadId}/runs`, {
+      method: "POST",
+      body: JSON.stringify({
+        assistant_id: assistantId,
+        input: { messages: [{ role: "human", content: JSON.stringify(input) }] },
+      }),
+    });
+    const data = (await res.json()) as { run_id: string; status: string };
+    return { runId: data.run_id, status: data.status };
+  },
+
+  /**
+   * Get run status.
+   */
+  async getRunStatus(threadId: string, runId: string): Promise<RunStatus> {
+    const res = await request(`/threads/${threadId}/runs/${runId}`);
+    const data = (await res.json()) as { run_id: string; status: string; result?: unknown };
+    return { runId: data.run_id, status: data.status, result: data.result };
+  },
+
+  /**
+   * Stream a run — returns a ReadableStream of SSE events.
+   * Used by the chat endpoint to proxy agent responses to the frontend.
+   */
+  async streamRun(
+    threadId: string,
+    assistantId: string,
+    input: Record<string, unknown>,
+  ): Promise<ReadableStream<Uint8Array>> {
+    const res = await request(`/threads/${threadId}/runs/stream`, {
+      method: "POST",
+      body: JSON.stringify({
+        assistant_id: assistantId,
+        input: { messages: [{ role: "human", content: JSON.stringify(input) }] },
+        stream_mode: "values",
+      }),
+    });
+
+    if (!res.body) {
+      throw new Error("LangGraph stream returned no body");
+    }
+
+    return res.body;
+  },
+
+  /**
+   * Get thread state (messages, values).
+   */
+  async getThreadState(threadId: string): Promise<unknown> {
+    const res = await request(`/threads/${threadId}/state`);
+    return res.json();
+  },
+
+  /**
+   * List available assistants (agent graphs).
+   */
+  async listAssistants(): Promise<unknown[]> {
+    const res = await request("/assistants/search", {
+      method: "POST",
+      body: JSON.stringify({ limit: 100 }),
+    });
+    return (await res.json()) as unknown[];
+  },
+
+  /**
+   * Health check for the LangGraph API.
+   */
+  async health(): Promise<boolean> {
+    try {
+      const res = await fetch(`${BASE_URL}/ok`, {
+        headers: HEADERS,
+        signal: AbortSignal.timeout(5000),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+};

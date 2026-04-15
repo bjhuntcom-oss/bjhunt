@@ -23,6 +23,8 @@ async function proxy(request: NextRequest, slug: string[]) {
   if (xff) reqHeaders.set('x-forwarded-for', xff)
   const ua = request.headers.get('user-agent')
   if (ua) reqHeaders.set('user-agent', ua)
+  const origin = request.headers.get('origin')
+  if (origin) reqHeaders.set('origin', origin)
 
   const hasBody = request.method !== 'GET' && request.method !== 'HEAD'
   const body = hasBody ? await request.arrayBuffer() : undefined

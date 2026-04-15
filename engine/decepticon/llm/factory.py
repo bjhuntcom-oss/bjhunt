@@ -11,7 +11,7 @@ Architecture:
                         LiteLLM proxy → Anthropic/OpenAI/Google/etc.
 
 Profile-aware: when no explicit mapping is provided, resolves
-DECEPTICON_MODEL_PROFILE (eco/max/test) from DecepticonConfig.
+BJHUNT_MODEL_PROFILE (eco/max/test) from DecepticonConfig.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ class LLMFactory:
     model resolution via ModelRouter.
 
     When constructed without an explicit mapping, uses the model profile
-    from DecepticonConfig (env: DECEPTICON_MODEL_PROFILE).
+    from DecepticonConfig (env: BJHUNT_MODEL_PROFILE).
     """
 
     def __init__(

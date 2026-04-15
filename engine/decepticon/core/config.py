@@ -26,7 +26,7 @@ class LLMConfig(BaseModel):
     """LLM proxy connection configuration."""
 
     proxy_url: str = "http://localhost:4000"
-    proxy_api_key: str = "sk-decepticon-master"
+    proxy_api_key: str = ""  # REQUIRED — set via BJHUNT_LLM__PROXY_API_KEY env var
     timeout: int = 120
     max_retries: int = 2
 
@@ -35,12 +35,12 @@ class DockerConfig(BaseModel):
     """Docker sandbox configuration.
 
     Runtime tuning knobs for the tmux-backed bash tool can be overridden via
-    nested env vars, e.g. ``DECEPTICON_DOCKER__POLL_INTERVAL=0.25``.
+    nested env vars, e.g. ``BJHUNT_DOCKER__POLL_INTERVAL=0.25``.
     """
 
-    sandbox_container_name: str = "decepticon-sandbox"
-    sandbox_image: str = "decepticon-sandbox:latest"
-    network: str = "decepticon-net"
+    sandbox_container_name: str = "bjhunt-sandbox"
+    sandbox_image: str = "bjhunt-sandbox:latest"
+    network: str = "bjhunt-net"
 
     # ── tmux session behavior ──
     poll_interval: float = Field(0.5, gt=0.0, description="Seconds between capture-pane polls")
@@ -61,16 +61,16 @@ class DockerConfig(BaseModel):
     )
 
 
-class DecepticonConfig(BaseSettings):
+class BjhuntConfig(BaseSettings):
     """Root configuration.
 
-    Set DECEPTICON_MODEL_PROFILE to switch model presets:
+    Set BJHUNT_MODEL_PROFILE to switch model presets:
       eco  — Balanced Anthropic-first (production)
       max  — Opus everywhere (high-value targets)
       test — Haiku-only (development/CI, $1/$5 per MTok)
     """
 
-    model_config = {"env_prefix": "DECEPTICON_", "env_nested_delimiter": "__"}
+    model_config = {"env_prefix": "BJHUNT_", "env_nested_delimiter": "__"}
 
     debug: bool = False
     model_profile: ModelProfile = ModelProfile.ECO
@@ -78,6 +78,6 @@ class DecepticonConfig(BaseSettings):
     docker: DockerConfig = Field(default_factory=DockerConfig)
 
 
-def load_config() -> DecepticonConfig:
+def load_config() -> BjhuntConfig:
     """Load config from code defaults + environment variable overrides."""
-    return DecepticonConfig()
+    return BjhuntConfig()

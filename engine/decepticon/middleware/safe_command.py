@@ -183,10 +183,20 @@ def _check_argv(argv: list[str]) -> str | None:
             return "Mounting /proc or /sys filesystems is blocked for sandbox safety."
         return None
 
-    # ── eval / bash -c / interpreter -c (bypass vectors) ────────────
+    # ── eval / source / bash -c / interpreter -c (bypass vectors) ───
     if head == "eval":
         return (
             "eval is blocked — it can execute arbitrary commands that "
+            "bypass safety checks. Run the command directly instead."
+        )
+    if head in ("source", "."):
+        return (
+            f"'{head}' is blocked — sourcing scripts can execute arbitrary "
+            "commands that bypass safety checks. Run commands directly."
+        )
+    if head == "exec":
+        return (
+            "exec is blocked — it replaces the current process and can "
             "bypass safety checks. Run the command directly instead."
         )
     if head in ("bash", "sh", "zsh", "dash") and "-c" in rest:
@@ -217,8 +227,56 @@ def _check_argv(argv: list[str]) -> str | None:
     return None
 
 
+def _check_shell_substitution(command: str) -> str | None:
+    """Detect shell substitution patterns in the raw command string.
+
+    These bypass shlex tokenization because they are evaluated by the shell
+    before argv is constructed. We must check the raw string.
+    """
+    import re
+
+    # $(...) command substitution
+    if re.search(r"\$\(", command):
+        return (
+            "Command substitution $(...) is blocked — it can execute "
+            "arbitrary commands that bypass safety checks. Run commands "
+            "sequentially instead."
+        )
+
+    # Backtick command substitution
+    if "`" in command:
+        return (
+            "Backtick command substitution is blocked — it can execute "
+            "arbitrary commands that bypass safety checks. Use explicit "
+            "commands instead."
+        )
+
+    # ${VAR} variable expansion used to construct commands dynamically
+    # Allow simple $HOME, $PATH etc but block ${VAR} patterns that could
+    # be used to build command names: ${CMD}, ${X-rm}, ${!ref}
+    if re.search(r"\$\{[^}]*[-+:!]", command):
+        return (
+            "Complex variable expansion ${VAR-...} / ${!ref} is blocked — "
+            "it can dynamically construct commands that bypass safety checks."
+        )
+
+    # Process substitution <(...) and >(...)
+    if re.search(r"[<>]\(", command):
+        return (
+            "Process substitution <(...) / >(...) is blocked — it can "
+            "execute arbitrary commands that bypass safety checks."
+        )
+
+    return None
+
+
 def _first_dangerous(command: str) -> str | None:
     """Return the first block reason across every statement in ``command``."""
+    # Check raw string for shell substitution patterns BEFORE tokenizing
+    reason = _check_shell_substitution(command)
+    if reason is not None:
+        return reason
+
     for argv in _iter_commands(command):
         reason = _check_argv(argv)
         if reason is not None:

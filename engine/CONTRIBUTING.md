@@ -1,6 +1,6 @@
-# Contributing to Decepticon
+# Contributing to BJHUNT
 
-Thank you for your interest in contributing to Decepticon! Whether you're a security researcher, AI engineer, or documentation enthusiast, we welcome your contributions.
+Thank you for your interest in contributing to BJHUNT! Whether you're a security researcher, AI engineer, or documentation enthusiast, we welcome your contributions.
 
 ## Getting Started
 
@@ -14,8 +14,8 @@ Thank you for your interest in contributing to Decepticon! Whether you're a secu
 ### Development Setup
 
 ```bash
-git clone https://github.com/PurpleAILAB/Decepticon.git
-cd Decepticon
+git clone https://github.com/bjhuntcom-oss/bjhunt.git
+cd bjhunt
 
 # Start with hot-reload (builds Docker images + watches for source changes)
 make dev
@@ -37,14 +37,14 @@ make lint-fix      # Auto-fix lint issues
 
 ### Reporting Bugs
 
-Use the [Bug Report](https://github.com/PurpleAILAB/Decepticon/issues/new?template=bug_report.yml) issue template. Include:
+Use the [Bug Report](https://github.com/bjhuntcom-oss/bjhunt/issues/new?template=bug_report.yml) issue template. Include:
 - Steps to reproduce
 - Expected vs actual behavior
 - Docker and Python version info
 
 ### Suggesting Features
 
-Use the [Feature Request](https://github.com/PurpleAILAB/Decepticon/issues/new?template=feature_request.yml) issue template.
+Use the [Feature Request](https://github.com/bjhuntcom-oss/bjhunt/issues/new?template=feature_request.yml) issue template.
 
 ### Submitting Pull Requests
 

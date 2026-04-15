@@ -22,7 +22,7 @@ COPY --from=builder /app/clients/cli/dist ./dist
 # Keep src/ for tsx runtime (index.tsx shebang entry)
 COPY --from=builder /app/clients/cli/src ./src
 
-ENV DECEPTICON_API_URL=http://langgraph:2024
+ENV BJHUNT_API_URL=http://langgraph:2024
 ENV NODE_ENV=production
 
 # No HEALTHCHECK — CLI is an interactive TTY app with no HTTP surface.
