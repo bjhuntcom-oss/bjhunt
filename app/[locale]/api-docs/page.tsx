@@ -23,19 +23,20 @@ export default async function ApiDocsPage({
           desc: isFr ? "Lancer un scan de sécurité" : "Launch a security scan",
           auth: "API Key",
           body: `{
-  "name": "Production Audit Q2",
+  "name": "Audit complet avant mise en production",
   "target": "https://app.example.com",
   "type": "full",
   "config": {
-    "depth": "standard"
+    "depth": "deep"
   },
   "webhook": "https://hooks.example.com/bjhunt",
-  "tags": ["production", "quarterly"]
+  "tags": ["pre-prod", "critical"]
 }`,
           response: `{
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "status": "running",
   "agent": "bjhunt",
+  "message": "L'orchestrateur BJHUNT lance 17 agents IA pour auditer votre cible...",
   "_links": {
     "self": "/api/v1/scans/550e8400...",
     "findings": "/api/v1/scans/550e8400.../findings",
@@ -184,7 +185,7 @@ export default async function ApiDocsPage({
               {'  '}-d {"'{"}
             </p>
             <p className="text-[var(--success)] pl-4">
-              {'"'}name{'"'}: {'"'}CI Audit{'"'},{'\n'}
+              {'"'}name{'"'}: {'"'}Audite mon app avant la mise en prod{'"'},{'\n'}
               {'    '}{'"'}target{'"'}: {'"'}https://app.example.com{'"'},{'\n'}
               {'    '}{'"'}type{'"'}: {'"'}full{'"'}
             </p>

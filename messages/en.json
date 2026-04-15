@@ -1152,42 +1152,42 @@
     "t1": {
       "label": "Web Audit",
       "user": "Run a full security audit on my app before launch",
-      "think": "▶ Scanning... 847 endpoints mapped in progress",
-      "find1": "CVE-2024-41110 · SQL injection on /api/users (critical)",
-      "find2": "Permissive CORS config · 4 missing security headers",
-      "result": "3 vulnerabilities · PDF report ready in 2.3s"
+      "think": "I'm deploying the Exploit agent to analyze your 847 endpoints...",
+      "find1": "I found a critical SQL injection on /api/users — I recommend parameterizing all SQL queries immediately.",
+      "find2": "Your CORS configuration is too permissive and you're missing 4 essential security headers.",
+      "result": "✓ 3 vulnerabilities found · PDF report ready"
     },
     "t2": {
       "label": "Reconnaissance",
       "user": "Map the attack surface of this domain: rival.io",
-      "think": "▶ DNS resolution... 7 subdomains detected",
-      "find1": "Nginx 1.22 · TLS 1.2 · 2 open ports without authentication",
-      "find2": "Admin email exposed in the index page metadata",
-      "result": "Full map complete · Zero false positive · 1.8s"
+      "think": "The Recon agent is mapping the domain — DNS, subdomains, certificates...",
+      "find1": "I detected 7 subdomains, 2 with open ports and no authentication. Server runs Nginx 1.22 with TLS 1.2.",
+      "find2": "Warning: the admin email is visible in the homepage metadata — targeted phishing risk.",
+      "result": "✓ Full mapping complete · Zero false positives"
     },
     "t3": {
       "label": "Incident Response",
       "user": "We had a suspicious login at 3:14am this morning",
-      "think": "▶ Log forensics... correlating 72 hours of data",
-      "find1": "IP 185.220.101.47 · Identified as TOR exit node",
-      "find2": "248 SSH brute-force attempts on port 22",
-      "result": "IP blocked · Alert sent · Logs archived · 0.9s"
+      "think": "I'm analyzing the last 72 hours of logs with the Analyst agent...",
+      "find1": "IP 185.220.101.47 is a TOR exit node. It attempted 248 SSH brute-force connections on your port 22.",
+      "find2": "I'm blocking this IP immediately and setting up an alert for any similar activity.",
+      "result": "✓ IP blocked · Alert configured · Logs archived"
     },
     "t4": {
       "label": "Board Report",
       "user": "Prepare the security report for our investor meeting",
-      "think": "▶ Compiling... 30 days · 2,847 events analyzed",
-      "find1": "Global score: 94/100 ▲ +12 points this month",
-      "find2": "Compliant: ISO 27001 · PCI-DSS · OWASP Top 10",
-      "result": "Executive PDF report ready · Secure sharing enabled"
+      "think": "I'm compiling the last 30 days of security data...",
+      "find1": "Your security score is excellent: 94/100, up 12 points this month. All critical vulnerabilities are patched.",
+      "find2": "You're compliant with ISO 27001, PCI-DSS and OWASP Top 10 — a strong signal for investors.",
+      "result": "✓ Executive PDF report generated · Ready to share"
     },
     "t5": {
       "label": "Pre-production",
-      "user": "Test my entire infrastructure before tomorrow morning push",
-      "think": "▶ Mapping... 12 services · 4 Docker containers",
-      "find1": "Ports 8080 and 3000 exposed · SSL cert expires in 18 days",
-      "find2": "Secret API key detected in environment variables",
-      "result": "Remediation plan generated · Prod secured · 4.1s"
+      "user": "Test my entire infrastructure before tomorrow's push",
+      "think": "The Cloud Hunter agent is scanning your 12 services and 4 Docker containers...",
+      "find1": "Ports 8080 and 3000 are publicly exposed and your SSL certificate expires in 18 days — renew before deployment.",
+      "find2": "I found a secret API key in your environment variables. It should be moved to a secure vault.",
+      "result": "✓ Remediation plan generated · Infrastructure secured"
     }
   }
 }

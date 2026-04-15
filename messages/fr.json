@@ -1152,42 +1152,42 @@
     "t1": {
       "label": "Audit Web",
       "user": "Fais un audit complet de mon appli avant le lancement",
-      "think": "▶ Analyse... 847 endpoints cartographiés en cours",
-      "find1": "CVE-2024-41110 · Injection SQL sur /api/users (critique)",
-      "find2": "Config CORS permissive · 4 headers de sécurité manquants",
-      "result": "3 vulnérabilités · Rapport PDF prêt en 2.3s"
+      "think": "Je lance l'agent Exploit pour analyser vos 847 endpoints...",
+      "find1": "J'ai trouvé une injection SQL critique sur /api/users — je recommande de paramétrer toutes les requêtes SQL immédiatement.",
+      "find2": "Votre configuration CORS est trop permissive et il manque 4 headers de sécurité essentiels.",
+      "result": "✓ 3 vulnérabilités trouvées · Rapport PDF prêt"
     },
     "t2": {
       "label": "Reconnaissance",
-      "user": "Analyse la surface d attaque de ce domaine : rival.io",
-      "think": "▶ Résolution DNS... 7 sous-domaines détectés",
-      "find1": "Nginx 1.22 · TLS 1.2 · 2 ports exposés sans authentification",
-      "find2": "Email admin visible dans les métadonnées de la page index",
-      "result": "Cartographie complète · Zéro faux positif · 1.8s"
+      "user": "Analyse la surface d'attaque de ce domaine : rival.io",
+      "think": "L'agent Recon cartographie le domaine — DNS, sous-domaines, certificats...",
+      "find1": "J'ai détecté 7 sous-domaines dont 2 avec des ports exposés sans authentification. Le serveur tourne sur Nginx 1.22 avec TLS 1.2.",
+      "find2": "Attention : l'email de l'admin est visible dans les métadonnées de la page d'accueil — risque de phishing ciblé.",
+      "result": "✓ Cartographie complète · Zéro faux positif"
     },
     "t3": {
       "label": "Réponse Incident",
       "user": "On a eu une connexion suspecte à 03h14 ce matin",
-      "think": "▶ Forensique des logs... corrélation sur 72h de données",
-      "find1": "IP 185.220.101.47 · Nœud TOR de sortie identifié",
-      "find2": "248 tentatives de bruteforce SSH sur le port 22",
-      "result": "IP bloquée · Alerte envoyée · Logs archivés · 0.9s"
+      "think": "J'analyse les logs des 72 dernières heures avec l'agent Analyst...",
+      "find1": "L'IP 185.220.101.47 correspond à un nœud de sortie TOR. Elle a tenté 248 connexions bruteforce SSH sur votre port 22.",
+      "find2": "Je bloque cette IP immédiatement et configure une alerte pour toute activité similaire.",
+      "result": "✓ IP bloquée · Alerte configurée · Logs archivés"
     },
     "t4": {
       "label": "Rapport Board",
       "user": "Prépare le rapport de sécurité pour notre investisseur",
-      "think": "▶ Compilation... 30 jours · 2 847 événements analysés",
-      "find1": "Score global : 94/100 ▲ +12 points ce mois",
-      "find2": "Conforme ISO 27001 · PCI-DSS · OWASP Top 10",
-      "result": "Rapport exécutif PDF prêt · Partage sécurisé activé"
+      "think": "Je compile les données de sécurité des 30 derniers jours...",
+      "find1": "Votre score de sécurité est excellent : 94/100, en hausse de 12 points ce mois. Toutes les vulnérabilités critiques sont corrigées.",
+      "find2": "Vous êtes conforme ISO 27001, PCI-DSS et OWASP Top 10 — c'est un atout majeur pour les investisseurs.",
+      "result": "✓ Rapport exécutif PDF généré · Prêt à partager"
     },
     "t5": {
       "label": "Pré-production",
       "user": "Teste toute mon infra avant la mise en prod de demain",
-      "think": "▶ Cartographie... 12 services · 4 conteneurs Docker",
-      "find1": "Ports 8080 et 3000 exposés · Cert SSL expire dans 18 jours",
-      "find2": "Clé API secrète détectée dans les variables d environnement",
-      "result": "Plan de remédiation généré · Prod sécurisée · 4.1s"
+      "think": "L'agent Cloud Hunter scanne vos 12 services et 4 conteneurs Docker...",
+      "find1": "Les ports 8080 et 3000 sont exposés publiquement et votre certificat SSL expire dans 18 jours — à renouveler avant la mise en prod.",
+      "find2": "J'ai détecté une clé API secrète dans vos variables d'environnement. Elle doit être déplacée dans un vault sécurisé.",
+      "result": "✓ Plan de remédiation généré · Infra sécurisée"
     }
   }
 }
