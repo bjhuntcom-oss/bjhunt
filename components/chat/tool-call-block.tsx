@@ -79,10 +79,10 @@ export function ToolCallBlock({ tool }: { tool: ToolCall }) {
         </span>
 
         {/* Args preview */}
-        {tool.args.command && (
+        {"command" in tool.args && tool.args.command && (
           <span className="text-[10px] font-mono text-[var(--text-subtle)] truncate max-w-[300px]">
-            {String(tool.args.command).slice(0, 60)}
-            {String(tool.args.command).length > 60 ? "..." : ""}
+            {String(tool.args.command as string).slice(0, 60)}
+            {String(tool.args.command as string).length > 60 ? "..." : ""}
           </span>
         )}
 

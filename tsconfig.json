@@ -39,6 +39,7 @@
     "node_modules",
     "apps",
     "backend",
+    "engine",
     "database",
     "ops",
     "vendor",

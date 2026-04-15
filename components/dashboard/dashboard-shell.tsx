@@ -96,27 +96,18 @@ export function DashboardShell({ user, locale, children }: DashboardShellProps) 
 
         {/* Nav */}
         <nav className="flex flex-col flex-1 overflow-y-auto py-3 px-2 gap-0.5">
-          {userNav.map(({ href, label, icon: Icon, external }) => {
-            const active = !external && isActive(href);
+          {userNav.map(({ href, label, icon: Icon }) => {
+            const active = isActive(href);
             const navClass = `relative flex items-center gap-3 px-2.5 py-2 text-[11px] font-mono uppercase tracking-[0.08em] transition-colors ${
               active
                 ? "text-white bg-[var(--bg-card)]"
                 : "text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-card)]/50"
             }`;
-            const inner = (
-              <>
+            return (
+              <Link key={href} href={`/${locale}${href}`} title={collapsed ? label : undefined} className={navClass}>
                 {active && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-white" />}
                 <Icon className="w-3.5 h-3.5 flex-shrink-0" />
                 {!collapsed && <span className="truncate">{label}</span>}
-              </>
-            );
-            return external ? (
-              <a key={href} href={href} title={collapsed ? label : undefined} className={navClass}>
-                {inner}
-              </a>
-            ) : (
-              <Link key={href} href={`/${locale}${href}`} title={collapsed ? label : undefined} className={navClass}>
-                {inner}
               </Link>
             );
           })}

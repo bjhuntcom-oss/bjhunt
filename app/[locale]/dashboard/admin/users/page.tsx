@@ -36,10 +36,10 @@ export default async function AdminUsersPage({
   }))
   const counts = { users: cpData.total ?? 0 }
 
-  const total    = counts.users         ?? users.length
-  const active   = counts.usersActive   ?? users.filter((u) => u.status === 'active').length
-  const blocked  = counts.usersSuspended ?? users.filter((u) => u.status === 'blocked' || u.status === 'suspended').length
-  const admins   = counts.platformAdmins ?? users.filter((u) => u.role === 'platform_admin').length
+  const total    = counts.users ?? users.length
+  const active   = users.filter((u: User) => u.status === 'active').length
+  const blocked  = users.filter((u: User) => u.status === 'blocked' || u.status === 'suspended').length
+  const admins   = users.filter((u: User) => u.role === 'platform_admin').length
 
   return (
     <div className="p-6 md:p-8">

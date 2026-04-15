@@ -1,0 +1,7 @@
+# Gitleaks false positives — these are documentation/test data, not real secrets
+
+# Skill documentation with example curl auth headers
+engine/skills/exploit/web/SKILL.md
+
+# Unit test with dummy AWS access tokens for testing
+engine/tests/unit/research/test_tools.py
