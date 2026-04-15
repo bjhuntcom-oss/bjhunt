@@ -13,33 +13,36 @@ import { ScanRadarSVG } from "@/components/animations/scan-radar";
 import { PriceBarsSVG } from "@/components/animations/price-bars";
 
 const FEATURES_TABLE = [
-  { feature: "Scans / mois",     free: "5",       pro: "Illimités",  enterprise: "Illimités" },
-  { feature: "Profondeur scan",  free: "Basique", pro: "Complète",   enterprise: "Complète + Custom" },
-  { feature: "CVE detection",    free: "✓",       pro: "✓",          enterprise: "✓" },
-  { feature: "API REST",         free: "Limitée", pro: "Complète",   enterprise: "Complète" },
-  { feature: "Webhooks",         free: "—",       pro: "✓",          enterprise: "✓" },
-  { feature: "Rapport PDF",      free: "—",       pro: "✓",          enterprise: "✓" },
-  { feature: "SLA",              free: "—",       pro: "99.9%",      enterprise: "99.99%" },
-  { feature: "Support",         free: "Communauté", pro: "Prioritaire", enterprise: "Dédié 24/7" },
-  { feature: "On-premise",       free: "—",       pro: "—",          enterprise: "✓" },
+  { feature: "Session",           free: "Demo 5 min",  pro: "Illimitée",        enterprise: "Illimitée" },
+  { feature: "Scans / mois",     free: "—",            pro: "5",                enterprise: "20" },
+  { feature: "Agents IA",        free: "—",            pro: "10",               enterprise: "17 (tous)" },
+  { feature: "Chat",             free: "Demo 5 min",   pro: "Illimité",         enterprise: "Illimité" },
+  { feature: "Export findings",  free: "—",            pro: "✓",                enterprise: "✓" },
+  { feature: "Notifications",    free: "—",            pro: "✓",                enterprise: "✓" },
+  { feature: "Clés API",         free: "—",            pro: "✓ (dashboard)",    enterprise: "✓ (API v1 complet)" },
+  { feature: "API REST v1",      free: "—",            pro: "—",                enterprise: "✓" },
+  { feature: "Webhooks",         free: "—",            pro: "—",                enterprise: "✓" },
+  { feature: "Config agents",    free: "—",            pro: "—",                enterprise: "✓" },
+  { feature: "Support",          free: "—",            pro: "Prioritaire",      enterprise: "Dédié" },
+  { feature: "SLA",              free: "—",            pro: "—",                enterprise: "99.9%" },
 ];
 
 const FAQS = [
   {
     q: "Comment fonctionne le plan Free ?",
-    a: "Le plan Free offre 5 scans par mois avec les fonctionnalités de base. Pas de carte bancaire requise.",
+    a: "Le plan Free offre une session démo de 5 minutes pour découvrir l'interface BJHUNT. Aucun scan, aucun agent, aucune API — juste un aperçu du chat IA.",
+  },
+  {
+    q: "Quelle différence entre Pro et Enterprise pour l'API ?",
+    a: "Le plan Pro permet de créer des clés API pour l'authentification dashboard. Seul le plan Enterprise donne accès à l'API REST v1 programmatique pour l'intégration CI/CD et l'automatisation.",
   },
   {
     q: "Puis-je passer à Pro à tout moment ?",
-    a: "Oui, la migration est instantanée. Vos données et scans existants sont conservés.",
-  },
-  {
-    q: "L'API est-elle disponible en Free ?",
-    a: "Une version limitée de l'API est disponible en Free (5 req/jour). Le plan Pro lève toutes les limites.",
+    a: "Oui, la migration est instantanée. Vos données et historiques sont conservés.",
   },
   {
     q: "Comment fonctionne Enterprise ?",
-    a: "Enterprise inclut un déploiement on-premise, un SLA 99.99%, et un ingénieur dédié. Contactez-nous pour un devis.",
+    a: "Enterprise inclut 20 scans/mois, les 17 agents IA, l'accès API v1 complet, les webhooks, la configuration custom des agents, et un support dédié avec SLA 99.9%. Contactez-nous pour démarrer.",
   },
 ];
 
@@ -93,9 +96,9 @@ export default function PricingPage() {
       <section className="border-b border-[var(--border)]">
         <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[var(--border)]">
           {[
-            { name: "Free",       price: "0€",       badge: null,        cta: "Démarrer", href: "/beta",    featured: false },
-            { name: "Pro",        price: "49€/mois",  badge: "Populaire", cta: "Essayer",  href: "/beta",    featured: true  },
-            { name: "Enterprise", price: "Sur devis", badge: null,        cta: "Contact",  href: "/contact", featured: false },
+            { name: "Free",       price: "Gratuit",      sub: "Demo 5 minutes",                     badge: null,        cta: "Essai gratuit",     href: "/login",   featured: false },
+            { name: "Pro",        price: "$200/mois",    sub: "5 scans · 10 agents · Chat illimité", badge: "Populaire", cta: "Souscrire",         href: "/contact", featured: true  },
+            { name: "Enterprise", price: "$2,000/mois",  sub: "20 scans · 17 agents · API v1",       badge: "Entreprise", cta: "Contactez-nous",   href: "/contact", featured: false },
           ].map((plan) => (
             <div
               key={plan.name}
@@ -105,6 +108,7 @@ export default function PricingPage() {
                 <div>
                   <p className="text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)] mb-2">{plan.name}</p>
                   <p className="text-3xl font-black font-mono">{plan.price}</p>
+                  <p className="text-[10px] text-[var(--text-muted)] mt-1">{plan.sub}</p>
                 </div>
                 {plan.badge && <Badge variant="success">{plan.badge}</Badge>}
               </div>

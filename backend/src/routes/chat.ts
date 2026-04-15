@@ -11,6 +11,7 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
+import { enforceDemoLimit } from "../middleware/plan-gate.js";
 import { langgraphClient } from "../lib/langgraph-client.js";
 import { withOrg, sql } from "../db/client.js";
 import { config } from "../config.js";
@@ -31,7 +32,7 @@ const sendMessageSchema = z.object({
 
 // ── Send message + stream response (with DB persistence) ─────────────────
 
-chatRoutes.post("/stream", zValidator("json", sendMessageSchema), async (c) => {
+chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSchema), async (c) => {
   const orgId = c.get("orgId") as string;
   const user = c.get("user") as AuthUser;
   const { message, engagementId, conversationId: existingConvId } = c.req.valid("json");

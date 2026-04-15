@@ -9,4 +9,5 @@ export type AppVariables = {
   orgId: string;
   user: AuthUser;
   requestId: string;
+  plan: string;
 };

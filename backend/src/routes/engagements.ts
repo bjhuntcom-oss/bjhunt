@@ -9,6 +9,7 @@ import { zValidator } from "@hono/zod-validator";
 import { withOrg, sql } from "../db/client.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
+import { requirePlan, enforceScanQuota } from "../middleware/plan-gate.js";
 import { langgraphClient } from "../lib/langgraph-client.js";
 import { config } from "../config.js";
 import type { AuthUser } from "../middleware/auth.js";
@@ -86,7 +87,7 @@ engagementRoutes.get("/:id", async (c) => {
 
 // ── Create engagement ────────────────────────────────────────────────────
 
-engagementRoutes.post("/", zValidator("json", createSchema), async (c) => {
+engagementRoutes.post("/", requirePlan("pro", "enterprise"), enforceScanQuota(), zValidator("json", createSchema), async (c) => {
   const orgId = c.get("orgId") as string;
   const user = c.get("user") as AuthUser;
   const body = c.req.valid("json");
@@ -156,7 +157,7 @@ engagementRoutes.patch("/:id", zValidator("json", updateSchema), async (c) => {
 
 // ── Launch engagement (start agent) ──────────────────────────────────────
 
-engagementRoutes.post("/:id/launch", async (c) => {
+engagementRoutes.post("/:id/launch", requirePlan("pro", "enterprise"), enforceScanQuota(), async (c) => {
   const orgId = c.get("orgId") as string;
   const user = c.get("user") as AuthUser;
   const id = c.req.param("id");

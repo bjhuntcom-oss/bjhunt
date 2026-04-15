@@ -17,6 +17,7 @@ import { validateApiKey } from "../auth/api-keys.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import { langgraphClient } from "../lib/langgraph-client.js";
 import { config } from "../config.js";
+import { getPlanLimits } from "../plans.js";
 
 export const publicApiRoutes = new Hono<{ Variables: AppVariables }>();
 
@@ -40,22 +41,24 @@ publicApiRoutes.use("*", async (c, next) => {
     return c.json({ error: "unauthorized", message: "Invalid or expired API key" }, 401);
   }
 
-  // Check org plan — API access requires Pro or Enterprise
+  // Check org plan — API v1 access requires Enterprise
   const [org] = await sql`SELECT plan FROM organizations WHERE id = ${result.orgId}`;
   const plan = (org as any)?.plan || "free";
+  const limits = getPlanLimits(plan);
 
-  if (plan === "free") {
+  if (!limits.apiV1Access) {
     return c.json({
       error: "plan_required",
-      message: "API access requires a Pro or Enterprise plan. Upgrade at https://bjhunt.com/pricing",
-      currentPlan: "free",
-      requiredPlan: "pro",
+      message: "API v1 access requires an Enterprise plan. Upgrade at https://bjhunt.com/pricing",
+      currentPlan: plan,
+      requiredPlan: "enterprise",
+      upgradeUrl: "https://bjhunt.com/pricing",
     }, 403);
   }
 
-  c.set("orgId" as never, result.orgId);
-  c.set("userId" as never, result.userId);
-  c.set("plan" as never, plan);
+  (c as any).set("orgId", result.orgId);
+  (c as any).set("userId", result.userId);
+  (c as any).set("plan", plan);
   await next();
 });
 
@@ -82,26 +85,23 @@ publicApiRoutes.post("/scans", zValidator("json", createScanSchema), async (c) =
   const userId = c.get("userId" as never) as string;
   const body = c.req.valid("json");
 
-  // Plan-based limits
+  // Plan-based limits from single source of truth
   const plan = c.get("plan" as never) as string;
-  const planLimits: Record<string, { scans: number; agents: string[] }> = {
-    pro: { scans: 50, agents: ["bjhunt", "recon", "exploit", "analyst", "cloud_hunter"] },
-    enterprise: { scans: -1, agents: ["bjhunt", "recon", "exploit", "postexploit", "analyst", "reverser", "contract_auditor", "cloud_hunter", "ad_operator", "vulnresearch", "scanner", "detector", "verifier", "patcher", "exploiter", "defender"] },
-  };
-  const limits = planLimits[plan] || planLimits.pro!;
+  const limits = getPlanLimits(plan);
 
   // Check monthly scan quota
-  if (limits.scans !== -1) {
+  if (limits.scansPerMonth > 0) {
     const [usage] = await withOrg(orgId, (tx) =>
       tx`SELECT count(*)::int as total FROM engagements
          WHERE created_at >= date_trunc('month', now())`,
     );
-    if (((usage as any)?.total ?? 0) >= limits.scans) {
+    if (((usage as any)?.total ?? 0) >= limits.scansPerMonth) {
       return c.json({
         error: "quota_exceeded",
-        message: `Monthly scan limit reached (${limits.scans}). Upgrade to Enterprise for unlimited scans.`,
+        message: `Monthly scan limit reached (${limits.scansPerMonth}). Upgrade your plan for more scans.`,
         usage: (usage as any)?.total,
-        limit: limits.scans,
+        limit: limits.scansPerMonth,
+        upgradeUrl: "https://bjhunt.com/pricing",
       }, 429);
     }
   }

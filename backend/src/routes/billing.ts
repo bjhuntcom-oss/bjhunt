@@ -8,22 +8,12 @@ import { withOrg, sql } from "../db/client.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import { config } from "../config.js";
+import { getPlanLimits } from "../plans.js";
 
 export const billingRoutes = new Hono<{ Variables: AppVariables }>();
 
 billingRoutes.use("*", requireAuth);
 billingRoutes.use("*", rateLimit(config.rateLimit.api));
-
-// ── Plan limits definition ─────────────────────────────────────────────
-
-const PLAN_LIMITS: Record<
-  string,
-  { engagements: number; tokensPerMonth: number; agents: number }
-> = {
-  free: { engagements: 5, tokensPerMonth: 2_000_000, agents: 3 },
-  pro: { engagements: 50, tokensPerMonth: 20_000_000, agents: 17 },
-  enterprise: { engagements: -1, tokensPerMonth: -1, agents: 17 },
-};
 
 // ── GET /plan — current org plan with limits ───────────────────────────
 
@@ -39,13 +29,23 @@ billingRoutes.get("/plan", async (c) => {
   }
 
   const org = rows[0] as { plan: string; name: string };
-  const limits = PLAN_LIMITS[org.plan] ?? PLAN_LIMITS.free;
+  const limits = getPlanLimits(org.plan);
 
   return c.json({
     plan: org.plan,
     displayName: org.plan.charAt(0).toUpperCase() + org.plan.slice(1),
     orgName: org.name,
-    limits,
+    priceDisplay: limits.priceDisplay,
+    limits: {
+      scansPerMonth: limits.scansPerMonth,
+      agents: limits.agents,
+      chatUnlimited: limits.chatUnlimited,
+      findingsExport: limits.findingsExport,
+      apiV1Access: limits.apiV1Access,
+      webhookIntegrations: limits.webhookIntegrations,
+      customAgentConfig: limits.customAgentConfig,
+      demoMinutes: limits.demoMinutes,
+    },
   });
 });
 
@@ -54,8 +54,8 @@ billingRoutes.get("/plan", async (c) => {
 billingRoutes.get("/usage", async (c) => {
   const orgId = c.get("orgId") as string;
 
-  const [engagementRows, tokenRows, findingRows, orgRows] = await Promise.all([
-    // Engagements created this month
+  const [scanRows, tokenRows, findingRows, orgRows] = await Promise.all([
+    // Scans (engagements) created this month
     withOrg(orgId, (tx) =>
       tx`
         SELECT COUNT(*)::int AS count
@@ -85,9 +85,9 @@ billingRoutes.get("/usage", async (c) => {
   ]);
 
   const plan: string = (orgRows[0] as any)?.plan ?? "free";
-  const limits = PLAN_LIMITS[plan] || PLAN_LIMITS["free"]!;
+  const limits = getPlanLimits(plan);
 
-  const engagementsUsed = (engagementRows[0] as any)?.count ?? 0;
+  const scansUsed = (scanRows[0] as any)?.count ?? 0;
   const tokenRow = tokenRows[0] as any;
   const tokensUsed =
     (tokenRow?.tokens_input ?? 0) + (tokenRow?.tokens_output ?? 0);
@@ -95,21 +95,26 @@ billingRoutes.get("/usage", async (c) => {
 
   return c.json({
     plan,
-    limits,
+    priceDisplay: limits.priceDisplay,
+    limits: {
+      scansPerMonth: limits.scansPerMonth,
+      agents: limits.agents,
+      chatUnlimited: limits.chatUnlimited,
+      findingsExport: limits.findingsExport,
+      apiV1Access: limits.apiV1Access,
+      webhookIntegrations: limits.webhookIntegrations,
+    },
     usage: {
-      engagements: engagementsUsed,
+      scans: scansUsed,
+      scansLimit: limits.scansPerMonth,
       tokensUsed,
       findings: findingsCount,
     },
     percentages: {
-      engagements:
-        limits.engagements === -1
-          ? 0
-          : Math.round((engagementsUsed / limits.engagements) * 100),
-      tokens:
-        limits.tokensPerMonth === -1
-          ? 0
-          : Math.round((tokensUsed / limits.tokensPerMonth) * 100),
+      scans:
+        limits.scansPerMonth === 0
+          ? 100
+          : Math.round((scansUsed / limits.scansPerMonth) * 100),
     },
   });
 });

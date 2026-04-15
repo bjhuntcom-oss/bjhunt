@@ -396,4 +396,22 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_backup_codes TEXT[];
 
+-- ============================================================================
+-- API Key Request Tracking
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS api_key_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    api_key_id UUID NOT NULL REFERENCES api_keys(id) ON DELETE CASCADE,
+    org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    endpoint TEXT NOT NULL,
+    method TEXT NOT NULL,
+    status_code INTEGER,
+    response_ms INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_api_key_req_key ON api_key_requests(api_key_id);
+CREATE INDEX IF NOT EXISTS idx_api_key_req_created ON api_key_requests(created_at DESC);
+
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS demo_started_at TIMESTAMPTZ;
+
 COMMIT;
