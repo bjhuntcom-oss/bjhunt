@@ -53,25 +53,43 @@ export default async function DashboardPage({
   let cpData: Record<string, unknown> = {}
   let healthData: { ready?: boolean; checks?: Record<string, boolean> } = {}
   if (isAdmin) {
-    const [usersRes, logsRes, healthRes] = await Promise.all([
+    const [usersRes, logsRes, healthRes, adminStatsRes] = await Promise.all([
       serverBackendFetch('/api/admin/users?limit=1', {}, cookieHeader),
       serverBackendFetch('/api/admin/settings/audit-logs?limit=5', {}, cookieHeader),
       serverBackendFetch('/api/health/ready', {}, cookieHeader),
+      serverBackendFetch('/api/admin/settings/stats', {}, cookieHeader),
     ])
+
+    // Admin stats (plan distribution, revenue, scans, findings)
+    let adminStats: Record<string, any> = {}
+    if (adminStatsRes.ok) {
+      adminStats = await adminStatsRes.json()
+    }
+
     if (usersRes.ok) {
       const ud = await usersRes.json() as { total?: number }
-      cpData.counts = { users: ud.total ?? 0, activeSessions: ud.total ?? 0, usersOnline: 0, auditLogs24h: 0 }
+      cpData.counts = {
+        users: ud.total ?? 0,
+        activeSessions: adminStats.activeAgentRuns ?? 0,
+        usersOnline: 0,
+        auditLogs24h: adminStats.totalFindings ?? 0,
+        totalScans: adminStats.totalScans ?? 0,
+        totalRevenue: adminStats.totalRevenue ?? 0,
+      }
+      cpData.planDistribution = adminStats.planDistribution ?? {}
     }
     if (logsRes.ok) {
       const ld = await logsRes.json() as { logs?: Array<Record<string, unknown>>; total?: number }
       cpData.recentLogs = ld.logs ?? []
-      if (cpData.counts && typeof (cpData.counts as Record<string, number>).auditLogs24h !== 'undefined') {
-        (cpData.counts as Record<string, number>).auditLogs24h = ld.total ?? (ld.logs ?? []).length
-      }
     }
     if (healthRes.ok) {
-      const hd = await healthRes.json() as { status?: string; db?: string }
-      healthData = { ready: hd.status === 'ready', checks: { database: hd.db === 'connected' } }
+      const hd = await healthRes.json() as { status?: string; checks?: Record<string, any> }
+      healthData = {
+        ready: hd.status === 'ready',
+        checks: Object.fromEntries(
+          Object.entries(hd.checks ?? {}).map(([k, v]: [string, any]) => [k, v?.status === 'connected'])
+        ),
+      }
     }
   }
 
@@ -192,9 +210,9 @@ export default async function DashboardPage({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border)] mb-6">
             {[
               { label: 'Utilisateurs',     value: adminCounts.users ?? 0 },
-              { label: 'Sessions actives', value: adminCounts.activeSessions ?? 0 },
-              { label: 'En ligne',         value: adminCounts.usersOnline ?? 0 },
-              { label: 'Logs (24h)',       value: adminCounts.auditLogs24h ?? 0 },
+              { label: 'Scans ce mois',    value: adminCounts.totalScans ?? 0 },
+              { label: 'Findings',         value: adminCounts.auditLogs24h ?? 0 },
+              { label: 'Revenue',          value: `$${adminCounts.totalRevenue ?? 0}` },
             ].map(({ label, value }) => (
               <div key={label} className="bg-[var(--bg-card)] p-6">
                 <div className="text-3xl font-black font-mono text-white">{value}</div>

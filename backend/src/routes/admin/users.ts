@@ -31,9 +31,15 @@ adminUserRoutes.get("/", async (c) => {
     const pattern = `%${search}%`;
     users = await sql`
       SELECT u.id, u.email, u.display_name, u.role, u.is_platform_admin,
-             u.created_at, u.updated_at, o.name as org_name, o.slug as org_slug
+             u.created_at, u.updated_at, o.name as org_name, o.slug as org_slug,
+             o.plan, sl.last_login
       FROM users u
       JOIN organizations o ON u.org_id = o.id
+      LEFT JOIN (
+        SELECT user_id, MAX(created_at) AS last_login
+        FROM sessions
+        GROUP BY user_id
+      ) sl ON sl.user_id = u.id
       WHERE u.email ILIKE ${pattern}
       ORDER BY u.created_at DESC
       LIMIT ${limit} OFFSET ${offset}
@@ -43,9 +49,15 @@ adminUserRoutes.get("/", async (c) => {
   } else {
     users = await sql`
       SELECT u.id, u.email, u.display_name, u.role, u.is_platform_admin,
-             u.created_at, u.updated_at, o.name as org_name, o.slug as org_slug
+             u.created_at, u.updated_at, o.name as org_name, o.slug as org_slug,
+             o.plan, sl.last_login
       FROM users u
       JOIN organizations o ON u.org_id = o.id
+      LEFT JOIN (
+        SELECT user_id, MAX(created_at) AS last_login
+        FROM sessions
+        GROUP BY user_id
+      ) sl ON sl.user_id = u.id
       ORDER BY u.created_at DESC
       LIMIT ${limit} OFFSET ${offset}
     `;

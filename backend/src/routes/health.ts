@@ -46,6 +46,16 @@ healthRoutes.get("/ready", async (c) => {
     checks.langgraph = { status: "disconnected", latencyMs: Date.now() - lgStart };
   }
 
+  // Neo4j (HTTP browser endpoint)
+  const neo4jStart = Date.now();
+  try {
+    const neo4jUrl = process.env.NEO4J_HTTP_URL || "http://neo4j:7474";
+    const res = await fetch(neo4jUrl, { signal: AbortSignal.timeout(3000) });
+    checks.neo4j = { status: res.ok ? "connected" : "disconnected", latencyMs: Date.now() - neo4jStart };
+  } catch {
+    checks.neo4j = { status: "disconnected", latencyMs: Date.now() - neo4jStart };
+  }
+
   const allHealthy = Object.values(checks).every((c) => c.status === "connected");
 
   return c.json({

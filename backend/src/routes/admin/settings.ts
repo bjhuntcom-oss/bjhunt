@@ -110,3 +110,68 @@ adminSettingsRoutes.get("/agents", async (c) => {
     return c.json({ error: "Failed to connect to LangGraph API", agents: [] }, 502);
   }
 });
+
+// ── Admin overview stats ────────────────────────────────────────────────
+
+adminSettingsRoutes.get("/stats", async (c) => {
+  // Plan distribution: count of orgs per plan
+  const planRows = await sql`
+    SELECT plan, COUNT(*)::int AS count
+    FROM organizations
+    GROUP BY plan
+  `;
+  const planDistribution: Record<string, number> = { free: 0, pro: 0, enterprise: 0 };
+  for (const row of planRows) {
+    planDistribution[(row as any).plan] = (row as any).count;
+  }
+
+  // User growth: users created per day in the last 7 days
+  const growthRows = await sql`
+    SELECT date_trunc('day', created_at)::date AS day, COUNT(*)::int AS count
+    FROM users
+    WHERE created_at >= now() - interval '7 days'
+    GROUP BY day
+    ORDER BY day ASC
+  `;
+  const userGrowth = growthRows.map((r: any) => ({ day: r.day, count: r.count }));
+
+  // Total revenue estimate: pro=200, enterprise=2000
+  const PLAN_PRICES: Record<string, number> = { free: 0, pro: 200, enterprise: 2000 };
+  const totalRevenue = Object.entries(planDistribution).reduce(
+    (sum, [plan, count]) => sum + (PLAN_PRICES[plan] ?? 0) * count,
+    0,
+  );
+
+  // Total engagements this month
+  const [scanRow] = await sql`
+    SELECT COUNT(*)::int AS total
+    FROM engagements
+    WHERE created_at >= date_trunc('month', now())
+  `;
+  const totalScans = (scanRow as any)?.total ?? 0;
+
+  // Total findings this month
+  const [findingRow] = await sql`
+    SELECT COUNT(*)::int AS total
+    FROM findings
+    WHERE created_at >= date_trunc('month', now())
+  `;
+  const totalFindings = (findingRow as any)?.total ?? 0;
+
+  // Currently running agent_runs
+  const [runningRow] = await sql`
+    SELECT COUNT(*)::int AS total
+    FROM agent_runs
+    WHERE status = 'running'
+  `;
+  const activeAgentRuns = (runningRow as any)?.total ?? 0;
+
+  return c.json({
+    planDistribution,
+    userGrowth,
+    totalRevenue,
+    totalScans,
+    totalFindings,
+    activeAgentRuns,
+  });
+});

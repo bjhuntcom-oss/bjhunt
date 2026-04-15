@@ -31,8 +31,12 @@ export default async function AdminUsersPage({
     email: u.email,
     displayName: u.displayName || u.email.split('@')[0],
     role: u.isPlatformAdmin ? 'platform_admin' : u.role,
-    status: 'active',
-    sessions: { lastLoginAt: null, isOnline: false },
+    status: u.role === 'viewer' ? 'blocked' : 'active',
+    sessions: {
+      lastLoginAt: u.lastLogin || null,
+      isOnline: u.lastLogin ? (Date.now() - new Date(u.lastLogin).getTime() < 15 * 60 * 1000) : false,
+    },
+    plan: u.plan || 'free',
   }))
   const counts = { users: cpData.total ?? 0 }
 
