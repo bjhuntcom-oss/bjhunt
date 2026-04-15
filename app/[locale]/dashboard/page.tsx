@@ -96,23 +96,52 @@ export default async function DashboardPage({
   // Reuse admin health fetch if already done; otherwise fetch once
   const healthOk = isAdmin ? healthData.ready === true : (await serverBackendFetch("/api/health/ready", {}, cookieHeader)).ok;
 
+  // Fetch billing plan + usage from dedicated billing endpoints, plus dashboard stats
+  const [statsRes, billingPlanRes, billingUsageRes] = await Promise.all([
+    serverBackendFetch('/api/dashboard/stats', {}, cookieHeader),
+    serverBackendFetch('/api/billing/plan', {}, cookieHeader),
+    serverBackendFetch('/api/billing/usage', {}, cookieHeader),
+  ]);
+
+  // Parse billing data
+  type BillingPlan = { plan: string; displayName: string; orgName: string; limits: { engagements: number; tokensPerMonth: number; agents: number } };
+  type BillingUsage = { plan: string; limits: { engagements: number; tokensPerMonth: number; agents: number }; usage: { engagements: number; tokensUsed: number; findings: number }; percentages: { engagements: number; tokens: number } };
+
+  let billingPlan: BillingPlan | null = null;
+  let billingUsage: BillingUsage | null = null;
+  if (billingPlanRes.ok) billingPlan = await billingPlanRes.json() as BillingPlan;
+  if (billingUsageRes.ok) billingUsage = await billingUsageRes.json() as BillingUsage;
+
   // Dashboard stats — fetch from backend, fallback to local computation
   let stats: DashboardStats;
-  const statsRes = await serverBackendFetch('/api/dashboard/stats', {}, cookieHeader);
   if (statsRes.ok) {
     const sd = await statsRes.json() as DashboardStats;
     stats = {
       health: sd.health ?? { status: healthOk ? 'operational' : 'down', latencyMs: 0 },
-      tokens: sd.tokens ?? { used: 0, limit: 2_000_000 },
+      tokens: sd.tokens ?? {
+        used: billingUsage?.usage.tokensUsed ?? 0,
+        limit: billingPlan?.limits.tokensPerMonth ?? 2_000_000,
+      },
       scans: sd.scans ?? { total: scans.length, perDay: [0, 0, 0, 0, 0, 0, scans.length], severity: { critical: 0, high: 0, medium: 0, low: 0 } },
-      plan: sd.plan ?? { slug: 'free', displayName: 'Free', scansLimit: 5 },
+      plan: sd.plan ?? {
+        slug: billingPlan?.plan ?? 'free',
+        displayName: billingPlan?.displayName ?? 'Free',
+        scansLimit: billingPlan?.limits.engagements ?? 5,
+      },
     };
   } else {
     stats = {
       health: { status: healthOk ? 'operational' : 'down', latencyMs: 0 },
-      tokens: { used: 0, limit: 2_000_000 },
+      tokens: {
+        used: billingUsage?.usage.tokensUsed ?? 0,
+        limit: billingPlan?.limits.tokensPerMonth ?? 2_000_000,
+      },
       scans: { total: scans.length, perDay: [0, 0, 0, 0, 0, 0, scans.length], severity: { critical: 0, high: 0, medium: 0, low: 0 } },
-      plan: { slug: 'free', displayName: 'Free', scansLimit: 5 },
+      plan: {
+        slug: billingPlan?.plan ?? 'free',
+        displayName: billingPlan?.displayName ?? 'Free',
+        scansLimit: billingPlan?.limits.engagements ?? 5,
+      },
     };
   }
 
@@ -333,28 +362,73 @@ export default async function DashboardPage({
 
       <div className="border border-[var(--border)] bg-[var(--bg-card)] p-6 mb-6">
         <div className="flex items-start justify-between flex-wrap gap-4">
-          <div>
+          <div className="flex-1">
             <p className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-[0.2em] mb-2">Abonnement</p>
             <div className="text-xl font-black">{planDisplayName}</div>
             <div className="text-[10px] text-[var(--text-muted)] mt-1 font-mono">
-              {planScansLimit === -1
-                ? "Scans illimites"
-                : `${planScansLimit} scans / mois inclus`}
+              {billingPlan?.limits.agents ?? 3} agents disponibles
             </div>
-            {planScansLimit > 0 && (
-              <div className="mt-3 flex items-center gap-3">
-                <div className="text-[10px] font-mono text-[var(--text-muted)]">
-                  {Math.min(totalScans, planScansLimit)} / {planScansLimit} utilises
+
+            {/* Engagements usage */}
+            {(() => {
+              const engLimit = billingUsage?.limits.engagements ?? planScansLimit;
+              const engUsed = billingUsage?.usage.engagements ?? totalScans;
+              const engPct = billingUsage?.percentages.engagements ?? (engLimit > 0 ? Math.round((engUsed / engLimit) * 100) : 0);
+              return engLimit === -1 ? (
+                <div className="mt-3 text-[10px] font-mono text-[var(--text-muted)]">
+                  {engUsed} engagements ce mois (illimites)
                 </div>
-                <div className="flex-1 h-1 bg-[var(--border)] w-32">
-                  <div
-                    className="h-full bg-[var(--warning)]"
-                    style={{ width: `${Math.min((totalScans / planScansLimit) * 100, 100)}%` }}
-                  />
+              ) : (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between text-[9px] font-mono text-[var(--text-muted)] mb-1">
+                    <span>Engagements</span>
+                    <span>{engUsed} / {engLimit}</span>
+                  </div>
+                  <div className="h-1 bg-[var(--border)] w-full">
+                    <div
+                      className="h-full transition-all"
+                      style={{
+                        width: `${Math.min(engPct, 100)}%`,
+                        background: engPct >= 90 ? 'var(--danger)' : engPct >= 70 ? 'var(--warning)' : 'var(--success)',
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="text-[9px] font-mono text-[var(--text-muted)]">
-                  {Math.min(Math.round((totalScans / planScansLimit) * 100), 100)}%
+              );
+            })()}
+
+            {/* Tokens usage */}
+            {(() => {
+              const tokLimit = billingUsage?.limits.tokensPerMonth ?? tokensLimit;
+              const tokUsed = billingUsage?.usage.tokensUsed ?? tokensUsed;
+              const tokPct = billingUsage?.percentages.tokens ?? tokensUsedPct;
+              return tokLimit === -1 ? (
+                <div className="mt-2 text-[10px] font-mono text-[var(--text-muted)]">
+                  {(tokUsed / 1_000_000).toFixed(1)}M tokens utilises (illimites)
                 </div>
+              ) : (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between text-[9px] font-mono text-[var(--text-muted)] mb-1">
+                    <span>Tokens</span>
+                    <span>{(tokUsed / 1_000_000).toFixed(1)}M / {(tokLimit / 1_000_000).toFixed(0)}M</span>
+                  </div>
+                  <div className="h-1 bg-[var(--border)] w-full">
+                    <div
+                      className="h-full transition-all"
+                      style={{
+                        width: `${Math.min(tokPct, 100)}%`,
+                        background: tokPct >= 90 ? 'var(--danger)' : tokPct >= 70 ? 'var(--warning)' : 'var(--success)',
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Findings count */}
+            {billingUsage && (
+              <div className="mt-2 text-[10px] font-mono text-[var(--text-muted)]">
+                {billingUsage.usage.findings} findings ce mois
               </div>
             )}
           </div>

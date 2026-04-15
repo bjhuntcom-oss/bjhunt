@@ -1,20 +1,170 @@
 /// <reference lib="dom" />
 "use client";
 
-import { Terminal, Search, FileText, HelpCircle, Scan } from "lucide-react";
+import {
+  Terminal,
+  Search,
+  FileText,
+  HelpCircle,
+  Scan,
+  Trash2,
+  Download,
+  Bot,
+  Cpu,
+  Activity,
+  Shield,
+} from "lucide-react";
 
 export interface SlashCommand {
   command: string;
   description: string;
   icon: React.ReactNode;
+  action?: (context: SlashCommandContext) => void;
+}
+
+export interface SlashCommandContext {
+  /** Replace the current input value */
+  setInput: (value: string) => void;
+  /** Send a message to the chat */
+  sendMessage: (message: string) => void;
+  /** Clear all messages */
+  clearMessages: () => void;
+  /** Current messages for export */
+  messages: Array<{ role: string; content: string }>;
+  /** Current engagement ID if any */
+  engagementId?: string;
 }
 
 export const SLASH_COMMANDS: SlashCommand[] = [
-  { command: "/scan",     description: "Lancer un scan de sécurité",        icon: <Scan className="w-3 h-3" /> },
-  { command: "/report",   description: "Générer un rapport de vulnérabilités", icon: <FileText className="w-3 h-3" /> },
-  { command: "/search",   description: "Rechercher dans la base CVE",         icon: <Search className="w-3 h-3" /> },
-  { command: "/terminal", description: "Mode terminal interactif",            icon: <Terminal className="w-3 h-3" /> },
-  { command: "/help",     description: "Afficher l'aide BJHUNT",              icon: <HelpCircle className="w-3 h-3" /> },
+  {
+    command: "/help",
+    description: "Afficher les commandes disponibles",
+    icon: <HelpCircle className="w-3 h-3" />,
+    action: (ctx) => {
+      const helpText = SLASH_COMMANDS.map(
+        (c) => `${c.command} — ${c.description}`,
+      ).join("\n");
+      ctx.sendMessage(
+        `/help\n\nCommandes disponibles :\n${helpText}`,
+      );
+    },
+  },
+  {
+    command: "/clear",
+    description: "Effacer les messages du chat",
+    icon: <Trash2 className="w-3 h-3" />,
+    action: (ctx) => {
+      ctx.clearMessages();
+    },
+  },
+  {
+    command: "/export",
+    description: "Exporter la conversation en markdown",
+    icon: <Download className="w-3 h-3" />,
+    action: (ctx) => {
+      const md = ctx.messages
+        .map((m) => `### ${m.role === "user" ? "Vous" : "BJHUNT"}\n\n${m.content}`)
+        .join("\n\n---\n\n");
+      const blob = new Blob(
+        [`# Conversation BJHUNT\n\n${md}`],
+        { type: "text/markdown" },
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `bjhunt-conversation-${new Date().toISOString().slice(0, 10)}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+      ctx.setInput("");
+    },
+  },
+  {
+    command: "/agents",
+    description: "Lister les agents disponibles",
+    icon: <Bot className="w-3 h-3" />,
+    action: (ctx) => {
+      ctx.sendMessage(
+        "/agents\n\nAgents BJHUNT disponibles :\n" +
+          "1. Decepticon — Orchestrateur principal\n" +
+          "2. Soundwave — Planification d'engagement\n" +
+          "3. Recon — OSINT et enumeration\n" +
+          "4. Exploit — Exploitation de vulnerabilites\n" +
+          "5. PostExploit — Post-exploitation et mouvement lateral\n" +
+          "6. Analyst — Analyse de code et CVE\n" +
+          "7. Reverser — Reverse engineering\n" +
+          "8. Contract Auditor — Audit smart contracts\n" +
+          "9. Cloud Hunter — Securite cloud\n" +
+          "10. AD Operator — Active Directory\n" +
+          "11. VulnResearch — Recherche de vulnerabilites\n" +
+          "12. Scanner — Scan automatise\n" +
+          "13. Detector — Detection de vulnerabilites\n" +
+          "14. Verifier — Verification de vulnerabilites\n" +
+          "15. Patcher — Generation de patchs\n" +
+          "16. Exploiter — Generation d'exploits\n" +
+          "17. Defender — Defense et remediation",
+      );
+    },
+  },
+  {
+    command: "/model",
+    description: "Afficher / changer le modele IA actuel",
+    icon: <Cpu className="w-3 h-3" />,
+    action: (ctx) => {
+      ctx.sendMessage("/model\n\nAffichage du modele actuel...");
+    },
+  },
+  {
+    command: "/status",
+    description: "Afficher le statut de l'engagement en cours",
+    icon: <Activity className="w-3 h-3" />,
+    action: (ctx) => {
+      if (ctx.engagementId) {
+        ctx.sendMessage(
+          `/status\n\nStatut de l'engagement ${ctx.engagementId}...`,
+        );
+      } else {
+        ctx.sendMessage(
+          "/status\n\nAucun engagement actif. Lancez un scan pour commencer.",
+        );
+      }
+    },
+  },
+  {
+    command: "/findings",
+    description: "Resume des findings de l'engagement en cours",
+    icon: <Shield className="w-3 h-3" />,
+    action: (ctx) => {
+      if (ctx.engagementId) {
+        ctx.sendMessage(
+          `/findings\n\nChargement des findings pour l'engagement ${ctx.engagementId}...`,
+        );
+      } else {
+        ctx.sendMessage(
+          "/findings\n\nAucun engagement actif. Lancez un scan pour voir les findings.",
+        );
+      }
+    },
+  },
+  {
+    command: "/scan",
+    description: "Lancer un scan de securite",
+    icon: <Scan className="w-3 h-3" />,
+  },
+  {
+    command: "/report",
+    description: "Generer un rapport de vulnerabilites",
+    icon: <FileText className="w-3 h-3" />,
+  },
+  {
+    command: "/search",
+    description: "Rechercher dans la base CVE",
+    icon: <Search className="w-3 h-3" />,
+  },
+  {
+    command: "/terminal",
+    description: "Mode terminal interactif",
+    icon: <Terminal className="w-3 h-3" />,
+  },
 ];
 
 interface SlashCommandsProps {

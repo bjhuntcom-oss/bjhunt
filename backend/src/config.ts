@@ -47,6 +47,13 @@ export const config = {
     apiSecret: required("BJHUNT_API_SECRET"),
   },
 
+  // Email (Resend)
+  email: {
+    from: optional("EMAIL_FROM", "BJHUNT <noreply@bjhunt.com>"),
+    resendApiKey: process.env.RESEND_API_KEY || "",
+    appUrl: optional("APP_URL", "https://bjhunt.com"),
+  },
+
   // Rate limiting
   rateLimit: {
     public: { window: 60, max: 30 },    // 30 req/min for public endpoints

@@ -389,4 +389,11 @@ CREATE TRIGGER trg_gateway_providers_updated BEFORE UPDATE ON gateway_providers
 CREATE TRIGGER trg_agent_profiles_updated BEFORE UPDATE ON agent_profiles
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+-- ============================================================================
+-- 2FA / TOTP columns on users
+-- ============================================================================
+ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_backup_codes TEXT[];
+
 COMMIT;

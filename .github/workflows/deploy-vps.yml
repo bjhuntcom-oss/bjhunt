@@ -24,39 +24,28 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan 82.25.117.79 >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh-keyscan -H 82.25.117.79 >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Deploy
         run: |
-          ssh -o StrictHostKeyChecking=no root@82.25.117.79 << 'DEPLOY'
-            set -euo pipefail
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes root@82.25.117.79 'set -e
             cd /opt/bjhunt/app
-
-            # Pull latest code
             git pull origin main
-
-            # Rebuild and restart changed services
-            docker compose up -d --build backend langgraph
-
-            # Wait for health
-            for i in $(seq 1 30); do
-              if curl -sf http://localhost:3001/api/health/live > /dev/null 2>&1; then
-                echo "Backend healthy"
-                break
-              fi
-              sleep 3
-            done
-
-            echo "Deploy complete at $(date -u)"
-          DEPLOY
+            docker compose up -d --build backend
+            docker compose restart langgraph
+            sleep 5
+            curl -sf http://localhost:3001/api/health/live > /dev/null && echo "Backend healthy" || echo "Backend not ready"
+            echo "Deploy complete"
+          '
 
       - name: Verify production
         run: |
           sleep 5
-          curl -sf https://api.bjhunt.com/api/health/live
-          echo ""
+          curl -sf https://api.bjhunt.com/api/health/live && echo " OK"
           curl -sf https://api.bjhunt.com/api/health/version

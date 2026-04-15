@@ -12,6 +12,8 @@ import { createSession, deleteSession } from "../auth/session.js";
 import { config } from "../config.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import type { AuthUser } from "../middleware/auth.js";
+import { sendEmail } from "../lib/email.js";
+import { welcomeEmail, passwordResetEmail, loginNotificationEmail } from "../lib/email-templates.js";
 
 export const authRoutes = new Hono<{ Variables: AppVariables }>();
 
@@ -77,6 +79,10 @@ authRoutes.post(
       VALUES (${result.orgId}, ${result.id}, 'user.register', ${ip})
     `;
 
+    // Send welcome email (fire-and-forget)
+    const welcome = welcomeEmail(displayName || email.split("@")[0]!);
+    sendEmail({ to: email, subject: welcome.subject, html: welcome.html }).catch(() => {});
+
     return c.json({
       user: {
         id: result.id,
@@ -115,6 +121,25 @@ authRoutes.post(
       return c.json({ error: "Invalid email or password" }, 401);
     }
 
+    // ── 2FA check ─────────────────────────────────────────────────────
+    // If the user has TOTP enabled, do NOT create a session yet.
+    // Return a short-lived temp token for the frontend to call /api/auth/2fa/verify.
+    const [totpRow] = await sql`
+      SELECT totp_enabled FROM users WHERE id = ${user.id}
+    `;
+    if (totpRow?.totpEnabled) {
+      const expiry = Date.now() + 5 * 60 * 1000; // 5 minutes
+      const hasher = new Bun.CryptoHasher("sha256");
+      hasher.update(`${user.id}:${config.auth.sessionSecret}:${expiry}`);
+      const hash = hasher.digest("hex");
+      const tempToken = `${hash}:${user.id}:${expiry}`;
+
+      return c.json({
+        requiresTwoFactor: true,
+        tempToken,
+      });
+    }
+
     const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || null;
     const ua = c.req.header("user-agent") || null;
     const session = await createSession(user.id as string, ip, ua);
@@ -125,6 +150,15 @@ authRoutes.post(
       INSERT INTO audit_logs (org_id, user_id, action, ip_address)
       VALUES (${user.orgId}, ${user.id}, 'user.login', ${ip})
     `;
+
+    // Send login notification email (fire-and-forget)
+    const loginAlert = loginNotificationEmail(
+      email.split("@")[0]!,
+      ip || "Unknown",
+      ua || "Unknown",
+      new Date().toISOString(),
+    );
+    sendEmail({ to: email, subject: loginAlert.subject, html: loginAlert.html }).catch(() => {});
 
     return c.json({
       user: {
@@ -233,8 +267,11 @@ authRoutes.post(
         VALUES (${user.id}, ${tokenHash}, ${expiresAt})
       `;
 
-      // TODO: Send email with reset link containing token
-      // For now, log the token in dev mode
+      // Send password reset email
+      const resetUrl = `${config.email.appUrl}/reset-password?token=${token}`;
+      const resetEmail = passwordResetEmail(email.split("@")[0]!, resetUrl);
+      sendEmail({ to: email, subject: resetEmail.subject, html: resetEmail.html }).catch(() => {});
+
       if (!config.isProduction) {
         console.log(`[DEV] Password reset token for ${email}: ${token}`);
       }

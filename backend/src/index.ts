@@ -27,6 +27,8 @@ import { gatewayRoutes, ollamaRoutes } from "./routes/admin/gateway.js";
 import { agentRoutes } from "./routes/admin/agents.js";
 import { notificationRoutes } from "./routes/notifications.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
+import { billingRoutes } from "./routes/billing.js";
+import { twoFactorRoutes } from "./routes/two-factor.js";
 
 const app = new Hono<{ Variables: AppVariables }>();
 
@@ -46,6 +48,7 @@ app.route("/api/health", healthRoutes);
 
 // Auth
 app.route("/api/auth", authRoutes);
+app.route("/api/auth/2fa", twoFactorRoutes);
 
 // Authenticated API routes
 app.route("/api/engagements", engagementRoutes);
@@ -53,6 +56,7 @@ app.route("/api/chat", chatRoutes);
 app.route("/api/keys", apiKeyRoutes);
 app.route("/api/notifications", notificationRoutes);
 app.route("/api/dashboard", dashboardRoutes);
+app.route("/api/billing", billingRoutes);
 
 // Admin routes (platform admin only)
 app.route("/api/admin/users", adminUserRoutes);
