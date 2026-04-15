@@ -56,6 +56,9 @@ HAIKU = "anthropic/claude-haiku-4-5"
 GPT_5 = "openai/gpt-5.4"
 GPT_4 = "openai/gpt-4.1"
 GEMINI_FLASH = "gemini/gemini-2.5-flash"
+GLM_5_1 = "ollama-cloud/glm-5.1"
+DEEPSEEK_V3 = "ollama-cloud/deepseek-v3.2"
+KIMI_K2 = "ollama-cloud/kimi-k2.5"
 
 
 class ProxyConfig(BaseModel):
@@ -115,7 +118,7 @@ class LLMModelMapping(BaseModel):
     soundwave: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
             primary=HAIKU,
-            fallback=GEMINI_FLASH,
+            fallback=GLM_5_1,
             temperature=0.4,
         )
     )
@@ -179,8 +182,8 @@ class LLMModelMapping(BaseModel):
 
     recon: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
-            primary=HAIKU,
-            fallback=GEMINI_FLASH,
+            primary=GLM_5_1,
+            fallback=HAIKU,
             temperature=0.3,
         )
     )

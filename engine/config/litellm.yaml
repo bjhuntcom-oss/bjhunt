@@ -54,15 +54,25 @@ model_list:
       api_key: os.environ/GEMINI_API_KEY
 
   # ── Ollama Cloud ────────────────────────────────────────────────────
-  - model_name: ollama-cloud/deepseek-v3.2
+  # Auth: Bearer token via OLLAMA_CLOUD_API_KEY
+  # Base: https://ollama.com/v1 (OpenAI-compatible)
+  # Models use :cloud suffix for cloud-hosted variants
+
+  - model_name: ollama-cloud/glm-5.1
     litellm_params:
-      model: openai/deepseek-v3.2
+      model: openai/glm-5.1:cloud
       api_key: os.environ/OLLAMA_CLOUD_API_KEY
       api_base: https://ollama.com/v1
 
-  - model_name: ollama-cloud/kimi-k2
+  - model_name: ollama-cloud/deepseek-v3.2
     litellm_params:
-      model: openai/kimi-k2
+      model: openai/deepseek-v3.2:cloud
+      api_key: os.environ/OLLAMA_CLOUD_API_KEY
+      api_base: https://ollama.com/v1
+
+  - model_name: ollama-cloud/kimi-k2.5
+    litellm_params:
+      model: openai/kimi-k2.5:cloud
       api_key: os.environ/OLLAMA_CLOUD_API_KEY
       api_base: https://ollama.com/v1
 
