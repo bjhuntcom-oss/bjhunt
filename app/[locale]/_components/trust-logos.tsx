@@ -125,7 +125,7 @@ export function TrustLogos() {
           {REPEATED.map(({ id, Component }, i) => (
             <div
               key={`${id}-${i}`}
-              className="flex-shrink-0 flex items-center justify-center text-[var(--text-muted)] opacity-40 hover:opacity-80 hover:text-white transition-all duration-300"
+              className="flex-shrink-0 flex items-center justify-center text-[#888888] opacity-70 hover:opacity-100 hover:text-white transition-all duration-300"
             >
               <Component />
             </div>

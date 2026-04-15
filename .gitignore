@@ -62,3 +62,5 @@ venv/
 
 # Docker
 .docker/
+.playwright-mcp/
+.playwright-cli/

@@ -23,8 +23,8 @@
   --border:       #1a1a1a;
   --border-strong:#2a2a2a;
   --text:         #ffffff;
-  --text-muted:   #555555;
-  --text-subtle:  #333333;
+  --text-muted:   #666666;
+  --text-subtle:  #4a4a4a;
   --success:      #00cc8a;
   --danger:       #ff4444;
   --warning:      #ff9900;
@@ -111,11 +111,6 @@ body {
   50%       { transform: translateY(-8px); }
 }
 
-@keyframes dash-in {
-  from { stroke-dashoffset: 40; opacity: 0; }
-  to   { stroke-dashoffset: 0;  opacity: 1; }
-}
-
 /* Arrow logo animations */
 @keyframes arrow-draw {
   from { stroke-dashoffset: 100; }
@@ -170,10 +165,6 @@ body {
 
 @keyframes growth-draw {
   to { stroke-dashoffset: 0; }
-}
-
-@keyframes growth-dot {
-  to { opacity: 1; }
 }
 
 @keyframes hex-pulse {

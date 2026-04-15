@@ -26,7 +26,7 @@ const DELAYS = {
 const DATA_BLOCKS: Record<ScenarioId, React.ReactNode> = {
   t1: (
     <div className="space-y-1 text-[10px] font-mono">
-      <div className="grid grid-cols-4 gap-2 text-[var(--text-subtle)] uppercase text-[8px] tracking-widest pb-1 border-b border-[#1a1a1a]">
+      <div className="grid grid-cols-4 gap-2 text-[#777777] uppercase text-[8px] tracking-widest pb-1 border-b border-[#1a1a1a]">
         <span>HOST</span><span>PORT</span><span>SERVICE</span><span>STATUS</span>
       </div>
       {[
@@ -57,7 +57,7 @@ const DATA_BLOCKS: Record<ScenarioId, React.ReactNode> = {
         ["SUBS",    "→", "14 sous-domaines trouvés"],
       ].map(([k, arrow, v]) => (
         <div key={k} className="flex gap-3">
-          <span className="text-[var(--text-subtle)] w-14 flex-shrink-0">{k}</span>
+          <span className="text-[#777777] w-14 flex-shrink-0">{k}</span>
           <span className="text-[#444]">{arrow}</span>
           <span className="text-white">{v}</span>
         </div>
@@ -131,7 +131,7 @@ const DATA_BLOCKS: Record<ScenarioId, React.ReactNode> = {
           >
             {ok ? "✓" : "⚠"}
           </span>
-          <span className="text-[var(--text-subtle)] w-16 flex-shrink-0 text-[8px] uppercase tracking-widest">{check}</span>
+          <span className="text-[#777777] w-16 flex-shrink-0 text-[8px] uppercase tracking-widest">{check}</span>
           <span className="text-[#666]">{note}</span>
         </div>
       ))}
@@ -184,7 +184,7 @@ export function HeroTerminal({ className }: { className?: string }) {
         <div className="w-2 h-2 bg-[var(--border-strong)]" />
         <div className="w-2 h-2 bg-[var(--border-strong)]" />
         <div className="w-2 h-2" style={{ background: accent }} />
-        <span className="ml-2 text-[8px] text-[var(--text-subtle)] uppercase tracking-[0.2em] truncate">
+        <span className="ml-2 text-[8px] text-[#777777] uppercase tracking-[0.2em] truncate">
           bjhunt ai · {tx(`${sid}.label`)}
         </span>
         {/* Scenario progress dots */}
@@ -209,7 +209,7 @@ export function HeroTerminal({ className }: { className?: string }) {
         {/* User natural language input */}
         {step >= 1 && (
           <div className="space-y-1">
-            <p className="text-[8px] text-[var(--text-subtle)] uppercase tracking-[0.2em]">
+            <p className="text-[8px] text-[#777777] uppercase tracking-[0.2em]">
               {tx("youLabel")}
             </p>
             <p className="text-white text-[12px] leading-snug">
