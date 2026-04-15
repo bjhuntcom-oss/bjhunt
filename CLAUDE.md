@@ -319,10 +319,9 @@ Automatisation navigateur : tests E2E, connexions web, audit visuel.
 - **Vercel** : `bjhunts-projects` (plan Hobby) — connecte via GitHub
   - Projet `bjhunt` deploye automatiquement depuis le repo GitHub
 - **Hostinger** : API key dans `.mcp.json`
-- **Ollama Cloud** : API key `9c6a5c691a4e4ac6980225065e8f44b1.vMDEl3SWpffjmhLd__jc9mPJ`
-  - Provider `ollama-cloud` dans l'ancienne config gateway
-  - Base URL : `https://ollama.com/v1`
-  - Modeles : GLM-5.1, GLM-5, GLM-4.7, DeepSeek-V3.2, DeepSeek-V3.1, Kimi K2
+- **Ollama Cloud** : API key dans `.env` sur le VPS (OLLAMA_CLOUD_API_KEY)
+  - Base URL : `https://ollama.com/v1` (OpenAI-compatible, Bearer auth)
+  - Modeles actifs : GLM-5.1:cloud (primary), DeepSeek-v3.2:cloud, Kimi-k2.5:cloud
 - **Email utilisateur** : `leformateurcha@gmail.com` (compte Claude/Anthropic)
 
 ---

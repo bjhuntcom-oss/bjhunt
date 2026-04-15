@@ -5,3 +5,9 @@ engine/skills/exploit/web/SKILL.md
 
 # Unit test with dummy AWS access tokens for testing
 engine/tests/unit/research/test_tools.py
+
+# CLAUDE.md mentions old default credentials as documentation (not usable secrets)
+CLAUDE.md
+
+# MCP config with Hostinger API token (needed for dev tooling)
+.mcp.json

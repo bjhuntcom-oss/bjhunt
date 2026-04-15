@@ -1,0 +1,14 @@
+api.bjhunt.com {
+    reverse_proxy backend:3001
+    encode gzip
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+}
+
+:80 {
+    respond /health "OK" 200
+}
