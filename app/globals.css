@@ -116,24 +116,30 @@ body {
   to   { stroke-dashoffset: 0;  opacity: 1; }
 }
 
-@keyframes reticle-outer {
-  from { stroke-dashoffset: 120; }
+/* Arrow logo animations */
+@keyframes arrow-draw {
+  from { stroke-dashoffset: 100; }
   to   { stroke-dashoffset: 0; }
 }
 
-@keyframes reticle-inner {
-  from { stroke-dashoffset: 48; }
-  to   { stroke-dashoffset: 0; }
+@keyframes arrow-fill {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-@keyframes reticle-line {
-  from { stroke-dashoffset: 9; }
-  to   { stroke-dashoffset: 0; }
+@keyframes bar-slide {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes pulse-square {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.4; }
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes growth-dot {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes progress-fill {
@@ -261,17 +267,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 32px;
-  animation: preloader-fade 0.4s ease-out 1.6s forwards;
-}
-
-.preloader-path {
-  stroke-dashoffset: 40;
-  animation: dash-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-.preloader-dot {
-  opacity: 0;
-  animation: pulse-dot 1s ease-in-out 0.5s infinite;
+  animation: preloader-fade 0.5s ease-out 2.2s forwards;
 }
 
 .preloader-bar-track {
@@ -279,12 +275,13 @@ body {
   height: 1px;
   background: #1a1a1a;
   overflow: hidden;
+  margin-top: 8px;
 }
 
 .preloader-bar-fill {
   height: 100%;
   background: #00cc8a;
-  animation: progress-fill 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards;
+  animation: progress-fill 1.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.4s forwards;
   width: 0%;
 }
 
