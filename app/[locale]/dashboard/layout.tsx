@@ -24,8 +24,12 @@ export default async function DashboardLayout({
   }
 
   const { user } = (await meResponse.json()) as {
-    user: { displayName: string; email: string; role: string };
+    user: { displayName: string; email: string; role: string } | null;
   };
+
+  if (!user) {
+    redirect(`/${locale}/login`);
+  }
 
   return (
     <DashboardShell user={user} locale={locale}>

@@ -22,7 +22,11 @@ export default async function AdminLayout({
   }
 
   const { user } = (await meResponse.json()) as {
-    user: { role: string }
+    user: { role: string } | null
+  }
+
+  if (!user) {
+    redirect(`/${locale}/login`)
   }
 
   if (user.role !== 'platform_admin') {
