@@ -1,0 +1,367 @@
+// app/[locale]/dashboard/page.tsx
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { Link } from "@/i18n/routing";
+import { serverBackendFetch } from "@/lib/backend-client";
+import { Button } from "@/components/ui/button";
+import { BarChart } from "@/components/dashboard/bar-chart";
+
+type AuthPayload = {
+  user: { role: string; displayName: string; email: string; plan?: string };
+};
+
+type Scan = {
+  id: string;
+  target: string;
+  status: "complete" | "scanning" | "queued" | "error";
+  progress?: number;
+  result?: string;
+  duration?: string;
+  createdAt?: string;
+};
+
+type DashboardStats = {
+  health: { status: 'operational' | 'degraded' | 'down'; latencyMs: number };
+  tokens: { used: number; limit: number };
+  scans: {
+    total: number;
+    perDay: number[];
+    severity: { critical: number; high: number; medium: number; low: number };
+  };
+  plan: { slug: string; displayName: string; scansLimit: number };
+};
+
+const WEEK_LABELS = ["L", "M", "M", "J", "V", "S", "D"] as const;
+
+export default async function DashboardPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  // Auth guard is handled by dashboard/layout.tsx — cookie is guaranteed here.
+  const cookieHeader = (await headers()).get("cookie") ?? "";
+
+  const meResponse = await serverBackendFetch("/api/auth/me", {}, cookieHeader);
+  if (!meResponse.ok) redirect(`/${locale}/login`);
+
+  const mePayload = (await meResponse.json()) as AuthPayload;
+
+  const isAdmin = mePayload.user.role === "platform_admin";
+
+  // Admin-only: fetch overview + health in parallel
+  let cpData: Record<string, unknown> = {}
+  let healthData: { ready?: boolean; checks?: Record<string, boolean> } = {}
+  if (isAdmin) {
+    const [cpRes, healthRes] = await Promise.all([
+      serverBackendFetch('/api/admin/overview', {}, cookieHeader),
+      serverBackendFetch('/api/health/ready', {}, cookieHeader),
+    ])
+    if (cpRes.ok) cpData = await cpRes.json() as Record<string, unknown>
+    if (healthRes.ok) healthData = await healthRes.json() as { ready?: boolean; checks?: Record<string, boolean> }
+  }
+
+  // Fetch recent scans — graceful fallback
+  let scans: Scan[] = [];
+  const scansRes = await serverBackendFetch("/api/scans", {}, cookieHeader);
+  if (scansRes.ok) {
+    const body = (await scansRes.json()) as { scans?: Scan[] };
+    scans = body.scans ?? [];
+  }
+
+  const hasScans = scans.length > 0;
+
+  // Fetch dashboard stats
+  let stats: DashboardStats | null = null;
+  const statsRes = await serverBackendFetch("/api/dashboard/stats", {}, cookieHeader);
+  if (statsRes.ok) {
+    stats = (await statsRes.json()) as DashboardStats;
+  }
+
+  const name = mePayload.user.displayName || mePayload.user.email.split("@")[0] || "vous";
+  const healthStatus = stats?.health.status ?? 'operational';
+  const latencyMs = stats?.health.latencyMs ?? 0;
+  const tokensUsed = stats?.tokens.used ?? 0;
+  const tokensLimit = stats?.tokens.limit ?? 2_000_000;
+  const tokensUsedPct = tokensLimit > 0 ? Math.round((tokensUsed / tokensLimit) * 100) : 0;
+  const totalScans = stats?.scans.total ?? 0;
+  const scansPerDay = stats?.scans.perDay ?? [0, 0, 0, 0, 0, 0, 0];
+  const severity = stats?.scans.severity ?? { critical: 0, high: 0, medium: 0, low: 0 };
+  const planDisplayName = stats?.plan.displayName ?? mePayload.user.plan ?? "Free";
+  const planScansLimit = stats?.plan.scansLimit ?? 5;
+  const planSlug = stats?.plan.slug ?? "free";
+
+  const adminCounts = (cpData.counts ?? {}) as Record<string, number>
+  const recentLogs = (cpData.recentLogs ?? []) as Array<{ id: string; action: string; createdAt: string; actorUserId: string | null }>
+  const healthChecks = healthData.checks ?? {}
+
+  const STATUS_ICONS: Record<string, string> = {
+    complete: "✓",
+    scanning: "⟳",
+    queued:   "◷",
+    error:    "✗",
+  };
+  const STATUS_COLORS: Record<string, string> = {
+    complete: "text-[var(--success)]",
+    scanning: "text-[var(--warning)]",
+    queued:   "text-[var(--text-muted)]",
+    error:    "text-[var(--danger)]",
+  };
+
+  const severityBars = [
+    { label: "CRITIQUE", count: severity.critical, color: "var(--danger)" },
+    { label: "HAUTE",    count: severity.high,     color: "var(--warning)" },
+    { label: "MOYENNE",  count: severity.medium,   color: "var(--warning)" },
+    { label: "FAIBLE",   count: severity.low,      color: "var(--success)" },
+  ];
+  const maxSeverity = Math.max(...severityBars.map((s) => s.count), 1);
+
+  return (
+    <div className="p-6 md:p-8 max-w-6xl">
+      {/* Admin overview — only shown for platform_admin */}
+      {isAdmin && (
+        <div className="mb-8">
+          {/* Stat cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border)] mb-6">
+            {[
+              { label: 'Utilisateurs',     value: adminCounts.users ?? 0 },
+              { label: 'Sessions actives', value: adminCounts.activeSessions ?? 0 },
+              { label: 'En ligne',         value: adminCounts.usersOnline ?? 0 },
+              { label: 'Logs (24h)',       value: adminCounts.auditLogs24h ?? 0 },
+            ].map(({ label, value }) => (
+              <div key={label} className="bg-[var(--bg-card)] p-6">
+                <div className="text-3xl font-black font-mono text-white">{value}</div>
+                <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-[0.15em] mt-1">{label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Service health mini-badges */}
+          {Object.keys(healthChecks).length > 0 && (
+            <div className="border border-[var(--border)] bg-[var(--bg-card)] p-4 mb-6">
+              <p className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-[0.2em] mb-3">Services</p>
+              <div className="flex flex-wrap gap-2">
+                {(Object.entries(healthChecks) as [string, boolean][]).map(([svc, ok]) => (
+                  <span
+                    key={svc}
+                    className="flex items-center gap-1.5 px-2 py-1 text-[8px] font-mono uppercase"
+                    style={{ border: `1px solid ${ok ? 'var(--success)' : 'var(--danger)'}`, color: ok ? 'var(--success)' : 'var(--danger)' }}
+                  >
+                    <span className="w-1.5 h-1.5 inline-block" style={{ background: ok ? 'var(--success)' : 'var(--danger)' }} />
+                    {svc}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Last 5 audit logs */}
+          {recentLogs.length > 0 && (
+            <div className="border border-[var(--border)] bg-[var(--bg-card)] p-4 mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-[0.2em]">Dernières activités</p>
+                <Link href={`/${locale}/dashboard/admin/logs`} className="text-[8px] font-mono text-[var(--text-muted)] hover:text-white transition-colors">
+                  Voir tous →
+                </Link>
+              </div>
+              <div className="divide-y divide-[var(--border)]">
+                {recentLogs.slice(0, 5).map((log) => (
+                  <div key={log.id} className="flex justify-between py-2">
+                    <span className="text-[10px] font-mono text-[var(--text-muted)]">{log.action}</span>
+                    <span className="text-[9px] font-mono text-[var(--text-subtle)]">
+                      {new Date(log.createdAt).toLocaleString('fr-FR')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Header row */}
+      <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight">Bonjour, {name}</h1>
+          <p className="text-[11px] text-[var(--text-muted)] mt-1 font-mono">Tableau de bord BJHUNT</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className={`flex items-center gap-2 border px-3 py-1.5 ${
+            healthStatus === 'operational'
+              ? 'border-[var(--success)]/30'
+              : healthStatus === 'degraded'
+                ? 'border-[var(--warning)]/30'
+                : 'border-[var(--danger)]/30'
+          }`}>
+            <div className="status-dot" />
+            <span className={`text-[9px] font-mono uppercase tracking-widest ${
+              healthStatus === 'operational'
+                ? 'text-[var(--success)]'
+                : healthStatus === 'degraded'
+                  ? 'text-[var(--warning)]'
+                  : 'text-[var(--danger)]'
+            }`}>
+              IA {healthStatus === 'operational' ? "Operationnelle" : healthStatus === 'degraded' ? "Degradee" : "Hors ligne"}
+            </span>
+          </div>
+          <Button asChild>
+            <a href={`${process.env.NEXT_PUBLIC_BACKEND_URL ?? 'https://api.bjhunt.com'}/api/auth/gateway-redirect`}>Nouveau scan →</a>
+          </Button>
+        </div>
+      </div>
+
+      {/* Métriques clés */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border)] mb-6">
+        {[
+          { label: "Scans ce mois",      value: String(totalScans),                                  color: "text-white" },
+          { label: "Critiques detectes", value: String(severity.critical),                           color: severity.critical > 0 ? "text-[var(--danger)]" : "text-[var(--success)]" },
+          { label: "Haute severite",     value: String(severity.high),                               color: severity.high > 0 ? "text-[var(--warning)]" : "text-[var(--success)]" },
+          { label: "Temps moyen",        value: latencyMs > 0 ? `${(latencyMs / 1000).toFixed(1)}s` : "—", color: "text-white" },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="bg-[var(--bg-card)] p-6">
+            <div className={`text-3xl font-black font-mono ${color}`}>{value}</div>
+            <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-[0.15em] mt-1">{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Statut IA */}
+      <div className="border border-[var(--border)] bg-[var(--bg-card)] p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-[0.2em] mb-1">BJHUNT AI</p>
+            <div className="flex items-center gap-4 text-[11px] font-mono text-white">
+              <span>Latence : {latencyMs}ms</span>
+              <span className="text-[var(--text-muted)]">·</span>
+              <span>Tokens : {(tokensUsed / 1_000_000).toFixed(1)}M / {(tokensLimit / 1_000_000).toFixed(0)}M</span>
+            </div>
+          </div>
+        </div>
+        {/* Token progress */}
+        <div className="mb-4">
+          <div className="flex justify-between text-[9px] font-mono text-[var(--text-muted)] mb-1">
+            <span>Quota tokens</span>
+            <span>{tokensUsedPct}%</span>
+          </div>
+          <div className="h-1 bg-[var(--border)] w-full">
+            <div
+              className="h-full bg-[var(--success)] transition-all"
+              style={{ width: `${tokensUsedPct}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Usage charts */}
+      <div className="grid md:grid-cols-2 gap-px bg-[var(--border)] mb-6">
+        {/* Scans par jour */}
+        <div className="bg-[var(--bg-card)] p-6">
+          <p className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-[0.2em] mb-4">
+            Scans / jour (7 derniers jours)
+          </p>
+          <BarChart data={scansPerDay} labels={[...WEEK_LABELS]} height={56} />
+          <div className="flex justify-between mt-2">
+            {WEEK_LABELS.map((d, i) => (
+              <span key={i} className="text-[8px] font-mono text-[var(--text-subtle)] flex-1 text-center">{d}</span>
+            ))}
+          </div>
+        </div>
+        {/* Répartition sévérités */}
+        <div className="bg-[var(--bg-card)] p-6">
+          <p className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-[0.2em] mb-4">
+            Répartition sévérités
+          </p>
+          <div className="space-y-3">
+            {severityBars.map(({ label, count, color }) => (
+              <div key={label} className="flex items-center gap-3">
+                <span className="text-[8px] font-mono text-[var(--text-subtle)] w-16 uppercase tracking-widest">{label}</span>
+                <div className="flex-1 h-1.5 bg-[var(--border)]">
+                  <div
+                    className="h-full transition-all"
+                    style={{
+                      width: `${(count / maxSeverity) * 100}%`,
+                      background: color,
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] font-mono w-4 text-right" style={{ color }}>
+                  {count}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="border border-[var(--border)] bg-[var(--bg-card)] p-6 mb-6">
+        <div className="flex items-start justify-between flex-wrap gap-4">
+          <div>
+            <p className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-[0.2em] mb-2">Abonnement</p>
+            <div className="text-xl font-black">{planDisplayName}</div>
+            <div className="text-[10px] text-[var(--text-muted)] mt-1 font-mono">
+              {planScansLimit === -1
+                ? "Scans illimites"
+                : `${planScansLimit} scans / mois inclus`}
+            </div>
+            {planScansLimit > 0 && (
+              <div className="mt-3 flex items-center gap-3">
+                <div className="text-[10px] font-mono text-[var(--text-muted)]">
+                  {Math.min(totalScans, planScansLimit)} / {planScansLimit} utilises
+                </div>
+                <div className="flex-1 h-1 bg-[var(--border)] w-32">
+                  <div
+                    className="h-full bg-[var(--warning)]"
+                    style={{ width: `${Math.min((totalScans / planScansLimit) * 100, 100)}%` }}
+                  />
+                </div>
+                <div className="text-[9px] font-mono text-[var(--text-muted)]">
+                  {Math.min(Math.round((totalScans / planScansLimit) * 100), 100)}%
+                </div>
+              </div>
+            )}
+          </div>
+          {planSlug === 'free' && (
+            <Button asChild variant="secondary">
+              <Link href="/pricing">Passer a Pro →</Link>
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Scans recents */}
+      <div>
+        <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3">
+          Scans recents
+        </p>
+        {hasScans ? (
+          <div className="border border-[var(--border)] divide-y divide-[var(--border)]">
+            <div className="grid grid-cols-4 bg-[var(--bg-card)] px-4 py-2">
+              {["TARGET", "STATUS", "RESULTAT", "DUREE"].map((h) => (
+                <span key={h} className="text-[8px] font-mono text-[var(--text-subtle)] uppercase tracking-widest">{h}</span>
+              ))}
+            </div>
+            {scans.map((scan) => (
+              <div key={scan.id} className="grid grid-cols-4 px-4 py-3 hover:bg-[var(--bg-card)]/50 transition-colors">
+                <span className="text-[11px] font-mono text-white truncate">{scan.target}</span>
+                <span className={`text-[11px] font-mono ${STATUS_COLORS[scan.status] ?? "text-[var(--text-muted)]"}`}>
+                  {STATUS_ICONS[scan.status]} {scan.status === "scanning" && scan.progress != null ? `${scan.progress}%` : ""}
+                </span>
+                <span className="text-[11px] font-mono text-[var(--text-muted)] truncate">{scan.result ?? "—"}</span>
+                <span className="text-[11px] font-mono text-[var(--text-muted)]">{scan.duration ?? "—"}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="border border-[var(--border)] bg-[var(--bg-card)] p-8 text-center">
+            <p className="text-[11px] font-mono text-[var(--text-muted)] mb-4">
+              Aucun scan pour le moment.
+            </p>
+            <Button asChild>
+              <a href={`${process.env.NEXT_PUBLIC_BACKEND_URL ?? 'https://api.bjhunt.com'}/api/auth/gateway-redirect`}>Lancer votre premier scan →</a>
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

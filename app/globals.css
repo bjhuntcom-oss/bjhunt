@@ -1,0 +1,360 @@
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+@import "@fontsource/jetbrains-mono/700.css";
+
+@import "tailwindcss";
+
+/* ── RESET GLOBAL : zéro border-radius partout ─────── */
+*, *::before, *::after {
+  border-radius: 0 !important;
+}
+
+/* Scrollbar carré */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; }
+::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+
+/* ── TOKENS ────────────────────────────────────────── */
+:root {
+  --bg:           #0a0a0a;
+  --bg-card:      #111111;
+  --bg-input:     #0d0d0d;
+  --border:       #1a1a1a;
+  --border-strong:#2a2a2a;
+  --text:         #ffffff;
+  --text-muted:   #555555;
+  --text-subtle:  #333333;
+  --success:      #00cc8a;
+  --danger:       #ff4444;
+  --warning:      #ff9900;
+
+  /* Compat avec les composants existants */
+  --background:   #0a0a0a;
+  --foreground:   #ffffff;
+  --surface:      #111111;
+  --surface-2:    #111111;
+  --surface-3:    #1a1a1a;
+  --surface-4:    #2a2a2a;
+  --border-2:     #2a2a2a;
+  --border-3:     #3a3a3a;
+  --ring:         rgba(255,255,255,0.2);
+  --text-primary: #ffffff;
+  --text-secondary: #888888;
+  --text-tertiary: #555555;
+  --accent:       #ffffff;
+  --accent-foreground: #0a0a0a;
+  --severity-critical:    #ff4444;
+  --severity-critical-bg: rgba(255,68,68,0.1);
+  --severity-high:        #ff9900;
+  --severity-high-bg:     rgba(255,153,0,0.1);
+  --severity-medium:      #ff9900;
+  --severity-medium-bg:   rgba(255,153,0,0.1);
+  --severity-low:         #00cc8a;
+  --severity-low-bg:      rgba(0,204,138,0.1);
+  --severity-info:        #555555;
+  --severity-info-bg:     rgba(85,85,85,0.1);
+  --success-dim:          rgba(0,204,138,0.1);
+  --danger-dim:           rgba(255,68,68,0.1);
+  --warning-dim:          rgba(255,153,0,0.1);
+  --sidebar-width:        220px;
+  --sidebar-collapsed-width: 56px;
+  --radius-none: 0px;
+  --radius-sm:   0px;
+  --radius-md:   0px;
+  --radius-lg:   0px;
+}
+
+@theme inline {
+  --color-black: #0a0a0a;
+  --color-white: #ffffff;
+  --font-sans:  var(--font-inter), system-ui, sans-serif;
+  --font-mono:  "JetBrains Mono", "Fira Code", monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-inter, system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(255,255,255,0.15);
+  color: #ffffff;
+}
+
+/* ── KEYFRAMES ─────────────────────────────────────── */
+
+/* Curseur terminal clignotant */
+@keyframes terminal-cursor {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* Ligne de scan descendante */
+@keyframes scan-line {
+  0%   { top: 0%; }
+  100% { top: 100%; }
+}
+
+/* Dot status pulsant */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.3; transform: scale(0.6); }
+}
+
+/* Flottement vertical lent */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes dash-in {
+  from { stroke-dashoffset: 40; opacity: 0; }
+  to   { stroke-dashoffset: 0;  opacity: 1; }
+}
+
+@keyframes reticle-outer {
+  from { stroke-dashoffset: 120; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes reticle-inner {
+  from { stroke-dashoffset: 48; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes reticle-line {
+  from { stroke-dashoffset: 9; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes pulse-square {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+@keyframes progress-fill {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+@keyframes preloader-fade {
+  0%   { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 0; pointer-events: none; }
+}
+
+@keyframes price-bar-in {
+  from { transform: scaleY(0); opacity: 0; }
+  to   { transform: scaleY(1); opacity: 1; }
+}
+
+@keyframes signal-pulse {
+  from { opacity: 0.3; }
+  to   { opacity: 1;   }
+}
+
+@keyframes signal-ring {
+  0%   { transform: scale(0.8); opacity: 0.4; }
+  100% { transform: scale(1.2); opacity: 0; }
+}
+
+@keyframes growth-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes growth-dot {
+  to { opacity: 1; }
+}
+
+@keyframes hex-pulse {
+  0%   { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+/* Shimmer de la grille background */
+@keyframes grid-shimmer {
+  0%, 100% { opacity: 0.15; }
+  50%       { opacity: 0.3; }
+}
+
+/* Défilement horizontal (logos marquee) */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Typing terminal — largeur de texte */
+@keyframes type-in {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+
+/* Fade in depuis le bas (scroll reveal) */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── UTILITAIRES ────────────────────────────────────── */
+
+/* Grille pixel en background */
+.bg-grid {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: grid-shimmer 4s ease-in-out infinite;
+}
+
+/* Cursor terminal */
+.terminal-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 14px;
+  background: #ffffff;
+  animation: terminal-cursor 1s step-end infinite;
+  vertical-align: text-bottom;
+}
+
+/* Status dot */
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--success);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Scan line */
+.scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  animation: scan-line 4s linear infinite;
+  pointer-events: none;
+}
+
+/* Float */
+.float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Marquee */
+.marquee {
+  animation: marquee 30s linear infinite;
+}
+
+/* Preloader */
+.preloader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0a0a0a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  animation: preloader-fade 0.4s ease-out 1.6s forwards;
+}
+
+.preloader-path {
+  stroke-dashoffset: 40;
+  animation: dash-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.preloader-dot {
+  opacity: 0;
+  animation: pulse-dot 1s ease-in-out 0.5s infinite;
+}
+
+.preloader-bar-track {
+  width: 120px;
+  height: 1px;
+  background: #1a1a1a;
+  overflow: hidden;
+}
+
+.preloader-bar-fill {
+  height: 100%;
+  background: #00cc8a;
+  animation: progress-fill 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards;
+  width: 0%;
+}
+
+/* Fade up reveal */
+.reveal {
+  animation: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── SYNTAX HIGHLIGHT (rehype-highlight) ────────────── */
+.hljs {
+  background: var(--bg-card) !important;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 1rem;
+  overflow-x: auto;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in  { color: var(--warning); }
+.hljs-string,
+.hljs-attr      { color: var(--success); }
+.hljs-comment   { color: var(--text-muted); font-style: italic; }
+.hljs-number,
+.hljs-literal   { color: var(--warning); }
+.hljs-function .hljs-title,
+.hljs-title.function_ { color: #60a5fa; }
+
+/* ── CHAT PROSE ─────────────────────────────────────── */
+.chat-prose p { margin: 0.5em 0; }
+.chat-prose p:first-child { margin-top: 0; }
+.chat-prose p:last-child  { margin-bottom: 0; }
+.chat-prose ul,
+.chat-prose ol { margin: 0.5em 0; padding-left: 1.5em; }
+.chat-prose li { margin: 0.25em 0; }
+.chat-prose code:not(.hljs) {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 0.125em 0.375em;
+  font-size: 0.85em;
+  font-family: "JetBrains Mono", monospace;
+}
+.chat-prose pre    { margin: 0.75em 0; }
+.chat-prose pre code { border: none; padding: 0; background: none; }
+.chat-prose h1,
+.chat-prose h2,
+.chat-prose h3,
+.chat-prose h4 {
+  font-weight: 700;
+  margin: 1em 0 0.5em;
+  letter-spacing: -0.02em;
+}
+.chat-prose h1 { font-size: 1.25em; }
+.chat-prose h2 { font-size: 1.125em; }
+.chat-prose h3 { font-size: 1em; }
+.chat-prose blockquote {
+  border-left: 2px solid var(--border-strong);
+  padding-left: 1em;
+  color: var(--text-muted);
+  margin: 0.75em 0;
+}
+.chat-prose a {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.chat-prose table { width: 100%; border-collapse: collapse; margin: 0.75em 0; font-size: 0.875em; }
+.chat-prose th,
+.chat-prose td { border: 1px solid var(--border); padding: 0.375em 0.75em; text-align: left; }
+.chat-prose th  { background: var(--bg-card); font-weight: 600; }

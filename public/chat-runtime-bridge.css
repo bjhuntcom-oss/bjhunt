@@ -1,0 +1,216 @@
+html,
+body {
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.12), transparent 24%),
+    radial-gradient(circle at top right, rgba(132, 151, 178, 0.22), transparent 28%),
+    linear-gradient(180deg, #101722 0%, #111827 45%, #0f172a 100%) !important;
+  color: #f5f5f7 !important;
+}
+
+body {
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif !important;
+}
+
+body * {
+  border-radius: 0 !important;
+}
+
+[role="banner"],
+header.topbar,
+.topbar {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(15, 23, 42, 0.72) !important;
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  box-shadow: 0 22px 48px rgba(2, 6, 23, 0.28);
+}
+
+[role="complementary"],
+aside.sidebar,
+aside {
+  border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background:
+    linear-gradient(180deg, rgba(17, 24, 39, 0.92) 0%, rgba(15, 23, 42, 0.96) 100%) !important;
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.04);
+}
+
+main,
+.content,
+.content--chat,
+[role="main"] {
+  background: transparent !important;
+}
+
+button,
+input,
+textarea,
+select,
+[role="combobox"] {
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: #f5f5f7 !important;
+  box-shadow: none !important;
+}
+
+button:hover,
+input:hover,
+textarea:hover,
+select:hover,
+[role="combobox"]:hover {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+textarea,
+input[type="text"] {
+  background: rgba(15, 23, 42, 0.82) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+button.chat-send-btn,
+button.agent-chat__input-btn {
+  background: #f5f5f7 !important;
+  border-color: #f5f5f7 !important;
+  color: #080808 !important;
+}
+
+button.chat-send-btn:hover,
+button.agent-chat__input-btn:hover {
+  background: #ffffff !important;
+}
+
+nav.sidebar-nav a,
+nav.sidebar-nav button,
+a.nav-item {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  color: rgba(245, 245, 247, 0.82) !important;
+}
+
+nav.sidebar-nav a:hover,
+nav.sidebar-nav button:hover,
+a.nav-item:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+.bjhunt-role-banner {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-left: 20px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.18), rgba(255, 255, 255, 0.04));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.bjhunt-role-banner__eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.46);
+}
+
+.bjhunt-role-banner__title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #f5f5f7;
+}
+
+.bjhunt-role-banner__meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.bjhunt-context-card {
+  margin: 18px 16px 10px;
+  padding: 18px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(180deg, rgba(148, 163, 184, 0.16) 0%, rgba(255, 255, 255, 0.04) 100%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow:
+    0 20px 42px rgba(2, 6, 23, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.bjhunt-context-card__eyebrow {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.bjhunt-context-card__title {
+  margin: 14px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #f5f5f7;
+}
+
+.bjhunt-context-card__body {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.bjhunt-context-card__meta {
+  display: grid;
+  gap: 6px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.48);
+}
+
+a[href="/overview"],
+a[href="/channels"],
+a[href="/instances"],
+a[href="/sessions"],
+a[href="/usage"],
+a[href="/cron"],
+a[href="/agents"],
+a[href="/skills"],
+a[href="/nodes"],
+a[href="/config"],
+a[href="/communications"],
+a[href="/appearance"],
+a[href="/automation"],
+a[href="/infrastructure"],
+a[href="/ai-agents"],
+a[href="/debug"],
+a[href="/logs"],
+a[href*="docs.openclaw.ai"] {
+  display: none !important;
+}
+
+@media (max-width: 960px) {
+  .bjhunt-role-banner {
+    display: grid;
+    margin-left: 12px;
+  }
+
+  .bjhunt-context-card {
+    margin: 14px 12px 8px;
+  }
+}
