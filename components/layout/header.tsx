@@ -6,6 +6,7 @@ import { LogoSymbol, LogoWordmark } from "@/components/ui/logo";
 import { useTranslations } from "next-intl";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Button } from "@/components/ui/button";
+import { browserBackendFetch } from "@/lib/backend-client";
 
 const NAV_LINKS = [
   { href: "/",          labelKey: "home" },
@@ -18,6 +19,7 @@ const NAV_LINKS = [
 export function Header() {
   const [scrolled, setScrolled]       = useState(false);
   const [mobileOpen, setMobileOpen]   = useState(false);
+  const [isLoggedIn, setIsLoggedIn]   = useState(false);
   const pathname = usePathname();
   const t = useTranslations("nav");
 
@@ -25,6 +27,14 @@ export function Header() {
     const handler = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handler, { passive: true });
     return () => window.removeEventListener("scroll", handler);
+  }, []);
+
+  // Check auth status on mount
+  useEffect(() => {
+    browserBackendFetch("/api/auth/me")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => setIsLoggedIn(!!data?.user))
+      .catch(() => setIsLoggedIn(false));
   }, []);
 
   const isActive = (href: string) =>
@@ -68,7 +78,11 @@ export function Header() {
             <LanguageSwitcher />
           </div>
           <Button asChild size="sm">
-            <Link href="/dashboard">Dashboard →</Link>
+            {isLoggedIn ? (
+              <Link href="/dashboard">Dashboard →</Link>
+            ) : (
+              <Link href="/login">{t("login") || "Login"} →</Link>
+            )}
           </Button>
 
           {/* Mobile toggle */}

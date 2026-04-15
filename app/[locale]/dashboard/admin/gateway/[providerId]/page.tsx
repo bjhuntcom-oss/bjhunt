@@ -12,10 +12,10 @@ export default async function ProviderEditPage({
   const cookieHeader = (await headers()).get('cookie') ?? ''
   if (!cookieHeader) redirect(`/${locale}/login`)
 
-  const res = await serverBackendFetch('/api/admin/gateway/config', {}, cookieHeader)
+  const res = await serverBackendFetch('/api/admin/gateway', {}, cookieHeader)
   const config = res.ok
     ? await res.json()
-    : { providers: {}, defaults: { model: '' }, ui: { assistant: { name: 'BJHUNT', avatar: 'B' } } }
+    : { providers: {}, defaults: { model: '' }, ui: { assistant: { name: 'BJHUNT ALPHA 1.0', avatar: 'B' } } }
 
   const isNew = providerId === 'new'
   const existing = isNew ? null : (config.providers[providerId] ?? null)

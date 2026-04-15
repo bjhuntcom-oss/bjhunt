@@ -98,16 +98,16 @@ class LLMModelMapping(BaseModel):
 
     decepticon: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
-            primary=OPUS,
-            fallback=GPT_5,
+            primary=GLM_5_1,
+            fallback=OPUS,
             temperature=0.4,
         )
     )
 
     planning: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
-            primary=OPUS,
-            fallback=GPT_5,
+            primary=GLM_5_1,
+            fallback=OPUS,
             temperature=0.4,
         )
     )
@@ -117,7 +117,7 @@ class LLMModelMapping(BaseModel):
 
     soundwave: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
-            primary=HAIKU,
+            primary=KIMI_K2,
             fallback=GLM_5_1,
             temperature=0.4,
         )
@@ -128,8 +128,8 @@ class LLMModelMapping(BaseModel):
 
     exploit: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
-            primary=SONNET,
-            fallback=GPT_4,
+            primary=GLM_5_1,
+            fallback=SONNET,
             temperature=0.3,
         )
     )
@@ -139,40 +139,40 @@ class LLMModelMapping(BaseModel):
             # Source review + chain reasoning benefits from higher-tier
             # reasoning. Sonnet primary, Opus fallback so the chain
             # planner gets a smarter model when rate limits hit.
-            primary=SONNET,
-            fallback=OPUS,
+            primary=GLM_5_1,
+            fallback=DEEPSEEK_V3,
             temperature=0.2,
         )
     )
 
     reverser: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
-            primary=SONNET,
-            fallback=OPUS,
+            primary=GLM_5_1,
+            fallback=DEEPSEEK_V3,
             temperature=0.2,
         )
     )
 
     contract_auditor: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
-            primary=OPUS,
-            fallback=SONNET,
+            primary=GLM_5_1,
+            fallback=DEEPSEEK_V3,
             temperature=0.2,
         )
     )
 
     cloud_hunter: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
-            primary=SONNET,
-            fallback=OPUS,
+            primary=GLM_5_1,
+            fallback=DEEPSEEK_V3,
             temperature=0.2,
         )
     )
 
     ad_operator: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
-            primary=SONNET,
-            fallback=OPUS,
+            primary=GLM_5_1,
+            fallback=DEEPSEEK_V3,
             temperature=0.2,
         )
     )
@@ -190,16 +190,16 @@ class LLMModelMapping(BaseModel):
 
     postexploit: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
-            primary=SONNET,
-            fallback=GPT_4,
+            primary=GLM_5_1,
+            fallback=SONNET,
             temperature=0.3,
         )
     )
 
     defender: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
-            primary=SONNET,
-            fallback=HAIKU,
+            primary=GLM_5_1,
+            fallback=KIMI_K2,
             temperature=0.2,
         )
     )
@@ -209,48 +209,48 @@ class LLMModelMapping(BaseModel):
 
     vulnresearch: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
-            primary=OPUS,
-            fallback=GPT_5,
+            primary=GLM_5_1,
+            fallback=DEEPSEEK_V3,
             temperature=0.4,
         )
     )
 
     scanner: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
-            primary=HAIKU,
-            fallback=GEMINI_FLASH,
+            primary=KIMI_K2,
+            fallback=GLM_5_1,
             temperature=0.2,
         )
     )
 
     detector: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
-            primary=SONNET,
-            fallback=GPT_4,
+            primary=GLM_5_1,
+            fallback=DEEPSEEK_V3,
             temperature=0.2,
         )
     )
 
     verifier: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
-            primary=SONNET,
-            fallback=GPT_4,
+            primary=GLM_5_1,
+            fallback=DEEPSEEK_V3,
             temperature=0.2,
         )
     )
 
     patcher: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
-            primary=OPUS,
-            fallback=SONNET,
+            primary=GLM_5_1,
+            fallback=DEEPSEEK_V3,
             temperature=0.2,
         )
     )
 
     exploiter: ModelAssignment = Field(
         default_factory=lambda: ModelAssignment(
-            primary=OPUS,
-            fallback=SONNET,
+            primary=GLM_5_1,
+            fallback=DEEPSEEK_V3,
             temperature=0.2,
         )
     )
