@@ -83,17 +83,17 @@ export default function ContactPage() {
 
   return (
     <div className="pt-14 min-h-screen">
-      {/* Hero with animation */}
-      <div className="border-b border-[var(--border)] grid lg:grid-cols-2">
-        <div className="px-8 md:px-12 py-16">
+      {/* Hero — compact with visual */}
+      <div className="border-b border-[var(--border)] grid lg:grid-cols-[1fr_auto] items-center">
+        <div className="px-8 md:px-12 py-8">
           <SectionLabel>Contact</SectionLabel>
-          <h1 className="text-4xl font-black mt-4 mb-2 tracking-tight">Parlons-nous.</h1>
-          <p className="text-sm text-[var(--text-muted)] mt-2">
+          <h1 className="text-3xl font-black mt-3 mb-1 tracking-tight">Parlons-nous.</h1>
+          <p className="text-sm text-[var(--text-muted)] mt-1">
             Une question, un partenariat, ou un besoin spécifique — répondons sous 24h.
           </p>
         </div>
-        <div className="hidden lg:flex items-center justify-center border-l border-[var(--border)] p-12">
-          <ContactVisual size={320} />
+        <div className="hidden lg:flex items-center justify-center border-l border-[var(--border)] px-8">
+          <ContactVisual size={200} />
         </div>
       </div>
       {/* Form */}
