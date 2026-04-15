@@ -23,9 +23,7 @@ export function Preloader() {
 
   return (
     <div className="preloader-overlay" aria-hidden="true">
-      {/* Arrowhead draws in with precision */}
       <svg width="80" height="80" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Arrow outline draws in */}
         <path
           d="M6 4 L24 16 L6 28 L6 20 L14 16 L6 12 Z"
           stroke="white"
@@ -36,14 +34,12 @@ export function Preloader() {
           strokeLinejoin="miter"
           style={{ animation: "arrow-draw 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s forwards" }}
         />
-        {/* Arrow fills in after outline */}
         <path
           d="M6 4 L24 16 L6 28 L6 20 L14 16 L6 12 Z"
           fill="white"
           opacity="0"
           style={{ animation: "arrow-fill 0.4s ease 1.1s forwards" }}
         />
-        {/* Accent bar slides in */}
         <rect
           x="26" y="6" width="2" height="20"
           fill="#00cc8a"
@@ -52,16 +48,14 @@ export function Preloader() {
         />
       </svg>
 
-      {/* Brand text */}
       <div
-        className="preloader-brand"
         style={{
           opacity: 0,
           animation: "fade-up 0.4s ease 1.0s forwards",
           fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)",
           fontSize: "11px",
           letterSpacing: "0.15em",
-          color: "var(--text-muted, #555)",
+          color: "#666",
           marginTop: "16px",
           textTransform: "uppercase" as const,
         }}
@@ -69,7 +63,6 @@ export function Preloader() {
         BJHUNT ALPHA 1.0
       </div>
 
-      {/* Progress bar */}
       <div className="preloader-bar-track">
         <div className="preloader-bar-fill" />
       </div>
