@@ -36,6 +36,7 @@ export function AgentsClient({ initialProfiles }: { initialProfiles: AgentSummar
   const [fullProfile, setFullProfile] = useState<AgentProfile | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
 
   const openNew = () => {
     setForm(emptyForm)
@@ -44,9 +45,13 @@ export function AgentsClient({ initialProfiles }: { initialProfiles: AgentSummar
   }
 
   const openEdit = (p: AgentSummary) => {
+    setError(null)
     startTransition(async () => {
       const res = await browserBackendFetch(`/api/admin/agents/${p.id}`)
-      if (!res.ok) return
+      if (!res.ok) {
+        setError(`Impossible de charger le profil : erreur ${res.status}`)
+        return
+      }
       const { profile } = await res.json()
       setFullProfile(profile)
       setForm({
@@ -63,6 +68,7 @@ export function AgentsClient({ initialProfiles }: { initialProfiles: AgentSummar
   }
 
   const handleSave = () => {
+    setError(null)
     startTransition(async () => {
       const isNew = editingId === 'new'
       const url = isNew ? '/api/admin/agents' : `/api/admin/agents/${editingId}`
@@ -82,7 +88,11 @@ export function AgentsClient({ initialProfiles }: { initialProfiles: AgentSummar
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      if (!res.ok) return
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null)
+        setError(errBody?.error ?? `Erreur lors de la sauvegarde (${res.status})`)
+        return
+      }
       const { profile } = await res.json()
 
       if (isNew) {
@@ -97,16 +107,27 @@ export function AgentsClient({ initialProfiles }: { initialProfiles: AgentSummar
 
   const handleDelete = (id: string) => {
     if (!confirm('Supprimer ce profil ?')) return
+    setError(null)
     startTransition(async () => {
       const res = await browserBackendFetch(`/api/admin/agents/${id}`, { method: 'DELETE' })
-      if (res.ok) setProfiles((prev) => prev.filter((p) => p.id !== id))
+      if (res.ok) {
+        setProfiles((prev) => prev.filter((p) => p.id !== id))
+      } else {
+        const errBody = await res.json().catch(() => null)
+        setError(errBody?.error ?? `Erreur lors de la suppression (${res.status})`)
+      }
     })
   }
 
   const handleActivate = (id: string) => {
+    setError(null)
     startTransition(async () => {
       const res = await browserBackendFetch(`/api/admin/agents/${id}/activate`, { method: 'POST' })
-      if (!res.ok) return
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null)
+        setError(errBody?.error ?? `Erreur lors de l'activation (${res.status})`)
+        return
+      }
       setProfiles((prev) => prev.map((p) => ({ ...p, is_active: p.id === id })))
     })
   }
@@ -122,6 +143,19 @@ export function AgentsClient({ initialProfiles }: { initialProfiles: AgentSummar
           Nouveau profil
         </button>
       </div>
+
+      {/* Error banner */}
+      {error && (
+        <div className="flex items-center justify-between border border-[var(--danger)] bg-[var(--danger)]/10 px-4 py-2 mb-4">
+          <span className="text-[11px] font-mono text-[var(--danger)]">{error}</span>
+          <button
+            onClick={() => setError(null)}
+            className="text-[var(--danger)] text-[10px] font-mono ml-4 hover:opacity-70"
+          >
+            Fermer
+          </button>
+        </div>
+      )}
 
       {/* Edit / Create form */}
       {editingId !== null && (

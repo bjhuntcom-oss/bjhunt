@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { ChangePasswordForm } from './change-password-form'
 import { DisplayNameForm } from './display-name-form'
 import { ApiKeysPanel } from './api-keys-panel'
+import { TwoFactorPanel } from './two-factor-panel'
 
 export default async function SettingsPage({
   params,
@@ -54,6 +55,8 @@ export default async function SettingsPage({
       </section>
 
       <ApiKeysPanel locale={locale} />
+
+      <TwoFactorPanel locale={locale} />
     </div>
   )
 }

@@ -12,13 +12,16 @@ export default async function ProviderEditPage({
   const cookieHeader = (await headers()).get('cookie') ?? ''
   if (!cookieHeader) redirect(`/${locale}/login`)
 
-  const res = await serverBackendFetch('/api/admin/gateway', {}, cookieHeader)
-  const config = res.ok
-    ? await res.json()
-    : { providers: {}, defaults: { model: '' }, ui: { assistant: { name: 'BJHUNT ALPHA 1.0', avatar: 'B' } } }
-
   const isNew = providerId === 'new'
-  const existing = isNew ? null : (config.providers[providerId] ?? null)
+  let existing = null
+
+  if (!isNew) {
+    const res = await serverBackendFetch(`/api/admin/gateway/providers/${providerId}`, {}, cookieHeader)
+    if (res.ok) {
+      const data = await res.json()
+      existing = data.provider ?? null
+    }
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-3xl">

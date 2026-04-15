@@ -41,10 +41,12 @@ export function ProviderEditForm({
   const [enabled, setEnabled] = useState(initialProvider?.enabled ?? true)
   const [models, setModels] = useState<ModelConfig[]>(initialProvider?.models ?? [emptyModel()])
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [testResult, setTestResult] = useState<{ ok: boolean; latencyMs?: number; error?: string } | null>(null)
 
   const handleSave = () => {
     setSaveStatus('saving')
+    setSaveError(null)
     startTransition(async () => {
       const provider: ProviderConfig = {
         id, name, baseUrl, apiKey, enabled, models,
@@ -60,6 +62,8 @@ export function ProviderEditForm({
         router.push(`/${locale}/dashboard/admin/gateway`)
       } else {
         setSaveStatus('error')
+        const errBody = await res.json().catch(() => null)
+        setSaveError(errBody?.error ?? `Erreur ${res.status}`)
       }
     })
   }
@@ -261,7 +265,7 @@ export function ProviderEditForm({
           <span className="text-[10px] font-mono text-[var(--success)]">✓ Sauvegardé</span>
         )}
         {saveStatus === 'error' && (
-          <span className="text-[10px] font-mono text-[var(--danger)]">✗ Erreur</span>
+          <span className="text-[10px] font-mono text-[var(--danger)]">✗ {saveError ?? 'Erreur'}</span>
         )}
         {testResult && (
           <span

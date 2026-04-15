@@ -12,15 +12,9 @@ export default async function AdminAgentsPage({
   const cookieHeader = (await headers()).get('cookie') ?? ''
   if (!cookieHeader) redirect(`/${locale}/login`)
 
-  const res = await serverBackendFetch('/api/admin/settings/agents', {}, cookieHeader)
-  const agentData = res.ok ? await res.json() : { agents: [] }
-  // Map LangGraph assistants to profiles format expected by client
-  const data = { profiles: (agentData.agents ?? []).map((a: any) => ({
-    id: a.assistant_id || a.graph_id || a.name,
-    name: a.name || a.assistant_id,
-    description: a.description || '',
-    status: 'active',
-  })) }
+  const res = await serverBackendFetch('/api/admin/agents', {}, cookieHeader)
+  const agentData = res.ok ? await res.json() : { profiles: [] }
+  const data = { profiles: agentData.profiles ?? [] }
 
   return (
     <div className="p-6 md:p-8 max-w-4xl">
