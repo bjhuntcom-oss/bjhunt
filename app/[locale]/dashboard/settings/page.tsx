@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { serverBackendFetch } from '@/lib/backend-client'
 import { Input } from '@/components/ui/input'
 import { ChangePasswordForm } from './change-password-form'
+import { DisplayNameForm } from './display-name-form'
 import { ApiKeysPanel } from './api-keys-panel'
 
 export default async function SettingsPage({
@@ -47,6 +48,7 @@ export default async function SettingsPage({
             </label>
             <Input type="email" defaultValue={mePayload.user?.email ?? ''} readOnly className="opacity-60" />
           </div>
+          <DisplayNameForm locale={locale} initialName={mePayload.user.displayName ?? ''} />
           <ChangePasswordForm locale={locale} />
         </div>
       </section>

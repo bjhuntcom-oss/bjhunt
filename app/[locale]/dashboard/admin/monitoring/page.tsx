@@ -16,12 +16,18 @@ export default async function AdminMonitoringPage({
 
   const healthResult = healthRes.ok
     ? await healthRes.json()
-    : { status: 'not ready', db: 'disconnected' }
-  // Map to expected format
+    : { status: 'not ready', checks: {} }
+  // Map real health check data to the format expected by MonitoringDashboard
+  const checksObj = healthResult.checks ?? {}
   const queueStats = { waiting: 0, active: 0, completed: 0, failed: 0 }
   const healthData = {
     ready: healthResult.status === 'ready',
-    checks: { database: healthResult.db === 'connected', langgraph: false, redis: false }
+    checks: Object.fromEntries(
+      Object.entries(checksObj).map(([name, info]: [string, any]) => [
+        name,
+        info?.status === 'connected',
+      ])
+    ),
   }
 
   return (

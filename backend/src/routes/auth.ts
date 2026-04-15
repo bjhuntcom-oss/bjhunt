@@ -177,6 +177,34 @@ authRoutes.get("/me", async (c) => {
   });
 });
 
+// ── Update me (display name) ────────────────────────────────────────────
+
+const updateMeSchema = z.object({
+  displayName: z.string().min(1).max(100).trim(),
+});
+
+authRoutes.patch(
+  "/me",
+  zValidator("json", updateMeSchema),
+  async (c) => {
+    const user = c.get("user") as AuthUser | undefined;
+    if (!user) {
+      return c.json({ error: "Authentication required" }, 401);
+    }
+
+    const { displayName } = c.req.valid("json");
+
+    await sql`UPDATE users SET display_name = ${displayName} WHERE id = ${user.id}`;
+
+    await sql`
+      INSERT INTO audit_logs (org_id, user_id, action)
+      VALUES (${user.orgId}, ${user.id}, 'user.update_display_name')
+    `;
+
+    return c.json({ ok: true, displayName });
+  },
+);
+
 // ── Forgot password ──────────────────────────────────────────────────────
 
 const forgotPasswordSchema = z.object({

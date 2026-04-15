@@ -41,6 +41,8 @@ export default function ChatPage() {
   const [thinking, setThinking] = useState<{ content: string; active: boolean }>({ content: "", active: false });
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [streamError, setStreamError] = useState<string | null>(null);
+  const [lastMessage, setLastMessage] = useState<string>("");
   const [showSidebar, setShowSidebar] = useState(true);
   const [sidebarTab, setSidebarTab] = useState<"engagements" | "opplan" | "graph">("engagements");
 
@@ -162,6 +164,8 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsStreaming(true);
+    setStreamError(null);
+    setLastMessage(text);
     setThinking({ content: "", active: true });
 
     // Create assistant placeholder
@@ -214,10 +218,12 @@ export default function ChatPage() {
       }
     } catch (err: any) {
       if (err.name !== "AbortError") {
+        const errMsg = err.message || "Connection failed";
+        setStreamError(errMsg);
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
-              ? { ...m, content: m.content || `Error: ${err.message}`, isStreaming: false }
+              ? { ...m, content: m.content || `Error: ${errMsg}`, isStreaming: false }
               : m
           )
         );
@@ -562,6 +568,30 @@ export default function ChatPage() {
             .map((sa) => (
               <SubAgentCard key={sa.id} session={sa} />
             ))}
+
+          {/* Error banner with retry */}
+          {streamError && !isStreaming && (
+            <div className="flex items-center gap-3 px-4 py-2 bg-[var(--danger-dim)] border border-[var(--danger)]/30">
+              <span className="text-[10px] text-[var(--danger)] font-mono flex-1">
+                Stream error: {streamError}
+              </span>
+              <button
+                onClick={() => {
+                  setStreamError(null);
+                  // Remove failed assistant message
+                  setMessages((prev) => prev.filter((m) => !(m.role === "assistant" && m.content.startsWith("Error:"))));
+                  // Re-send last message
+                  if (lastMessage) {
+                    setInput(lastMessage);
+                    setTimeout(() => handleSend(), 100);
+                  }
+                }}
+                className="text-[9px] uppercase tracking-wider px-3 py-1 bg-[var(--danger)] text-white hover:bg-[var(--danger)]/80 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
           <div ref={messagesEndRef} />
         </div>

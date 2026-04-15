@@ -40,13 +40,19 @@ export default async function AuditRunDetailPage({
   const meRes = await serverBackendFetch('/api/auth/me', {}, cookieHeader)
   if (!meRes.ok) redirect(`/${locale}/login`)
 
-  const res = await serverBackendFetch(`/api/audit/runs/${id}`, {}, cookieHeader)
-  if (!res.ok) {
-    if (res.status === 404) notFound()
+  const [engRes, findingsRes] = await Promise.all([
+    serverBackendFetch(`/api/engagements/${id}`, {}, cookieHeader),
+    serverBackendFetch(`/api/engagements/${id}/findings`, {}, cookieHeader),
+  ])
+  if (!engRes.ok) {
+    if (engRes.status === 404) notFound()
     redirect(`/${locale}/dashboard/audits`)
   }
 
-  const { run, results } = await res.json()
+  const { engagement } = await engRes.json()
+  const findingsData = findingsRes.ok ? await findingsRes.json() : { findings: [] }
+  const run = { ...engagement, title: engagement.name }
+  const results = findingsData.findings ?? []
 
   return (
     <div className="p-6 md:p-8 max-w-5xl">
