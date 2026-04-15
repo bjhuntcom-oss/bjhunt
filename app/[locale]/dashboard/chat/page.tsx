@@ -117,6 +117,7 @@ export default function ChatPage() {
 
   async function createEngagement() {
     const name = `Assessment ${new Date().toLocaleDateString("fr-FR")}`;
+    setStreamError(null);
     try {
       const res = await browserBackendFetch("/api/engagements", {
         method: "POST",
@@ -132,19 +133,12 @@ export default function ChatPage() {
         setToolCalls(new Map());
         setSubAgents(new Map());
         setObjectives([]);
+      } else {
+        const err = await res.json().catch(() => ({ message: `Error ${res.status}` }));
+        setStreamError(err.message || err.error || `Failed to create assessment (${res.status})`);
       }
-    } catch {
-      // Fallback for demo/dev — create local engagement
-      const local: Engagement = {
-        id: crypto.randomUUID(),
-        name: `Assessment ${new Date().toLocaleDateString("fr-FR")}`,
-        target: "pending",
-        status: "draft",
-        createdAt: new Date().toISOString(),
-      };
-      setEngagements((prev) => [local, ...prev]);
-      setActiveEngagement(local);
-      setMessages([]);
+    } catch (e: any) {
+      setStreamError(e.message || "Failed to create assessment");
     }
   }
 
@@ -240,14 +234,17 @@ export default function ChatPage() {
 
   function processStreamEvent(block: string, assistantId: string) {
     let event = "message";
-    let data = "";
+    let dataLines: string[] = [];
 
     for (const line of block.split("\n")) {
       if (line.startsWith("event: ")) event = line.slice(7).trim();
-      else if (line.startsWith("data: ")) data = line.slice(6).trim();
+      else if (line.startsWith("data: ")) dataLines.push(line.slice(6));
+      else if (line.startsWith(":")) continue; // SSE comment (heartbeat)
+      else if (dataLines.length > 0 && line.trim()) dataLines.push(line); // continuation
     }
 
-    if (!data) return;
+    const data = dataLines.join("\n").trim();
+    if (!data || data === "[DONE]") return;
 
     try {
       const parsed = JSON.parse(data);
@@ -267,19 +264,31 @@ export default function ChatPage() {
 
         case "values": {
           // LangGraph "values" stream mode — full state snapshot
-          // Extract latest assistant message from messages array
           const msgs = parsed.messages || parsed.values?.messages;
           if (Array.isArray(msgs)) {
             const lastAi = [...msgs].reverse().find(
               (m: any) => m.type === "ai" || m.role === "assistant"
             );
-            if (lastAi?.content) {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === assistantId ? { ...m, content: lastAi.content } : m
-                )
-              );
-              setThinking((prev) => ({ ...prev, active: false }));
+            if (lastAi) {
+              // Extract clean text content (may be string or nested)
+              let text = "";
+              if (typeof lastAi.content === "string") {
+                text = lastAi.content;
+              } else if (Array.isArray(lastAi.content)) {
+                text = lastAi.content
+                  .filter((c: any) => c.type === "text")
+                  .map((c: any) => c.text)
+                  .join("");
+              }
+
+              if (text) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantId ? { ...m, content: text } : m
+                  )
+                );
+                setThinking((prev) => ({ ...prev, active: false }));
+              }
             }
           }
           break;
@@ -378,10 +387,12 @@ export default function ChatPage() {
           break;
       }
     } catch {
-      // Non-JSON data — treat as text delta
-      setMessages((prev) =>
-        prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + data } : m))
-      );
+      // Non-JSON data — only append if it looks like readable text, not raw JSON
+      if (data && !data.startsWith("{") && !data.startsWith("[")) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + data } : m))
+        );
+      }
     }
   }
 
