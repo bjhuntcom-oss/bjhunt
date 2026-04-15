@@ -26,6 +26,7 @@ import { adminSettingsRoutes } from "./routes/admin/settings.js";
 import { gatewayRoutes, ollamaRoutes } from "./routes/admin/gateway.js";
 import { agentRoutes } from "./routes/admin/agents.js";
 import { notificationRoutes } from "./routes/notifications.js";
+import { publicApiRoutes } from "./routes/public-api.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
 import { billingRoutes } from "./routes/billing.js";
 import { twoFactorRoutes } from "./routes/two-factor.js";
@@ -57,6 +58,9 @@ app.route("/api/keys", apiKeyRoutes);
 app.route("/api/notifications", notificationRoutes);
 app.route("/api/dashboard", dashboardRoutes);
 app.route("/api/billing", billingRoutes);
+
+// Public API v1 (API key auth)
+app.route("/api/v1", publicApiRoutes);
 
 // Admin routes (platform admin only)
 app.route("/api/admin/users", adminUserRoutes);
