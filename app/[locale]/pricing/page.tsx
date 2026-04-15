@@ -96,9 +96,9 @@ export default function PricingPage() {
       <section className="border-b border-[var(--border)]">
         <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[var(--border)]">
           {[
-            { name: "Free",       price: "Gratuit",      sub: "Demo 5 minutes",                     badge: null,        cta: "Essai gratuit",     href: "/login",   featured: false },
-            { name: "Pro",        price: "$200/mois",    sub: "5 scans · 10 agents · Chat illimité", badge: "Populaire", cta: "Souscrire",         href: "/contact", featured: true  },
-            { name: "Enterprise", price: "$2,000/mois",  sub: "20 scans · 17 agents · API v1",       badge: "Entreprise", cta: "Contactez-nous",   href: "/contact", featured: false },
+            { name: "Free",       price: "Gratuit",      sub: "Demo 5 minutes",                     badge: null,        icon: null,         cta: "Essai gratuit",     href: "/login",   featured: false },
+            { name: "Pro",        price: "$200/mois",    sub: "5 scans · 10 agents · Chat illimité", badge: "Populaire", icon: "approved",   cta: "Souscrire",         href: "/contact", featured: true  },
+            { name: "Enterprise", price: "$2,000/mois",  sub: "20 scans · 17 agents · API v1",       badge: "Entreprise", icon: "crown",     cta: "Contactez-nous",   href: "/contact", featured: false },
           ].map((plan) => (
             <div
               key={plan.name}
@@ -106,7 +106,24 @@ export default function PricingPage() {
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)] mb-2">{plan.name}</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    {plan.icon === "crown" && (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2 17L4 8L8 12L12 4L16 12L20 8L22 17H2Z" fill="#FFD700" stroke="#FFD700" strokeWidth="1.5" strokeLinejoin="round"/>
+                        <rect x="2" y="17" width="20" height="3" rx="1" fill="#FFD700"/>
+                        <circle cx="5" cy="20" r="1" fill="#0a0a0a"/>
+                        <circle cx="12" cy="20" r="1" fill="#0a0a0a"/>
+                        <circle cx="19" cy="20" r="1" fill="#0a0a0a"/>
+                      </svg>
+                    )}
+                    {plan.icon === "approved" && (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" stroke="#00cc8a" strokeWidth="1.5"/>
+                        <path d="M8 12L11 15L16 9" stroke="#00cc8a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                    <p className="text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)]">{plan.name}</p>
+                  </div>
                   <p className="text-3xl font-black font-mono">{plan.price}</p>
                   <p className="text-[10px] text-[var(--text-muted)] mt-1">{plan.sub}</p>
                 </div>
