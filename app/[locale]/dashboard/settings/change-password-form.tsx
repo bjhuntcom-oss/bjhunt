@@ -26,7 +26,7 @@ export function ChangePasswordForm({ locale }: ChangePasswordFormProps) {
 
     try {
       const res = await browserBackendFetch('/api/auth/change-password', {
-        method: 'PATCH',
+        method: 'POST',
         body: JSON.stringify({ currentPassword, newPassword }),
       })
 

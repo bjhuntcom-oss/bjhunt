@@ -20,11 +20,19 @@ export function PlatformSettingsForm({ initialName, initialDescription }: Props)
   const handleSave = () => {
     setStatus('saving')
     startTransition(async () => {
-      const res = await browserBackendFetch('/api/admin/platform-defaults', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identityName: name, identityDescription: description }),
-      })
+      const [nameRes, descRes] = await Promise.all([
+        browserBackendFetch('/api/admin/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'platform_name', value: name }),
+        }),
+        browserBackendFetch('/api/admin/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'platform_description', value: description }),
+        }),
+      ])
+      const res = { ok: nameRes.ok && descRes.ok }
       setStatus(res.ok ? 'saved' : 'error')
     })
   }

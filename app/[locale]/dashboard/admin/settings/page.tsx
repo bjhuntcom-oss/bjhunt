@@ -13,9 +13,13 @@ export default async function AdminSettingsPage({
 
   if (!cookieHeader) redirect(`/${locale}/login`)
 
-  const cpResponse = await serverBackendFetch('/api/admin/overview', {}, cookieHeader)
+  const cpResponse = await serverBackendFetch('/api/admin/settings', {}, cookieHeader)
   const cpData = cpResponse.ok ? await cpResponse.json() : {}
-  const defaults = cpData.platformDefaults ?? {}
+  const settings = cpData.settings ?? cpData
+  const defaults = {
+    identityName: settings.platform_name ?? 'BJHUNT',
+    identityDescription: settings.platform_description ?? '',
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-3xl">

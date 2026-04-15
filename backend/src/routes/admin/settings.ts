@@ -68,6 +68,37 @@ adminSettingsRoutes.get("/audit-logs", async (c) => {
   return c.json({ logs });
 });
 
+// ── Agent runs stats ────────────────────────────────────────────────────
+
+adminSettingsRoutes.get("/agent-runs", async (c) => {
+  const [stats] = await sql`
+    SELECT
+      COUNT(*)::int AS total,
+      COUNT(*) FILTER (WHERE status = 'completed')::int AS completed,
+      COUNT(*) FILTER (WHERE status = 'failed')::int AS failed,
+      COUNT(*) FILTER (WHERE status = 'running')::int AS running,
+      COUNT(*) FILTER (WHERE status = 'pending')::int AS pending,
+      COALESCE(SUM(tokens_input), 0)::bigint AS total_tokens_input,
+      COALESCE(SUM(tokens_output), 0)::bigint AS total_tokens_output,
+      COALESCE(SUM(tokens_input) + SUM(tokens_output), 0)::bigint AS total_tokens
+    FROM agent_runs
+  `;
+
+  const s = stats as any;
+  return c.json({
+    total: s.total,
+    completed: s.completed,
+    failed: s.failed,
+    running: s.running,
+    pending: s.pending,
+    tokens: {
+      input: Number(s.totalTokensInput),
+      output: Number(s.totalTokensOutput),
+      total: Number(s.totalTokens),
+    },
+  });
+});
+
 // ── LangGraph agents status ──────────────────────────────────────────────
 
 adminSettingsRoutes.get("/agents", async (c) => {

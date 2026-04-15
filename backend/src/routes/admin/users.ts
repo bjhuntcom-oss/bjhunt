@@ -111,7 +111,7 @@ adminUserRoutes.post("/", zValidator("json", createUserSchema), async (c) => {
   // Audit log
   const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || null;
   await sql`
-    INSERT INTO audit_logs (org_id, user_id, action, ip_address, metadata)
+    INSERT INTO audit_logs (org_id, user_id, action, ip_address, details)
     VALUES (${result.orgId}, ${adminUser.id}, 'admin.user.create', ${ip}, ${JSON.stringify({ createdUserId: result.id, email })})
   `;
 
@@ -159,6 +159,14 @@ adminUserRoutes.patch("/:id", zValidator("json", updateUserSchema), async (c) =>
   `;
 
   if (!updated) return c.json({ error: "User not found" }, 404);
+
+  const adminUser = c.get("user" as never) as { id: string };
+  await sql`
+    INSERT INTO audit_logs (org_id, user_id, action, resource, details)
+    VALUES (${(updated as any).orgId || null}, ${adminUser.id}, 'admin.user.update',
+            ${"user:" + id}, ${JSON.stringify({ fields: Object.keys(values) })})
+  `;
+
   return c.json({ user: updated });
 });
 
@@ -184,7 +192,18 @@ adminUserRoutes.post("/:id/revoke-sessions", async (c) => {
 // Delete user
 adminUserRoutes.delete("/:id", async (c) => {
   const id = c.req.param("id");
+  const adminUser = c.get("user" as never) as { id: string };
+
+  // Fetch user org_id before deletion for audit log
+  const [target] = await sql`SELECT org_id, email FROM users WHERE id = ${id}`;
   const result = await sql`DELETE FROM users WHERE id = ${id}`;
   if (result.count === 0) return c.json({ error: "User not found" }, 404);
+
+  await sql`
+    INSERT INTO audit_logs (org_id, user_id, action, resource, details)
+    VALUES (${(target as any)?.orgId || null}, ${adminUser.id}, 'admin.user.delete',
+            ${"user:" + id}, ${JSON.stringify({ deletedEmail: (target as any)?.email })})
+  `;
+
   return c.json({ ok: true });
 });

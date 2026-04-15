@@ -24,6 +24,7 @@ import { apiKeyRoutes } from "./routes/api-keys.js";
 import { adminUserRoutes } from "./routes/admin/users.js";
 import { adminSettingsRoutes } from "./routes/admin/settings.js";
 import { notificationRoutes } from "./routes/notifications.js";
+import { dashboardRoutes } from "./routes/dashboard.js";
 
 const app = new Hono<{ Variables: AppVariables }>();
 
@@ -49,6 +50,7 @@ app.route("/api/engagements", engagementRoutes);
 app.route("/api/chat", chatRoutes);
 app.route("/api/keys", apiKeyRoutes);
 app.route("/api/notifications", notificationRoutes);
+app.route("/api/dashboard", dashboardRoutes);
 
 // Admin routes (platform admin only)
 app.route("/api/admin/users", adminUserRoutes);

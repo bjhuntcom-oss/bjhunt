@@ -19,7 +19,19 @@ export default async function AdminMonitoringPage({
     : { status: 'not ready', checks: {} }
   // Map real health check data to the format expected by MonitoringDashboard
   const checksObj = healthResult.checks ?? {}
-  const queueStats = { waiting: 0, active: 0, completed: 0, failed: 0 }
+  // Fetch agent runs for initial queue stats
+  const runsRes = await serverBackendFetch('/api/admin/settings/agent-runs', {}, cookieHeader)
+  let queueStats = { total: 0, running: 0, completed: 0, failed: 0 }
+  if (runsRes.ok) {
+    const runsData = await runsRes.json() as { runs?: Array<{ status: string }> }
+    const runs = runsData.runs ?? []
+    queueStats = {
+      total: runs.length,
+      running: runs.filter((r) => r.status === 'running').length,
+      completed: runs.filter((r) => r.status === 'completed').length,
+      failed: runs.filter((r) => r.status === 'failed').length,
+    }
+  }
   const healthData = {
     ready: healthResult.status === 'ready',
     checks: Object.fromEntries(

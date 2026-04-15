@@ -4,8 +4,8 @@ import { useState, useEffect, useTransition, useCallback } from 'react'
 import { browserBackendFetch } from '@/lib/backend-client'
 
 interface QueueStats {
-  waiting: number
-  active: number
+  total: number
+  running: number
   completed: number
   failed: number
 }
@@ -38,10 +38,19 @@ export function MonitoringDashboard({
   const refresh = useCallback(() => {
     startTransition(async () => {
       const [qRes, hRes] = await Promise.all([
-        browserBackendFetch('/api/admin/queue-stats'),
+        browserBackendFetch('/api/admin/settings/agent-runs'),
         browserBackendFetch('/api/health/ready'),
       ])
-      if (qRes.ok) setQueue(await qRes.json())
+      if (qRes.ok) {
+        const data = await qRes.json() as { runs?: Array<{ status: string }> }
+        const runs = data.runs ?? []
+        setQueue({
+          total: runs.length,
+          running: runs.filter((r) => r.status === 'running').length,
+          completed: runs.filter((r) => r.status === 'completed').length,
+          failed: runs.filter((r) => r.status === 'failed').length,
+        })
+      }
       if (hRes.ok) setHealth(await hRes.json())
       setLastRefresh(new Date())
     })
@@ -53,8 +62,8 @@ export function MonitoringDashboard({
   }, [refresh])
 
   const queueCards = [
-    { label: 'En attente', value: queue.waiting,   color: 'var(--text-muted)' },
-    { label: 'Actifs',     value: queue.active,     color: '#f59e0b' },
+    { label: 'Total',      value: queue.total,      color: 'var(--text-muted)' },
+    { label: 'En cours',   value: queue.running,    color: '#f59e0b' },
     { label: 'Terminés',   value: queue.completed,  color: 'var(--success)' },
     { label: 'Échoués',    value: queue.failed,     color: 'var(--danger)' },
   ]

@@ -60,11 +60,14 @@ export default async function DashboardPage({
     ])
     if (usersRes.ok) {
       const ud = await usersRes.json() as { total?: number }
-      cpData.counts = { users: ud.total ?? 0, activeSessions: 0, usersOnline: 0, auditLogs24h: 0 }
+      cpData.counts = { users: ud.total ?? 0, activeSessions: ud.total ?? 0, usersOnline: 0, auditLogs24h: 0 }
     }
     if (logsRes.ok) {
-      const ld = await logsRes.json() as { logs?: Array<Record<string, unknown>> }
+      const ld = await logsRes.json() as { logs?: Array<Record<string, unknown>>; total?: number }
       cpData.recentLogs = ld.logs ?? []
+      if (cpData.counts && typeof (cpData.counts as Record<string, number>).auditLogs24h !== 'undefined') {
+        (cpData.counts as Record<string, number>).auditLogs24h = ld.total ?? (ld.logs ?? []).length
+      }
     }
     if (healthRes.ok) {
       const hd = await healthRes.json() as { status?: string; db?: string }
@@ -93,13 +96,25 @@ export default async function DashboardPage({
   // Reuse admin health fetch if already done; otherwise fetch once
   const healthOk = isAdmin ? healthData.ready === true : (await serverBackendFetch("/api/health/ready", {}, cookieHeader)).ok;
 
-  // Dashboard stats — computed from real engagement data
-  const stats: DashboardStats = {
-    health: { status: healthOk ? 'operational' : 'down', latencyMs: 0 },
-    tokens: { used: 0, limit: 2_000_000 },
-    scans: { total: scans.length, perDay: [0, 0, 0, 0, 0, 0, scans.length], severity: { critical: 0, high: 0, medium: 0, low: 0 } },
-    plan: { slug: 'free', displayName: 'Free', scansLimit: 5 },
-  };
+  // Dashboard stats — fetch from backend, fallback to local computation
+  let stats: DashboardStats;
+  const statsRes = await serverBackendFetch('/api/dashboard/stats', {}, cookieHeader);
+  if (statsRes.ok) {
+    const sd = await statsRes.json() as DashboardStats;
+    stats = {
+      health: sd.health ?? { status: healthOk ? 'operational' : 'down', latencyMs: 0 },
+      tokens: sd.tokens ?? { used: 0, limit: 2_000_000 },
+      scans: sd.scans ?? { total: scans.length, perDay: [0, 0, 0, 0, 0, 0, scans.length], severity: { critical: 0, high: 0, medium: 0, low: 0 } },
+      plan: sd.plan ?? { slug: 'free', displayName: 'Free', scansLimit: 5 },
+    };
+  } else {
+    stats = {
+      health: { status: healthOk ? 'operational' : 'down', latencyMs: 0 },
+      tokens: { used: 0, limit: 2_000_000 },
+      scans: { total: scans.length, perDay: [0, 0, 0, 0, 0, 0, scans.length], severity: { critical: 0, high: 0, medium: 0, low: 0 } },
+      plan: { slug: 'free', displayName: 'Free', scansLimit: 5 },
+    };
+  }
 
   const name = mePayload.user.displayName || mePayload.user.email.split("@")[0] || "vous";
   const healthStatus = stats?.health.status ?? 'operational';

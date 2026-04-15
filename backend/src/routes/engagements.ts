@@ -225,6 +225,53 @@ engagementRoutes.get("/:id/findings", async (c) => {
   return c.json({ findings });
 });
 
+// ── Create finding for engagement ────────────────────────────────────────
+
+const createFindingSchema = z.object({
+  title: z.string().min(1).max(500),
+  description: z.string().max(5000).optional(),
+  severity: z.enum(["critical", "high", "medium", "low", "info"]),
+  cvssScore: z.number().min(0).max(10).optional(),
+  cvssVector: z.string().max(200).optional(),
+  cveIds: z.array(z.string().max(20)).optional(),
+  mitreAttack: z.array(z.string().max(20)).optional(),
+  evidence: z.record(z.unknown()).optional(),
+  remediation: z.string().max(5000).optional(),
+});
+
+engagementRoutes.post("/:id/findings", zValidator("json", createFindingSchema), async (c) => {
+  const orgId = c.get("orgId") as string;
+  const user = c.get("user") as AuthUser;
+  const id = c.req.param("id");
+  const body = c.req.valid("json");
+
+  // Verify engagement exists in this org
+  const [engagement] = await withOrg(orgId, (tx) =>
+    tx`SELECT id FROM engagements WHERE id = ${id}`,
+  );
+  if (!engagement) return c.json({ error: "Engagement not found" }, 404);
+
+  const [finding] = await withOrg(orgId, (tx) =>
+    tx`
+      INSERT INTO findings (org_id, engagement_id, title, description, severity,
+                            cvss_score, cvss_vector, cve_ids, mitre_attack, evidence, remediation)
+      VALUES (${orgId}, ${id}, ${body.title}, ${body.description || null},
+              ${body.severity}, ${body.cvssScore ?? null}, ${body.cvssVector || null},
+              ${body.cveIds || null}, ${body.mitreAttack || null},
+              ${body.evidence ? JSON.stringify(body.evidence) : null},
+              ${body.remediation || null})
+      RETURNING *
+    `,
+  );
+
+  await sql`
+    INSERT INTO audit_logs (org_id, user_id, action, resource)
+    VALUES (${orgId}, ${user.id}, 'finding.create', ${"finding:" + finding!.id})
+  `;
+
+  return c.json({ finding }, 201);
+});
+
 // ── Delete engagement ────────────────────────────────────────────────────
 
 engagementRoutes.delete("/:id", async (c) => {
