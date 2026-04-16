@@ -498,13 +498,19 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
     },
   });
 
+  // Build CORS origin from request (Hono middlewares don't apply to raw Response)
+  const reqOrigin = c.req.header("origin") || "https://www.bjhunt.com";
+
   return new Response(wrappedStream, {
     headers: {
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
       "X-Conversation-Id": convId ?? "",
-      "X-Accel-Buffering": "no", // Prevent nginx/Caddy from buffering SSE
+      "X-Accel-Buffering": "no",
+      "Access-Control-Allow-Origin": reqOrigin,
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Expose-Headers": "X-Conversation-Id",
     },
   });
 });
