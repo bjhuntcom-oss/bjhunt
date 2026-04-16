@@ -555,19 +555,14 @@ export default function ChatPage() {
         requestBody.attachmentIds = uploadedFileIds;
       }
 
-      // SSE stream goes DIRECTLY to the backend (bypasses Vercel proxy 10s timeout).
-      // Auth token is sent in the request body to avoid CORS preflight (Authorization header triggers it).
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.bjhunt.com";
-      const streamCookie = document.cookie
-        .split(";").map(c => c.trim())
-        .find(c => c.startsWith("bjhunt_stream_token="));
-      const sessionToken = streamCookie?.split("=")[1] || "";
-
-      const res = await fetch(`${backendUrl}/api/chat/stream?token=${encodeURIComponent(sessionToken)}`, {
+      // Route through same-origin Vercel proxy to avoid CORS entirely.
+      // Vercel Hobby plan has 10s timeout — for longer streams, upgrade to Pro.
+      const res = await fetch(`/api/proxy/chat/stream`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify(requestBody),
         signal: abortRef.current.signal,
       });
