@@ -29,6 +29,63 @@ interface Engagement {
   createdAt: string;
 }
 
+/** Sidebar conversation item (loaded from /api/chat/conversations) */
+interface SidebarConversation {
+  id: string;
+  title: string;
+  engagementId: string | null;
+  engagementName: string | null;
+  lastMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Group sidebar conversations by relative date */
+function groupByDate(items: SidebarConversation[]): { label: string; items: SidebarConversation[] }[] {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfYesterday = new Date(startOfToday.getTime() - 86400000);
+  const startOf7Days = new Date(startOfToday.getTime() - 7 * 86400000);
+
+  const groups: Record<string, SidebarConversation[]> = {
+    "Aujourd'hui": [],
+    "Hier": [],
+    "7 derniers jours": [],
+    "Plus ancien": [],
+  };
+
+  for (const item of items) {
+    const d = new Date(item.updatedAt || item.createdAt);
+    if (d >= startOfToday) groups["Aujourd'hui"].push(item);
+    else if (d >= startOfYesterday) groups["Hier"].push(item);
+    else if (d >= startOf7Days) groups["7 derniers jours"].push(item);
+    else groups["Plus ancien"].push(item);
+  }
+
+  return Object.entries(groups)
+    .filter(([, v]) => v.length > 0)
+    .map(([label, items]) => ({ label, items }));
+}
+
+/** Truncate text to maxLen chars with ellipsis */
+function truncate(text: string, maxLen: number): string {
+  if (text.length <= maxLen) return text;
+  return text.slice(0, maxLen).trimEnd() + "...";
+}
+
+/** Relative time label */
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "now";
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d`;
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 interface StreamEvent {
   type: "message" | "tool_call" | "thinking" | "sub_agent" | "objective" | "graph_update";
   data: any;
@@ -46,6 +103,8 @@ export default function ChatPage() {
   // State
   const [engagements, setEngagements] = useState<Engagement[]>([]);
   const [activeEngagement, setActiveEngagement] = useState<Engagement | null>(null);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [sidebarConversations, setSidebarConversations] = useState<SidebarConversation[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [toolCalls, setToolCalls] = useState<Map<string, ToolCall>>(new Map());
   const [subAgents, setSubAgents] = useState<Map<string, SubAgentSession>>(new Map());
@@ -99,6 +158,8 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const lastAiContentRef = useRef<string>("");
+  const hasAutoNamedRef = useRef<boolean>(false);
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-scroll
   useEffect(() => {
@@ -127,9 +188,10 @@ export default function ChatPage() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [contextMenu]);
 
-  // Load engagements on mount
+  // Load engagements and sidebar conversations on mount
   useEffect(() => {
     loadEngagements();
+    loadSidebarConversations();
   }, []);
 
   // Fix 3: Restore active engagement from sessionStorage after engagements load
@@ -164,19 +226,48 @@ export default function ChatPage() {
     }
   }
 
+  async function loadSidebarConversations() {
+    try {
+      const res = await browserBackendFetch("/api/chat/conversations?limit=50");
+      if (res.ok) {
+        const data = await res.json();
+        const convs: SidebarConversation[] = (data.conversations || []).map((c: any) => ({
+          id: c.id,
+          title: c.title || "New conversation",
+          engagementId: c.engagementId || c.engagement_id || null,
+          engagementName: c.engagementName || c.engagement_name || null,
+          lastMessage: c.lastMessage || c.last_message || null,
+          createdAt: c.createdAt || c.created_at,
+          updatedAt: c.updatedAt || c.updated_at || c.createdAt || c.created_at,
+        }));
+        setSidebarConversations(convs);
+      }
+    } catch {
+      // Sidebar load is best-effort
+    }
+  }
+
   // ── Load conversation history from DB ─────────────────────────────────
 
-  async function loadHistory(engagementId: string) {
+  async function loadHistory(engagementId: string, convIdOverride?: string) {
     setLoadingHistory(true);
     try {
-      // Get conversations for this engagement
-      const convRes = await browserBackendFetch(`/api/chat/history/${engagementId}`);
-      if (!convRes.ok) return;
-      const { conversations } = await convRes.json();
-      if (!conversations?.length) return;
+      let convId = convIdOverride;
 
-      // Load messages from the most recent conversation
-      const convId = conversations[0].id;
+      if (!convId) {
+        // Get conversations for this engagement
+        const convRes = await browserBackendFetch(`/api/chat/history/${engagementId}`);
+        if (!convRes.ok) return;
+        const { conversations } = await convRes.json();
+        if (!conversations?.length) return;
+
+        // Use the most recent conversation
+        convId = conversations[0].id as string;
+      }
+
+      // Fix 5: Capture the active conversation ID
+      setActiveConversationId(convId!);
+
       const msgRes = await browserBackendFetch(`/api/chat/conversations/${convId}/messages`);
       if (!msgRes.ok) return;
       const { messages: dbMessages } = await msgRes.json();
@@ -186,10 +277,13 @@ export default function ChatPage() {
         id: m.id,
         role: m.role,
         content: m.content,
-        createdAt: m.createdAt,
+        createdAt: m.createdAt || m.created_at,
         isStreaming: false,
       }));
       setMessages(mapped);
+
+      // Mark that we already have history — don't auto-rename
+      hasAutoNamedRef.current = mapped.length > 0;
 
       // Restore tool calls from messages metadata
       const allToolCalls = new Map<string, ToolCall>();
@@ -205,6 +299,38 @@ export default function ChatPage() {
       // History load is best-effort
     } finally {
       setLoadingHistory(false);
+    }
+  }
+
+  /** Load a specific conversation by its ID (from sidebar click) */
+  async function loadConversation(conv: SidebarConversation) {
+    // Find or set the related engagement
+    if (conv.engagementId) {
+      const eng = engagements.find((e) => e.id === conv.engagementId);
+      if (eng) {
+        setActiveEngagement(eng);
+      } else {
+        // Create a minimal engagement reference
+        setActiveEngagement({
+          id: conv.engagementId,
+          name: conv.engagementName || conv.title,
+          target: "",
+          status: "running",
+          createdAt: conv.createdAt,
+        });
+      }
+    }
+
+    setActiveConversationId(conv.id);
+    setMessages([]);
+    setToolCalls(new Map());
+    setSubAgents(new Map());
+    setObjectives([]);
+    setStreamError(null);
+
+    // Load messages for this specific conversation
+    if (conv.engagementId) {
+      await loadHistory(conv.engagementId, conv.id);
     }
   }
 
@@ -224,6 +350,9 @@ export default function ChatPage() {
         const eng = data.engagement;
         setEngagements((prev) => [eng, ...prev]);
         setActiveEngagement(eng);
+        // Fix 4: Reset conversationId for new engagement
+        setActiveConversationId(null);
+        hasAutoNamedRef.current = false;
         setMessages([]);
         setToolCalls(new Map());
         setSubAgents(new Map());
@@ -240,13 +369,20 @@ export default function ChatPage() {
     }
   }
 
+  // Fix 7: New conversation resets all state and focuses input
   function startNewConversation() {
     setActiveEngagement(null);
+    setActiveConversationId(null);
+    hasAutoNamedRef.current = false;
     setMessages([]);
     setToolCalls(new Map());
     setSubAgents(new Map());
     setObjectives([]);
     setStreamError(null);
+    // Focus the chat input after React re-renders
+    requestAnimationFrame(() => {
+      chatInputRef.current?.focus();
+    });
   }
 
   // ── Slash command handler ─────────────────────────────────────────────
@@ -295,7 +431,29 @@ export default function ChatPage() {
       engId = eng.id;
     }
 
-    // TODO: handle file uploads — POST /api/chat/files
+    // Upload any attached files and collect their IDs for linking to the conversation
+    let uploadedFileIds: string[] = [];
+    if (files.length > 0) {
+      const uploadPromises = files.map(async (pf) => {
+        try {
+          const formData = new FormData();
+          formData.append("file", pf.file);
+          const uploadRes = await browserBackendFetch("/api/chat/files", {
+            method: "POST",
+            body: formData,
+          });
+          if (uploadRes.ok) {
+            const data = await uploadRes.json();
+            return data.id as string;
+          }
+        } catch {
+          // File upload is best-effort — don't block the message
+        }
+        return null;
+      });
+      const results = await Promise.all(uploadPromises);
+      uploadedFileIds = results.filter((id): id is string => id !== null);
+    }
 
     // Add user message
     const userMsg: ChatMessage = {
@@ -352,6 +510,20 @@ export default function ChatPage() {
         .find((c) => c.startsWith("bjhunt_stream_token="));
       const sessionToken = tokenCookie?.split("=")[1] || "";
 
+      // Include conversationId so backend reuses existing conversation,
+      // and attachmentIds so uploaded files get linked.
+      const requestBody: Record<string, unknown> = {
+        message: text,
+        engagementId: engId || "",
+        agentGraph: selectedAgent,
+      };
+      if (activeConversationId) {
+        requestBody.conversationId = activeConversationId;
+      }
+      if (uploadedFileIds.length > 0) {
+        requestBody.attachmentIds = uploadedFileIds;
+      }
+
       const res = await fetch(`${BACKEND_URL}/api/chat/stream`, {
         method: "POST",
         headers: {
@@ -359,16 +531,18 @@ export default function ChatPage() {
           "Cookie": `bjhunt_session=${sessionToken}`,
           "Authorization": `Bearer session:${sessionToken}`,
         },
-        body: JSON.stringify({
-          message: text,
-          engagementId: engId || "",
-          agentGraph: selectedAgent,
-        }),
+        body: JSON.stringify(requestBody),
         signal: abortRef.current.signal,
       });
 
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
+      }
+
+      // Fix 2: Capture conversationId from response header
+      const returnedConvId = res.headers.get("X-Conversation-Id");
+      if (returnedConvId) {
+        setActiveConversationId(returnedConvId);
       }
 
       // Read SSE stream
@@ -430,6 +604,29 @@ export default function ChatPage() {
           return { ...m, content: m.content || finalContent, isStreaming: false };
         })
       );
+
+      // Fix 9: Auto-name the engagement after the first assistant response
+      if (!hasAutoNamedRef.current && engId && (finalContent || text)) {
+        hasAutoNamedRef.current = true;
+        // Use first 40 chars of user message as the title
+        const autoTitle = truncate(text, 40);
+        // Fire-and-forget PATCH to rename
+        browserBackendFetch(`/api/engagements/${engId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: autoTitle }),
+        }).catch(() => {});
+        // Update local engagement list
+        setEngagements((prev) =>
+          prev.map((e) => (e.id === engId ? { ...e, name: autoTitle } : e))
+        );
+        if (activeEngagement?.id === engId) {
+          setActiveEngagement((prev) => prev ? { ...prev, name: autoTitle } : prev);
+        }
+      }
+
+      // Refresh sidebar conversations list (new conversation may have been created)
+      loadSidebarConversations();
     }
   }
 
@@ -556,6 +753,11 @@ export default function ChatPage() {
         if (parsed.stats) setGraphStats(parsed.stats);
         break;
 
+      // ── Stream error from backend (timeout, LangGraph failure, etc.) ──
+      case "error":
+        setStreamError(parsed.message || "Stream error from server");
+        break;
+
       // ── Stream done ─────────────────────────────────────────────────
       case "done":
         // Backend signals stream complete — nothing to do, finally block handles cleanup
@@ -580,16 +782,42 @@ export default function ChatPage() {
     setEngagements((prev) =>
       prev.map((e) => (e.id === engId ? { ...e, name: newName.trim() } : e))
     );
+    // Also update sidebar conversation titles that reference this engagement
+    setSidebarConversations((prev) =>
+      prev.map((c) =>
+        c.engagementId === engId ? { ...c, title: newName.trim(), engagementName: newName.trim() } : c
+      )
+    );
     setRenamingId(null);
   }
 
-  // Fix 6: Delete engagement
+  // Fix 10: Delete engagement (and its conversations)
   async function handleDelete(engId: string) {
     try {
       await browserBackendFetch(`/api/engagements/${engId}`, { method: "DELETE" });
     } catch { /* best-effort */ }
     setEngagements((prev) => prev.filter((e) => e.id !== engId));
+    // Remove related sidebar conversations
+    setSidebarConversations((prev) => prev.filter((c) => c.engagementId !== engId));
     if (activeEngagement?.id === engId) {
+      setActiveEngagement(null);
+      setActiveConversationId(null);
+      setMessages([]);
+      setToolCalls(new Map());
+      setSubAgents(new Map());
+    }
+    setDeleteConfirmId(null);
+  }
+
+  // Fix 10: Delete a specific conversation from sidebar
+  async function handleDeleteConversation(convId: string) {
+    try {
+      await browserBackendFetch(`/api/chat/conversations/${convId}`, { method: "DELETE" });
+    } catch { /* best-effort */ }
+    setSidebarConversations((prev) => prev.filter((c) => c.id !== convId));
+    if (activeConversationId === convId) {
+      // Active conversation was deleted — clear chat and show welcome
+      setActiveConversationId(null);
       setActiveEngagement(null);
       setMessages([]);
       setToolCalls(new Map());
@@ -604,6 +832,24 @@ export default function ChatPage() {
     const q = conversationSearch.toLowerCase();
     return engagements.filter((e) => e.name.toLowerCase().includes(q));
   }, [engagements, conversationSearch]);
+
+  // Filtered and grouped sidebar conversations
+  const filteredSidebarConvs = useMemo(() => {
+    let items = sidebarConversations;
+    if (conversationSearch.trim()) {
+      const q = conversationSearch.toLowerCase();
+      items = items.filter(
+        (c) =>
+          c.title.toLowerCase().includes(q) ||
+          (c.lastMessage && c.lastMessage.toLowerCase().includes(q)) ||
+          (c.engagementName && c.engagementName.toLowerCase().includes(q))
+      );
+    }
+    return items;
+  }, [sidebarConversations, conversationSearch]);
+
+  // Fix 8: Date-grouped conversations for sidebar
+  const groupedConversations = useMemo(() => groupByDate(filteredSidebarConvs), [filteredSidebarConvs]);
 
   // ── Render ───────────────────────────────────────────────────────────
 
@@ -650,6 +896,7 @@ export default function ChatPage() {
           <div className="flex-1 overflow-y-auto">
             {sidebarTab === "conversations" && (
               <div className="p-2 space-y-1">
+                {/* New conversation button */}
                 <button
                   onClick={startNewConversation}
                   className="w-full flex items-center justify-center gap-2 px-3 py-2 text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-card)] border border-dashed border-[var(--border)] transition-colors"
@@ -658,8 +905,8 @@ export default function ChatPage() {
                   <Plus className="w-4 h-4" />
                 </button>
 
-                {/* Fix 5: Conversation search */}
-                {engagements.length > 2 && (
+                {/* Conversation search */}
+                {(sidebarConversations.length > 2 || engagements.length > 2) && (
                   <div className="relative">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-subtle)]" />
                     <input
@@ -679,71 +926,153 @@ export default function ChatPage() {
                   </div>
                 )}
 
-                {filteredEngagements.map((eng) => (
-                  <div key={eng.id} className="relative">
-                    {renamingId === eng.id ? (
-                      /* Fix 6: Inline rename */
-                      <div className="px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-strong)]">
-                        <input
-                          autoFocus
-                          value={renameValue}
-                          onChange={(e) => setRenameValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleRename(eng.id, renameValue);
-                            if (e.key === "Escape") setRenamingId(null);
+                {/* Grouped conversations (ChatGPT-like) */}
+                {groupedConversations.length > 0 ? (
+                  groupedConversations.map((group) => (
+                    <div key={group.label}>
+                      {/* Fix 8: Date group header */}
+                      <div className="px-3 pt-3 pb-1 text-[8px] uppercase tracking-widest text-[var(--text-subtle)] font-mono">
+                        {group.label}
+                      </div>
+                      {group.items.map((conv) => (
+                        <div key={conv.id} className="relative">
+                          {renamingId === conv.id ? (
+                            /* Inline rename */
+                            <div className="px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-strong)]">
+                              <input
+                                autoFocus
+                                value={renameValue}
+                                onChange={(e) => setRenameValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    // Rename the engagement behind this conversation
+                                    if (conv.engagementId) handleRename(conv.engagementId, renameValue);
+                                    setRenamingId(null);
+                                  }
+                                  if (e.key === "Escape") setRenamingId(null);
+                                }}
+                                onBlur={() => {
+                                  if (conv.engagementId) handleRename(conv.engagementId, renameValue);
+                                  setRenamingId(null);
+                                }}
+                                className="w-full bg-transparent text-[11px] text-white outline-none"
+                              />
+                            </div>
+                          ) : deleteConfirmId === conv.id ? (
+                            /* Delete confirmation */
+                            <div className="px-3 py-2 bg-[var(--danger-dim)] border border-[var(--danger)]/30">
+                              <p className="text-[10px] text-[var(--danger)] mb-2">Delete this conversation?</p>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => setDeleteConfirmId(null)}
+                                  className="flex-1 py-1 text-[9px] uppercase tracking-wider text-[var(--text-muted)] border border-[var(--border)] hover:text-white"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteConversation(conv.id)}
+                                  className="flex-1 py-1 text-[9px] uppercase tracking-wider bg-[var(--danger)] text-white hover:bg-[var(--danger)]/80"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => loadConversation(conv)}
+                              onContextMenu={(e) => {
+                                e.preventDefault();
+                                setContextMenu({ x: e.clientX, y: e.clientY, engId: conv.id });
+                              }}
+                              title={conv.lastMessage || conv.title}
+                              className={`w-full text-left px-3 py-2 transition-colors group ${
+                                activeConversationId === conv.id
+                                  ? "bg-[var(--bg-card)] border border-[var(--border-strong)]"
+                                  : "hover:bg-[var(--bg-card)] border border-transparent"
+                              }`}
+                            >
+                              {/* Fix 6: Title = first message preview or conversation title */}
+                              <div className="text-[11px] text-white truncate">
+                                {conv.lastMessage ? truncate(conv.title, 40) : conv.title}
+                              </div>
+                              <div className="flex items-center justify-between mt-0.5">
+                                <span className="text-[9px] text-[var(--text-subtle)]">
+                                  {relativeTime(conv.updatedAt || conv.createdAt)}
+                                </span>
+                              </div>
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                ) : (
+                  /* Fallback: show engagements if no conversations loaded yet */
+                  filteredEngagements.map((eng) => (
+                    <div key={eng.id} className="relative">
+                      {renamingId === eng.id ? (
+                        <div className="px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-strong)]">
+                          <input
+                            autoFocus
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleRename(eng.id, renameValue);
+                              if (e.key === "Escape") setRenamingId(null);
+                            }}
+                            onBlur={() => handleRename(eng.id, renameValue)}
+                            className="w-full bg-transparent text-[11px] text-white outline-none"
+                          />
+                        </div>
+                      ) : deleteConfirmId === eng.id ? (
+                        <div className="px-3 py-2 bg-[var(--danger-dim)] border border-[var(--danger)]/30">
+                          <p className="text-[10px] text-[var(--danger)] mb-2">Delete this conversation?</p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setDeleteConfirmId(null)}
+                              className="flex-1 py-1 text-[9px] uppercase tracking-wider text-[var(--text-muted)] border border-[var(--border)] hover:text-white"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleDelete(eng.id)}
+                              className="flex-1 py-1 text-[9px] uppercase tracking-wider bg-[var(--danger)] text-white hover:bg-[var(--danger)]/80"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setActiveEngagement(eng);
+                            setActiveConversationId(null);
+                            setMessages([]);
+                            setToolCalls(new Map());
+                            setSubAgents(new Map());
+                            loadHistory(eng.id);
                           }}
-                          onBlur={() => handleRename(eng.id, renameValue)}
-                          className="w-full bg-transparent text-[11px] text-white outline-none"
-                        />
-                      </div>
-                    ) : deleteConfirmId === eng.id ? (
-                      /* Fix 6: Delete confirmation */
-                      <div className="px-3 py-2 bg-[var(--danger-dim)] border border-[var(--danger)]/30">
-                        <p className="text-[10px] text-[var(--danger)] mb-2">Delete this conversation?</p>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setDeleteConfirmId(null)}
-                            className="flex-1 py-1 text-[9px] uppercase tracking-wider text-[var(--text-muted)] border border-[var(--border)] hover:text-white"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={() => handleDelete(eng.id)}
-                            className="flex-1 py-1 text-[9px] uppercase tracking-wider bg-[var(--danger)] text-white hover:bg-[var(--danger)]/80"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setActiveEngagement(eng);
-                          setMessages([]);
-                          setToolCalls(new Map());
-                          setSubAgents(new Map());
-                          loadHistory(eng.id);
-                        }}
-                        onContextMenu={(e) => {
-                          e.preventDefault();
-                          setContextMenu({ x: e.clientX, y: e.clientY, engId: eng.id });
-                        }}
-                        className={`w-full text-left px-3 py-2 transition-colors ${
-                          activeEngagement?.id === eng.id
-                            ? "bg-[var(--bg-card)] border border-[var(--border-strong)]"
-                            : "hover:bg-[var(--bg-card)] border border-transparent"
-                        }`}
-                      >
-                        <div className="text-[11px] text-white truncate">{eng.name}</div>
-                        <div className="text-[9px] text-[var(--text-subtle)] mt-0.5">
-                          {new Date(eng.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </div>
-                      </button>
-                    )}
-                  </div>
-                ))}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            setContextMenu({ x: e.clientX, y: e.clientY, engId: eng.id });
+                          }}
+                          className={`w-full text-left px-3 py-2 transition-colors ${
+                            activeEngagement?.id === eng.id
+                              ? "bg-[var(--bg-card)] border border-[var(--border-strong)]"
+                              : "hover:bg-[var(--bg-card)] border border-transparent"
+                          }`}
+                        >
+                          <div className="text-[11px] text-white truncate">{eng.name}</div>
+                          <div className="text-[9px] text-[var(--text-subtle)] mt-0.5">
+                            {relativeTime(eng.createdAt)}
+                          </div>
+                        </button>
+                      )}
+                    </div>
+                  ))
+                )}
 
-                {/* Fix 6: Context menu dropdown */}
+                {/* Context menu dropdown */}
                 {contextMenu && (
                   <div
                     className="fixed z-[60] bg-[var(--bg-card)] border border-[var(--border-strong)] shadow-2xl py-1 min-w-[140px]"
@@ -752,9 +1081,10 @@ export default function ChatPage() {
                   >
                     <button
                       onClick={() => {
+                        const conv = sidebarConversations.find((c) => c.id === contextMenu.engId);
                         const eng = engagements.find((e) => e.id === contextMenu.engId);
                         setRenamingId(contextMenu.engId);
-                        setRenameValue(eng?.name || "");
+                        setRenameValue(conv?.title || eng?.name || "");
                         setContextMenu(null);
                       }}
                       className="w-full flex items-center gap-2 px-3 py-1.5 text-[10px] text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-input)] transition-colors"

@@ -24,11 +24,27 @@ export const chatRoutes = new Hono<{ Variables: AppVariables }>();
 chatRoutes.use("*", requireAuth);
 chatRoutes.use("*", rateLimit(config.rateLimit.api));
 
+/** Strip HTML tags and null bytes from user-provided content to prevent stored XSS. */
+function sanitizeContent(input: string): string {
+  return input
+    .replace(/\0/g, "")                         // null bytes
+    .replace(/<script[\s>][\s\S]*?<\/script>/gi, "")  // script tags
+    .replace(/<\/?(iframe|object|embed|form|input|button|link|meta|style)[^>]*>/gi, "")  // dangerous tags
+    .trim();
+}
+
+/** Heartbeat interval in milliseconds for SSE keep-alive. */
+const HEARTBEAT_INTERVAL_MS = 15_000;
+
+/** Maximum time to wait for any data from LangGraph before aborting (ms). */
+const STREAM_TIMEOUT_MS = 120_000;
+
 const sendMessageSchema = z.object({
   message: z.string().min(1).max(10000),
   engagementId: z.string().uuid(),
   conversationId: z.string().uuid().optional(),
   agentGraph: z.string().min(1).max(50).optional(),
+  attachmentIds: z.array(z.string().uuid()).max(5).optional(),
 });
 
 // ── Send message + stream response (with DB persistence) ─────────────────
@@ -36,7 +52,13 @@ const sendMessageSchema = z.object({
 chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSchema), async (c) => {
   const orgId = c.get("orgId") as string;
   const user = c.get("user") as AuthUser;
-  const { message, engagementId, conversationId: existingConvId, agentGraph } = c.req.valid("json");
+  const { message: rawMessage, engagementId, conversationId: existingConvId, agentGraph, attachmentIds } = c.req.valid("json");
+
+  // Sanitize user input before persisting or forwarding
+  const message = sanitizeContent(rawMessage);
+  if (!message) {
+    return c.json({ error: "Message content is empty after sanitization" }, 400);
+  }
 
   // Verify engagement belongs to user's org and is active
   const [engagement] = await withOrg(orgId, (tx) =>
@@ -48,8 +70,21 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
     return c.json({ error: "Engagement not found" }, 404);
   }
 
-  // Get or create conversation
-  let convId = existingConvId;
+  // Get or create conversation — reuse existing if provided AND it belongs to this user+engagement
+  let convId: string | undefined = existingConvId;
+  if (convId) {
+    // Verify the conversation exists, belongs to this user & engagement, and is active
+    const verifyId = convId; // capture for SQL template type safety
+    const [existing] = await withOrg(orgId, (tx) =>
+      tx`SELECT id FROM chat_conversations
+         WHERE id = ${verifyId} AND user_id = ${user.id} AND engagement_id = ${engagementId}
+           AND status = 'active'`,
+    );
+    if (!existing) {
+      // Invalid conversationId — create a new one instead of rejecting
+      convId = undefined;
+    }
+  }
   if (!convId) {
     const [conv] = await sql`
       INSERT INTO chat_conversations (org_id, user_id, engagement_id, title)
@@ -59,11 +94,27 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
     convId = conv!.id as string;
   }
 
+  // Touch the conversation updated_at so it sorts to the top
+  await sql`
+    UPDATE chat_conversations SET updated_at = now() WHERE id = ${convId}
+  `.catch(() => {});
+
   // Save user message to DB
   await sql`
     INSERT INTO chat_messages (org_id, conversation_id, role, content)
     VALUES (${orgId}, ${convId}, 'user', ${message})
   `;
+
+  // Link any uploaded attachments to this conversation
+  if (attachmentIds && attachmentIds.length > 0) {
+    await sql`
+      UPDATE file_uploads
+      SET conversation_id = ${convId}
+      WHERE id = ANY(${attachmentIds}::uuid[])
+        AND org_id = ${orgId}
+        AND user_id = ${user.id}
+    `.catch(() => {});
+  }
 
   // Auto-launch engagement if still draft
   let threadId = engagement.langgraphThreadId as string | null;
@@ -87,12 +138,28 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
   `;
   const runId = agentRun!.id as string;
 
-  // Stream from LangGraph
-  const stream = await langgraphClient.streamRun(
-    threadId,
-    agentId,
-    { content: message, user_id: user.id, org_id: orgId },
-  );
+  // Helper to mark agent run as failed in DB
+  async function markRunFailed(error: string) {
+    await sql`
+      UPDATE agent_runs SET status = 'failed', completed_at = now(),
+             error = ${error.slice(0, 500)},
+             duration_ms = EXTRACT(EPOCH FROM (now() - started_at))::INTEGER * 1000
+      WHERE id = ${runId} AND status = 'running'
+    `.catch((dbErr: Error) => console.error("Failed to mark agent run as failed:", dbErr));
+  }
+
+  // Stream from LangGraph — with error handling
+  let stream: ReadableStream<Uint8Array>;
+  try {
+    stream = await langgraphClient.streamRun(
+      threadId,
+      agentId,
+      { content: message, user_id: user.id, org_id: orgId },
+    );
+  } catch (err: any) {
+    await markRunFailed(err.message || "LangGraph connection failed");
+    return c.json({ error: "Failed to start AI agent", details: err.message }, 502);
+  }
 
   // Create a transform stream that:
   // 1. Parses LangGraph "events" SSE to capture content for DB persistence
@@ -101,23 +168,69 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
   //    - event: tool_call   → {"id","name","args"}       (tool invocation)
   //    - event: tool_result → {"id","result","status"}   (tool output)
   //    - event: thinking    → {"content": "..."}         (reasoning block)
+  //    - event: error       → {"message": "..."}         (error occurred)
   //    - event: done        → {}                         (stream finished)
   let fullResponse = "";
   let toolCalls: unknown[] = [];
   let thinkingContent = "";
   let tokensIn = 0;
   let tokensOut = 0;
+  let streamFailed = false;
 
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
   let sseBuffer = "";
 
+  // Heartbeat and timeout tracking
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
+
   function emitSSE(controller: TransformStreamDefaultController<Uint8Array>, event: string, data: unknown) {
-    controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+    try {
+      controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+    } catch {
+      // Controller may be closed if client disconnected
+    }
+  }
+
+  function emitHeartbeat(controller: TransformStreamDefaultController<Uint8Array>) {
+    try {
+      controller.enqueue(encoder.encode(": heartbeat\n\n"));
+    } catch {
+      // Controller may be closed
+    }
   }
 
   const transform = new TransformStream<Uint8Array, Uint8Array>({
+    start(controller) {
+      // Start heartbeat interval (15s keep-alive)
+      heartbeatTimer = setInterval(() => {
+        emitHeartbeat(controller);
+      }, HEARTBEAT_INTERVAL_MS);
+
+      // Start inactivity timeout (120s)
+      timeoutTimer = setTimeout(() => {
+        streamFailed = true;
+        emitSSE(controller, "error", { message: "Stream timed out — no data from AI agent for 120 seconds" });
+        emitSSE(controller, "done", {});
+        markRunFailed("Stream timeout: no data for 120s");
+        controller.terminate();
+      }, STREAM_TIMEOUT_MS);
+    },
+
     transform(chunk, controller) {
+      // Reset inactivity timeout on every received chunk
+      if (timeoutTimer) {
+        clearTimeout(timeoutTimer);
+        timeoutTimer = setTimeout(() => {
+          streamFailed = true;
+          emitSSE(controller, "error", { message: "Stream timed out — no data from AI agent for 120 seconds" });
+          emitSSE(controller, "done", {});
+          markRunFailed("Stream timeout: no data for 120s");
+          controller.terminate();
+        }, STREAM_TIMEOUT_MS);
+      }
+
       sseBuffer += decoder.decode(chunk, { stream: true });
       const blocks = sseBuffer.split("\n\n");
       sseBuffer = blocks.pop() ?? "";
@@ -234,6 +347,13 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
       }
     },
     async flush(controller) {
+      // Clear timers
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+
+      // If the stream already failed (timeout), don't double-save
+      if (streamFailed) return;
+
       // Process any remaining buffer
       if (sseBuffer.trim()) {
         // Final partial block — just pass through, no parse needed
@@ -273,12 +393,41 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
 
   const transformedStream = stream.pipeThrough(transform);
 
-  return new Response(transformedStream, {
+  // Handle client disconnect: when the readable side is cancelled (client aborts),
+  // clean up timers and mark the run as failed.
+  const wrappedStream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const reader = transformedStream.getReader();
+      (async () => {
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            controller.enqueue(value);
+          }
+          controller.close();
+        } catch {
+          // Stream errored (client disconnect, timeout, etc.)
+          controller.close();
+        }
+      })();
+    },
+    cancel() {
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      if (!streamFailed) {
+        markRunFailed("Client disconnected");
+      }
+    },
+  });
+
+  return new Response(wrappedStream, {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
       "X-Conversation-Id": convId!,
+      "X-Accel-Buffering": "no", // Prevent nginx/Caddy from buffering SSE
     },
   });
 });
@@ -287,13 +436,18 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
 
 chatRoutes.get("/history/:engagementId", async (c) => {
   const orgId = c.get("orgId") as string;
+  const user = c.get("user") as AuthUser;
   const engagementId = c.req.param("engagementId");
 
   const conversations = await withOrg(orgId, (tx) =>
-    tx`SELECT id, title, status, created_at, updated_at
-       FROM chat_conversations
-       WHERE engagement_id = ${engagementId}
-       ORDER BY created_at DESC`,
+    tx`SELECT c.id, c.title, c.status, c.created_at, c.updated_at,
+              (SELECT count(*)::int FROM chat_messages m WHERE m.conversation_id = c.id) as message_count,
+              (SELECT content FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message
+       FROM chat_conversations c
+       WHERE c.engagement_id = ${engagementId}
+         AND c.user_id = ${user.id}
+         AND c.status = 'active'
+       ORDER BY c.updated_at DESC`,
   );
 
   return c.json({ conversations });
@@ -328,6 +482,7 @@ chatRoutes.get("/conversations", async (c) => {
   const conversations = await withOrg(orgId, (tx) =>
     tx`SELECT c.id, c.title, c.status, c.engagement_id, c.created_at, c.updated_at,
               e.name as engagement_name, e.target as engagement_target,
+              (SELECT count(*)::int FROM chat_messages m WHERE m.conversation_id = c.id) as message_count,
               (SELECT content FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message
        FROM chat_conversations c
        LEFT JOIN engagements e ON c.engagement_id = e.id

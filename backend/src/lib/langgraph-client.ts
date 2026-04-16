@@ -79,20 +79,32 @@ export const langgraphClient = {
   /**
    * Stream a run — returns a ReadableStream of SSE events.
    * Used by the chat endpoint to proxy agent responses to the frontend.
+   *
+   * The initial connection has a 30s timeout. Once streaming starts,
+   * the per-chunk timeout is handled by the TransformStream in chat.ts.
    */
   async streamRun(
     threadId: string,
     assistantId: string,
     input: Record<string, unknown>,
   ): Promise<ReadableStream<Uint8Array>> {
-    const res = await request(`/threads/${threadId}/runs/stream`, {
+    const url = `${BASE_URL}/threads/${threadId}/runs/stream`;
+    const res = await fetch(url, {
       method: "POST",
+      headers: HEADERS,
       body: JSON.stringify({
         assistant_id: assistantId,
         input: { messages: [{ role: "human", content: JSON.stringify(input) }] },
         stream_mode: "events",
       }),
+      // 30s timeout for initial connection (not the whole stream)
+      signal: AbortSignal.timeout(30_000),
     });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`LangGraph API error: ${res.status} ${res.statusText} — ${body}`);
+    }
 
     if (!res.body) {
       throw new Error("LangGraph stream returned no body");
