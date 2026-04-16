@@ -562,31 +562,75 @@ chatRoutes.get("/stream/:runId", async (c) => {
     },
   });
 
-  const transformedStream = stream.pipeThrough(transform);
+  // Simple pipe: forward LangGraph SSE bytes directly to client.
+  // The frontend parses values/custom events natively.
+  // We capture the response text for DB persistence by reading chunks in parallel.
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
-  // Handle client disconnect
   const wrappedStream = new ReadableStream<Uint8Array>({
     start(controller) {
-      const reader = transformedStream.getReader();
+      // Heartbeat
+      heartbeatTimer = setInterval(() => {
+        try { controller.enqueue(encoder.encode(": heartbeat\n\n")); } catch {}
+      }, HEARTBEAT_INTERVAL_MS);
+
+      const reader = stream.getReader();
       (async () => {
         try {
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
             controller.enqueue(value);
+
+            // Capture AI response for DB save
+            const text = decoder.decode(value, { stream: true });
+            for (const line of text.split("\n")) {
+              if (line.startsWith("data: ")) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  if (Array.isArray(data?.messages)) {
+                    for (const msg of data.messages) {
+                      if (msg.type === "ai" && typeof msg.content === "string" && msg.content) {
+                        fullResponse = msg.content;
+                      }
+                      if (msg.type === "ai" && msg.response_metadata?.token_usage) {
+                        tokensIn = msg.response_metadata.token_usage.prompt_tokens || 0;
+                        tokensOut = msg.response_metadata.token_usage.completion_tokens || 0;
+                      }
+                    }
+                  }
+                } catch {}
+              }
+            }
           }
+          // Stream done — emit done event + save to DB
+          try {
+            controller.enqueue(encoder.encode(`event: done\ndata: {"tokensIn":${tokensIn},"tokensOut":${tokensOut}}\n\n`));
+          } catch {}
+          if (heartbeatTimer) clearInterval(heartbeatTimer);
+
+          // Save assistant response
+          if (fullResponse) {
+            await sql`INSERT INTO chat_messages (org_id, conversation_id, role, content, tokens_input, tokens_output)
+              VALUES (${orgId}, ${convId}, 'assistant', ${fullResponse}, ${tokensIn || null}, ${tokensOut || null})`.catch(() => {});
+          }
+          await sql`UPDATE agent_runs SET status = 'completed', completed_at = now(),
+            tokens_input = ${tokensIn}, tokens_output = ${tokensOut},
+            output_summary = ${fullResponse.slice(0, 200)}
+            WHERE id = ${runId}`.catch(() => {});
+
           controller.close();
         } catch {
-          try { controller.close(); } catch { /* already closed */ }
+          if (heartbeatTimer) clearInterval(heartbeatTimer);
+          try { controller.close(); } catch {}
         }
       })();
     },
     cancel() {
       if (heartbeatTimer) clearInterval(heartbeatTimer);
-      if (timeoutTimer) clearTimeout(timeoutTimer);
-      if (!streamFailed) {
-        markRunFailed("Client disconnected");
-      }
+      markRunFailed("Client disconnected");
     },
   });
 
