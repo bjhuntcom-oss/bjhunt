@@ -33,7 +33,7 @@ services:
       - bjhunt-mgmt
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:3001/api/health/live || exit 1"]
+      test: ["CMD-SHELL", "bun -e \"fetch('http://localhost:3001/api/health/live').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))\""]
       interval: 10s
       timeout: 5s
       retries: 5
