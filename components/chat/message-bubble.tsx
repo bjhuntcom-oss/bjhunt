@@ -128,7 +128,7 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
       )}>
         {isUser ? "Vous" : (
           <div className="flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: providerColor(message.provider) }} />
+            <div className="w-1.5 h-1.5 " style={{ backgroundColor: providerColor(message.provider) }} />
             <span className="text-[8px] uppercase tracking-[0.2em] text-[var(--text-muted)]">BJHUNT AI</span>
           </div>
         )}
@@ -138,7 +138,7 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
       {message.files && message.files.length > 0 && (
         <div className="flex flex-wrap gap-2 max-w-[70%]">
           {message.files.map((f) => (
-            <div key={f.id} className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border)] text-[10px] text-[var(--text-muted)] rounded-xl">
+            <div key={f.id} className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border)] text-[10px] text-[var(--text-muted)]">
               {f.type.startsWith("image/") && f.url ? (
                 <img src={f.url} alt={f.name} className="max-h-32 max-w-xs object-contain" />
               ) : (
@@ -151,16 +151,16 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
 
       {/* Contenu */}
       <div className={cn(
-        "max-w-[75%] px-4 py-3 text-[13px] leading-relaxed border relative overflow-hidden rounded-2xl",
+        "max-w-[95%] md:max-w-[75%] px-4 py-3 text-[13px] leading-relaxed border relative overflow-hidden",
         isUser
           ? "bg-[var(--bg-card)] border-[var(--border-strong)] text-white"
           : "bg-[var(--bg-input)] border-[var(--border)] text-[#e0e0e0]"
       )}>
         {isThinking ? (
           <div className="flex items-center gap-1 py-1">
-            <span className="w-1.5 h-1.5 bg-[var(--text-muted)] rounded-full animate-bounce [animation-delay:0ms]" />
-            <span className="w-1.5 h-1.5 bg-[var(--text-muted)] rounded-full animate-bounce [animation-delay:150ms]" />
-            <span className="w-1.5 h-1.5 bg-[var(--text-muted)] rounded-full animate-bounce [animation-delay:300ms]" />
+            <span className="w-1.5 h-1.5 bg-[var(--text-muted)]  animate-bounce [animation-delay:0ms]" />
+            <span className="w-1.5 h-1.5 bg-[var(--text-muted)]  animate-bounce [animation-delay:150ms]" />
+            <span className="w-1.5 h-1.5 bg-[var(--text-muted)]  animate-bounce [animation-delay:300ms]" />
           </div>
         ) : editing ? (
           <div>
@@ -206,7 +206,7 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
             {/* Copy */}
             <button
               onClick={() => navigator.clipboard.writeText(message.content)}
-              className="p-1.5 rounded-lg hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-white transition-colors"
+              className="p-1.5 hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-white transition-colors"
               title="Copier le texte"
             >
               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -223,7 +223,7 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
                 utt.lang = "fr-FR";
                 window.speechSynthesis.speak(utt);
               }}
-              className="p-1.5 rounded-lg hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-white transition-colors"
+              className="p-1.5 hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-white transition-colors"
               title="Lire à voix haute"
             >
               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -236,7 +236,7 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
             {onFork && (
               <button
                 onClick={onFork}
-                className="p-1.5 rounded-lg hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-white transition-colors"
+                className="p-1.5 hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-white transition-colors"
                 title="Forker la conversation ici"
               >
                 <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -252,7 +252,7 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
             {onRegenerate && (
               <button
                 onClick={onRegenerate}
-                className="p-1.5 rounded-lg hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-white transition-colors"
+                className="p-1.5 hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-white transition-colors"
                 title="Régénérer cette réponse"
               >
                 <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -272,7 +272,7 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
 
       {/* Sources web */}
       {message.sources && message.sources.length > 0 && (
-        <div className="max-w-[75%] flex flex-wrap gap-2">
+        <div className="max-w-[95%] md:max-w-[75%] flex flex-wrap gap-2">
           {message.sources.map((s, i) => (
             <a
               key={i}

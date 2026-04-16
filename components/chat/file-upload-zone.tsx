@@ -1,8 +1,8 @@
 /// <reference lib="dom" />
 "use client";
 
-import { useRef, useState, useCallback } from "react";
-import { Paperclip, X, FileText } from "lucide-react";
+import { useState, useCallback } from "react";
+import { X, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface PendingFile {
@@ -20,7 +20,6 @@ interface FileUploadZoneProps {
 
 export function FileUploadZone({ files, onAdd, onRemove, children }: FileUploadZoneProps) {
   const [dragging, setDragging] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const processFiles = useCallback((rawFiles: File[]) => {
     const newFiles: PendingFile[] = rawFiles.map((f) => ({
@@ -72,23 +71,6 @@ export function FileUploadZone({ files, onAdd, onRemove, children }: FileUploadZ
       )}
 
       {children}
-
-      <input
-        ref={inputRef}
-        type="file"
-        multiple
-        className="hidden"
-        onChange={(e) => processFiles(Array.from(e.target.files ?? []))}
-        accept=".pdf,.txt,.md,.json,.csv,.png,.jpg,.jpeg,.webp"
-      />
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        className="absolute left-4 bottom-4 text-[var(--text-muted)] hover:text-white transition-colors"
-        title="Joindre un fichier"
-      >
-        <Paperclip className="w-4 h-4" />
-      </button>
     </div>
   );
 }

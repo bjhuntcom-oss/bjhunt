@@ -90,53 +90,154 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
     { content: message, user_id: user.id, org_id: orgId },
   );
 
-  // Create a transform stream that saves the response to DB when complete
+  // Create a transform stream that:
+  // 1. Parses LangGraph "events" SSE to capture content for DB persistence
+  // 2. Re-emits normalized SSE events the frontend understands:
+  //    - event: token       → {"token": "..."}           (progressive text)
+  //    - event: tool_call   → {"id","name","args"}       (tool invocation)
+  //    - event: tool_result → {"id","result","status"}   (tool output)
+  //    - event: thinking    → {"content": "..."}         (reasoning block)
+  //    - event: done        → {}                         (stream finished)
   let fullResponse = "";
   let toolCalls: unknown[] = [];
   let thinkingContent = "";
   let tokensIn = 0;
   let tokensOut = 0;
 
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  let sseBuffer = "";
+
+  function emitSSE(controller: TransformStreamDefaultController<Uint8Array>, event: string, data: unknown) {
+    controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+  }
+
   const transform = new TransformStream<Uint8Array, Uint8Array>({
     transform(chunk, controller) {
-      // Parse SSE events to capture content for DB save
-      const text = new TextDecoder().decode(chunk);
-      for (const line of text.split("\n")) {
-        if (line.startsWith("data: ")) {
-          try {
-            const data = JSON.parse(line.slice(6));
+      sseBuffer += decoder.decode(chunk, { stream: true });
+      const blocks = sseBuffer.split("\n\n");
+      sseBuffer = blocks.pop() ?? "";
 
-            // LangGraph "values" format: data.messages is an array
-            if (Array.isArray(data.messages)) {
-              for (const msg of data.messages) {
-                if (msg.type === "ai" && typeof msg.content === "string" && msg.content) {
-                  fullResponse = msg.content; // Replace (each values event has full state)
-                }
-                if (msg.type === "ai" && msg.tool_calls) {
-                  toolCalls = msg.tool_calls;
-                }
-                if (msg.type === "ai" && msg.response_metadata?.token_usage) {
-                  tokensIn = msg.response_metadata.token_usage.prompt_tokens || 0;
-                  tokensOut = msg.response_metadata.token_usage.completion_tokens || 0;
+      for (const block of blocks) {
+        if (!block.trim()) continue;
+
+        let eventType = "";
+        const dataLines: string[] = [];
+        for (const line of block.split("\n")) {
+          if (line.startsWith("event: ")) eventType = line.slice(7).trim();
+          else if (line.startsWith("data: ")) dataLines.push(line.slice(6));
+          else if (dataLines.length > 0 && line.trim()) dataLines.push(line);
+        }
+
+        const raw = dataLines.join("\n").trim();
+        if (!raw || raw === "[DONE]") continue;
+
+        let parsed: any;
+        try { parsed = JSON.parse(raw); } catch { continue; }
+
+        // LangGraph "events" stream mode emits { event: "on_...", data: {...} }
+        const lgEvent = parsed.event || eventType;
+
+        if (lgEvent === "on_chat_model_stream") {
+          // Token-by-token streaming from the LLM
+          const chunk = parsed.data?.chunk;
+          let token = "";
+          if (chunk) {
+            if (typeof chunk.content === "string") {
+              token = chunk.content;
+            } else if (Array.isArray(chunk.content)) {
+              token = chunk.content
+                .filter((c: any) => c.type === "text")
+                .map((c: any) => c.text)
+                .join("");
+            }
+          }
+          if (token) {
+            fullResponse += token;
+            emitSSE(controller, "token", { token });
+          }
+        } else if (lgEvent === "on_tool_start") {
+          const runInfo = parsed.data;
+          if (runInfo) {
+            const tc = {
+              id: runInfo.run_id || crypto.randomUUID(),
+              name: runInfo.name || "tool",
+              args: runInfo.input || {},
+            };
+            toolCalls.push(tc);
+            emitSSE(controller, "tool_call", { ...tc, status: "running" });
+          }
+        } else if (lgEvent === "on_tool_end") {
+          const runInfo = parsed.data;
+          if (runInfo) {
+            const result = typeof runInfo.output === "string"
+              ? runInfo.output.slice(0, 500)
+              : JSON.stringify(runInfo.output).slice(0, 500);
+            emitSSE(controller, "tool_result", {
+              id: runInfo.run_id || "",
+              result,
+              status: runInfo.error ? "error" : "completed",
+              duration: runInfo.duration,
+            });
+          }
+        } else if (lgEvent === "on_chain_end") {
+          // Final chain output — may contain token usage
+          const output = parsed.data?.output;
+          if (output?.response_metadata?.token_usage) {
+            const usage = output.response_metadata.token_usage;
+            tokensIn = usage.prompt_tokens || usage.input_tokens || 0;
+            tokensOut = usage.completion_tokens || usage.output_tokens || 0;
+          }
+        } else if (lgEvent === "on_chat_model_start") {
+          // Thinking indicator
+          emitSSE(controller, "thinking", { content: "", active: true });
+        }
+        // Forward "values" events too (backward compat if LangGraph falls back)
+        else if (eventType === "values" || lgEvent === "values") {
+          const msgs = parsed.messages || parsed.values?.messages;
+          if (Array.isArray(msgs)) {
+            const aiMsgs = msgs.filter((m: any) => m.type === "ai" || m.role === "assistant");
+            if (aiMsgs.length > 0) {
+              const latest = aiMsgs[aiMsgs.length - 1];
+              let text = "";
+              if (typeof latest.content === "string") text = latest.content;
+              else if (Array.isArray(latest.content)) {
+                text = latest.content.filter((c: any) => c.type === "text").map((c: any) => c.text).join("");
+              }
+              if (text && text.length > fullResponse.length) {
+                const delta = text.slice(fullResponse.length);
+                fullResponse = text;
+                emitSSE(controller, "token", { token: delta });
+              }
+            }
+            for (const ai of msgs.filter((m: any) => m.type === "ai" && m.tool_calls?.length)) {
+              for (const tc of ai.tool_calls) {
+                if (!toolCalls.some((t: any) => t.id === tc.id)) {
+                  toolCalls.push(tc);
+                  emitSSE(controller, "tool_call", { id: tc.id, name: tc.name, args: tc.args || {}, status: "running" });
                 }
               }
             }
-
-            // Delta format: data.content directly
-            if (data.content && !data.messages) fullResponse += data.content;
-            if (data.thinking) thinkingContent = data.thinking;
-            if (data.usage) {
-              tokensIn += data.usage.input_tokens || 0;
-              tokensOut += data.usage.output_tokens || 0;
+            for (const toolMsg of msgs.filter((m: any) => m.type === "tool")) {
+              emitSSE(controller, "tool_result", {
+                id: toolMsg.tool_call_id || "",
+                result: (typeof toolMsg.content === "string" ? toolMsg.content : JSON.stringify(toolMsg.content)).slice(0, 500),
+                status: toolMsg.status === "error" ? "error" : "completed",
+              });
             }
-          } catch {
-            // Non-JSON — ignore
           }
         }
       }
-      controller.enqueue(chunk);
     },
-    async flush() {
+    async flush(controller) {
+      // Process any remaining buffer
+      if (sseBuffer.trim()) {
+        // Final partial block — just pass through, no parse needed
+      }
+
+      // Emit done event
+      emitSSE(controller, "done", {});
+
       // Save assistant response to DB
       if (fullResponse || toolCalls.length > 0) {
         await sql`
@@ -145,7 +246,7 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
                   ${JSON.stringify(toolCalls.length > 0 ? toolCalls : null)},
                   ${thinkingContent || null},
                   ${tokensIn || null}, ${tokensOut || null})
-        `.catch((err) => console.error("Failed to save assistant message:", err));
+        `.catch((err: Error) => console.error("Failed to save assistant message:", err));
       }
 
       // Update agent run as completed
@@ -155,7 +256,7 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
                duration_ms = EXTRACT(EPOCH FROM (now() - started_at))::INTEGER * 1000,
                output_summary = ${fullResponse.slice(0, 200)}
         WHERE id = ${runId}
-      `.catch((err) => console.error("Failed to update agent run:", err));
+      `.catch((err: Error) => console.error("Failed to update agent run:", err));
 
       // Audit log
       await sql`

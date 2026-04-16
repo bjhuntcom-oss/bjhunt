@@ -50,7 +50,9 @@ export default function ChatPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [lastMessage, setLastMessage] = useState<string>("");
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [showSidebar, setShowSidebar] = useState(
+    typeof window !== "undefined" ? window.innerWidth >= 768 : true
+  );
   const [sidebarTab, setSidebarTab] = useState<"engagements" | "opplan" | "graph">("engagements");
   const [webSearch, setWebSearch] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -296,23 +298,16 @@ export default function ChatPage() {
       setThinking((prev) => ({ ...prev, active: false }));
       abortRef.current = null;
 
-      // The stream is done — fetch the final state from DB as source of truth.
-      // This is more reliable than parsing SSE events in React state.
+      // Mark the assistant message as no longer streaming
       const finalContent = lastAiContentRef.current;
       lastAiContentRef.current = "";
 
-      // Apply immediately what we have from the ref
       setMessages((prev) =>
         prev.map((m) => {
           if (m.id !== assistantId) return m;
           return { ...m, content: m.content || finalContent, isStreaming: false };
         })
       );
-
-      // Then reload from DB for guaranteed accuracy (async, non-blocking)
-      if (activeEngagement?.id) {
-        loadHistory(activeEngagement.id);
-      }
     }
   }
 
@@ -330,195 +325,112 @@ export default function ChatPage() {
     const data = dataLines.join("\n").trim();
     if (!data || data === "[DONE]") return;
 
-    try {
-      const parsed = JSON.parse(data);
+    let parsed: any;
+    try { parsed = JSON.parse(data); } catch { return; }
 
-      switch (event) {
-        case "delta":
-        case "message":
-          if (parsed.content) {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantId ? { ...m, content: m.content + parsed.content } : m
-              )
-            );
-            setThinking((prev) => ({ ...prev, active: false }));
-          }
-          break;
-
-        case "values": {
-          // LangGraph "values" stream mode — full state snapshot with all messages
-          const msgs = parsed.messages || parsed.values?.messages;
-          if (Array.isArray(msgs)) {
-            // Find ALL AI messages and concatenate their content (agent may respond multiple times)
-            const aiMessages = msgs.filter((m: any) => m.type === "ai" || m.role === "assistant");
-
-            if (aiMessages.length > 0) {
-              // Get the latest AI message content
-              const latestAi = aiMessages[aiMessages.length - 1];
-              let text = "";
-              if (typeof latestAi.content === "string") {
-                text = latestAi.content;
-              } else if (Array.isArray(latestAi.content)) {
-                text = latestAi.content
-                  .filter((c: any) => c.type === "text")
-                  .map((c: any) => c.text)
-                  .join("");
-              }
-
-              // Only update if we have actual content (not empty string)
-              if (text && text.trim()) {
-                lastAiContentRef.current = text;
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId ? { ...m, content: text } : m
-                  )
-                );
-                setThinking((prev) => ({ ...prev, active: false }));
-              }
-            }
-
-            // Track tool calls from AI messages
-            for (const ai of msgs.filter((m: any) => m.type === "ai")) {
-              if (ai.tool_calls && Array.isArray(ai.tool_calls) && ai.tool_calls.length > 0) {
-                setToolCalls((prev) => {
-                  const next = new Map(prev);
-                  for (const tc of ai.tool_calls) {
-                    next.set(tc.id, {
-                      id: tc.id,
-                      name: tc.name,
-                      args: tc.args || {},
-                      status: "running",
-                    });
-                  }
-                  return next;
-                });
-              }
-            }
-
-            // Track tool results
-            for (const toolMsg of msgs.filter((m: any) => m.type === "tool")) {
-              if (toolMsg.tool_call_id) {
-                setToolCalls((prev) => {
-                  const next = new Map(prev);
-                  const existing = next.get(toolMsg.tool_call_id);
-                  if (existing) {
-                    const content = typeof toolMsg.content === "string"
-                      ? toolMsg.content.slice(0, 500)
-                      : JSON.stringify(toolMsg.content).slice(0, 500);
-                    next.set(toolMsg.tool_call_id, {
-                      ...existing,
-                      result: content,
-                      status: toolMsg.status === "error" ? "error" : "completed",
-                    });
-                  }
-                  return next;
-                });
-              }
-            }
-          }
-          break;
+    switch (event) {
+      // ── Progressive token streaming (from backend transform) ────────
+      case "token":
+        if (parsed.token) {
+          lastAiContentRef.current += parsed.token;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, content: m.content + parsed.token } : m
+            )
+          );
+          setThinking((prev) => prev.active ? { ...prev, active: false } : prev);
         }
+        break;
 
-        case "custom": {
-          // LangGraph custom events (sub-agent lifecycle)
-          const evtType = parsed.type || parsed.event;
-          if (evtType === "subagent_start" || evtType === "subagent_end") {
-            processStreamEvent(
-              `event: ${evtType}\ndata: ${JSON.stringify(parsed.data || parsed)}`,
-              assistantId
-            );
+      // ── Tool lifecycle ──────────────────────────────────────────────
+      case "tool_call":
+        setToolCalls((prev) => {
+          const next = new Map(prev);
+          next.set(parsed.id, {
+            id: parsed.id,
+            name: parsed.name || "tool",
+            args: parsed.args || {},
+            status: "running",
+          });
+          return next;
+        });
+        break;
+
+      case "tool_result":
+        setToolCalls((prev) => {
+          const next = new Map(prev);
+          const existing = next.get(parsed.id);
+          if (existing) {
+            next.set(parsed.id, {
+              ...existing,
+              result: parsed.result || parsed.output,
+              status: parsed.status === "error" ? "error" : "completed",
+              duration: parsed.duration,
+            });
           }
-          break;
-        }
+          return next;
+        });
+        break;
 
-        case "tool_call":
-          setToolCalls((prev) => {
-            const next = new Map(prev);
+      // ── Thinking indicator ──────────────────────────────────────────
+      case "thinking":
+        setThinking({
+          content: parsed.content || "",
+          active: parsed.active !== false,
+        });
+        break;
+
+      // ── Sub-agent lifecycle ─────────────────────────────────────────
+      case "subagent_start":
+        setSubAgents((prev) => {
+          const next = new Map(prev);
+          next.set(parsed.id, {
+            id: parsed.id,
+            name: parsed.name || parsed.agent,
+            description: parsed.description,
+            status: "running",
+            startedAt: new Date().toISOString(),
+            toolCalls: [],
+            messages: [],
+          });
+          return next;
+        });
+        break;
+
+      case "subagent_end":
+        setSubAgents((prev) => {
+          const next = new Map(prev);
+          const existing = next.get(parsed.id);
+          if (existing) {
             next.set(parsed.id, {
-              id: parsed.id,
-              name: parsed.name || parsed.tool,
-              args: parsed.args || {},
-              status: "running",
+              ...existing,
+              status: parsed.error ? "error" : "completed",
+              endedAt: new Date().toISOString(),
             });
-            return next;
-          });
-          break;
+          }
+          return next;
+        });
+        break;
 
-        case "tool_result":
-          setToolCalls((prev) => {
-            const next = new Map(prev);
-            const existing = next.get(parsed.id);
-            if (existing) {
-              next.set(parsed.id, {
-                ...existing,
-                result: parsed.result || parsed.output,
-                status: parsed.error ? "error" : "completed",
-                duration: parsed.duration,
-              });
-            }
-            return next;
-          });
-          break;
+      // ── OPPLAN & Knowledge Graph ────────────────────────────────────
+      case "objective":
+        setObjectives((prev) => {
+          const existing = prev.find((o) => o.id === parsed.id);
+          if (existing) return prev.map((o) => (o.id === parsed.id ? { ...o, ...parsed } : o));
+          return [...prev, parsed];
+        });
+        break;
 
-        case "thinking":
-          setThinking({ content: parsed.content || "", active: true });
-          break;
+      case "graph_update":
+        if (parsed.nodes) setGraphNodes(parsed.nodes);
+        if (parsed.edges) setGraphEdges(parsed.edges);
+        if (parsed.stats) setGraphStats(parsed.stats);
+        break;
 
-        case "subagent_start":
-          setSubAgents((prev) => {
-            const next = new Map(prev);
-            next.set(parsed.id, {
-              id: parsed.id,
-              name: parsed.name || parsed.agent,
-              description: parsed.description,
-              status: "running",
-              startedAt: new Date().toISOString(),
-              toolCalls: [],
-              messages: [],
-            });
-            return next;
-          });
-          break;
-
-        case "subagent_end":
-          setSubAgents((prev) => {
-            const next = new Map(prev);
-            const existing = next.get(parsed.id);
-            if (existing) {
-              next.set(parsed.id, {
-                ...existing,
-                status: parsed.error ? "error" : "completed",
-                endedAt: new Date().toISOString(),
-              });
-            }
-            return next;
-          });
-          break;
-
-        case "objective":
-          setObjectives((prev) => {
-            const existing = prev.find((o) => o.id === parsed.id);
-            if (existing) {
-              return prev.map((o) => (o.id === parsed.id ? { ...o, ...parsed } : o));
-            }
-            return [...prev, parsed];
-          });
-          break;
-
-        case "graph_update":
-          if (parsed.nodes) setGraphNodes(parsed.nodes);
-          if (parsed.edges) setGraphEdges(parsed.edges);
-          if (parsed.stats) setGraphStats(parsed.stats);
-          break;
-      }
-    } catch {
-      // Non-JSON data — only append if it looks like readable text, not raw JSON
-      if (data && !data.startsWith("{") && !data.startsWith("[")) {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + data } : m))
-        );
-      }
+      // ── Stream done ─────────────────────────────────────────────────
+      case "done":
+        // Backend signals stream complete — nothing to do, finally block handles cleanup
+        break;
     }
   }
 
@@ -535,8 +447,21 @@ export default function ChatPage() {
   return (
     <div className="flex h-[calc(100vh-48px)] overflow-hidden">
       {/* ── Sidebar ─────────────────────────────────────────────────── */}
+      {/* Mobile: overlay with backdrop. Desktop: push layout. */}
       {showSidebar && (
-        <div className="w-[280px] border-r border-[var(--border)] flex flex-col bg-[var(--bg)]">
+        <>
+          {/* Mobile backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 z-40 md:hidden"
+            onClick={() => setShowSidebar(false)}
+          />
+        </>
+      )}
+      {showSidebar && (
+        <div className={`
+          fixed inset-y-0 left-0 z-50 w-[280px] border-r border-[var(--border)] flex flex-col bg-[var(--bg)]
+          md:relative md:inset-auto md:z-auto
+        `}>
           {/* Sidebar tabs */}
           <div className="flex border-b border-[var(--border)]">
             {(["engagements", "opplan", "graph"] as const).map((tab) => (

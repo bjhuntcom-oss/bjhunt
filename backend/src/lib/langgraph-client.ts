@@ -90,7 +90,7 @@ export const langgraphClient = {
       body: JSON.stringify({
         assistant_id: assistantId,
         input: { messages: [{ role: "human", content: JSON.stringify(input) }] },
-        stream_mode: "values",
+        stream_mode: "events",
       }),
     });
 
