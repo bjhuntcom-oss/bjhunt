@@ -153,9 +153,7 @@ Decepticon/
 - `app/actions/auth.ts` — server actions pour login/register/logout
 - `middleware.ts` — CSP `strict-dynamic` nonce-based (pas de `unsafe-eval`)
 - `lib/backend-client.ts` — `getBackendBaseUrl()` retourne `process.env.BJHUNT_BACKEND_URL` ou `https://api.bjhunt.com`
-- `lib/chat/use-chat-api.ts` — hook React pour le chat AI avec SSE streaming
 - `components/dashboard/dashboard-shell.tsx` — shell du dashboard, reference `NEXT_PUBLIC_BACKEND_URL`
-- Les pages dashboard admin referencent des endpoints backend (`/api/admin/*`, `/api/chat/*`, `/api/scans/*`) qui n'existent plus
 
 ---
 

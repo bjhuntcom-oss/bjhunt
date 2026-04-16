@@ -42,20 +42,7 @@ export function setConsent(consent: CookieConsent): void {
   })
 }
 
-export function hasConsent(): boolean {
-  return getConsent() !== null
-}
-
 export function hasAnalyticsConsent(): boolean {
   const consent = getConsent()
   return consent?.analytics ?? false
-}
-
-export function hasMarketingConsent(): boolean {
-  const consent = getConsent()
-  return consent?.marketing ?? false
-}
-
-export function revokeConsent(): void {
-  Cookies.remove(CONSENT_COOKIE_NAME)
 }

@@ -18,14 +18,14 @@ const htmlEntities: Record<string, string> = {
 /**
  * Escape HTML special characters to prevent XSS
  */
-export function escapeHtml(str: string): string {
+function escapeHtml(str: string): string {
   return str.replace(/[&<>"'`=/]/g, (char) => htmlEntities[char] || char)
 }
 
 /**
  * Remove potentially dangerous patterns from input
  */
-export function sanitizeInput(input: string): string {
+function sanitizeInput(input: string): string {
   if (!input || typeof input !== 'string') return ''
   
   return input
@@ -50,7 +50,7 @@ export function sanitizeInput(input: string): string {
 /**
  * Sanitize email (lowercase, trim, validate format)
  */
-export function sanitizeEmail(email: string): string {
+function sanitizeEmail(email: string): string {
   if (!email || typeof email !== 'string') return ''
   return email.toLowerCase().trim().slice(0, 254) // RFC 5321 max length
 }
@@ -58,7 +58,7 @@ export function sanitizeEmail(email: string): string {
 /**
  * Sanitize for SQL-like patterns (defense in depth, Supabase already uses prepared statements)
  */
-export function sanitizeSqlPatterns(input: string): string {
+function sanitizeSqlPatterns(input: string): string {
   if (!input || typeof input !== 'string') return ''
   
   return input
@@ -76,7 +76,7 @@ export function sanitizeSqlPatterns(input: string): string {
 /**
  * Full sanitization pipeline for user inputs
  */
-export function sanitize(input: string): string {
+function sanitize(input: string): string {
   return sanitizeSqlPatterns(sanitizeInput(input))
 }
 

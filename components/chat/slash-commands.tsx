@@ -86,7 +86,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     action: (ctx) => {
       ctx.sendMessage(
         "/agents\n\nAgents BJHUNT disponibles :\n" +
-          "1. Decepticon — Orchestrateur principal\n" +
+          "1. BJHUNT — Orchestrateur principal\n" +
           "2. Soundwave — Planification d'engagement\n" +
           "3. Recon — OSINT et enumeration\n" +
           "4. Exploit — Exploitation de vulnerabilites\n" +
