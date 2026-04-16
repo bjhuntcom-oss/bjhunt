@@ -556,19 +556,17 @@ export default function ChatPage() {
       }
 
       // SSE stream goes DIRECTLY to the backend (bypasses Vercel proxy 10s timeout).
-      // CORS is handled by Caddy + backend headers.
-      // Auth via Authorization header (cookies are SameSite=Lax, won't cross-origin).
+      // Auth token is sent in the request body to avoid CORS preflight (Authorization header triggers it).
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.bjhunt.com";
       const streamCookie = document.cookie
         .split(";").map(c => c.trim())
         .find(c => c.startsWith("bjhunt_stream_token="));
       const sessionToken = streamCookie?.split("=")[1] || "";
 
-      const res = await fetch(`${backendUrl}/api/chat/stream`, {
+      const res = await fetch(`${backendUrl}/api/chat/stream?token=${encodeURIComponent(sessionToken)}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(sessionToken ? { "Authorization": `Bearer session:${sessionToken}` } : {}),
         },
         body: JSON.stringify(requestBody),
         signal: abortRef.current.signal,
