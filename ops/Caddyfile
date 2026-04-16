@@ -1,32 +1,14 @@
 api.bjhunt.com {
-    # CORS headers for cross-origin SSE from www.bjhunt.com
-    @cors_preflight method OPTIONS
-    handle @cors_preflight {
-        header Access-Control-Allow-Origin "https://www.bjhunt.com"
-        header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-        header Access-Control-Allow-Headers "Content-Type, Authorization, X-Conversation-Id"
-        header Access-Control-Allow-Credentials "true"
-        header Access-Control-Expose-Headers "X-Conversation-Id"
-        header Access-Control-Max-Age "86400"
-        respond 204
-    }
-
+    # CORS is handled entirely by the Hono backend (cors middleware).
+    # Caddy only adds security headers and proxies without buffering.
     header {
-        Access-Control-Allow-Origin "https://www.bjhunt.com"
-        Access-Control-Allow-Credentials "true"
-        Access-Control-Expose-Headers "X-Conversation-Id"
         Strict-Transport-Security "max-age=31536000; includeSubDomains"
-        X-Content-Type-Options "nosniff"
-        X-Frame-Options "DENY"
-        Referrer-Policy "strict-origin-when-cross-origin"
         -Server
     }
 
     reverse_proxy backend:3001 {
-        # Disable response buffering so SSE events are flushed immediately
         flush_interval -1
     }
-    encode gzip
 }
 
 :80 {
