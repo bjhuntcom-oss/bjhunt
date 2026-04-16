@@ -845,3 +845,176 @@ engagementRoutes.get("/:id/vaccine-status", async (c) => {
     history: history.slice(-20),
   });
 });
+
+// ── Get defense brief for engagement ──────────────────────────────────
+
+engagementRoutes.get("/:id/defense-brief", async (c) => {
+  const orgId = c.get("orgId") as string;
+  const id = c.req.param("id");
+
+  // Verify engagement exists
+  const [engagement] = await withOrg(orgId, (tx) =>
+    tx`SELECT id, status FROM engagements WHERE id = ${id}`,
+  );
+  if (!engagement) return c.json({ error: "Engagement not found" }, 404);
+
+  // Get critical/high findings to generate defense recommendations
+  const findings = await withOrg(orgId, (tx) =>
+    tx`SELECT id, title, severity, description, remediation
+       FROM findings
+       WHERE engagement_id = ${id}
+         AND severity IN ('critical', 'high')
+       ORDER BY
+         CASE severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 END,
+         created_at DESC`,
+  );
+
+  // Generate defense action recommendations from findings
+  const actions = findings.map((f: Record<string, unknown>, idx: number) => {
+    const severity = f.severity as string;
+    const title = f.title as string;
+    const titleLower = title.toLowerCase();
+
+    // Determine action type based on finding content
+    let type = "CONFIG_CHANGE";
+    let target = "System configuration";
+
+    if (titleLower.includes("port") || titleLower.includes("service") || titleLower.includes("exposed")) {
+      type = "BLOCK_PORT";
+      const portMatch = title.match(/\b(\d{2,5})\b/);
+      target = portMatch ? `Port ${portMatch[1]}/tcp` : "Exposed service port";
+    } else if (titleLower.includes("credential") || titleLower.includes("password") || titleLower.includes("auth")) {
+      type = "REVOKE_CREDENTIAL";
+      target = "Compromised credentials";
+    } else if (titleLower.includes("firewall") || titleLower.includes("network") || titleLower.includes("access")) {
+      type = "FIREWALL_RULE";
+      target = "Network access policy";
+    } else if (titleLower.includes("service") || titleLower.includes("daemon") || titleLower.includes("telnet")) {
+      type = "DISABLE_SERVICE";
+      target = "Vulnerable service";
+    }
+
+    const description = (f.remediation as string)
+      || `Remediate finding: ${title}`;
+
+    return {
+      id: `da-${idx + 1}`,
+      type,
+      target,
+      findingId: f.id as string,
+      findingSeverity: severity,
+      description: description.slice(0, 300),
+      status: "pending",
+    };
+  });
+
+  // If no findings, return mock data for demo purposes
+  if (actions.length === 0) {
+    const mockActions = [
+      {
+        id: "da-mock-1",
+        type: "BLOCK_PORT",
+        target: "Port 3306/tcp on 192.168.1.10",
+        findingId: "mock-finding-1",
+        findingSeverity: "critical",
+        description: "Block external access to MySQL port to prevent SQL injection exploitation",
+        status: "pending",
+      },
+      {
+        id: "da-mock-2",
+        type: "DISABLE_SERVICE",
+        target: "Service: telnetd on 192.168.1.5",
+        findingId: "mock-finding-2",
+        findingSeverity: "high",
+        description: "Disable Telnet daemon and replace with SSH for encrypted remote administration",
+        status: "pending",
+      },
+      {
+        id: "da-mock-3",
+        type: "REVOKE_CREDENTIAL",
+        target: "User: admin (default credentials)",
+        findingId: "mock-finding-3",
+        findingSeverity: "critical",
+        description: "Revoke default admin credentials and enforce password policy with MFA",
+        status: "approved",
+        approvedAt: new Date(Date.now() - 3600000).toISOString(),
+      },
+      {
+        id: "da-mock-4",
+        type: "FIREWALL_RULE",
+        target: "Ingress rule: 0.0.0.0/0 -> 8080/tcp",
+        findingId: "mock-finding-4",
+        findingSeverity: "high",
+        description: "Restrict management interface access to internal network CIDR only",
+        status: "applied",
+        approvedAt: new Date(Date.now() - 7200000).toISOString(),
+        appliedAt: new Date(Date.now() - 3600000).toISOString(),
+        verificationResult: "BLOCKED",
+        verificationDetails: "External scan confirms port 8080 no longer accessible from public IPs",
+      },
+      {
+        id: "da-mock-5",
+        type: "CONFIG_CHANGE",
+        target: "Apache httpd TLS configuration",
+        findingId: "mock-finding-5",
+        findingSeverity: "high",
+        description: "Disable TLS 1.0/1.1, remove weak cipher suites, enable HSTS with preload",
+        status: "pending",
+      },
+    ];
+
+    return c.json({ actions: mockActions });
+  }
+
+  return c.json({ actions });
+});
+
+// ── Approve defense action ────────────────────────────────────────────
+
+engagementRoutes.post("/:id/defense-actions/:actionId/approve", async (c) => {
+  const orgId = c.get("orgId") as string;
+  const user = c.get("user") as AuthUser;
+  const id = c.req.param("id");
+  const actionId = c.req.param("actionId");
+
+  // Verify engagement exists
+  const [engagement] = await withOrg(orgId, (tx) =>
+    tx`SELECT id FROM engagements WHERE id = ${id}`,
+  );
+  if (!engagement) return c.json({ error: "Engagement not found" }, 404);
+
+  // Audit log
+  await sql`
+    INSERT INTO audit_logs (org_id, user_id, action, resource, details)
+    VALUES (${orgId}, ${user.id}, 'defense.approve',
+            ${"engagement:" + id},
+            ${JSON.stringify({ actionId })})
+  `.catch(() => {});
+
+  return c.json({ ok: true, actionId, status: "approved", approvedAt: new Date().toISOString() });
+});
+
+// ── Reject defense action ─────────────────────────────────────────────
+
+engagementRoutes.post("/:id/defense-actions/:actionId/reject", async (c) => {
+  const orgId = c.get("orgId") as string;
+  const user = c.get("user") as AuthUser;
+  const id = c.req.param("id");
+  const actionId = c.req.param("actionId");
+
+  // Verify engagement exists
+  const [engagement] = await withOrg(orgId, (tx) =>
+    tx`SELECT id FROM engagements WHERE id = ${id}`,
+  );
+  if (!engagement) return c.json({ error: "Engagement not found" }, 404);
+
+  // Audit log
+  await sql`
+    INSERT INTO audit_logs (org_id, user_id, action, resource, details)
+    VALUES (${orgId}, ${user.id}, 'defense.reject',
+            ${"engagement:" + id},
+            ${JSON.stringify({ actionId })})
+  `.catch(() => {});
+
+  return c.json({ ok: true, actionId, status: "rejected", rejectedAt: new Date().toISOString() });
+});

@@ -5,6 +5,7 @@ import { serverBackendFetch } from '@/lib/backend-client'
 import { ChevronLeft } from 'lucide-react'
 import { ReportExportBar } from '@/components/dashboard/report-export-bar'
 import { VaccineMonitor } from '@/components/dashboard/vaccine-monitor'
+import { DefenseBriefPanel } from '@/components/dashboard/defense-brief-panel'
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'var(--text-muted)',
@@ -113,6 +114,13 @@ export default async function AuditRunDetailPage({
       {(run.status === 'running' || results.length > 0) && (
         <div className="mb-6">
           <VaccineMonitor engagementId={id} />
+        </div>
+      )}
+
+      {/* Defense brief — shown when engagement has findings */}
+      {results.length > 0 && (
+        <div className="mb-6">
+          <DefenseBriefPanel engagementId={id} />
         </div>
       )}
 

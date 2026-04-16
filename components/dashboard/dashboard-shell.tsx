@@ -21,6 +21,9 @@ import {
   AlertTriangle,
   ShieldAlert,
   BookOpen,
+  Cloud,
+  Database,
+  Terminal,
 } from "lucide-react";
 
 const COLLAPSE_KEY = "bjhunt:sidebar-collapsed";
@@ -42,7 +45,13 @@ const getUserNav = (locale: string) => [
   { href: "/dashboard/findings",     label: "Findings",                                         icon: AlertTriangle },
   { href: "/dashboard/cve",          label: "CVE Intel",                                        icon: ShieldAlert   },
   { href: "/dashboard/skills",       label: "Skills",                                           icon: BookOpen      },
+  { href: "/dashboard/tools",        label: "Tools",                                            icon: Terminal      },
   { href: "/dashboard/settings",      label: locale === "fr" ? "Paramètres" : "Settings",        icon: Settings      },
+];
+
+const getWorkflowNav = () => [
+  { href: "/dashboard/cloud", label: "Cloud",  icon: Cloud    },
+  { href: "/dashboard/ad",    label: "AD",     icon: Database },
 ];
 
 const getAdminNav = (locale: string) => [
@@ -61,6 +70,7 @@ export function DashboardShell({ user, locale, children }: DashboardShellProps) 
   const [isPending, startTransition] = useTransition();
   const isAdmin = user.role === "platform_admin";
   const userNav = getUserNav(locale);
+  const workflowNav = getWorkflowNav();
   const adminNav = getAdminNav(locale);
 
   useEffect(() => {
@@ -111,6 +121,35 @@ export function DashboardShell({ user, locale, children }: DashboardShellProps) 
             }`;
             return (
               <Link key={href} href={`/${locale}${href}`} title={collapsed ? label : undefined} className={navClass}>
+                {active && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-white" />}
+                <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                {!collapsed && <span className="truncate">{label}</span>}
+              </Link>
+            );
+          })}
+
+          {/* Workflows section */}
+          {!collapsed && (
+            <div className="px-2.5 pt-4 pb-1 border-t border-[var(--border)] mt-2">
+              <span className="text-[8px] font-mono text-[var(--text-subtle)] uppercase tracking-[0.2em]">
+                Workflows
+              </span>
+            </div>
+          )}
+          {collapsed && <div className="my-2 mx-2 border-t border-[var(--border)]" />}
+          {workflowNav.map(({ href, label, icon: Icon }) => {
+            const active = isActive(href);
+            return (
+              <Link
+                key={href}
+                href={`/${locale}${href}`}
+                title={collapsed ? label : undefined}
+                className={`relative flex items-center gap-3 px-2.5 py-2 text-[11px] font-mono uppercase tracking-[0.08em] transition-colors ${
+                  active
+                    ? "text-white bg-[var(--bg-card)]"
+                    : "text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-card)]/50"
+                }`}
+              >
                 {active && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-white" />}
                 <Icon className="w-3.5 h-3.5 flex-shrink-0" />
                 {!collapsed && <span className="truncate">{label}</span>}

@@ -34,6 +34,7 @@ import { findingsRoutes } from "./routes/findings.js";
 import { reportRoutes } from "./routes/reports.js";
 import { cveRoutes } from "./routes/cve.js";
 import { skillRoutes } from "./routes/skills.js";
+import { toolRoutes } from "./routes/tools.js";
 
 const app = new Hono<{ Variables: AppVariables }>();
 
@@ -66,6 +67,7 @@ app.route("/api/billing", billingRoutes);
 app.route("/api/reports", reportRoutes);
 app.route("/api/cve", cveRoutes);
 app.route("/api/skills", skillRoutes);
+app.route("/api/tools", toolRoutes);
 
 // Public API v1 (API key auth)
 app.route("/api/v1", publicApiRoutes);
