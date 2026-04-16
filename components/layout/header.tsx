@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/button";
 import { browserBackendFetch } from "@/lib/backend-client";
 
 const NAV_LINKS = [
-  { href: "/",          labelKey: "home" },
-  { href: "/pricing",   labelKey: "pricing" },
-  { href: "/api-docs",  labelKey: "api" },
-  { href: "/investors", labelKey: "investors" },
-  { href: "/contact",   labelKey: "contact" },
+  { href: "/",            labelKey: "home" },
+  { href: "/technology",  labelKey: "technology" },
+  { href: "/pricing",     labelKey: "pricing" },
+  { href: "/api-docs",    labelKey: "api" },
+  { href: "/investors",   labelKey: "investors" },
+  { href: "/contact",     labelKey: "contact" },
 ] as const;
 
 export function Header() {

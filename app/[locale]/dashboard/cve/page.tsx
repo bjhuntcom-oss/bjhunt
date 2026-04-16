@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { browserBackendFetch } from "@/lib/backend-client";
+import { PlanGate } from "@/components/dashboard/plan-gate";
+import { usePlan } from "@/lib/use-plan";
 import {
   Search,
   Shield,
@@ -46,6 +48,7 @@ const SEVERITY_BG: Record<string, string> = {
 // ── Component ───────────────────────────────────────────────────────────
 
 export default function CveIntelligencePage() {
+  const { plan } = usePlan();
   const [searchInput, setSearchInput] = useState("");
   const [searchMode, setSearchMode] = useState<"cve" | "package">("cve");
   const [results, setResults] = useState<CveResult[]>([]);
@@ -350,6 +353,7 @@ export default function CveIntelligencePage() {
   // ── Render ──────────────────────────────────────────────────────────
 
   return (
+    <PlanGate requiredPlan="pro" currentPlan={plan} featureName="CVE Intelligence">
     <div className="p-6 md:p-8 max-w-6xl">
       {/* Header */}
       <div className="mb-6">
@@ -537,5 +541,6 @@ export default function CveIntelligencePage() {
         </div>
       )}
     </div>
+    </PlanGate>
   );
 }

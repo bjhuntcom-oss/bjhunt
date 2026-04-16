@@ -24,9 +24,18 @@ import {
   Cloud,
   Database,
   Terminal,
+  HelpCircle,
 } from "lucide-react";
+import { PlanBadge } from "@/components/dashboard/plan-badge";
 
 const COLLAPSE_KEY = "bjhunt:sidebar-collapsed";
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: "pro" | "enterprise";
+}
 
 interface DashboardShellProps {
   user: {
@@ -38,20 +47,21 @@ interface DashboardShellProps {
   children: React.ReactNode;
 }
 
-const getUserNav = (locale: string) => [
+const getUserNav = (locale: string): NavItem[] => [
   { href: "/dashboard/chat",          label: "Chat AI",                                          icon: MessageSquare },
   { href: "/dashboard",               label: locale === "fr" ? "Aperçu" : "Overview",            icon: BarChart2     },
-  { href: "/dashboard/audits",        label: "Audits",                                           icon: ShieldCheck   },
+  { href: "/dashboard/audits",        label: "Scans",                                            icon: ShieldCheck   },
   { href: "/dashboard/findings",     label: "Findings",                                         icon: AlertTriangle },
-  { href: "/dashboard/cve",          label: "CVE Intel",                                        icon: ShieldAlert   },
-  { href: "/dashboard/skills",       label: "Skills",                                           icon: BookOpen      },
-  { href: "/dashboard/tools",        label: "Tools",                                            icon: Terminal      },
+  { href: "/dashboard/cve",          label: "CVE Intel",                                        icon: ShieldAlert,  badge: "pro"        },
+  { href: "/dashboard/skills",       label: "Skills",                                           icon: BookOpen,     badge: "pro"        },
+  { href: "/dashboard/tools",        label: "Tools",                                            icon: Terminal,     badge: "enterprise" },
+  { href: "/dashboard/guide",        label: "Guide",                                            icon: HelpCircle    },
   { href: "/dashboard/settings",      label: locale === "fr" ? "Paramètres" : "Settings",        icon: Settings      },
 ];
 
-const getWorkflowNav = () => [
-  { href: "/dashboard/cloud", label: "Cloud",  icon: Cloud    },
-  { href: "/dashboard/ad",    label: "AD",     icon: Database },
+const getWorkflowNav = (): NavItem[] => [
+  { href: "/dashboard/cloud", label: "Cloud",  icon: Cloud,    badge: "enterprise" },
+  { href: "/dashboard/ad",    label: "AD",     icon: Database, badge: "enterprise" },
 ];
 
 const getAdminNav = (locale: string) => [
@@ -112,7 +122,7 @@ export function DashboardShell({ user, locale, children }: DashboardShellProps) 
 
         {/* Nav */}
         <nav className="flex flex-col flex-1 overflow-y-auto py-3 px-2 gap-0.5">
-          {userNav.map(({ href, label, icon: Icon }) => {
+          {userNav.map(({ href, label, icon: Icon, badge }) => {
             const active = isActive(href);
             const navClass = `relative flex items-center gap-3 px-2.5 py-2 text-[11px] font-mono uppercase tracking-[0.08em] transition-colors ${
               active
@@ -123,7 +133,12 @@ export function DashboardShell({ user, locale, children }: DashboardShellProps) 
               <Link key={href} href={`/${locale}${href}`} title={collapsed ? label : undefined} className={navClass}>
                 {active && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-white" />}
                 <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-                {!collapsed && <span className="truncate">{label}</span>}
+                {!collapsed && (
+                  <>
+                    <span className="truncate">{label}</span>
+                    {badge && <PlanBadge requiredPlan={badge} />}
+                  </>
+                )}
               </Link>
             );
           })}
@@ -137,7 +152,7 @@ export function DashboardShell({ user, locale, children }: DashboardShellProps) 
             </div>
           )}
           {collapsed && <div className="my-2 mx-2 border-t border-[var(--border)]" />}
-          {workflowNav.map(({ href, label, icon: Icon }) => {
+          {workflowNav.map(({ href, label, icon: Icon, badge }) => {
             const active = isActive(href);
             return (
               <Link
@@ -152,7 +167,12 @@ export function DashboardShell({ user, locale, children }: DashboardShellProps) 
               >
                 {active && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-white" />}
                 <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-                {!collapsed && <span className="truncate">{label}</span>}
+                {!collapsed && (
+                  <>
+                    <span className="truncate">{label}</span>
+                    {badge && <PlanBadge requiredPlan={badge} />}
+                  </>
+                )}
               </Link>
             );
           })}

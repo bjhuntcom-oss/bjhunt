@@ -412,3 +412,173 @@ body {
 .chat-prose th,
 .chat-prose td { border: 1px solid var(--border); padding: 0.375em 0.75em; text-align: left; }
 .chat-prose th  { background: var(--bg-card); font-weight: 600; }
+
+/* ── TECHNOLOGY PAGE ANIMATIONS ───────────────────────── */
+
+/* Hero neural network — edge draw-in */
+@keyframes tech-edge-in {
+  0%   { opacity: 0; stroke-dashoffset: 200; }
+  50%  { opacity: 0.3; }
+  100% { opacity: 0.15; stroke-dashoffset: 0; }
+}
+.tech-edge {
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: tech-edge-in 2s ease-out forwards;
+}
+
+/* Hero neural network — node fade-in */
+@keyframes tech-node-in {
+  0%   { opacity: 0; transform: scale(0.5); }
+  100% { opacity: 0.6; transform: scale(1); }
+}
+.tech-node {
+  animation: tech-node-in 0.8s ease-out forwards;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+/* Hero neural network — node ring expand */
+@keyframes tech-ring-in {
+  0%   { opacity: 0; transform: scale(0.3); }
+  60%  { opacity: 0.2; }
+  100% { opacity: 0.1; transform: scale(1); }
+}
+.tech-node-ring {
+  animation: tech-ring-in 1.2s ease-out forwards;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+/* Orchestration — connection lines pulse */
+@keyframes tech-orch-pulse {
+  0%   { opacity: 0; stroke-dashoffset: 300; }
+  50%  { opacity: 0.6; }
+  100% { opacity: 0.3; stroke-dashoffset: 0; }
+}
+.tech-orch-line {
+  stroke-dasharray: 300;
+  stroke-dashoffset: 300;
+  animation: tech-orch-pulse 1.5s ease-out forwards;
+}
+
+/* Hub center pulse */
+@keyframes tech-hub-glow {
+  0%, 100% { stroke-opacity: 1; }
+  50%      { stroke-opacity: 0.4; }
+}
+.tech-hub-pulse {
+  animation: tech-hub-glow 3s ease-in-out infinite;
+}
+
+/* Agent nodes — sequential glow */
+@keyframes tech-agent-appear {
+  0%   { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+.tech-agent-node {
+  opacity: 0;
+  animation: tech-agent-appear 0.6s ease-out forwards;
+}
+
+/* Agent ring glow — sequential highlight */
+@keyframes tech-agent-highlight {
+  0%, 100% { opacity: 0; stroke-width: 1; }
+  20%, 40% { opacity: 0.8; stroke-width: 2; }
+}
+.tech-agent-glow {
+  animation: tech-agent-highlight 3s ease-in-out infinite;
+}
+
+/* Vaccine loop — trace path */
+@keyframes tech-loop-draw {
+  0%   { stroke-dashoffset: 1200; }
+  100% { stroke-dashoffset: 0; }
+}
+.tech-loop-trace {
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+  animation: tech-loop-draw 4s ease-in-out infinite;
+}
+
+/* Phase glow — sequential */
+@keyframes tech-phase-pulse {
+  0%, 100% { opacity: 0; }
+  25%, 50% { opacity: 0.8; }
+}
+.tech-phase-glow {
+  animation: tech-phase-pulse 4s ease-in-out infinite;
+}
+
+/* Directional arrow fade */
+@keyframes tech-arrow-in {
+  0%, 100% { opacity: 0.2; }
+  30%, 60% { opacity: 0.8; }
+}
+.tech-arrow-fade {
+  animation: tech-arrow-in 4s ease-in-out infinite;
+}
+
+/* Knowledge graph — node fade in */
+@keyframes tech-kg-appear {
+  0%   { opacity: 0; transform: scale(0.5); }
+  100% { opacity: 0.8; transform: scale(1); }
+}
+.tech-kg-node {
+  animation: tech-kg-appear 0.6s ease-out forwards;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+/* Knowledge graph — edge draw */
+@keyframes tech-kg-draw {
+  0%   { stroke-dashoffset: 500; opacity: 0; }
+  100% { stroke-dashoffset: 0; opacity: 0.4; }
+}
+.tech-kg-edge {
+  stroke-dasharray: 500;
+  stroke-dashoffset: 500;
+  animation: tech-kg-draw 1s ease-out forwards;
+}
+
+/* Sandbox — pulsing dashed border */
+@keyframes tech-sandbox-pulse {
+  0%, 100% { stroke-opacity: 0.4; stroke-dashoffset: 0; }
+  50%      { stroke-opacity: 0.8; stroke-dashoffset: 24; }
+}
+.tech-sandbox-border {
+  animation: tech-sandbox-pulse 3s ease-in-out infinite;
+}
+
+/* Shield path draw */
+@keyframes tech-shield-trace {
+  0%   { stroke-dashoffset: 200; opacity: 0; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+.tech-shield-draw {
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: tech-shield-trace 1.5s ease-out 0.5s forwards;
+}
+
+/* Shield checkmark */
+@keyframes tech-check-draw {
+  0%   { stroke-dashoffset: 40; opacity: 0; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+.tech-shield-check {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: tech-check-draw 0.6s ease-out 1.8s forwards;
+}
+
+/* IO arrows — slide in */
+@keyframes tech-io-slide {
+  0%   { opacity: 0; stroke-dashoffset: 100; }
+  100% { opacity: 0.8; stroke-dashoffset: 0; }
+}
+.tech-io-arrow {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: tech-io-slide 0.8s ease-out forwards;
+}

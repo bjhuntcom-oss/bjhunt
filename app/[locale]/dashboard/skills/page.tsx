@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { browserBackendFetch } from "@/lib/backend-client";
+import { PlanGate } from "@/components/dashboard/plan-gate";
+import { usePlan } from "@/lib/use-plan";
 import {
   Search,
   BookOpen,
@@ -148,6 +150,7 @@ const CATEGORY_TREE: { key: string; label: string; children?: { key: string; lab
 // ── Component ───────────────────────────────────────────────────────────
 
 export default function SkillCatalogPage() {
+  const { plan } = usePlan();
   const [skills, setSkills] = useState<SkillMeta[]>([]);
   const [grouped, setGrouped] = useState<Record<string, SkillMeta[]>>({});
   const [loading, setLoading] = useState(true);
@@ -239,6 +242,7 @@ export default function SkillCatalogPage() {
   // ── Render ──────────────────────────────────────────────────────────
 
   return (
+    <PlanGate requiredPlan="pro" currentPlan={plan} featureName="Skill Catalog">
     <div className="p-6 md:p-8 max-w-7xl">
       {/* Header */}
       <div className="mb-6">
@@ -632,5 +636,6 @@ export default function SkillCatalogPage() {
         </div>
       </div>
     </div>
+    </PlanGate>
   );
 }

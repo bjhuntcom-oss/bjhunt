@@ -20,12 +20,25 @@ export interface PlanLimits {
   canCreateEngagements: boolean;
   price: number;
   priceDisplay: string;
+  // Feature flags
+  cveIntel: boolean;
+  skillCatalog: boolean;
+  knowledgeGraph: boolean;
+  toolPlayground: boolean;
+  cloudWizard: boolean;
+  adBuilder: boolean;
+  hackeroneReport: boolean;
+  executiveSummary: boolean;
+  opplanTracker: boolean;
+  vaccineLoop: boolean;
+  exportMarkdown: boolean;
+  exportCsv: boolean;
 }
 
 export const PLAN_LIMITS: Record<string, PlanLimits> = {
   free: {
     scansPerMonth: 0,
-    agents: [],
+    agents: ["bjhunt", "recon", "analyst"],
     chatUnlimited: false,
     findingsExport: false,
     emailNotifications: false,
@@ -37,6 +50,19 @@ export const PLAN_LIMITS: Record<string, PlanLimits> = {
     canCreateEngagements: false,
     price: 0,
     priceDisplay: "Gratuit",
+    // Feature flags
+    cveIntel: false,
+    skillCatalog: false,
+    knowledgeGraph: false,
+    toolPlayground: false,
+    cloudWizard: false,
+    adBuilder: false,
+    hackeroneReport: false,
+    executiveSummary: false,
+    opplanTracker: false,
+    vaccineLoop: false,
+    exportMarkdown: false,
+    exportCsv: false,
   },
   pro: {
     scansPerMonth: 5,
@@ -55,6 +81,19 @@ export const PLAN_LIMITS: Record<string, PlanLimits> = {
     canCreateEngagements: true,
     price: 200,
     priceDisplay: "$200/mo",
+    // Feature flags
+    cveIntel: true,
+    skillCatalog: true,
+    knowledgeGraph: false,
+    toolPlayground: false,
+    cloudWizard: false,
+    adBuilder: false,
+    hackeroneReport: false,
+    executiveSummary: false,
+    opplanTracker: true,
+    vaccineLoop: true,
+    exportMarkdown: true,
+    exportCsv: true,
   },
   enterprise: {
     scansPerMonth: 20,
@@ -75,6 +114,19 @@ export const PLAN_LIMITS: Record<string, PlanLimits> = {
     canCreateEngagements: true,
     price: 2000,
     priceDisplay: "$2,000/mo",
+    // Feature flags
+    cveIntel: true,
+    skillCatalog: true,
+    knowledgeGraph: true,
+    toolPlayground: true,
+    cloudWizard: true,
+    adBuilder: true,
+    hackeroneReport: true,
+    executiveSummary: true,
+    opplanTracker: true,
+    vaccineLoop: true,
+    exportMarkdown: true,
+    exportCsv: true,
   },
 };
 

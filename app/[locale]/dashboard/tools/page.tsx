@@ -3,6 +3,8 @@
 import { useState, useCallback } from "react";
 import { browserBackendFetch } from "@/lib/backend-client";
 import { cn } from "@/lib/utils";
+import { PlanGate } from "@/components/dashboard/plan-gate";
+import { usePlan } from "@/lib/use-plan";
 import {
   Terminal,
   Search,
@@ -126,6 +128,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 // ── Component ───────────────────────────────────────────────────────────
 
 export default function ToolPlaygroundPage() {
+  const { plan } = usePlan();
   const [activeTool, setActiveTool] = useState<string>("bash");
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -211,6 +214,7 @@ export default function ToolPlaygroundPage() {
   // ── Render ─────────────────────────────────────────────────────────
 
   return (
+    <PlanGate requiredPlan="enterprise" currentPlan={plan} featureName="Tool Playground">
     <div className="p-6 md:p-8 max-w-6xl">
       {/* Header */}
       <div className="mb-6">
@@ -500,5 +504,6 @@ export default function ToolPlaygroundPage() {
         </div>
       )}
     </div>
+    </PlanGate>
   );
 }

@@ -151,7 +151,7 @@ export function ChatInput({
   }
 
   function handleSubmit() {
-    if (!value.trim() || disabled) return;
+    if (!value.trim()) return;
     onSubmit(value.trim(), files);
     setValue("");
     setFiles([]);
@@ -188,7 +188,7 @@ export function ChatInput({
             value={value}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
-            disabled={disabled && !isStreaming}
+            disabled={isStreaming}
             placeholder={placeholder ?? "Message… (/ pour les commandes)"}
             rows={1}
             className={cn(
@@ -302,7 +302,7 @@ export function ChatInput({
               ) : (
                 <button
                   onClick={handleSubmit}
-                  disabled={!value.trim() || disabled}
+                  disabled={!value.trim()}
                   className="h-8 w-8 flex items-center justify-center bg-white text-black hover:bg-white/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
                   title="Envoyer (Enter)"
                 >

@@ -304,7 +304,7 @@ publicApiRoutes.delete("/scans/:id", async (c) => {
 
 publicApiRoutes.get("/agents", async (c) => {
   const agents = [
-    { id: "bjhunt", name: "BJHUNT Orchestrator", description: "Full autonomous assessment — coordinates all agents", type: "full" },
+    { id: "bjhunt", name: "BJHUNT Orchestrator", description: "Full autonomous scan — coordinates all agents", type: "full" },
     { id: "recon", name: "Recon", description: "OSINT, subdomain enumeration, port scanning, service detection", type: "recon" },
     { id: "exploit", name: "Exploit", description: "SQLi, SSTI, Kerberoasting, ADCS, credential attacks", type: "web" },
     { id: "postexploit", name: "Post-Exploit", description: "Credential access, privilege escalation, lateral movement, C2", type: "network" },

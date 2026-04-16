@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useTransition, useRef } from "react";
 import { browserBackendFetch } from "@/lib/backend-client";
+import { PlanGate } from "@/components/dashboard/plan-gate";
+import { usePlan } from "@/lib/use-plan";
 import {
   Database,
   Shield,
@@ -145,6 +147,7 @@ const DEFAULT_TECHNIQUES: ADTechnique[] = [
 // ── Component ───────────────────────────────────────────────────────────
 
 export default function ADAssessmentPage() {
+  const { plan } = usePlan();
   const [techniques, setTechniques] = useState<ADTechnique[]>(DEFAULT_TECHNIQUES);
   const [bloodhound, setBloodhound] = useState<BloodhoundSummary | null>(null);
   const [bhUploading, setBhUploading] = useState(false);
@@ -252,7 +255,7 @@ export default function ADAssessmentPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: `AD Assessment - ${domainName}`,
+            name: `AD Scan - ${domainName}`,
             target: domainName,
             targetType: "ad",
             agentGraph: "ad_operator",
@@ -362,11 +365,12 @@ export default function ADAssessmentPage() {
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
+    <PlanGate requiredPlan="enterprise" currentPlan={plan} featureName="Active Directory Assessment">
     <div className="p-6 max-w-[1200px] mx-auto">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-[14px] font-mono font-bold uppercase tracking-widest text-white">
-          Active Directory Assessment
+          Active Directory Scan
         </h1>
         <p className="text-[9px] font-mono text-[var(--text-subtle)] mt-1">
           AD Operator agent — BloodHound, Kerberoast, ADCS abuse, DCSync, golden ticket
@@ -476,7 +480,7 @@ export default function ADAssessmentPage() {
               Attack Techniques
             </h2>
             <p className="text-[8px] font-mono text-[var(--text-subtle)] mt-0.5">
-              Select techniques to include in the assessment
+              Select techniques to include in the scan
             </p>
           </div>
           <span className="text-[9px] font-mono text-[var(--text-muted)]">
@@ -600,7 +604,7 @@ export default function ADAssessmentPage() {
           {/* Scope */}
           <div>
             <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
-              Assessment Scope
+              Scan Scope
             </label>
             <div className="flex gap-2 mb-2">
               {(["full", "specific"] as const).map((s) => (
@@ -647,7 +651,7 @@ export default function ADAssessmentPage() {
             ) : (
               <Database className="w-3 h-3" />
             )}
-            {result?.status === "running" ? "Running..." : "Start AD Assessment"}
+            {result?.status === "running" ? "Running..." : "Start AD Scan"}
           </button>
         </div>
       </div>
@@ -658,7 +662,7 @@ export default function ADAssessmentPage() {
           <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--bg-card)] flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h2 className="text-[11px] font-mono font-bold uppercase tracking-widest text-white">
-                Assessment Results
+                Scan Results
               </h2>
               <span
                 className={cn(
@@ -813,5 +817,6 @@ export default function ADAssessmentPage() {
         </div>
       )}
     </div>
+    </PlanGate>
   );
 }

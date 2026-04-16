@@ -191,7 +191,7 @@ export default function FindingsPage() {
           FINDINGS
         </h1>
         <p className="text-[10px] text-[var(--text-subtle)] font-mono mt-1">
-          Security vulnerabilities discovered across all assessments
+          Security vulnerabilities discovered across all scans
         </p>
       </div>
 
@@ -311,7 +311,7 @@ export default function FindingsPage() {
             No findings yet.
           </p>
           <p className="text-[10px] font-mono text-[var(--text-subtle)]">
-            Run an assessment to discover vulnerabilities.
+            Run a scan to discover vulnerabilities.
           </p>
         </div>
       ) : (

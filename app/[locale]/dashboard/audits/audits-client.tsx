@@ -70,7 +70,7 @@ const DURATION_OPTIONS = [
 ]
 
 const AGENT_OPTIONS = [
-  { value: 'bjhunt', label: 'BJHUNT Orchestrator', description: 'Full autonomous assessment — coordinates all agents' },
+  { value: 'bjhunt', label: 'BJHUNT Orchestrator', description: 'Full autonomous scan — coordinates all agents' },
   { value: 'decepticon', label: 'Decepticon', description: 'Core orchestrator — 9 sub-agents coordination' },
   { value: 'recon', label: 'Recon', description: 'OSINT, subdomain enum, port scanning, service detection' },
   { value: 'exploit', label: 'Exploit', description: 'SQLi, SSTI, Kerberoasting, credential attacks' },
@@ -180,7 +180,7 @@ function WizardModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
           <div>
             <h2 className="text-[14px] font-mono font-bold uppercase tracking-widest text-white">
-              New Assessment
+              New Scan
             </h2>
             <p className="text-[9px] font-mono text-[var(--text-subtle)] mt-0.5">
               Step {step + 1} of {totalSteps}
@@ -435,7 +435,7 @@ function WizardModal({
                       Enable Auto-Reporting
                     </span>
                     <p className="text-[8px] font-mono text-[var(--text-subtle)]">
-                      Automatically generate reports when the assessment completes
+                      Automatically generate reports when the scan completes
                     </p>
                   </div>
                 </label>
@@ -553,7 +553,7 @@ function WizardModal({
                   {isPending ? (
                     <Loader2 className="w-3 h-3 animate-spin inline mr-1" />
                   ) : null}
-                  Create Assessment
+                  Create Scan
                 </button>
                 <button
                   onClick={() => handleSubmit(true)}

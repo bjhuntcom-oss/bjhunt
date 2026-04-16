@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Plus, PanelRightOpen, PanelRightClose } from "lucide-react";
+import { Plus, PanelRightOpen, PanelRightClose, Globe, Cloud, Code, Database } from "lucide-react";
 import { MessageBubble, type ChatMessage } from "@/components/chat/message-bubble";
 import { ToolCallBlock, type ToolCall } from "@/components/chat/tool-call-block";
 import { ThinkingBlock } from "@/components/chat/thinking-block";
@@ -15,6 +15,9 @@ import { PromptLibraryPanel } from "@/components/chat/prompt-library-panel";
 import { SLASH_COMMANDS, type SlashCommandContext } from "@/components/chat/slash-commands";
 import { browserBackendFetch } from "@/lib/backend-client";
 import { VaccineMonitor } from "@/components/dashboard/vaccine-monitor";
+import { AGENTS } from "@/components/chat/agent-selector";
+import { OnboardingOverlay } from "@/components/dashboard/onboarding-overlay";
+import { useParams } from "next/navigation";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -37,6 +40,9 @@ interface StreamEvent {
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.bjhunt.com";
 
 export default function ChatPage() {
+  const params = useParams();
+  const locale = (params?.locale as string) || "fr";
+
   // State
   const [engagements, setEngagements] = useState<Engagement[]>([]);
   const [activeEngagement, setActiveEngagement] = useState<Engagement | null>(null);
@@ -54,7 +60,7 @@ export default function ChatPage() {
   const [showSidebar, setShowSidebar] = useState(
     typeof window !== "undefined" ? window.innerWidth >= 768 : true
   );
-  const [sidebarTab, setSidebarTab] = useState<"engagements" | "opplan" | "graph">("engagements");
+  const [sidebarTab, setSidebarTab] = useState<"conversations" | "opplan" | "graph">("conversations");
   const [webSearch, setWebSearch] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
@@ -146,14 +152,14 @@ export default function ChatPage() {
 
   // ── New engagement ───────────────────────────────────────────────────
 
-  async function createEngagement() {
-    const name = `Assessment ${new Date().toLocaleDateString("fr-FR")}`;
+  async function createEngagement(autoName?: string): Promise<Engagement | null> {
+    const name = autoName || `Scan ${new Date().toLocaleDateString("fr-FR")}`;
     setStreamError(null);
     try {
       const res = await browserBackendFetch("/api/engagements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, target: "pending", agentGraph: "bjhunt" }),
+        body: JSON.stringify({ name, target: "auto", agentGraph: selectedAgent }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -164,13 +170,25 @@ export default function ChatPage() {
         setToolCalls(new Map());
         setSubAgents(new Map());
         setObjectives([]);
+        return eng;
       } else {
         const err = await res.json().catch(() => ({ message: `Error ${res.status}` }));
-        setStreamError(err.message || err.error || `Failed to create assessment (${res.status})`);
+        setStreamError(err.message || err.error || `Failed to start conversation (${res.status})`);
+        return null;
       }
     } catch (e: any) {
-      setStreamError(e.message || "Failed to create assessment");
+      setStreamError(e.message || "Failed to start conversation");
+      return null;
     }
+  }
+
+  function startNewConversation() {
+    setActiveEngagement(null);
+    setMessages([]);
+    setToolCalls(new Map());
+    setSubAgents(new Map());
+    setObjectives([]);
+    setStreamError(null);
   }
 
   // ── Slash command handler ─────────────────────────────────────────────
@@ -208,6 +226,15 @@ export default function ChatPage() {
       };
       slashCmd.action(ctx);
       return;
+    }
+
+    // Auto-create engagement if none exists
+    let engId = activeEngagement?.id;
+    if (!engId) {
+      const autoName = text.slice(0, 50);
+      const eng = await createEngagement(autoName);
+      if (!eng) return; // error already set
+      engId = eng.id;
     }
 
     // TODO: handle file uploads — POST /api/chat/files
@@ -271,7 +298,7 @@ export default function ChatPage() {
         },
         body: JSON.stringify({
           message: text,
-          engagementId: activeEngagement?.id || "",
+          engagementId: engId || "",
           agentGraph: selectedAgent,
         }),
         signal: abortRef.current.signal,
@@ -503,7 +530,7 @@ export default function ChatPage() {
         `}>
           {/* Sidebar tabs */}
           <div className="flex border-b border-[var(--border)]">
-            {(["engagements", "opplan", "graph"] as const).map((tab) => (
+            {(["conversations", "opplan", "graph"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setSidebarTab(tab)}
@@ -513,21 +540,21 @@ export default function ChatPage() {
                     : "text-[var(--text-subtle)] hover:text-[var(--text-muted)]"
                 }`}
               >
-                {tab === "engagements" ? "Sessions" : tab === "opplan" ? "OPPLAN" : "Graph"}
+                {tab === "conversations" ? "Conversations" : tab === "opplan" ? "OPPLAN" : "Graph"}
               </button>
             ))}
           </div>
 
           {/* Sidebar content */}
           <div className="flex-1 overflow-y-auto">
-            {sidebarTab === "engagements" && (
+            {sidebarTab === "conversations" && (
               <div className="p-2 space-y-1">
                 <button
-                  onClick={createEngagement}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-[10px] uppercase tracking-wider text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-card)] border border-dashed border-[var(--border)] transition-colors"
+                  onClick={startNewConversation}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-card)] border border-dashed border-[var(--border)] transition-colors"
+                  title="New conversation"
                 >
-                  <Plus className="w-3 h-3" />
-                  New Assessment
+                  <Plus className="w-4 h-4" />
                 </button>
 
                 {engagements.map((eng) => (
@@ -547,15 +574,8 @@ export default function ChatPage() {
                     }`}
                   >
                     <div className="text-[11px] text-white truncate">{eng.name}</div>
-                    <div className="text-[9px] text-[var(--text-subtle)] truncate">{eng.target}</div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-[8px] uppercase px-1 ${
-                        eng.status === "running" ? "text-[var(--warning)] bg-[var(--warning-dim)]" :
-                        eng.status === "completed" ? "text-[var(--success)] bg-[var(--success-dim)]" :
-                        "text-[var(--text-subtle)]"
-                      }`}>
-                        {eng.status}
-                      </span>
+                    <div className="text-[9px] text-[var(--text-subtle)] mt-0.5">
+                      {new Date(eng.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                     </div>
                   </button>
                 ))}
@@ -593,15 +613,13 @@ export default function ChatPage() {
             >
               {showSidebar ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
             </button>
-            <div>
-              <div className="text-[11px] text-white font-mono">
-                {activeEngagement?.name || "BJHUNT ALPHA 1.0"}
-              </div>
-              {activeEngagement && (
-                <div className="text-[9px] text-[var(--text-subtle)]">
-                  {activeEngagement.target}
-                </div>
-              )}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-white font-mono uppercase">
+                {AGENTS.find((a) => a.id === selectedAgent)?.name || "BJHUNT"}
+              </span>
+              <span className="text-[9px] text-[var(--text-subtle)] font-mono">
+                agent
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-3 text-[9px] uppercase tracking-wider">
@@ -641,19 +659,35 @@ export default function ChatPage() {
 
         {/* Messages area */}
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-          {messages.length === 0 && !activeEngagement && (
+          {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="text-[24px] font-mono text-white mb-2">BJHUNT ALPHA 1.0</div>
-              <p className="text-[11px] text-[var(--text-muted)] max-w-[400px] leading-relaxed">
-                Autonomous cybersecurity assessment platform. Create a new assessment
-                or select an existing one to start chatting with the AI agents.
+              <p className="text-[11px] text-[var(--text-muted)] max-w-[420px] leading-relaxed mb-8">
+                Describe your target, choose an agent, and start scanning. Or just ask a question.
               </p>
-              <button
-                onClick={createEngagement}
-                className="mt-6 px-6 py-2 bg-white text-black text-[10px] uppercase tracking-wider hover:bg-white/90 transition-colors"
-              >
-                New Assessment
-              </button>
+
+              {/* Suggested prompts */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-[520px] w-full">
+                {[
+                  { icon: <Globe className="w-4 h-4" />, text: "Scan my web application for vulnerabilities" },
+                  { icon: <Cloud className="w-4 h-4" />, text: "Audit my AWS infrastructure" },
+                  { icon: <Code className="w-4 h-4" />, text: "Analyze this code for security issues" },
+                  { icon: <Database className="w-4 h-4" />, text: "Find attack paths in my Active Directory" },
+                ].map((suggestion) => (
+                  <button
+                    key={suggestion.text}
+                    onClick={() => setPromptInitialValue(suggestion.text)}
+                    className="flex items-center gap-3 px-4 py-3 border border-[var(--border)] bg-[var(--bg-card)] text-left hover:border-[var(--border-strong)] hover:bg-[var(--bg-input)] transition-colors group"
+                  >
+                    <span className="text-[var(--text-muted)] group-hover:text-white transition-colors flex-shrink-0">
+                      {suggestion.icon}
+                    </span>
+                    <span className="text-[10px] text-[var(--text-muted)] group-hover:text-white transition-colors leading-tight">
+                      {suggestion.text}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -727,12 +761,8 @@ export default function ChatPage() {
             onSlashCommand={handleSlashCommand}
             webSearch={webSearch}
             onToggleWebSearch={() => setWebSearch((v) => !v)}
-            disabled={!activeEngagement}
             isStreaming={isStreaming}
-            placeholder={activeEngagement
-              ? "Describe your target, ask for a scan, or chat with the agents..."
-              : "Create an assessment first..."
-            }
+            placeholder="Describe your target or ask a question..."
             initialValue={promptInitialValue}
             onConsumeInitialValue={() => setPromptInitialValue("")}
             selectedAgent={selectedAgent}
@@ -758,6 +788,12 @@ export default function ChatPage() {
           onClose={() => setShowPromptLibrary(false)}
         />
       )}
+
+      {/* Onboarding overlay for first-time users */}
+      <OnboardingOverlay
+        locale={locale}
+        onPrefillChat={(prompt) => setPromptInitialValue(prompt)}
+      />
     </div>
   );
 }

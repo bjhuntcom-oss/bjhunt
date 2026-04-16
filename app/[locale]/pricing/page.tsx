@@ -7,49 +7,128 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SectionLabel } from "@/components/ui/section-label";
 import * as Collapsible from "@radix-ui/react-collapsible";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { ScanRadarSVG } from "@/components/animations/scan-radar";
 import { PriceBarsSVG } from "@/components/animations/price-bars";
 
-const FEATURES_TABLE = [
-  { feature: "Session",           free: "Demo 5 min",  pro: "Illimitée",        enterprise: "Illimitée" },
-  { feature: "Scans / mois",     free: "—",            pro: "5",                enterprise: "20" },
-  { feature: "Agents IA",        free: "—",            pro: "10",               enterprise: "17 (tous)" },
-  { feature: "Chat",             free: "Demo 5 min",   pro: "Illimité",         enterprise: "Illimité" },
-  { feature: "Export findings",  free: "—",            pro: "✓",                enterprise: "✓" },
-  { feature: "Notifications",    free: "—",            pro: "✓",                enterprise: "✓" },
-  { feature: "Clés API",         free: "—",            pro: "✓ (dashboard)",    enterprise: "✓ (API v1 complet)" },
-  { feature: "API REST v1",      free: "—",            pro: "—",                enterprise: "✓" },
-  { feature: "Webhooks",         free: "—",            pro: "—",                enterprise: "✓" },
-  { feature: "Config agents",    free: "—",            pro: "—",                enterprise: "✓" },
-  { feature: "Support",          free: "—",            pro: "Prioritaire",      enterprise: "Dédié" },
-  { feature: "SLA",              free: "—",            pro: "—",                enterprise: "99.9%" },
+// ── Feature matrix data ──────────────────────────────────────────────────
+
+type CellValue = string;
+
+interface FeatureRow {
+  feature: string;
+  free: CellValue;
+  pro: CellValue;
+  enterprise: CellValue;
+}
+
+interface FeatureGroup {
+  category: string;
+  rows: FeatureRow[];
+}
+
+const FEATURE_GROUPS: FeatureGroup[] = [
+  {
+    category: "Chat & Agents",
+    rows: [
+      { feature: "Chat AI",              free: "5 min",    pro: "Illimite",  enterprise: "Illimite" },
+      { feature: "Selection d'agents",   free: "3 agents", pro: "10 agents", enterprise: "17 agents" },
+      { feature: "Streaming temps reel", free: "check",    pro: "check",     enterprise: "check" },
+    ],
+  },
+  {
+    category: "Scans",
+    rows: [
+      { feature: "Scans par mois",  free: "--",    pro: "5",     enterprise: "20" },
+      { feature: "OPPLAN Tracker",   free: "--",    pro: "check", enterprise: "check" },
+      { feature: "Vaccine Loop",     free: "--",    pro: "check", enterprise: "check" },
+    ],
+  },
+  {
+    category: "Intelligence",
+    rows: [
+      { feature: "Findings Dashboard", free: "Vue seule", pro: "Export",  enterprise: "Export" },
+      { feature: "CVE Intelligence",   free: "--",        pro: "check",   enterprise: "check" },
+      { feature: "Skill Catalog",      free: "--",        pro: "check",   enterprise: "check" },
+      { feature: "Knowledge Graph",    free: "--",        pro: "--",      enterprise: "check" },
+    ],
+  },
+  {
+    category: "Outils",
+    rows: [
+      { feature: "Tool Playground",   free: "--", pro: "--", enterprise: "check" },
+      { feature: "Cloud Wizard",      free: "--", pro: "--", enterprise: "check" },
+      { feature: "AD Chain Builder",  free: "--", pro: "--", enterprise: "check" },
+    ],
+  },
+  {
+    category: "Rapports",
+    rows: [
+      { feature: "Export Markdown",    free: "--", pro: "check", enterprise: "check" },
+      { feature: "Export CSV",         free: "--", pro: "check", enterprise: "check" },
+      { feature: "HackerOne Format",   free: "--", pro: "--",    enterprise: "check" },
+      { feature: "Executive Summary",  free: "--", pro: "--",    enterprise: "check" },
+    ],
+  },
+  {
+    category: "API",
+    rows: [
+      { feature: "API v1 Access", free: "--", pro: "--", enterprise: "check" },
+      { feature: "Webhooks",      free: "--", pro: "--", enterprise: "check" },
+    ],
+  },
+  {
+    category: "Support",
+    rows: [
+      { feature: "Community",       free: "check", pro: "check", enterprise: "check" },
+      { feature: "Priority Email",  free: "--",    pro: "check", enterprise: "check" },
+      { feature: "Dedicated Slack", free: "--",    pro: "--",    enterprise: "check" },
+    ],
+  },
 ];
+
+// ── FAQ ──────────────────────────────────────────────────────────────────
 
 const FAQS = [
   {
     q: "Comment fonctionne le plan Free ?",
-    a: "Le plan Free offre une session démo de 5 minutes pour découvrir l'interface BJHUNT. Aucun scan, aucun agent, aucune API — juste un aperçu du chat IA.",
+    a: "Le plan Free offre une session demo de 5 minutes pour decouvrir l'interface BJHUNT avec 3 agents de base. Aucun scan, aucune API -- juste un apercu du chat IA.",
   },
   {
-    q: "Quelle différence entre Pro et Enterprise pour l'API ?",
-    a: "Le plan Pro permet de créer des clés API pour l'authentification dashboard. Seul le plan Enterprise donne accès à l'API REST v1 programmatique pour l'intégration CI/CD et l'automatisation.",
+    q: "Quelle difference entre Pro et Enterprise pour l'API ?",
+    a: "Le plan Pro permet de creer des cles API pour l'authentification dashboard. Seul le plan Enterprise donne acces a l'API REST v1 programmatique pour l'integration CI/CD et l'automatisation.",
   },
   {
-    q: "Puis-je passer à Pro à tout moment ?",
-    a: "Oui, la migration est instantanée. Vos données et historiques sont conservés.",
+    q: "Puis-je passer a Pro a tout moment ?",
+    a: "Oui, la migration est instantanee. Vos donnees et historiques sont conserves.",
   },
   {
     q: "Comment fonctionne Enterprise ?",
-    a: "Enterprise inclut 20 scans/mois, les 17 agents IA, l'accès API v1 complet, les webhooks, la configuration custom des agents, et un support dédié avec SLA 99.9%. Contactez-nous pour démarrer.",
+    a: "Enterprise inclut 20 scans/mois, les 17 agents IA, l'acces API v1 complet, les webhooks, la configuration custom des agents, le format HackerOne, le resume executif, et un support dedie avec Slack prive.",
   },
 ];
+
+// ── Animations ──────────────────────────────────────────────────────────
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
 };
+
+// ── Cell renderer ───────────────────────────────────────────────────────
+
+function CellContent({ value }: { value: CellValue }) {
+  if (value === "check") {
+    return <span className="text-[var(--success)]">&#10003;</span>;
+  }
+  if (value === "--") {
+    return <span className="text-[var(--text-subtle)]">&mdash;</span>;
+  }
+  return <span className="text-white">{value}</span>;
+}
+
+// ── FAQ item ────────────────────────────────────────────────────────────
 
 function FAQItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
@@ -68,6 +147,22 @@ function FAQItem({ q, a }: { q: string; a: string }) {
     </Collapsible.Root>
   );
 }
+
+// ── Crown icon ──────────────────────────────────────────────────────────
+
+function CrownIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2 17L4 8L8 12L12 4L16 12L20 8L22 17H2Z" fill="#FFD700" stroke="#FFD700" strokeWidth="1.5" strokeLinejoin="round"/>
+      <rect x="2" y="17" width="20" height="3" rx="1" fill="#FFD700"/>
+      <circle cx="5" cy="20" r="1" fill="#0a0a0a"/>
+      <circle cx="12" cy="20" r="1" fill="#0a0a0a"/>
+      <circle cx="19" cy="20" r="1" fill="#0a0a0a"/>
+    </svg>
+  );
+}
+
+// ── Page ────────────────────────────────────────────────────────────────
 
 export default function PricingPage() {
   return (
@@ -96,9 +191,36 @@ export default function PricingPage() {
       <section className="border-b border-[var(--border)]">
         <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[var(--border)]">
           {[
-            { name: "Free",       price: "Gratuit",      sub: "Demo 5 minutes",                     badge: null,        icon: null,         cta: "Essai gratuit",     href: "/login",   featured: false },
-            { name: "Pro",        price: "$200/mois",    sub: "5 scans · 10 agents · Chat illimité", badge: "Populaire", icon: "approved",   cta: "Souscrire",         href: "/contact", featured: true  },
-            { name: "Enterprise", price: "$2,000/mois",  sub: "20 scans · 17 agents · API v1",       badge: "Entreprise", icon: "crown",     cta: "Contactez-nous",   href: "/contact", featured: false },
+            {
+              name: "Free",
+              price: "Gratuit",
+              sub: "Demo 5 min -- 3 agents",
+              badge: null,
+              icon: null,
+              cta: "Essai gratuit",
+              href: "/login",
+              featured: false,
+            },
+            {
+              name: "Pro",
+              price: "$200/mois",
+              sub: "5 scans -- 10 agents -- Chat illimite",
+              badge: "Populaire",
+              icon: "approved",
+              cta: "Souscrire",
+              href: "/contact",
+              featured: true,
+            },
+            {
+              name: "Enterprise",
+              price: "$2,000/mois",
+              sub: "20 scans -- 17 agents -- API v1",
+              badge: "Entreprise",
+              icon: "crown",
+              cta: "Contactez-nous",
+              href: "/contact",
+              featured: false,
+            },
           ].map((plan) => (
             <div
               key={plan.name}
@@ -107,15 +229,7 @@ export default function PricingPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    {plan.icon === "crown" && (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M2 17L4 8L8 12L12 4L16 12L20 8L22 17H2Z" fill="#FFD700" stroke="#FFD700" strokeWidth="1.5" strokeLinejoin="round"/>
-                        <rect x="2" y="17" width="20" height="3" rx="1" fill="#FFD700"/>
-                        <circle cx="5" cy="20" r="1" fill="#0a0a0a"/>
-                        <circle cx="12" cy="20" r="1" fill="#0a0a0a"/>
-                        <circle cx="19" cy="20" r="1" fill="#0a0a0a"/>
-                      </svg>
-                    )}
+                    {plan.icon === "crown" && <CrownIcon />}
                     {plan.icon === "approved" && (
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="12" cy="12" r="10" stroke="#00cc8a" strokeWidth="1.5"/>
@@ -137,46 +251,90 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Tableau comparatif */}
+      {/* Feature matrix table */}
       <section className="border-b border-[var(--border)] overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[var(--border)]">
-              <th className="text-left px-8 py-4 text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)] font-medium">
-                Fonctionnalité
+              <th className="text-left px-8 py-4 text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)] font-medium w-[40%]">
+                Fonctionnalite
               </th>
-              {["Free", "Pro", "Enterprise"].map((p) => (
-                <th key={p} className="px-8 py-4 text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)] font-medium">
-                  {p}
-                </th>
-              ))}
+              <th className="px-8 py-4 text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)] font-medium text-center">
+                Free
+              </th>
+              <th className="px-8 py-4 text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)] font-medium text-center">
+                Pro
+              </th>
+              <th className="px-8 py-4 text-[9px] uppercase tracking-[0.2em] font-medium text-center">
+                <span className="flex items-center justify-center gap-1.5 text-[var(--text-muted)]">
+                  <CrownIcon />
+                  Enterprise
+                </span>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {FEATURES_TABLE.map((row, i) => (
-              <tr key={i} className="border-b border-[var(--border)] hover:bg-[var(--bg-card)] transition-colors">
-                <td className="px-8 py-3 text-[var(--text-muted)] text-[11px]">{row.feature}</td>
-                {[row.free, row.pro, row.enterprise].map((val, j) => (
-                  <td key={j} className="px-8 py-3 text-center text-[11px]">
-                    {val === "✓" ? (
-                      <span className="text-[var(--success)]">✓</span>
-                    ) : val === "—" ? (
-                      <span className="text-[var(--text-subtle)]">—</span>
-                    ) : (
-                      <span className="text-white">{val}</span>
-                    )}
+            {FEATURE_GROUPS.map((group) => (
+              <Fragment key={group.category}>
+                {/* Category header row */}
+                <tr className="border-b border-[var(--border)]">
+                  <td
+                    colSpan={4}
+                    className="px-8 py-3 text-[8px] font-mono font-bold uppercase tracking-[0.2em] text-white bg-[var(--bg-card)]"
+                  >
+                    {group.category}
                   </td>
+                </tr>
+
+                {/* Feature rows */}
+                {group.rows.map((row) => (
+                  <tr
+                    key={row.feature}
+                    className="border-b border-[var(--border)] hover:bg-[var(--bg-card)] transition-colors"
+                  >
+                    <td className="px-8 py-3 text-[var(--text-muted)] text-[11px]">
+                      {row.feature}
+                    </td>
+                    <td className="px-8 py-3 text-center text-[11px]">
+                      <CellContent value={row.free} />
+                    </td>
+                    <td className="px-8 py-3 text-center text-[11px]">
+                      <CellContent value={row.pro} />
+                    </td>
+                    <td className="px-8 py-3 text-center text-[11px]">
+                      <CellContent value={row.enterprise} />
+                    </td>
+                  </tr>
                 ))}
-              </tr>
+              </Fragment>
             ))}
           </tbody>
         </table>
       </section>
 
+      {/* Bottom CTA */}
+      <section className="border-b border-[var(--border)]">
+        <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[var(--border)]">
+          {[
+            { name: "Free",       cta: "Essai gratuit",   href: "/login",   featured: false },
+            { name: "Pro",        cta: "Souscrire",       href: "/contact", featured: true  },
+            { name: "Enterprise", cta: "Contactez-nous",  href: "/contact", featured: false },
+          ].map((plan) => (
+            <div key={plan.name} className="p-6 flex items-center justify-center">
+              <Button asChild variant={plan.featured ? "primary" : "secondary"} size="lg">
+                <Link href={plan.href}>
+                  {plan.cta}
+                </Link>
+              </Button>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* FAQ */}
       <section className="py-20 px-8 md:px-12 max-w-2xl">
         <SectionLabel>FAQ</SectionLabel>
-        <h2 className="text-3xl font-black mt-4 mb-8 tracking-[-0.03em]">Questions fréquentes</h2>
+        <h2 className="text-3xl font-black mt-4 mb-8 tracking-[-0.03em]">Questions frequentes</h2>
         {FAQS.map((faq, i) => (
           <FAQItem key={i} q={faq.q} a={faq.a} />
         ))}

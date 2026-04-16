@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useTransition } from "react";
 import { browserBackendFetch } from "@/lib/backend-client";
+import { PlanGate } from "@/components/dashboard/plan-gate";
+import { usePlan } from "@/lib/use-plan";
 import {
   Cloud,
   Server,
@@ -116,6 +118,7 @@ const PROVIDERS: {
 // ── Component ───────────────────────────────────────────────────────────
 
 export default function CloudAssessmentPage() {
+  const { plan } = usePlan();
   const [selectedProvider, setSelectedProvider] = useState<CloudProvider | null>(null);
   const [config, setConfig] = useState<CloudConfig>({
     provider: "aws",
@@ -181,7 +184,7 @@ export default function CloudAssessmentPage() {
           break;
       }
 
-      const targetName = `Cloud Assessment - ${selectedProvider.toUpperCase()}`;
+      const targetName = `Cloud Scan - ${selectedProvider.toUpperCase()}`;
       const target = selectedProvider === "aws"
         ? config.awsS3Bucket || config.awsEc2Target || "aws-environment"
         : selectedProvider === "azure"
@@ -265,11 +268,12 @@ export default function CloudAssessmentPage() {
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
+    <PlanGate requiredPlan="enterprise" currentPlan={plan} featureName="Cloud Security Assessment">
     <div className="p-6 max-w-[1200px] mx-auto">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-[14px] font-mono font-bold uppercase tracking-widest text-white">
-          Cloud Security Assessment
+          Cloud Security Scan
         </h1>
         <p className="text-[9px] font-mono text-[var(--text-subtle)] mt-1">
           CloudHunter agent — AWS IAM privesc, S3 takeover, K8s RBAC, Terraform secrets
@@ -598,7 +602,7 @@ export default function CloudAssessmentPage() {
               ) : (
                 <Shield className="w-3 h-3" />
               )}
-              {result?.status === "running" ? "Running..." : "Start Cloud Assessment"}
+              {result?.status === "running" ? "Running..." : "Start Cloud Scan"}
             </button>
           </div>
         </div>
@@ -610,7 +614,7 @@ export default function CloudAssessmentPage() {
           <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--bg-card)] flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h2 className="text-[11px] font-mono font-bold uppercase tracking-widest text-white">
-                Assessment Results
+                Scan Results
               </h2>
               <span
                 className={cn(
@@ -722,5 +726,6 @@ export default function CloudAssessmentPage() {
         </div>
       )}
     </div>
+    </PlanGate>
   );
 }
