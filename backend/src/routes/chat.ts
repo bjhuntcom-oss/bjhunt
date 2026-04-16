@@ -562,7 +562,7 @@ chatRoutes.get("/stream/:runId", async (c) => {
     },
   });
 
-  const transformedStream = pending.stream.pipeThrough(transform);
+  const transformedStream = stream.pipeThrough(transform);
 
   // Handle client disconnect
   const wrappedStream = new ReadableStream<Uint8Array>({
