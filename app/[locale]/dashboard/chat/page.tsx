@@ -278,25 +278,27 @@ export default function ChatPage() {
           break;
 
         case "values": {
-          // LangGraph "values" stream mode — full state snapshot
+          // LangGraph "values" stream mode — full state snapshot with all messages
           const msgs = parsed.messages || parsed.values?.messages;
           if (Array.isArray(msgs)) {
-            const lastAi = [...msgs].reverse().find(
-              (m: any) => m.type === "ai" || m.role === "assistant"
-            );
-            if (lastAi) {
-              // Extract clean text content (may be string or nested)
+            // Find ALL AI messages and concatenate their content (agent may respond multiple times)
+            const aiMessages = msgs.filter((m: any) => m.type === "ai" || m.role === "assistant");
+
+            if (aiMessages.length > 0) {
+              // Get the latest AI message content
+              const latestAi = aiMessages[aiMessages.length - 1];
               let text = "";
-              if (typeof lastAi.content === "string") {
-                text = lastAi.content;
-              } else if (Array.isArray(lastAi.content)) {
-                text = lastAi.content
+              if (typeof latestAi.content === "string") {
+                text = latestAi.content;
+              } else if (Array.isArray(latestAi.content)) {
+                text = latestAi.content
                   .filter((c: any) => c.type === "text")
                   .map((c: any) => c.text)
                   .join("");
               }
 
-              if (text) {
+              // Only update if we have actual content (not empty string)
+              if (text && text.trim()) {
                 lastAiContentRef.current = text;
                 setMessages((prev) =>
                   prev.map((m) =>
@@ -304,6 +306,45 @@ export default function ChatPage() {
                   )
                 );
                 setThinking((prev) => ({ ...prev, active: false }));
+              }
+            }
+
+            // Track tool calls from AI messages
+            for (const ai of msgs.filter((m: any) => m.type === "ai")) {
+              if (ai.tool_calls && Array.isArray(ai.tool_calls) && ai.tool_calls.length > 0) {
+                setToolCalls((prev) => {
+                  const next = new Map(prev);
+                  for (const tc of ai.tool_calls) {
+                    next.set(tc.id, {
+                      id: tc.id,
+                      name: tc.name,
+                      args: tc.args || {},
+                      status: "running",
+                    });
+                  }
+                  return next;
+                });
+              }
+            }
+
+            // Track tool results
+            for (const toolMsg of msgs.filter((m: any) => m.type === "tool")) {
+              if (toolMsg.tool_call_id) {
+                setToolCalls((prev) => {
+                  const next = new Map(prev);
+                  const existing = next.get(toolMsg.tool_call_id);
+                  if (existing) {
+                    const content = typeof toolMsg.content === "string"
+                      ? toolMsg.content.slice(0, 500)
+                      : JSON.stringify(toolMsg.content).slice(0, 500);
+                    next.set(toolMsg.tool_call_id, {
+                      ...existing,
+                      result: content,
+                      status: toolMsg.status === "error" ? "error" : "completed",
+                    });
+                  }
+                  return next;
+                });
               }
             }
           }
