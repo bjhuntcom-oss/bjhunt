@@ -8,6 +8,7 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
+import { requireFeature } from "../middleware/plan-gate.js";
 import { config } from "../config.js";
 import type { AuthUser } from "../middleware/auth.js";
 import { sql } from "../db/client.js";
@@ -16,6 +17,7 @@ export const toolRoutes = new Hono<{ Variables: AppVariables }>();
 
 toolRoutes.use("*", requireAuth);
 toolRoutes.use("*", rateLimit(config.rateLimit.api));
+toolRoutes.use("*", requireFeature("toolPlayground"));
 
 // ── Schema ──────────────────────────────────────────────────────────────
 

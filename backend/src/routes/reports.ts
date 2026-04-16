@@ -7,12 +7,14 @@ import { Hono } from "hono";
 import { withOrg } from "../db/client.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
+import { requireFeature } from "../middleware/plan-gate.js";
 import { config } from "../config.js";
 
 export const reportRoutes = new Hono<{ Variables: AppVariables }>();
 
 reportRoutes.use("*", requireAuth);
 reportRoutes.use("*", rateLimit(config.rateLimit.api));
+reportRoutes.use("*", requireFeature("exportMarkdown"));
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 

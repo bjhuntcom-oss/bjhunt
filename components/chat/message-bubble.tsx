@@ -52,7 +52,7 @@ function relativeTime(isoString: string): string {
   if (m < 60) return `il y a ${m}m`
   const h = Math.floor(m / 60)
   if (h < 24) return `il y a ${h}h`
-  return `il y a ${Math.floor(h / 24)}j`
+  return new Date(isoString).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
 }
 
 interface MessageBubbleProps {

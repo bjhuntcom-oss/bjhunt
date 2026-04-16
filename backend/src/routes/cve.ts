@@ -6,12 +6,14 @@ import type { AppVariables } from "../types.js";
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
+import { requireFeature } from "../middleware/plan-gate.js";
 import { config } from "../config.js";
 
 export const cveRoutes = new Hono<{ Variables: AppVariables }>();
 
 cveRoutes.use("*", requireAuth);
 cveRoutes.use("*", rateLimit(config.rateLimit.api));
+cveRoutes.use("*", requireFeature("cveIntel"));
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -301,4 +303,197 @@ cveRoutes.get("/search", async (c) => {
 
 cveRoutes.get("/trending", async (c) => {
   return c.json({ results: TRENDING_CVES });
+});
+
+// ── Scan dependencies for known CVEs ────────────────────────────────────
+
+// Known vulnerable package versions — mock data for common packages
+const DEP_VULN_DB: Record<string, Array<{ maxVersion: string; cveId: string; severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW"; cvss: number; description: string }>> = {
+  "log4j-core": [
+    { maxVersion: "2.17.0", cveId: "CVE-2021-44228", severity: "CRITICAL", cvss: 10.0, description: "Log4Shell — JNDI injection via crafted log messages allowing RCE" },
+    { maxVersion: "2.17.0", cveId: "CVE-2021-45046", severity: "CRITICAL", cvss: 9.0, description: "Incomplete fix for CVE-2021-44228 in certain non-default configurations" },
+  ],
+  "django": [
+    { maxVersion: "4.2.7", cveId: "CVE-2023-46695", severity: "HIGH", cvss: 7.5, description: "Denial of service via large number of uploaded files" },
+    { maxVersion: "4.1.0", cveId: "CVE-2022-34265", severity: "HIGH", cvss: 9.8, description: "SQL injection in Trunc/Extract database functions" },
+  ],
+  "flask": [
+    { maxVersion: "2.3.2", cveId: "CVE-2023-30861", severity: "HIGH", cvss: 7.5, description: "Session cookie set without Secure flag on HTTPS when proxy is misconfigured" },
+  ],
+  "requests": [
+    { maxVersion: "2.31.0", cveId: "CVE-2023-32681", severity: "MEDIUM", cvss: 6.1, description: "Proxy-Authorization header leakage on redirect to different scheme" },
+  ],
+  "express": [
+    { maxVersion: "4.19.2", cveId: "CVE-2024-29041", severity: "MEDIUM", cvss: 6.1, description: "Open redirect via malformed URL in res.redirect()" },
+  ],
+  "lodash": [
+    { maxVersion: "4.17.20", cveId: "CVE-2021-23337", severity: "HIGH", cvss: 7.2, description: "Command injection via template function" },
+    { maxVersion: "4.17.15", cveId: "CVE-2020-8203", severity: "HIGH", cvss: 7.4, description: "Prototype pollution via zipObjectDeep" },
+  ],
+  "axios": [
+    { maxVersion: "1.6.0", cveId: "CVE-2023-45857", severity: "MEDIUM", cvss: 6.5, description: "CSRF token leakage via X-XSRF-TOKEN header sent to cross-origin requests" },
+  ],
+  "jsonwebtoken": [
+    { maxVersion: "8.5.1", cveId: "CVE-2022-23529", severity: "HIGH", cvss: 7.6, description: "Arbitrary code execution when verifying with a malicious JWK" },
+  ],
+  "cryptography": [
+    { maxVersion: "41.0.4", cveId: "CVE-2023-49083", severity: "HIGH", cvss: 7.5, description: "NULL pointer dereference when loading PKCS7 certificates" },
+  ],
+  "pillow": [
+    { maxVersion: "10.0.1", cveId: "CVE-2023-44271", severity: "HIGH", cvss: 7.5, description: "Denial of service via uncontrolled resource consumption in textlength()" },
+  ],
+  "next": [
+    { maxVersion: "14.1.0", cveId: "CVE-2024-34351", severity: "HIGH", cvss: 7.5, description: "SSRF via Server Actions rewrite headers in self-hosted deployments" },
+  ],
+  "spring-boot": [
+    { maxVersion: "3.1.5", cveId: "CVE-2023-34055", severity: "MEDIUM", cvss: 5.3, description: "Denial of service with certain actuator endpoint configurations" },
+  ],
+  "golang.org/x/crypto": [
+    { maxVersion: "0.17.0", cveId: "CVE-2023-48795", severity: "MEDIUM", cvss: 5.9, description: "Terrapin attack — prefix truncation in SSH transport protocol" },
+  ],
+  "golang.org/x/net": [
+    { maxVersion: "0.17.0", cveId: "CVE-2023-44487", severity: "HIGH", cvss: 7.5, description: "HTTP/2 Rapid Reset attack causing denial of service" },
+  ],
+};
+
+cveRoutes.post("/scan-dependencies", async (c) => {
+  const formData = await c.req.formData();
+  const file = formData.get("file");
+  if (!file || !(file instanceof File)) {
+    return c.json({ error: "No file uploaded" }, 400);
+  }
+
+  const content = await file.text();
+  const fileName = file.name.toLowerCase();
+
+  // Parse package@version pairs based on file format
+  const packages: Array<{ name: string; version: string }> = [];
+
+  if (fileName === "requirements.txt" || fileName.endsWith(".txt")) {
+    // Python requirements.txt
+    const lines = content.split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("-")) continue;
+      const match = trimmed.match(/^([a-zA-Z0-9_.-]+)\s*[=<>~!]+\s*([0-9][^\s,;]*)/);
+      if (match) {
+        packages.push({ name: match[1]!.toLowerCase(), version: match[2]! });
+      } else {
+        // Package without version
+        const nameOnly = trimmed.match(/^([a-zA-Z0-9_.-]+)/);
+        if (nameOnly) packages.push({ name: nameOnly[1]!.toLowerCase(), version: "latest" });
+      }
+    }
+  } else if (fileName === "package-lock.json" || fileName === "package.json") {
+    // Node.js
+    try {
+      const pkg = JSON.parse(content);
+      const deps = pkg.dependencies || {};
+      if (fileName === "package-lock.json" && pkg.packages) {
+        // lockfile v3 format
+        for (const [key, val] of Object.entries(pkg.packages)) {
+          if (!key || key === "") continue;
+          const name = key.replace(/^node_modules\//, "");
+          const version = (val as any).version || "";
+          if (name && version) packages.push({ name: name.toLowerCase(), version });
+        }
+      } else {
+        for (const [name, ver] of Object.entries(deps)) {
+          const version = String(ver).replace(/^[\^~>=<]/, "").replace(/^[\^~>=<]/, "");
+          packages.push({ name: name.toLowerCase(), version });
+        }
+        const devDeps = pkg.devDependencies || {};
+        for (const [name, ver] of Object.entries(devDeps)) {
+          const version = String(ver).replace(/^[\^~>=<]/, "").replace(/^[\^~>=<]/, "");
+          packages.push({ name: name.toLowerCase(), version });
+        }
+      }
+    } catch {
+      return c.json({ error: "Invalid JSON in package file" }, 400);
+    }
+  } else if (fileName === "go.sum" || fileName === "go.mod") {
+    // Go
+    const lines = content.split("\n");
+    for (const line of lines) {
+      const match = line.match(/^(?:require\s+)?([a-zA-Z0-9./_-]+)\s+v?([0-9][^\s/]*)/);
+      if (match) {
+        packages.push({ name: match[1]!.toLowerCase(), version: match[2]! });
+      }
+    }
+  } else if (fileName === "cargo.lock") {
+    // Rust
+    const blocks = content.split("[[package]]");
+    for (const block of blocks) {
+      const nameMatch = block.match(/name\s*=\s*"([^"]+)"/);
+      const versionMatch = block.match(/version\s*=\s*"([^"]+)"/);
+      if (nameMatch && versionMatch) {
+        packages.push({ name: nameMatch[1]!.toLowerCase(), version: versionMatch[1]! });
+      }
+    }
+  } else if (fileName === "pom.xml" || fileName.endsWith(".xml")) {
+    // Maven
+    const depMatches = content.matchAll(/<dependency>[\s\S]*?<artifactId>([^<]+)<\/artifactId>[\s\S]*?(?:<version>([^<]+)<\/version>)?[\s\S]*?<\/dependency>/gi);
+    for (const m of depMatches) {
+      packages.push({ name: (m[1] || "").toLowerCase(), version: m[2] || "latest" });
+    }
+  } else {
+    return c.json({ error: "Unsupported lockfile format. Supported: requirements.txt, package-lock.json, package.json, go.sum, go.mod, Cargo.lock, pom.xml" }, 400);
+  }
+
+  // Deduplicate
+  const seen = new Set<string>();
+  const uniquePackages = packages.filter((p) => {
+    const key = `${p.name}@${p.version}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  // Match against vulnerability database
+  const results = uniquePackages.map((pkg) => {
+    const vulns = DEP_VULN_DB[pkg.name];
+    const cves = vulns
+      ? vulns.map((v) => ({
+          cveId: v.cveId,
+          severity: v.severity,
+          cvss: v.cvss,
+          description: v.description,
+        }))
+      : [];
+
+    // Calculate highest severity
+    let highestSeverity: string | null = null;
+    let highestCvss = 0;
+    for (const cve of cves) {
+      if (cve.cvss > highestCvss) {
+        highestCvss = cve.cvss;
+        highestSeverity = cve.severity;
+      }
+    }
+
+    return {
+      name: pkg.name,
+      version: pkg.version,
+      cves,
+      highestSeverity,
+      highestCvss: highestCvss || null,
+    };
+  });
+
+  // Sort: packages with CVEs first, then by highest CVSS
+  results.sort((a, b) => {
+    if (a.cves.length === 0 && b.cves.length > 0) return 1;
+    if (a.cves.length > 0 && b.cves.length === 0) return -1;
+    return (b.highestCvss ?? 0) - (a.highestCvss ?? 0);
+  });
+
+  return c.json({
+    packages: results,
+    summary: {
+      total: results.length,
+      vulnerable: results.filter((r) => r.cves.length > 0).length,
+      critical: results.filter((r) => r.cves.some((c) => c.severity === "CRITICAL")).length,
+      high: results.filter((r) => r.cves.some((c) => c.severity === "HIGH")).length,
+    },
+  });
 });

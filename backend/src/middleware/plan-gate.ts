@@ -11,11 +11,19 @@ async function getOrgPlan(orgId: string): Promise<string> {
   return (org as any)?.plan || "free";
 }
 
-/** Require minimum plan level */
+function isAdmin(c: any): boolean {
+  const user = c.get("user");
+  return user?.isPlatformAdmin === true;
+}
+
+/** Require minimum plan level. Platform admins bypass all plan checks. */
 export function requirePlan(...allowed: string[]): MiddlewareHandler {
   return async (c, next) => {
     const orgId = c.get("orgId") as string;
     if (!orgId) return c.json({ error: "Authentication required" }, 401);
+
+    // Platform admins bypass all plan restrictions
+    if (isAdmin(c)) { c.set("plan" as never, "enterprise"); return next(); }
 
     const plan = await getOrgPlan(orgId);
     if (!allowed.includes(plan)) {
@@ -33,9 +41,10 @@ export function requirePlan(...allowed: string[]): MiddlewareHandler {
   };
 }
 
-/** Enforce monthly scan quota */
+/** Enforce monthly scan quota. Admins bypass. */
 export function enforceScanQuota(): MiddlewareHandler {
   return async (c, next) => {
+    if (isAdmin(c)) return next();
     const orgId = c.get("orgId") as string;
     const plan = (c.get("plan" as never) as string) || await getOrgPlan(orgId);
     const limits = getPlanLimits(plan);
@@ -68,9 +77,10 @@ export function enforceScanQuota(): MiddlewareHandler {
   };
 }
 
-/** Enforce 5-min demo for free plan chat */
+/** Enforce 5-min demo for free plan chat. Admins and paid plans bypass. */
 export function enforceDemoLimit(): MiddlewareHandler {
   return async (c, next) => {
+    if (isAdmin(c)) return next();
     const orgId = c.get("orgId") as string;
     const plan = (c.get("plan" as never) as string) || await getOrgPlan(orgId);
 
@@ -98,6 +108,29 @@ export function enforceDemoLimit(): MiddlewareHandler {
       }, 403);
     }
 
+    await next();
+  };
+}
+
+/** Require a specific feature flag from the plan. Admins bypass. */
+export function requireFeature(featureKey: string): MiddlewareHandler {
+  return async (c, next) => {
+    if (isAdmin(c)) return next();
+    const orgId = c.get("orgId") as string;
+    const plan = await getOrgPlan(orgId);
+    const limits = getPlanLimits(plan) as Record<string, unknown>;
+
+    if (!limits[featureKey]) {
+      return c.json({
+        error: "feature_restricted",
+        message: `This feature requires an upgraded plan.`,
+        feature: featureKey,
+        currentPlan: plan,
+        upgradeUrl: "https://bjhunt.com/pricing",
+      }, 403);
+    }
+
+    c.set("plan" as never, plan);
     await next();
   };
 }

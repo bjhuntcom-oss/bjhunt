@@ -6,6 +6,7 @@ import type { AppVariables } from "../types.js";
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
+import { requireFeature } from "../middleware/plan-gate.js";
 import { config } from "../config.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -14,6 +15,7 @@ export const skillRoutes = new Hono<{ Variables: AppVariables }>();
 
 skillRoutes.use("*", requireAuth);
 skillRoutes.use("*", rateLimit(config.rateLimit.api));
+skillRoutes.use("*", requireFeature("skillCatalog"));
 
 // ── Types ───────────────────────────────────────────────────────────────
 

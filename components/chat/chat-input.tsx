@@ -212,7 +212,7 @@ export function ChatInput({
 
               {/* File attach */}
               <label
-                className="p-2 text-[var(--text-muted)] hover:text-white transition-colors cursor-pointer"
+                className="p-2 md:p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--text-muted)] hover:text-white transition-colors cursor-pointer"
                 title="Joindre un fichier"
               >
                 <input
@@ -258,7 +258,7 @@ export function ChatInput({
                 onClick={onToggleWebSearch}
                 title="Recherche web"
                 className={cn(
-                  "p-2 transition-colors",
+                  "p-2 md:p-2 min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors",
                   webSearch
                     ? "text-[var(--success)]"
                     : "text-[var(--text-muted)] hover:text-white"
@@ -272,7 +272,7 @@ export function ChatInput({
                 type="button"
                 onClick={onOpenPromptLibrary}
                 title="Bibliothèque de prompts (Ctrl+/)"
-                className="p-2 text-[var(--text-muted)] hover:text-white transition-colors"
+                className="p-2 md:p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--text-muted)] hover:text-white transition-colors"
               >
                 <BookOpen className="w-4 h-4" />
               </button>
@@ -282,7 +282,7 @@ export function ChatInput({
                 type="button"
                 onClick={onOpenSettings}
                 title="Paramètres du modèle (Ctrl+M)"
-                className="p-2 text-[var(--text-muted)] hover:text-white transition-colors"
+                className="p-2 md:p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--text-muted)] hover:text-white transition-colors"
               >
                 <Settings2 className="w-4 h-4" />
               </button>

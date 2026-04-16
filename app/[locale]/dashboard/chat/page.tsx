@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Plus, PanelRightOpen, PanelRightClose, Globe, Cloud, Code, Database } from "lucide-react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { Plus, PanelRightOpen, PanelRightClose, Globe, Cloud, Code, Database, Search, X, Pencil, Trash2 } from "lucide-react";
 import { MessageBubble, type ChatMessage } from "@/components/chat/message-bubble";
 import { ToolCallBlock, type ToolCall } from "@/components/chat/tool-call-block";
 import { ThinkingBlock } from "@/components/chat/thinking-block";
@@ -75,6 +75,18 @@ export default function ChatPage() {
     webSearch: false,
   });
 
+  // Sidebar search (Fix 5)
+  const [conversationSearch, setConversationSearch] = useState("");
+
+  // Loading history skeleton (Fix 4)
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Context menu (Fix 6)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; engId: string } | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
   // Token counter & streaming speed
   const [tokenCount, setTokenCount] = useState(0);
   const [streamSpeed, setStreamSpeed] = useState(0);
@@ -82,6 +94,7 @@ export default function ChatPage() {
   const streamStartTimeRef = useRef<number>(0);
   const tokensSoFarRef = useRef<number>(0);
   const speedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const speedSamplesRef = useRef<number[]>([]); // Fix 10: moving average
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -92,10 +105,52 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, toolCalls, subAgents]);
 
+  // Fix 1: Escape key closes panels
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setShowSettings(false);
+        setShowPromptLibrary(false);
+        setContextMenu(null);
+        setDeleteConfirmId(null);
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Fix 6: Click-outside closes context menu
+  useEffect(() => {
+    if (!contextMenu) return;
+    function handleClick() { setContextMenu(null); }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [contextMenu]);
+
   // Load engagements on mount
   useEffect(() => {
     loadEngagements();
   }, []);
+
+  // Fix 3: Restore active engagement from sessionStorage after engagements load
+  useEffect(() => {
+    if (engagements.length === 0) return;
+    const savedId = sessionStorage.getItem("bjhunt_active_engagement");
+    if (savedId && !activeEngagement) {
+      const found = engagements.find((e) => e.id === savedId);
+      if (found) {
+        setActiveEngagement(found);
+        loadHistory(found.id);
+      }
+    }
+  }, [engagements]);
+
+  // Fix 3: Save active engagement to sessionStorage
+  useEffect(() => {
+    if (activeEngagement) {
+      sessionStorage.setItem("bjhunt_active_engagement", activeEngagement.id);
+    }
+  }, [activeEngagement]);
 
   async function loadEngagements() {
     try {
@@ -112,6 +167,7 @@ export default function ChatPage() {
   // ── Load conversation history from DB ─────────────────────────────────
 
   async function loadHistory(engagementId: string) {
+    setLoadingHistory(true);
     try {
       // Get conversations for this engagement
       const convRes = await browserBackendFetch(`/api/chat/history/${engagementId}`);
@@ -147,6 +203,8 @@ export default function ChatPage() {
       setToolCalls(allToolCalls);
     } catch {
       // History load is best-effort
+    } finally {
+      setLoadingHistory(false);
     }
   }
 
@@ -258,12 +316,17 @@ export default function ChatPage() {
     setActiveAgent(null);
     tokensSoFarRef.current = 0;
     streamStartTimeRef.current = Date.now();
+    speedSamplesRef.current = [];
 
-    // Start speed calculation interval
+    // Start speed calculation interval with moving average (Fix 10)
     speedIntervalRef.current = setInterval(() => {
       const elapsed = (Date.now() - streamStartTimeRef.current) / 1000;
       if (elapsed > 0 && tokensSoFarRef.current > 0) {
-        setStreamSpeed(Math.round(tokensSoFarRef.current / elapsed));
+        const rawSpeed = tokensSoFarRef.current / elapsed;
+        speedSamplesRef.current.push(rawSpeed);
+        if (speedSamplesRef.current.length > 5) speedSamplesRef.current.shift();
+        const avg = speedSamplesRef.current.reduce((a, b) => a + b, 0) / speedSamplesRef.current.length;
+        setStreamSpeed(Math.round(avg));
       }
     }, 500);
 
@@ -504,6 +567,44 @@ export default function ChatPage() {
     abortRef.current?.abort();
   }
 
+  // Fix 6: Rename engagement
+  async function handleRename(engId: string, newName: string) {
+    if (!newName.trim()) { setRenamingId(null); return; }
+    try {
+      await browserBackendFetch(`/api/engagements/${engId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName.trim() }),
+      });
+    } catch { /* best-effort */ }
+    setEngagements((prev) =>
+      prev.map((e) => (e.id === engId ? { ...e, name: newName.trim() } : e))
+    );
+    setRenamingId(null);
+  }
+
+  // Fix 6: Delete engagement
+  async function handleDelete(engId: string) {
+    try {
+      await browserBackendFetch(`/api/engagements/${engId}`, { method: "DELETE" });
+    } catch { /* best-effort */ }
+    setEngagements((prev) => prev.filter((e) => e.id !== engId));
+    if (activeEngagement?.id === engId) {
+      setActiveEngagement(null);
+      setMessages([]);
+      setToolCalls(new Map());
+      setSubAgents(new Map());
+    }
+    setDeleteConfirmId(null);
+  }
+
+  // Fix 5: Filtered engagements for sidebar search
+  const filteredEngagements = useMemo(() => {
+    if (!conversationSearch.trim()) return engagements;
+    const q = conversationSearch.toLowerCase();
+    return engagements.filter((e) => e.name.toLowerCase().includes(q));
+  }, [engagements, conversationSearch]);
+
   // ── Render ───────────────────────────────────────────────────────────
 
   // Interleave messages and tool calls chronologically
@@ -557,28 +658,122 @@ export default function ChatPage() {
                   <Plus className="w-4 h-4" />
                 </button>
 
-                {engagements.map((eng) => (
-                  <button
-                    key={eng.id}
-                    onClick={() => {
-                      setActiveEngagement(eng);
-                      setMessages([]);
-                      setToolCalls(new Map());
-                      setSubAgents(new Map());
-                      loadHistory(eng.id);
-                    }}
-                    className={`w-full text-left px-3 py-2 transition-colors ${
-                      activeEngagement?.id === eng.id
-                        ? "bg-[var(--bg-card)] border border-[var(--border-strong)]"
-                        : "hover:bg-[var(--bg-card)] border border-transparent"
-                    }`}
-                  >
-                    <div className="text-[11px] text-white truncate">{eng.name}</div>
-                    <div className="text-[9px] text-[var(--text-subtle)] mt-0.5">
-                      {new Date(eng.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </div>
-                  </button>
+                {/* Fix 5: Conversation search */}
+                {engagements.length > 2 && (
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-subtle)]" />
+                    <input
+                      value={conversationSearch}
+                      onChange={(e) => setConversationSearch(e.target.value)}
+                      placeholder="Search..."
+                      className="w-full bg-[var(--bg-input)] border border-[var(--border)] pl-7 pr-7 py-1.5 text-[10px] text-white placeholder:text-[var(--text-subtle)] outline-none focus:border-[var(--border-strong)]"
+                    />
+                    {conversationSearch && (
+                      <button
+                        onClick={() => setConversationSearch("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-subtle)] hover:text-white"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {filteredEngagements.map((eng) => (
+                  <div key={eng.id} className="relative">
+                    {renamingId === eng.id ? (
+                      /* Fix 6: Inline rename */
+                      <div className="px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-strong)]">
+                        <input
+                          autoFocus
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleRename(eng.id, renameValue);
+                            if (e.key === "Escape") setRenamingId(null);
+                          }}
+                          onBlur={() => handleRename(eng.id, renameValue)}
+                          className="w-full bg-transparent text-[11px] text-white outline-none"
+                        />
+                      </div>
+                    ) : deleteConfirmId === eng.id ? (
+                      /* Fix 6: Delete confirmation */
+                      <div className="px-3 py-2 bg-[var(--danger-dim)] border border-[var(--danger)]/30">
+                        <p className="text-[10px] text-[var(--danger)] mb-2">Delete this conversation?</p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setDeleteConfirmId(null)}
+                            className="flex-1 py-1 text-[9px] uppercase tracking-wider text-[var(--text-muted)] border border-[var(--border)] hover:text-white"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleDelete(eng.id)}
+                            className="flex-1 py-1 text-[9px] uppercase tracking-wider bg-[var(--danger)] text-white hover:bg-[var(--danger)]/80"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setActiveEngagement(eng);
+                          setMessages([]);
+                          setToolCalls(new Map());
+                          setSubAgents(new Map());
+                          loadHistory(eng.id);
+                        }}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setContextMenu({ x: e.clientX, y: e.clientY, engId: eng.id });
+                        }}
+                        className={`w-full text-left px-3 py-2 transition-colors ${
+                          activeEngagement?.id === eng.id
+                            ? "bg-[var(--bg-card)] border border-[var(--border-strong)]"
+                            : "hover:bg-[var(--bg-card)] border border-transparent"
+                        }`}
+                      >
+                        <div className="text-[11px] text-white truncate">{eng.name}</div>
+                        <div className="text-[9px] text-[var(--text-subtle)] mt-0.5">
+                          {new Date(eng.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </div>
+                      </button>
+                    )}
+                  </div>
                 ))}
+
+                {/* Fix 6: Context menu dropdown */}
+                {contextMenu && (
+                  <div
+                    className="fixed z-[60] bg-[var(--bg-card)] border border-[var(--border-strong)] shadow-2xl py-1 min-w-[140px]"
+                    style={{ left: contextMenu.x, top: contextMenu.y }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={() => {
+                        const eng = engagements.find((e) => e.id === contextMenu.engId);
+                        setRenamingId(contextMenu.engId);
+                        setRenameValue(eng?.name || "");
+                        setContextMenu(null);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-[10px] text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-input)] transition-colors"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      Rename
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDeleteConfirmId(contextMenu.engId);
+                        setContextMenu(null);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-[10px] text-[var(--danger)] hover:bg-[var(--danger-dim)] transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -659,14 +854,35 @@ export default function ChatPage() {
 
         {/* Messages area */}
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-          {messages.length === 0 && (
+          {/* Fix 4: Loading skeleton */}
+          {loadingHistory && messages.length === 0 && (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className={`flex flex-col gap-1.5 ${i % 2 === 1 ? "items-end" : "items-start"}`}>
+                  <div className="h-2 w-12 bg-[var(--border)] animate-pulse" />
+                  <div
+                    className="bg-[var(--bg-input)] border border-[var(--border)] px-4 py-3 animate-pulse"
+                    style={{ width: `${40 + i * 15}%`, maxWidth: "75%" }}
+                  >
+                    <div className="space-y-2">
+                      <div className="h-3 bg-[var(--border)] w-full" />
+                      <div className="h-3 bg-[var(--border)] w-3/4" />
+                      {i === 2 && <div className="h-3 bg-[var(--border)] w-1/2" />}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {messages.length === 0 && !loadingHistory && (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="text-[24px] font-mono text-white mb-2">BJHUNT ALPHA 1.0</div>
               <p className="text-[11px] text-[var(--text-muted)] max-w-[420px] leading-relaxed mb-8">
                 Describe your target, choose an agent, and start scanning. Or just ask a question.
               </p>
 
-              {/* Suggested prompts */}
+              {/* Suggested prompts — Fix 9: auto-send on click */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-[520px] w-full">
                 {[
                   { icon: <Globe className="w-4 h-4" />, text: "Scan my web application for vulnerabilities" },
@@ -676,7 +892,7 @@ export default function ChatPage() {
                 ].map((suggestion) => (
                   <button
                     key={suggestion.text}
-                    onClick={() => setPromptInitialValue(suggestion.text)}
+                    onClick={() => handleSend(suggestion.text)}
                     className="flex items-center gap-3 px-4 py-3 border border-[var(--border)] bg-[var(--bg-card)] text-left hover:border-[var(--border-strong)] hover:bg-[var(--bg-input)] transition-colors group"
                   >
                     <span className="text-[var(--text-muted)] group-hover:text-white transition-colors flex-shrink-0">
@@ -756,8 +972,14 @@ export default function ChatPage() {
           <ChatInput
             onSubmit={handleSend}
             onStop={handleStop}
-            onOpenSettings={() => setShowSettings((v) => !v)}
-            onOpenPromptLibrary={() => setShowPromptLibrary((v) => !v)}
+            onOpenSettings={() => {
+              setShowSettings((v) => !v);
+              setShowPromptLibrary(false);
+            }}
+            onOpenPromptLibrary={() => {
+              setShowPromptLibrary((v) => !v);
+              setShowSettings(false);
+            }}
             onSlashCommand={handleSlashCommand}
             webSearch={webSearch}
             onToggleWebSearch={() => setWebSearch((v) => !v)}
@@ -771,22 +993,34 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* ── Right panels ──────────────────────────────────────────── */}
-      {showSettings && (
-        <ModelSettingsPanel
-          settings={modelSettings}
-          onChange={setModelSettings}
-          onClose={() => setShowSettings(false)}
+      {/* ── Fix 2: Click-outside backdrop for right panels ─────── */}
+      {(showSettings || showPromptLibrary) && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => { setShowSettings(false); setShowPromptLibrary(false); }}
         />
       )}
+
+      {/* ── Right panels ──────────────────────────────────────────── */}
+      {showSettings && (
+        <div className="relative z-50">
+          <ModelSettingsPanel
+            settings={modelSettings}
+            onChange={setModelSettings}
+            onClose={() => setShowSettings(false)}
+          />
+        </div>
+      )}
       {showPromptLibrary && (
-        <PromptLibraryPanel
-          onSelect={(content) => {
-            setPromptInitialValue(content);
-            setShowPromptLibrary(false);
-          }}
-          onClose={() => setShowPromptLibrary(false)}
-        />
+        <div className="relative z-50">
+          <PromptLibraryPanel
+            onSelect={(content) => {
+              setPromptInitialValue(content);
+              setShowPromptLibrary(false);
+            }}
+            onClose={() => setShowPromptLibrary(false)}
+          />
+        </div>
       )}
 
       {/* Onboarding overlay for first-time users */}
