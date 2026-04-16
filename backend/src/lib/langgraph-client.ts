@@ -60,7 +60,7 @@ export const langgraphClient = {
       method: "POST",
       body: JSON.stringify({
         assistant_id: assistantId,
-        input: { messages: [{ role: "human", content: JSON.stringify(input) }] },
+        input: { messages: [{ role: "human", content: String(input.content || JSON.stringify(input)) }] },
       }),
     });
     const data = (await res.json()) as { run_id: string; status: string };
@@ -94,7 +94,7 @@ export const langgraphClient = {
       headers: HEADERS,
       body: JSON.stringify({
         assistant_id: assistantId,
-        input: { messages: [{ role: "human", content: JSON.stringify(input) }] },
+        input: { messages: [{ role: "human", content: String(input.content || JSON.stringify(input)) }] },
         stream_mode: "events",
       }),
       // 30s timeout for initial connection (not the whole stream)

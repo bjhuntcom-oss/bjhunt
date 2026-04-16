@@ -15,6 +15,7 @@ export interface ChatMessage {
   files?: UploadedFile[];
   sources?: WebSource[];
   isStreaming?: boolean;
+  emptyResponse?: boolean;
   createdAt: string;
 }
 
@@ -61,6 +62,7 @@ interface MessageBubbleProps {
   onEdit?: (newContent: string) => void;
   onFeedback?: (type: "up" | "down") => void;
   onFork?: () => void;
+  onRetry?: () => void;
 }
 
 function CodeBlock({ code, language }: { code: string; language: string }) {
@@ -102,7 +104,7 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
   );
 }
 
-export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFork }: MessageBubbleProps) {
+export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFork, onRetry }: MessageBubbleProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(message.content);
 
@@ -113,6 +115,7 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
 
   const isUser = message.role === "user";
   const isThinking = !isUser && !!message.isStreaming && message.content === ""
+  const isEmpty = !isUser && !message.isStreaming && message.emptyResponse && !message.content;
 
   function commitEdit() {
     onEdit?.(editValue);
@@ -162,6 +165,30 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
             <span className="w-1.5 h-1.5 bg-[var(--text-muted)]  animate-bounce [animation-delay:150ms]" />
             <span className="w-1.5 h-1.5 bg-[var(--text-muted)]  animate-bounce [animation-delay:300ms]" />
           </div>
+        ) : isEmpty ? (
+          <div className="flex flex-col gap-2 py-1">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-[var(--warning)] flex-shrink-0" />
+              <span className="text-[11px] text-[var(--warning)]">
+                Le moteur IA est temporairement indisponible.
+              </span>
+            </div>
+            <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
+              La connexion au backend a abouti mais aucune reponse n&apos;a ete generee. Cela peut arriver si le moteur LangGraph n&apos;est pas encore demarre.
+            </p>
+            {onRetry && (
+              <button
+                onClick={onRetry}
+                className="self-start flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border)] text-[9px] uppercase tracking-wider text-[var(--text-muted)] hover:text-white hover:border-[var(--border-strong)] transition-colors"
+              >
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <polyline points="23 4 23 10 17 10"/>
+                  <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+                </svg>
+                Reessayer
+              </button>
+            )}
+          </div>
         ) : editing ? (
           <div>
             <textarea
@@ -200,8 +227,8 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
           </div>
         )}
 
-        {/* Inline action bar — assistant messages only, not while streaming */}
-        {message.role === "assistant" && !message.isStreaming && (
+        {/* Inline action bar — assistant messages only, not while streaming, not for empty */}
+        {message.role === "assistant" && !message.isStreaming && !isEmpty && (
           <div className="flex items-center gap-1 mt-2 pt-1.5 border-t border-[var(--border)]/30">
             {/* Copy */}
             <button
@@ -262,10 +289,12 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
               </button>
             )}
 
-            {/* Token estimate */}
-            <span className="ml-auto text-[9px] text-[var(--text-subtle)]">
-              ~{Math.ceil(message.content.length / 4)} tok
-            </span>
+            {/* Token estimate — hide for empty responses */}
+            {!isEmpty && (
+              <span className="ml-auto text-[9px] text-[var(--text-subtle)]">
+                ~{Math.ceil(message.content.length / 4)} tok
+              </span>
+            )}
           </div>
         )}
       </div>

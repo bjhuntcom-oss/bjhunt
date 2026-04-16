@@ -359,6 +359,14 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
         // Final partial block — just pass through, no parse needed
       }
 
+      // Detect empty response (LangGraph returned stream but no content)
+      if (!fullResponse && toolCalls.length === 0) {
+        emitSSE(controller, "error", {
+          message: "L'agent IA n'a pas retourné de réponse. Le moteur est peut-être indisponible ou le modèle n'a pas pu générer de contenu.",
+          code: "empty_response",
+        });
+      }
+
       // Emit done event
       emitSSE(controller, "done", {});
 

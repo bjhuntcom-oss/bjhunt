@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Plus, PanelRightOpen, PanelRightClose, Globe, Cloud, Code, Database, Search, X, Pencil, Trash2 } from "lucide-react";
+import { Plus, PanelRightOpen, PanelRightClose, Globe, Cloud, Code, Database, Search, X, Pencil, Trash2, ArrowDown } from "lucide-react";
 import { MessageBubble, type ChatMessage } from "@/components/chat/message-bubble";
 import { ToolCallBlock, type ToolCall } from "@/components/chat/tool-call-block";
 import { ThinkingBlock } from "@/components/chat/thinking-block";
@@ -71,6 +71,23 @@ function groupByDate(items: SidebarConversation[]): { label: string; items: Side
 function truncate(text: string, maxLen: number): string {
   if (text.length <= maxLen) return text;
   return text.slice(0, maxLen).trimEnd() + "...";
+}
+
+/** Check if a conversation title is a generic/placeholder name */
+function isGenericTitle(title: string): boolean {
+  if (!title) return true;
+  // Match patterns like "Assessment 16/04/2026", "Scan 16/04/2026", "New conversation", "New chat"
+  return /^(Assessment|Scan|Evaluation|Audit)\s+\d{1,2}\/\d{1,2}\/\d{4}$/i.test(title)
+    || /^New (conversation|chat)$/i.test(title);
+}
+
+/** Get display title: prefer lastMessage preview for generic titles */
+function displayTitle(conv: SidebarConversation): string {
+  if (isGenericTitle(conv.title)) {
+    if (conv.lastMessage) return truncate(conv.lastMessage, 40);
+    return "Sans titre";
+  }
+  return truncate(conv.title, 40);
 }
 
 /** Relative time label */
@@ -155,15 +172,35 @@ export default function ChatPage() {
   const speedSamplesRef = useRef<number[]>([]); // Fix 10: moving average
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const lastAiContentRef = useRef<string>("");
   const hasAutoNamedRef = useRef<boolean>(false);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
+  const [showScrollDown, setShowScrollDown] = useState(false);
 
-  // Auto-scroll
+  // Auto-scroll only when near bottom (within 150px)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const nearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+    if (nearBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages, toolCalls, subAgents]);
+
+  // Track scroll position to show/hide "scroll to bottom" button
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    function onScroll() {
+      if (!container) return;
+      const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      setShowScrollDown(distFromBottom > 200);
+    }
+    container.addEventListener("scroll", onScroll, { passive: true });
+    return () => container.removeEventListener("scroll", onScroll);
+  }, []);
 
   // Fix 1: Escape key closes panels
   useEffect(() => {
@@ -593,7 +630,12 @@ export default function ChatPage() {
       setMessages((prev) =>
         prev.map((m) => {
           if (m.id !== assistantId) return m;
-          return { ...m, content: m.content || finalContent, isStreaming: false };
+          const resolvedContent = m.content || finalContent;
+          // If content is empty after stream ends and no explicit error, show unavailable notice
+          if (!resolvedContent && !streamError) {
+            return { ...m, content: "", isStreaming: false, emptyResponse: true };
+          }
+          return { ...m, content: resolvedContent, isStreaming: false };
         })
       );
 
@@ -888,14 +930,22 @@ export default function ChatPage() {
           <div className="flex-1 overflow-y-auto">
             {sidebarTab === "conversations" && (
               <div className="p-2 space-y-1">
-                {/* New conversation button */}
-                <button
-                  onClick={startNewConversation}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-card)] border border-dashed border-[var(--border)] transition-colors"
-                  title="New conversation"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
+                {/* New conversation button + count */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={startNewConversation}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-card)] border border-dashed border-[var(--border)] transition-colors"
+                    title="New conversation"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="text-[9px] uppercase tracking-wider">New</span>
+                  </button>
+                  {sidebarConversations.length > 0 && (
+                    <span className="text-[9px] font-mono text-[var(--text-subtle)] tabular-nums flex-shrink-0">
+                      {sidebarConversations.length}
+                    </span>
+                  )}
+                </div>
 
                 {/* Conversation search */}
                 {(sidebarConversations.length > 2 || engagements.length > 2) && (
@@ -979,13 +1029,17 @@ export default function ChatPage() {
                               title={conv.lastMessage || conv.title}
                               className={`w-full text-left px-3 py-2 transition-colors group ${
                                 activeConversationId === conv.id
-                                  ? "bg-[var(--bg-card)] border border-[var(--border-strong)]"
-                                  : "hover:bg-[var(--bg-card)] border border-transparent"
+                                  ? "bg-[var(--bg-card)] border-l-2 border-l-[var(--success)] border-y border-r border-y-[var(--border-strong)] border-r-[var(--border-strong)]"
+                                  : "hover:bg-[var(--bg-card)] border-l-2 border-l-transparent border-y border-r border-y-transparent border-r-transparent"
                               }`}
                             >
-                              {/* Fix 6: Title = first message preview or conversation title */}
-                              <div className="text-[11px] text-white truncate">
-                                {conv.lastMessage ? truncate(conv.title, 40) : conv.title}
+                              {/* Title: meaningful name, or last message preview, or "Sans titre" */}
+                              <div className={`text-[11px] truncate ${
+                                isGenericTitle(conv.title) && !conv.lastMessage
+                                  ? "text-[var(--text-muted)] italic"
+                                  : "text-white"
+                              }`}>
+                                {displayTitle(conv)}
                               </div>
                               <div className="flex items-center justify-between mt-0.5">
                                 <span className="text-[9px] text-[var(--text-subtle)]">
@@ -1050,8 +1104,8 @@ export default function ChatPage() {
                           }}
                           className={`w-full text-left px-3 py-2 transition-colors ${
                             activeEngagement?.id === eng.id
-                              ? "bg-[var(--bg-card)] border border-[var(--border-strong)]"
-                              : "hover:bg-[var(--bg-card)] border border-transparent"
+                              ? "bg-[var(--bg-card)] border-l-2 border-l-[var(--success)] border-y border-r border-y-[var(--border-strong)] border-r-[var(--border-strong)]"
+                              : "hover:bg-[var(--bg-card)] border-l-2 border-l-transparent border-y border-r border-y-transparent border-r-transparent"
                           }`}
                         >
                           <div className="text-[11px] text-white truncate">{eng.name}</div>
@@ -1130,12 +1184,12 @@ export default function ChatPage() {
             >
               {showSidebar ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
             </button>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" title={AGENTS.find((a) => a.id === selectedAgent)?.description || "Default orchestrator"}>
               <span className="text-[11px] text-white font-mono uppercase">
                 {AGENTS.find((a) => a.id === selectedAgent)?.name || "BJHUNT"}
               </span>
-              <span className="text-[9px] text-[var(--text-subtle)] font-mono">
-                agent
+              <span className="hidden sm:inline text-[9px] text-[var(--text-subtle)] font-mono max-w-[200px] truncate">
+                {AGENTS.find((a) => a.id === selectedAgent)?.description || "agent"}
               </span>
             </div>
           </div>
@@ -1175,7 +1229,7 @@ export default function ChatPage() {
         </div>
 
         {/* Messages area */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 relative">
           {/* Fix 4: Loading skeleton */}
           {loadingHistory && messages.length === 0 && (
             <div className="space-y-4">
@@ -1231,7 +1285,14 @@ export default function ChatPage() {
 
           {messages.map((msg, i) => (
             <div key={msg.id}>
-              <MessageBubble message={msg} />
+              <MessageBubble
+                message={msg}
+                onRetry={msg.role === "assistant" && msg.emptyResponse && !msg.content ? () => {
+                  // Remove the empty assistant message and re-send
+                  setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+                  if (lastMessage) handleSend(lastMessage);
+                } : undefined}
+              />
 
               {/* Show tool calls after the last assistant message */}
               {msg.role === "assistant" && i === messages.length - 1 && sortedToolCalls.length > 0 && (
@@ -1287,6 +1348,17 @@ export default function ChatPage() {
           )}
 
           <div ref={messagesEndRef} />
+
+          {/* Scroll to bottom FAB */}
+          {showScrollDown && messages.length > 0 && (
+            <button
+              onClick={() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })}
+              className="sticky bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[var(--text-muted)] hover:text-white hover:border-white/30 transition-colors shadow-lg"
+            >
+              <ArrowDown className="w-3 h-3" />
+              <span className="text-[9px] uppercase tracking-wider">Dernier message</span>
+            </button>
+          )}
         </div>
 
         {/* Input area — ChatInput with slash commands, file upload, voice, etc. */}
