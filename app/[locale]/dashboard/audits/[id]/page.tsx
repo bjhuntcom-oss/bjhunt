@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { serverBackendFetch } from '@/lib/backend-client'
 import { ChevronLeft } from 'lucide-react'
+import { ReportExportBar } from '@/components/dashboard/report-export-bar'
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'var(--text-muted)',
@@ -86,6 +87,11 @@ export default async function AuditRunDetailPage({
             hour: '2-digit', minute: '2-digit',
           })}
         </p>
+      </div>
+
+      {/* Export bar */}
+      <div className="mb-6">
+        <ReportExportBar engagementId={id} />
       </div>
 
       {/* Scan results */}

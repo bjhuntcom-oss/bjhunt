@@ -30,6 +30,8 @@ import { publicApiRoutes } from "./routes/public-api.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
 import { billingRoutes } from "./routes/billing.js";
 import { twoFactorRoutes } from "./routes/two-factor.js";
+import { findingsRoutes } from "./routes/findings.js";
+import { reportRoutes } from "./routes/reports.js";
 
 const app = new Hono<{ Variables: AppVariables }>();
 
@@ -53,11 +55,13 @@ app.route("/api/auth/2fa", twoFactorRoutes);
 
 // Authenticated API routes
 app.route("/api/engagements", engagementRoutes);
+app.route("/api/findings", findingsRoutes);
 app.route("/api/chat", chatRoutes);
 app.route("/api/keys", apiKeyRoutes);
 app.route("/api/notifications", notificationRoutes);
 app.route("/api/dashboard", dashboardRoutes);
 app.route("/api/billing", billingRoutes);
+app.route("/api/reports", reportRoutes);
 
 // Public API v1 (API key auth)
 app.route("/api/v1", publicApiRoutes);

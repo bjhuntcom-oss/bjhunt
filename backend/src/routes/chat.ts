@@ -28,6 +28,7 @@ const sendMessageSchema = z.object({
   message: z.string().min(1).max(10000),
   engagementId: z.string().uuid(),
   conversationId: z.string().uuid().optional(),
+  agentGraph: z.string().min(1).max(50).optional(),
 });
 
 // ── Send message + stream response (with DB persistence) ─────────────────
@@ -35,7 +36,7 @@ const sendMessageSchema = z.object({
 chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSchema), async (c) => {
   const orgId = c.get("orgId") as string;
   const user = c.get("user") as AuthUser;
-  const { message, engagementId, conversationId: existingConvId } = c.req.valid("json");
+  const { message, engagementId, conversationId: existingConvId, agentGraph } = c.req.valid("json");
 
   // Verify engagement belongs to user's org and is active
   const [engagement] = await withOrg(orgId, (tx) =>
@@ -75,10 +76,13 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
     );
   }
 
+  // Resolve agent: request override > engagement default > fallback
+  const agentId = agentGraph || (engagement.agentGraph as string) || "bjhunt";
+
   // Track agent run
   const [agentRun] = await sql`
     INSERT INTO agent_runs (org_id, engagement_id, conversation_id, agent_name, input_summary)
-    VALUES (${orgId}, ${engagementId}, ${convId}, ${engagement.agentGraph || "bjhunt"}, ${message.slice(0, 200)})
+    VALUES (${orgId}, ${engagementId}, ${convId}, ${agentId}, ${message.slice(0, 200)})
     RETURNING id
   `;
   const runId = agentRun!.id as string;
@@ -86,7 +90,7 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
   // Stream from LangGraph
   const stream = await langgraphClient.streamRun(
     threadId,
-    (engagement.agentGraph as string) || "bjhunt",
+    agentId,
     { content: message, user_id: user.id, org_id: orgId },
   );
 

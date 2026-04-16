@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
 
 const COLLAPSE_KEY = "bjhunt:sidebar-collapsed";
@@ -36,6 +37,7 @@ const getUserNav = (locale: string) => [
   { href: "/dashboard/chat",          label: "Chat AI",                                          icon: MessageSquare },
   { href: "/dashboard",               label: locale === "fr" ? "Aperçu" : "Overview",            icon: BarChart2     },
   { href: "/dashboard/audits",        label: "Audits",                                           icon: ShieldCheck   },
+  { href: "/dashboard/findings",     label: "Findings",                                         icon: AlertTriangle },
   { href: "/dashboard/settings",      label: locale === "fr" ? "Paramètres" : "Settings",        icon: Settings      },
 ];
 

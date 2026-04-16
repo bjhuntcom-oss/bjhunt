@@ -58,6 +58,7 @@ export default function ChatPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
   const [promptInitialValue, setPromptInitialValue] = useState("");
+  const [selectedAgent, setSelectedAgent] = useState("bjhunt");
   const [modelSettings, setModelSettings] = useState<ModelSettings>({
     systemPrompt: "",
     temperature: 0.7,
@@ -66,6 +67,14 @@ export default function ChatPage() {
     streamResponse: true,
     webSearch: false,
   });
+
+  // Token counter & streaming speed
+  const [tokenCount, setTokenCount] = useState(0);
+  const [streamSpeed, setStreamSpeed] = useState(0);
+  const [activeAgent, setActiveAgent] = useState<string | null>(null);
+  const streamStartTimeRef = useRef<number>(0);
+  const tokensSoFarRef = useRef<number>(0);
+  const speedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -215,6 +224,21 @@ export default function ChatPage() {
     setLastMessage(text);
     setThinking({ content: "", active: true });
 
+    // Reset token tracking
+    setTokenCount(0);
+    setStreamSpeed(0);
+    setActiveAgent(null);
+    tokensSoFarRef.current = 0;
+    streamStartTimeRef.current = Date.now();
+
+    // Start speed calculation interval
+    speedIntervalRef.current = setInterval(() => {
+      const elapsed = (Date.now() - streamStartTimeRef.current) / 1000;
+      if (elapsed > 0 && tokensSoFarRef.current > 0) {
+        setStreamSpeed(Math.round(tokensSoFarRef.current / elapsed));
+      }
+    }, 500);
+
     // Create assistant placeholder
     const assistantId = crypto.randomUUID();
     const assistantMsg: ChatMessage = {
@@ -247,6 +271,7 @@ export default function ChatPage() {
         body: JSON.stringify({
           message: text,
           engagementId: activeEngagement?.id || "",
+          agentGraph: selectedAgent,
         }),
         signal: abortRef.current.signal,
       });
@@ -296,7 +321,13 @@ export default function ChatPage() {
     } finally {
       setIsStreaming(false);
       setThinking((prev) => ({ ...prev, active: false }));
+      setStreamSpeed(0);
+      setActiveAgent(null);
       abortRef.current = null;
+      if (speedIntervalRef.current) {
+        clearInterval(speedIntervalRef.current);
+        speedIntervalRef.current = null;
+      }
 
       // Mark the assistant message as no longer streaming
       const finalContent = lastAiContentRef.current;
@@ -333,6 +364,11 @@ export default function ChatPage() {
       case "token":
         if (parsed.token) {
           lastAiContentRef.current += parsed.token;
+          // Approximate token count: ~4 chars per token
+          const approxTokens = Math.ceil(parsed.token.length / 4);
+          tokensSoFarRef.current += approxTokens;
+          setTokenCount((prev) => prev + approxTokens);
+          if (parsed.agent) setActiveAgent(parsed.agent);
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantId ? { ...m, content: m.content + parsed.token } : m
@@ -344,6 +380,7 @@ export default function ChatPage() {
 
       // ── Tool lifecycle ──────────────────────────────────────────────
       case "tool_call":
+        if (parsed.agent) setActiveAgent(parsed.agent);
         setToolCalls((prev) => {
           const next = new Map(prev);
           next.set(parsed.id, {
@@ -382,6 +419,7 @@ export default function ChatPage() {
 
       // ── Sub-agent lifecycle ─────────────────────────────────────────
       case "subagent_start":
+        setActiveAgent(parsed.name || parsed.agent || null);
         setSubAgents((prev) => {
           const next = new Map(prev);
           next.set(parsed.id, {
@@ -560,11 +598,37 @@ export default function ChatPage() {
               )}
             </div>
           </div>
-          <div className="text-[9px] text-[var(--text-subtle)] uppercase tracking-wider">
+          <div className="flex items-center gap-3 text-[9px] uppercase tracking-wider">
+            {/* Token counter */}
+            {tokenCount > 0 && (
+              <span
+                className="font-mono"
+                style={{
+                  color: tokenCount < 1000
+                    ? "var(--success)"
+                    : tokenCount < 4000
+                      ? "var(--warning)"
+                      : "var(--danger)",
+                }}
+              >
+                ~{tokenCount} tokens
+              </span>
+            )}
+
+            {/* Active agent */}
+            {isStreaming && activeAgent && (
+              <span className="font-mono text-[var(--text-muted)]">
+                {activeAgent}
+              </span>
+            )}
+
+            {/* Status + speed */}
             {isStreaming ? (
-              <span className="text-[var(--warning)]">streaming</span>
+              <span className="text-[var(--warning)]">
+                streaming{streamSpeed > 0 ? ` · ~${streamSpeed} tok/s` : ""}
+              </span>
             ) : (
-              "ready"
+              <span className="text-[var(--text-subtle)]">ready</span>
             )}
           </div>
         </div>
@@ -665,6 +729,8 @@ export default function ChatPage() {
             }
             initialValue={promptInitialValue}
             onConsumeInitialValue={() => setPromptInitialValue("")}
+            selectedAgent={selectedAgent}
+            onSelectAgent={setSelectedAgent}
           />
         </div>
       </div>

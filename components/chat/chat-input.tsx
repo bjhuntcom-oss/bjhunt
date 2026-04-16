@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { SlashCommandsMenu, SLASH_COMMANDS, type SlashCommandContext } from "./slash-commands";
 import { FileUploadZone, type PendingFile } from "./file-upload-zone";
 import { VoiceRecorder } from "./voice-recorder";
+import { AgentSelector } from "./agent-selector";
 
 interface ChatInputProps {
   onSubmit: (content: string, files: PendingFile[]) => void;
@@ -21,6 +22,8 @@ interface ChatInputProps {
   placeholder?: string;
   initialValue?: string;
   onConsumeInitialValue?: () => void;
+  selectedAgent?: string;
+  onSelectAgent?: (agentId: string) => void;
 }
 
 export function ChatInput({
@@ -36,6 +39,8 @@ export function ChatInput({
   placeholder,
   initialValue,
   onConsumeInitialValue,
+  selectedAgent = "bjhunt",
+  onSelectAgent,
 }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [files, setFiles] = useState<PendingFile[]>([]);
@@ -197,6 +202,14 @@ export function ChatInput({
           <div className="flex items-center justify-between mt-1">
             {/* Left: tool icons */}
             <div className="flex items-center gap-0.5">
+              {/* Agent selector */}
+              {onSelectAgent && (
+                <AgentSelector
+                  selectedAgent={selectedAgent}
+                  onSelect={onSelectAgent}
+                />
+              )}
+
               {/* File attach */}
               <label
                 className="p-2 text-[var(--text-muted)] hover:text-white transition-colors cursor-pointer"
