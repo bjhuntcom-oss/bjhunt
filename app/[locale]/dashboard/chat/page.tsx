@@ -14,6 +14,7 @@ import { ModelSettingsPanel, type ModelSettings } from "@/components/chat/model-
 import { PromptLibraryPanel } from "@/components/chat/prompt-library-panel";
 import { SLASH_COMMANDS, type SlashCommandContext } from "@/components/chat/slash-commands";
 import { browserBackendFetch } from "@/lib/backend-client";
+import { VaccineMonitor } from "@/components/dashboard/vaccine-monitor";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -562,7 +563,12 @@ export default function ChatPage() {
             )}
 
             {sidebarTab === "opplan" && (
-              <OpplanPanel objectives={objectives} />
+              <div className="flex flex-col gap-0">
+                <OpplanPanel objectives={objectives} />
+                {activeEngagement && (activeEngagement.status === "running" || objectives.length > 0) && (
+                  <VaccineMonitor engagementId={activeEngagement.id} compact />
+                )}
+              </div>
             )}
 
             {sidebarTab === "graph" && (

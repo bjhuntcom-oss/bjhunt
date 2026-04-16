@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useCallback } from 'react'
 import Link from 'next/link'
 import { browserBackendFetch } from '@/lib/backend-client'
-import { Plus, X, ChevronRight } from 'lucide-react'
+import { Plus, X, ChevronRight, ChevronLeft, Loader2, Check, Target, Shield, Cpu, FileText } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface AuditRun {
   id: string
@@ -27,10 +28,553 @@ const STATUS_COLORS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Brouillon',
   running: 'En cours',
-  completed: 'Terminé',
-  failed: 'Échoué',
-  cancelled: 'Annulé',
+  completed: 'Termine',
+  failed: 'Echoue',
+  cancelled: 'Annule',
 }
+
+// ── Wizard types ────────────────────────────────────────────────────────
+
+type TargetType = 'web' | 'network' | 'cloud' | 'ad' | 'mobile' | 'contract'
+
+interface WizardState {
+  // Step 1: Target
+  targetUrl: string
+  targetName: string
+  targetType: TargetType
+  // Step 2: Scope
+  inScope: string
+  outOfScope: string
+  maxDuration: number
+  // Step 3: Agent
+  agentGraph: string
+  vaccineMode: boolean
+  autoReport: boolean
+}
+
+const TARGET_TYPES: { value: TargetType; label: string }[] = [
+  { value: 'web', label: 'Web Application' },
+  { value: 'network', label: 'Network' },
+  { value: 'cloud', label: 'Cloud Infrastructure' },
+  { value: 'ad', label: 'Active Directory' },
+  { value: 'mobile', label: 'Mobile App' },
+  { value: 'contract', label: 'Smart Contract' },
+]
+
+const DURATION_OPTIONS = [
+  { value: 1800, label: '30 min' },
+  { value: 3600, label: '1 hour' },
+  { value: 7200, label: '2 hours' },
+  { value: 14400, label: '4 hours' },
+  { value: 28800, label: '8 hours' },
+]
+
+const AGENT_OPTIONS = [
+  { value: 'bjhunt', label: 'BJHUNT Orchestrator', description: 'Full autonomous assessment — coordinates all agents' },
+  { value: 'decepticon', label: 'Decepticon', description: 'Core orchestrator — 9 sub-agents coordination' },
+  { value: 'recon', label: 'Recon', description: 'OSINT, subdomain enum, port scanning, service detection' },
+  { value: 'exploit', label: 'Exploit', description: 'SQLi, SSTI, Kerberoasting, credential attacks' },
+  { value: 'postexploit', label: 'PostExploit', description: 'Privilege escalation, lateral movement, C2' },
+  { value: 'analyst', label: 'Analyst', description: 'Code review, static analysis, CVE sweeps, fuzzing' },
+  { value: 'reverser', label: 'Reverser', description: 'ELF/PE/firmware triage, ROP gadgets, Ghidra' },
+  { value: 'contract_auditor', label: 'Contract Auditor', description: 'Solidity/EVM: reentrancy, flash loans, Slither' },
+  { value: 'cloud_hunter', label: 'Cloud Hunter', description: 'AWS IAM privesc, S3 takeover, K8s RBAC' },
+  { value: 'ad_operator', label: 'AD Operator', description: 'BloodHound, Kerberoast, ADCS, DCSync' },
+  { value: 'vulnresearch', label: 'VulnResearch', description: 'Vulnerability research pipeline coordinator' },
+  { value: 'scanner', label: 'Scanner', description: 'Automated vulnerability scanning agent' },
+  { value: 'detector', label: 'Detector', description: 'Vulnerability detection agent' },
+  { value: 'verifier', label: 'Verifier', description: 'Vulnerability verification agent' },
+  { value: 'patcher', label: 'Patcher', description: 'Patch generation agent' },
+  { value: 'exploiter', label: 'Exploiter', description: 'Exploit generation agent' },
+  { value: 'defender', label: 'Defender', description: 'Defensive agent — attack, defense, verify cycle' },
+]
+
+const STEP_ICONS = [Target, Shield, Cpu, FileText]
+const STEP_LABELS = ['Target', 'Scope', 'Agent', 'Review']
+
+function deriveNameFromUrl(url: string): string {
+  try {
+    const hostname = new URL(url.startsWith('http') ? url : `https://${url}`).hostname
+    return hostname.replace(/^www\./, '')
+  } catch {
+    return url.split('/')[0] || ''
+  }
+}
+
+// ── Wizard Modal ────────────────────────────────────────────────────────
+
+function WizardModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void
+  onCreated: (engagement: AuditRun) => void
+}) {
+  const [step, setStep] = useState(0)
+  const [isPending, startTransition] = useTransition()
+  const [wizard, setWizard] = useState<WizardState>({
+    targetUrl: '',
+    targetName: '',
+    targetType: 'web',
+    inScope: '',
+    outOfScope: '',
+    maxDuration: 3600,
+    agentGraph: 'bjhunt',
+    vaccineMode: false,
+    autoReport: true,
+  })
+
+  const updateField = useCallback(<K extends keyof WizardState>(key: K, value: WizardState[K]) => {
+    setWizard((prev) => ({ ...prev, [key]: value }))
+  }, [])
+
+  const canNext = step === 0 ? wizard.targetUrl.trim().length > 0 : true
+  const totalSteps = 4
+
+  const handleSubmit = (launch: boolean) => {
+    startTransition(async () => {
+      const name = wizard.targetName.trim() || deriveNameFromUrl(wizard.targetUrl)
+
+      const res = await browserBackendFetch('/api/engagements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          target: wizard.targetUrl,
+          targetType: wizard.targetType,
+          inScope: wizard.inScope || undefined,
+          outOfScope: wizard.outOfScope || undefined,
+          agentGraph: wizard.agentGraph,
+          vaccineMode: wizard.vaccineMode,
+          autoReport: wizard.autoReport,
+          maxDuration: wizard.maxDuration,
+        }),
+      })
+
+      if (!res.ok) return
+
+      const { engagement } = await res.json()
+
+      if (launch) {
+        await browserBackendFetch(`/api/engagements/${engagement.id}/launch`, {
+          method: 'POST',
+        })
+      }
+
+      const run = { ...engagement, title: engagement.name }
+      onCreated(run)
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative w-full max-w-2xl mx-4 border border-[var(--border)] bg-[var(--bg)] max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
+          <div>
+            <h2 className="text-[14px] font-mono font-bold uppercase tracking-widest text-white">
+              New Assessment
+            </h2>
+            <p className="text-[9px] font-mono text-[var(--text-subtle)] mt-0.5">
+              Step {step + 1} of {totalSteps}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-[var(--text-muted)] hover:text-white transition-colors"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Progress indicator */}
+        <div className="flex items-center px-6 py-3 border-b border-[var(--border)] bg-[var(--bg-card)]">
+          {STEP_LABELS.map((label, i) => {
+            const Icon = STEP_ICONS[i]
+            const isActive = i === step
+            const isDone = i < step
+            return (
+              <div key={label} className="flex items-center flex-1">
+                <div className="flex items-center gap-1.5">
+                  <div
+                    className={cn(
+                      'w-5 h-5 flex items-center justify-center border',
+                      isActive
+                        ? 'border-white bg-white text-black'
+                        : isDone
+                          ? 'border-[var(--success)] bg-[var(--success)] text-black'
+                          : 'border-[var(--border)] text-[var(--text-subtle)]'
+                    )}
+                  >
+                    {isDone ? <Check size={10} /> : <Icon size={10} />}
+                  </div>
+                  <span
+                    className={cn(
+                      'text-[8px] font-mono uppercase tracking-widest',
+                      isActive ? 'text-white' : isDone ? 'text-[var(--success)]' : 'text-[var(--text-subtle)]'
+                    )}
+                  >
+                    {label}
+                  </span>
+                </div>
+                {i < totalSteps - 1 && (
+                  <div
+                    className={cn(
+                      'flex-1 h-px mx-3',
+                      isDone ? 'bg-[var(--success)]' : 'bg-[var(--border)]'
+                    )}
+                  />
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Step content */}
+        <div className="px-6 py-5 space-y-4">
+          {/* Step 1: Target */}
+          {step === 0 && (
+            <>
+              <div>
+                <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
+                  Target URL / IP *
+                </label>
+                <input
+                  value={wizard.targetUrl}
+                  onChange={(e) => updateField('targetUrl', e.target.value)}
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--border-strong)]"
+                  placeholder="https://example.com or 192.168.1.0/24"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
+                  Target Name
+                </label>
+                <input
+                  value={wizard.targetName}
+                  onChange={(e) => updateField('targetName', e.target.value)}
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--border-strong)]"
+                  placeholder={wizard.targetUrl ? deriveNameFromUrl(wizard.targetUrl) : 'Auto-generated from URL'}
+                />
+                <p className="text-[8px] font-mono text-[var(--text-subtle)] mt-1">
+                  Leave blank to auto-generate from the target URL.
+                </p>
+              </div>
+              <div>
+                <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
+                  Target Type
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {TARGET_TYPES.map((tt) => (
+                    <button
+                      key={tt.value}
+                      onClick={() => updateField('targetType', tt.value)}
+                      className={cn(
+                        'px-3 py-2 text-[10px] font-mono border transition-colors text-left',
+                        wizard.targetType === tt.value
+                          ? 'border-white text-white bg-[var(--bg-card)]'
+                          : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-white'
+                      )}
+                    >
+                      {tt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Step 2: Scope */}
+          {step === 1 && (
+            <>
+              <div>
+                <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
+                  In-Scope Domains / IPs
+                </label>
+                <textarea
+                  value={wizard.inScope}
+                  onChange={(e) => updateField('inScope', e.target.value)}
+                  rows={4}
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--border-strong)] resize-none"
+                  placeholder={"example.com\n*.example.com\n192.168.1.0/24"}
+                />
+                <p className="text-[8px] font-mono text-[var(--text-subtle)] mt-1">
+                  One entry per line. Supports wildcards and CIDR notation.
+                </p>
+              </div>
+              <div>
+                <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
+                  Out-of-Scope
+                </label>
+                <textarea
+                  value={wizard.outOfScope}
+                  onChange={(e) => updateField('outOfScope', e.target.value)}
+                  rows={3}
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--border-strong)] resize-none"
+                  placeholder={"prod.example.com\n10.0.0.0/8"}
+                />
+                <p className="text-[8px] font-mono text-[var(--text-subtle)] mt-1">
+                  Systems that must NOT be tested.
+                </p>
+              </div>
+              <div>
+                <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
+                  Max Scan Duration
+                </label>
+                <div className="flex gap-2">
+                  {DURATION_OPTIONS.map((d) => (
+                    <button
+                      key={d.value}
+                      onClick={() => updateField('maxDuration', d.value)}
+                      className={cn(
+                        'px-3 py-1.5 text-[10px] font-mono border transition-colors',
+                        wizard.maxDuration === d.value
+                          ? 'border-white text-white bg-[var(--bg-card)]'
+                          : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-white'
+                      )}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Step 3: Agent Selection */}
+          {step === 2 && (
+            <>
+              <div>
+                <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
+                  Agent Graph
+                </label>
+                <div className="max-h-[250px] overflow-y-auto border border-[var(--border)] divide-y divide-[var(--border)]">
+                  {AGENT_OPTIONS.map((agent) => (
+                    <button
+                      key={agent.value}
+                      onClick={() => updateField('agentGraph', agent.value)}
+                      className={cn(
+                        'w-full flex items-start gap-3 px-3 py-2.5 text-left transition-colors',
+                        wizard.agentGraph === agent.value
+                          ? 'bg-[var(--bg-card)]'
+                          : 'hover:bg-[var(--bg-card)]'
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          'w-3 h-3 border flex-shrink-0 mt-0.5 flex items-center justify-center',
+                          wizard.agentGraph === agent.value
+                            ? 'border-white bg-white'
+                            : 'border-[var(--border-strong)]'
+                        )}
+                      >
+                        {wizard.agentGraph === agent.value && (
+                          <Check size={8} className="text-black" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[10px] font-mono font-bold text-white">
+                          {agent.label}
+                        </div>
+                        <div className="text-[9px] font-mono text-[var(--text-muted)] mt-0.5">
+                          {agent.description}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2 pt-2">
+                <label
+                  className="flex items-center gap-3 cursor-pointer group"
+                  onClick={() => updateField('vaccineMode', !wizard.vaccineMode)}
+                >
+                  <div
+                    className={cn(
+                      'w-3.5 h-3.5 border flex items-center justify-center transition-colors',
+                      wizard.vaccineMode
+                        ? 'border-[var(--success)] bg-[var(--success)]'
+                        : 'border-[var(--border-strong)] group-hover:border-[var(--text-muted)]'
+                    )}
+                  >
+                    {wizard.vaccineMode && <Check size={9} className="text-black" />}
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono text-white">
+                      Enable Vaccine Loop
+                    </span>
+                    <p className="text-[8px] font-mono text-[var(--text-subtle)]">
+                      Attack, defense, verify cycle — generates defensive recommendations
+                    </p>
+                  </div>
+                </label>
+                <label
+                  className="flex items-center gap-3 cursor-pointer group"
+                  onClick={() => updateField('autoReport', !wizard.autoReport)}
+                >
+                  <div
+                    className={cn(
+                      'w-3.5 h-3.5 border flex items-center justify-center transition-colors',
+                      wizard.autoReport
+                        ? 'border-[var(--success)] bg-[var(--success)]'
+                        : 'border-[var(--border-strong)] group-hover:border-[var(--text-muted)]'
+                    )}
+                  >
+                    {wizard.autoReport && <Check size={9} className="text-black" />}
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono text-white">
+                      Enable Auto-Reporting
+                    </span>
+                    <p className="text-[8px] font-mono text-[var(--text-subtle)]">
+                      Automatically generate reports when the assessment completes
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </>
+          )}
+
+          {/* Step 4: Review & Launch */}
+          {step === 3 && (
+            <>
+              <div className="border border-[var(--border)] divide-y divide-[var(--border)]">
+                {/* Target */}
+                <div className="px-4 py-3">
+                  <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
+                    Target
+                  </div>
+                  <div className="text-[11px] font-mono text-white font-bold">
+                    {wizard.targetName || deriveNameFromUrl(wizard.targetUrl)}
+                  </div>
+                  <div className="text-[10px] font-mono text-[var(--text-muted)] mt-0.5">
+                    {wizard.targetUrl}
+                  </div>
+                  <span className="inline-block text-[8px] font-mono uppercase tracking-widest px-1.5 py-0.5 border border-[var(--border)] text-[var(--text-muted)] mt-1">
+                    {TARGET_TYPES.find((t) => t.value === wizard.targetType)?.label ?? wizard.targetType}
+                  </span>
+                </div>
+
+                {/* Scope */}
+                <div className="px-4 py-3">
+                  <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
+                    Scope
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-[8px] font-mono text-[var(--text-subtle)] mb-0.5">In-scope</div>
+                      <div className="text-[10px] font-mono text-[var(--text-muted)] whitespace-pre-line">
+                        {wizard.inScope || '(all from target)'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[8px] font-mono text-[var(--text-subtle)] mb-0.5">Out-of-scope</div>
+                      <div className="text-[10px] font-mono text-[var(--text-muted)] whitespace-pre-line">
+                        {wizard.outOfScope || '(none)'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-[9px] font-mono text-[var(--text-subtle)] mt-2">
+                    Max duration: {DURATION_OPTIONS.find((d) => d.value === wizard.maxDuration)?.label ?? `${wizard.maxDuration}s`}
+                  </div>
+                </div>
+
+                {/* Agent */}
+                <div className="px-4 py-3">
+                  <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
+                    Agent
+                  </div>
+                  <div className="text-[11px] font-mono text-white font-bold">
+                    {AGENT_OPTIONS.find((a) => a.value === wizard.agentGraph)?.label ?? wizard.agentGraph}
+                  </div>
+                  <div className="flex items-center gap-3 mt-1.5">
+                    <span className={cn(
+                      'text-[8px] font-mono uppercase tracking-widest px-1.5 py-0.5 border',
+                      wizard.vaccineMode
+                        ? 'border-[var(--success)] text-[var(--success)]'
+                        : 'border-[var(--border)] text-[var(--text-subtle)]'
+                    )}>
+                      Vaccine {wizard.vaccineMode ? 'ON' : 'OFF'}
+                    </span>
+                    <span className={cn(
+                      'text-[8px] font-mono uppercase tracking-widest px-1.5 py-0.5 border',
+                      wizard.autoReport
+                        ? 'border-[var(--success)] text-[var(--success)]'
+                        : 'border-[var(--border)] text-[var(--text-subtle)]'
+                    )}>
+                      Auto-report {wizard.autoReport ? 'ON' : 'OFF'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer buttons */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--border)] bg-[var(--bg-card)]">
+          <div>
+            {step > 0 && (
+              <button
+                onClick={() => setStep((s) => s - 1)}
+                disabled={isPending}
+                className="flex items-center gap-1 px-3 py-1.5 text-[10px] font-mono uppercase tracking-widest border border-[var(--border)] text-[var(--text-muted)] hover:text-white hover:border-[var(--border-strong)] transition-colors disabled:opacity-40"
+              >
+                <ChevronLeft size={10} />
+                Back
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {step < totalSteps - 1 ? (
+              <button
+                onClick={() => setStep((s) => s + 1)}
+                disabled={!canNext}
+                className="flex items-center gap-1 px-4 py-1.5 text-[10px] font-mono font-bold uppercase tracking-widest bg-white text-black hover:opacity-90 transition-opacity disabled:opacity-40"
+              >
+                Next
+                <ChevronRight size={10} />
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => handleSubmit(false)}
+                  disabled={isPending}
+                  className="px-4 py-1.5 text-[10px] font-mono uppercase tracking-widest border border-[var(--border)] text-[var(--text-muted)] hover:text-white hover:border-[var(--border-strong)] transition-colors disabled:opacity-40"
+                >
+                  {isPending ? (
+                    <Loader2 className="w-3 h-3 animate-spin inline mr-1" />
+                  ) : null}
+                  Create Assessment
+                </button>
+                <button
+                  onClick={() => handleSubmit(true)}
+                  disabled={isPending}
+                  className="flex items-center gap-1.5 px-4 py-1.5 text-[10px] font-mono font-bold uppercase tracking-widest bg-[var(--success)] text-black hover:opacity-90 transition-opacity disabled:opacity-40"
+                >
+                  {isPending ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : null}
+                  Create &amp; Launch
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Main audits list ────────────────────────────────────────────────────
 
 export function AuditsClient({
   initialRuns,
@@ -43,25 +587,13 @@ export function AuditsClient({
 }) {
   const [runs, setRuns] = useState(initialRuns)
   const [total, setTotal] = useState(initialTotal)
-  const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ title: '', target: '' })
+  const [showWizard, setShowWizard] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  const handleCreate = () => {
-    startTransition(async () => {
-      const res = await browserBackendFetch('/api/engagements', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.title, target: form.target || 'pending' }),
-      })
-      if (!res.ok) return
-      const { engagement } = await res.json()
-      const run = { ...engagement, title: engagement.name }
-      setRuns((prev) => [run, ...prev])
-      setTotal((t) => t + 1)
-      setForm({ title: '', target: '' })
-      setShowForm(false)
-    })
+  const handleCreated = (run: AuditRun) => {
+    setRuns((prev) => [run, ...prev])
+    setTotal((t) => t + 1)
+    setShowWizard(false)
   }
 
   const handleCancel = (id: string) => {
@@ -86,7 +618,7 @@ export function AuditsClient({
           {total} audit{total !== 1 ? 's' : ''}
         </span>
         <button
-          onClick={() => setShowForm((v) => !v)}
+          onClick={() => setShowWizard(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-white text-[11px] font-mono font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
         >
           <Plus size={12} />
@@ -94,56 +626,17 @@ export function AuditsClient({
         </button>
       </div>
 
-      {showForm && (
-        <div className="border border-[var(--border)] bg-[var(--bg-card)] p-5 mb-6 space-y-4">
-          <h2 className="text-[11px] font-mono font-bold uppercase tracking-widest text-[var(--text-muted)]">
-            Créer un audit
-          </h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1">
-                Titre *
-              </label>
-              <input
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                className="w-full bg-transparent border border-[var(--border)] px-3 py-1.5 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--accent)]"
-                placeholder="Ex: Audit application web Q2"
-              />
-            </div>
-            <div>
-              <label className="block text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1">
-                Cible (optionnel)
-              </label>
-              <input
-                value={form.target}
-                onChange={(e) => setForm((f) => ({ ...f, target: e.target.value }))}
-                className="w-full bg-transparent border border-[var(--border)] px-3 py-1.5 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--accent)]"
-                placeholder="Ex: https://example.com"
-              />
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={handleCreate}
-              disabled={isPending || !form.title.trim()}
-              className="px-4 py-1.5 bg-[var(--accent)] text-white text-[11px] font-mono font-bold uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-40"
-            >
-              {isPending ? 'Création...' : 'Créer'}
-            </button>
-            <button
-              onClick={() => setShowForm(false)}
-              className="px-4 py-1.5 border border-[var(--border)] text-[var(--text-muted)] text-[11px] font-mono uppercase tracking-widest hover:text-white transition-colors"
-            >
-              Annuler
-            </button>
-          </div>
-        </div>
+      {/* Wizard modal */}
+      {showWizard && (
+        <WizardModal
+          onClose={() => setShowWizard(false)}
+          onCreated={handleCreated}
+        />
       )}
 
       {runs.length === 0 ? (
         <div className="border border-[var(--border)] px-4 py-8 text-center text-[11px] font-mono text-[var(--text-muted)]">
-          Aucun audit — créez-en un pour commencer.
+          Aucun audit — creez-en un pour commencer.
         </div>
       ) : (
         <div className="border border-[var(--border)] divide-y divide-[var(--border)]">
@@ -196,7 +689,7 @@ export function AuditsClient({
                 <Link
                   href={`/${locale}/dashboard/audits/${run.id}`}
                   className="p-1.5 text-[var(--text-muted)] hover:text-white transition-colors"
-                  title="Voir le détail"
+                  title="Voir le detail"
                 >
                   <ChevronRight size={13} />
                 </Link>

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { serverBackendFetch } from '@/lib/backend-client'
 import { ChevronLeft } from 'lucide-react'
 import { ReportExportBar } from '@/components/dashboard/report-export-bar'
+import { VaccineMonitor } from '@/components/dashboard/vaccine-monitor'
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'var(--text-muted)',
@@ -89,10 +90,25 @@ export default async function AuditRunDetailPage({
         </p>
       </div>
 
-      {/* Export bar */}
+      {/* OPPLAN link + Export bar */}
+      <div className="mb-6 flex items-center gap-3 flex-wrap">
+        <Link
+          href={`/${locale}/dashboard/audits/${id}/opplan`}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider border border-[var(--border)] text-[var(--text-muted)] hover:text-white hover:border-[var(--border-strong)] hover:bg-[var(--bg-input)] transition-colors"
+        >
+          View OPPLAN &rarr;
+        </Link>
+      </div>
       <div className="mb-6">
         <ReportExportBar engagementId={id} />
       </div>
+
+      {/* Vaccine loop monitor — shown when running or has findings */}
+      {(run.status === 'running' || results.length > 0) && (
+        <div className="mb-6">
+          <VaccineMonitor engagementId={id} />
+        </div>
+      )}
 
       {/* Scan results */}
       <div>

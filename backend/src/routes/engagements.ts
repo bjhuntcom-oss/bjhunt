@@ -25,7 +25,13 @@ const createSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
   target: z.string().min(1).max(500),
-  agentGraph: z.string().default("bjhunt"),
+  targetType: z.enum(["web", "network", "cloud", "ad", "mobile", "contract"]).optional(),
+  inScope: z.string().max(5000).optional(),
+  outOfScope: z.string().max(5000).optional(),
+  agentGraph: z.string().max(50).default("bjhunt"),
+  vaccineMode: z.boolean().optional(),
+  autoReport: z.boolean().optional(),
+  maxDuration: z.number().int().min(1800).max(28800).optional(),
   config: z.record(z.unknown()).optional(),
 });
 
@@ -85,6 +91,193 @@ engagementRoutes.get("/:id", async (c) => {
   return c.json({ engagement });
 });
 
+// ── Get engagement OPPLAN (objectives) ──────────────────────────────────
+
+engagementRoutes.get("/:id/opplan", async (c) => {
+  const orgId = c.get("orgId") as string;
+  const id = c.req.param("id");
+
+  const [engagement] = await withOrg(orgId, (tx) =>
+    tx`SELECT id, name, status, opplan, config, agent_graph FROM engagements WHERE id = ${id}`,
+  );
+
+  if (!engagement) return c.json({ error: "Engagement not found" }, 404);
+
+  // If opplan JSON exists and contains objectives, return them directly
+  const opplanData = engagement.opplan as Record<string, unknown> | null;
+  if (opplanData && Array.isArray(opplanData.objectives) && opplanData.objectives.length > 0) {
+    return c.json({ objectives: opplanData.objectives });
+  }
+
+  // Otherwise, generate mock objectives based on engagement status and config
+  const targetType = (engagement.config as Record<string, unknown>)?.targetType as string | undefined;
+  const objectives = generateDefaultObjectives(engagement.status as string, targetType);
+
+  return c.json({ objectives });
+});
+
+/**
+ * Generate default OPPLAN objectives based on engagement status and target type.
+ * These serve as a template until the agent produces a real OPPLAN.
+ */
+function generateDefaultObjectives(
+  status: string,
+  targetType?: string,
+): Array<Record<string, unknown>> {
+  const phases = [
+    {
+      phase: "reconnaissance",
+      title: "Target Reconnaissance",
+      description: "Enumerate subdomains, open ports, and running services on the target.",
+      agent: "Recon",
+      mitre: ["T1595", "T1592"],
+      timeEstimate: "15-30 min",
+    },
+    {
+      phase: "initial_access",
+      title: "Initial Access Vectors",
+      description: "Identify and attempt initial access through exposed services and web applications.",
+      agent: "Exploit",
+      mitre: ["T1190", "T1133"],
+      timeEstimate: "30-60 min",
+    },
+    {
+      phase: "execution",
+      title: "Payload Execution",
+      description: "Execute payloads on compromised systems to establish a foothold.",
+      agent: "Exploit",
+      mitre: ["T1059", "T1203"],
+      timeEstimate: "15-30 min",
+    },
+    {
+      phase: "privilege_escalation",
+      title: "Privilege Escalation",
+      description: "Escalate privileges from initial foothold to higher-privileged accounts.",
+      agent: "PostExploit",
+      mitre: ["T1068", "T1548"],
+      timeEstimate: "30-45 min",
+    },
+    {
+      phase: "credential_access",
+      title: "Credential Harvesting",
+      description: "Extract and crack credentials from compromised systems.",
+      agent: "PostExploit",
+      mitre: ["T1003", "T1552"],
+      timeEstimate: "20-40 min",
+    },
+    {
+      phase: "lateral_movement",
+      title: "Lateral Movement",
+      description: "Move laterally across the network using harvested credentials.",
+      agent: "PostExploit",
+      mitre: ["T1021", "T1570"],
+      timeEstimate: "30-60 min",
+    },
+    {
+      phase: "defense_evasion",
+      title: "Defense Evasion Analysis",
+      description: "Assess detection gaps and evasion opportunities in the target environment.",
+      agent: "Analyst",
+      mitre: ["T1562", "T1070"],
+      timeEstimate: "15-30 min",
+    },
+    {
+      phase: "collection",
+      title: "Data Collection & Exfiltration",
+      description: "Identify sensitive data and test exfiltration paths.",
+      agent: "PostExploit",
+      mitre: ["T1005", "T1041"],
+      timeEstimate: "15-20 min",
+    },
+  ];
+
+  // Add AD-specific objectives
+  if (targetType === "ad") {
+    phases.push(
+      {
+        phase: "credential_access",
+        title: "Kerberoasting & AS-REP Roast",
+        description: "Extract service account hashes via Kerberoasting and AS-REP roasting.",
+        agent: "AD Operator",
+        mitre: ["T1558.003", "T1558.004"],
+        timeEstimate: "20-30 min",
+      },
+      {
+        phase: "lateral_movement",
+        title: "BloodHound Path Analysis",
+        description: "Map AD attack paths using BloodHound for privilege escalation routes.",
+        agent: "AD Operator",
+        mitre: ["T1087", "T1069"],
+        timeEstimate: "15-25 min",
+      },
+    );
+  }
+
+  // Add cloud-specific objectives
+  if (targetType === "cloud") {
+    phases.push(
+      {
+        phase: "privilege_escalation",
+        title: "Cloud IAM Privilege Escalation",
+        description: "Enumerate and exploit IAM misconfigurations for privilege escalation.",
+        agent: "Cloud Hunter",
+        mitre: ["T1078", "T1098"],
+        timeEstimate: "20-40 min",
+      },
+      {
+        phase: "collection",
+        title: "Storage & Secrets Enumeration",
+        description: "Scan for exposed S3 buckets, secrets in Terraform state, and K8s RBAC issues.",
+        agent: "Cloud Hunter",
+        mitre: ["T1530", "T1552.001"],
+        timeEstimate: "15-30 min",
+      },
+    );
+  }
+
+  // Add contract-specific objectives
+  if (targetType === "contract") {
+    phases.push(
+      {
+        phase: "execution",
+        title: "Smart Contract Vulnerability Scan",
+        description: "Run Slither analysis and check for reentrancy, flash loan, and access control issues.",
+        agent: "Contract Auditor",
+        mitre: ["T1195"],
+        timeEstimate: "30-60 min",
+      },
+    );
+  }
+
+  // Assign statuses based on engagement status
+  return phases.map((p, i) => {
+    let objStatus: string;
+    if (status === "completed") {
+      objStatus = "passed";
+    } else if (status === "running") {
+      if (i === 0) objStatus = "passed";
+      else if (i === 1) objStatus = "in_progress";
+      else objStatus = "pending";
+    } else if (status === "cancelled") {
+      if (i === 0) objStatus = "passed";
+      else objStatus = "blocked";
+    } else {
+      objStatus = "pending";
+    }
+
+    return {
+      id: `obj-${i}-${p.phase}`,
+      title: p.title,
+      description: p.description,
+      phase: p.phase,
+      status: objStatus,
+      agent: p.agent,
+      mitre: p.mitre,
+      timeEstimate: p.timeEstimate,
+    };
+  });
+}
+
 // ── Create engagement ────────────────────────────────────────────────────
 
 engagementRoutes.post("/", requirePlan("pro", "enterprise"), enforceScanQuota(), zValidator("json", createSchema), async (c) => {
@@ -92,11 +285,22 @@ engagementRoutes.post("/", requirePlan("pro", "enterprise"), enforceScanQuota(),
   const user = c.get("user") as AuthUser;
   const body = c.req.valid("json");
 
+  // Merge wizard fields into config JSON
+  const engConfig = {
+    ...(body.config || {}),
+    ...(body.targetType ? { targetType: body.targetType } : {}),
+    ...(body.inScope ? { inScope: body.inScope } : {}),
+    ...(body.outOfScope ? { outOfScope: body.outOfScope } : {}),
+    ...(body.vaccineMode !== undefined ? { vaccineMode: body.vaccineMode } : {}),
+    ...(body.autoReport !== undefined ? { autoReport: body.autoReport } : {}),
+    ...(body.maxDuration ? { maxDuration: body.maxDuration } : {}),
+  };
+
   const [engagement] = await withOrg(orgId, (tx) =>
     tx`
       INSERT INTO engagements (org_id, created_by, name, description, target, agent_graph, config)
       VALUES (${orgId}, ${user.id}, ${body.name}, ${body.description || null},
-              ${body.target}, ${body.agentGraph}, ${JSON.stringify(body.config || {})})
+              ${body.target}, ${body.agentGraph}, ${JSON.stringify(engConfig)})
       RETURNING *
     `,
   );
@@ -309,4 +513,169 @@ engagementRoutes.get("/:id/runs", async (c) => {
   );
 
   return c.json({ runs });
+});
+
+// ── Get vaccine loop status for engagement ──────────────────────────────
+
+engagementRoutes.get("/:id/vaccine-status", async (c) => {
+  const orgId = c.get("orgId") as string;
+  const id = c.req.param("id");
+
+  // Verify engagement exists
+  const [engagement] = await withOrg(orgId, (tx) =>
+    tx`SELECT id, status, started_at, config FROM engagements WHERE id = ${id}`,
+  );
+  if (!engagement) return c.json({ error: "Engagement not found" }, 404);
+
+  // Get findings with severity breakdown
+  const findingsRows = await withOrg(orgId, (tx) =>
+    tx`SELECT severity, COUNT(*)::int AS count
+       FROM findings
+       WHERE engagement_id = ${id}
+       GROUP BY severity`,
+  );
+
+  const findings = { total: 0, critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+  for (const row of findingsRows) {
+    const sev = row.severity as keyof typeof findings;
+    if (sev in findings && sev !== "total") {
+      findings[sev] = row.count;
+      findings.total += row.count;
+    }
+  }
+
+  // Get agent runs to reconstruct vaccine loop state
+  const runs = await withOrg(orgId, (tx) =>
+    tx`SELECT agent_name, status, input_summary, output_summary, error,
+              started_at, completed_at
+       FROM agent_runs
+       WHERE engagement_id = ${id}
+       ORDER BY created_at ASC`,
+  );
+
+  // Determine current phase from agent runs
+  let phase: string = "idle";
+  let currentAgent: string | null = null;
+  let currentFinding: string | null = null;
+  let defensesApplied = 0;
+  let defensesVerified = 0;
+  let defensesFailed = 0;
+  const history: Array<{
+    timestamp: string;
+    phase: string;
+    action: string;
+    result: string;
+    severity?: string;
+  }> = [];
+
+  for (const run of runs) {
+    const agentName = (run.agentName || run.agent_name || "") as string;
+    const runStatus = run.status as string;
+    const agentLower = agentName.toLowerCase();
+
+    if (["recon", "exploit", "analyst", "scanner", "cloud_hunter", "ad_operator"].some(a => agentLower.includes(a))) {
+      if (runStatus === "running") {
+        phase = "attack";
+        currentAgent = agentName;
+      }
+      if (run.output_summary) {
+        history.push({
+          timestamp: (run.completed_at || run.started_at || new Date().toISOString()) as string,
+          phase: "attack",
+          action: (run.output_summary as string).slice(0, 120),
+          result: runStatus === "error" ? "failure" : "finding",
+        });
+      }
+    } else if (agentLower.includes("defender") || agentLower.includes("defense")) {
+      if (runStatus === "running") {
+        phase = "defense";
+        currentAgent = agentName;
+      }
+      if (runStatus === "completed") {
+        defensesApplied++;
+        history.push({
+          timestamp: (run.completed_at || run.started_at || new Date().toISOString()) as string,
+          phase: "defense",
+          action: (run.output_summary as string || "Defense applied").slice(0, 120),
+          result: "success",
+        });
+      } else if (runStatus === "error") {
+        history.push({
+          timestamp: (run.completed_at || run.started_at || new Date().toISOString()) as string,
+          phase: "defense",
+          action: (run.error as string || "Defense failed").slice(0, 120),
+          result: "failure",
+        });
+      }
+    } else if (agentLower.includes("verif")) {
+      if (runStatus === "running") {
+        phase = "verification";
+        currentAgent = agentName;
+      }
+      if (runStatus === "completed") {
+        const output = (run.output_summary || "") as string;
+        if (output.toLowerCase().includes("fail") || output.toLowerCase().includes("still vulnerable")) {
+          defensesFailed++;
+          history.push({
+            timestamp: (run.completed_at || run.started_at || new Date().toISOString()) as string,
+            phase: "verification",
+            action: output.slice(0, 120),
+            result: "failure",
+          });
+        } else {
+          defensesVerified++;
+          history.push({
+            timestamp: (run.completed_at || run.started_at || new Date().toISOString()) as string,
+            phase: "verification",
+            action: output.slice(0, 120) || "Defense verified",
+            result: "success",
+          });
+        }
+      }
+    } else if (agentLower.includes("brief") || agentLower.includes("soundwave")) {
+      if (runStatus === "running") {
+        phase = "brief_generation";
+        currentAgent = agentName;
+      }
+      if (run.output_summary) {
+        history.push({
+          timestamp: (run.completed_at || run.started_at || new Date().toISOString()) as string,
+          phase: "brief_generation",
+          action: (run.output_summary as string).slice(0, 120),
+          result: "info",
+        });
+      }
+    }
+
+    if (runStatus === "running" && run.input_summary) {
+      currentFinding = (run.input_summary as string).slice(0, 100);
+    }
+  }
+
+  if (engagement.status === "completed") {
+    phase = "complete";
+    currentAgent = null;
+    currentFinding = null;
+  }
+
+  const attackRuns = runs.filter((r: any) => {
+    const name = ((r.agentName || r.agent_name || "") as string).toLowerCase();
+    return ["recon", "exploit", "analyst", "scanner"].some(a => name.includes(a));
+  });
+  const iteration = Math.max(1, Math.ceil(attackRuns.length / 3));
+  const maxIterations = ((engagement.config as any)?.maxIterations) || 10;
+
+  return c.json({
+    phase,
+    iteration: phase === "idle" ? 0 : iteration,
+    maxIterations,
+    findings,
+    defensesApplied,
+    defensesVerified,
+    defensesFailed,
+    currentFinding,
+    currentAgent,
+    startedAt: engagement.started_at ? (engagement.started_at as Date).toISOString() : null,
+    history: history.slice(-20),
+  });
 });
