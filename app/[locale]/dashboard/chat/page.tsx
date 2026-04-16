@@ -198,7 +198,13 @@ export default function ChatPage() {
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            // Process any remaining data in the buffer
+            if (buffer.trim()) {
+              processStreamEvent(buffer, assistantId);
+            }
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const blocks = buffer.split("\n\n");
