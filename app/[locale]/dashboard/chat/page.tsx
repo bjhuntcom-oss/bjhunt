@@ -555,9 +555,11 @@ export default function ChatPage() {
         requestBody.attachmentIds = uploadedFileIds;
       }
 
-      // Route through same-origin proxy to avoid CORS issues.
-      // The proxy at /api/proxy/* forwards cookies and supports SSE streaming.
-      const res = await fetch(`/api/proxy/chat/stream`, {
+      // SSE stream goes DIRECTLY to the backend (bypasses Vercel proxy 10s timeout).
+      // CORS is handled by Caddy with Access-Control-Allow-Origin for www.bjhunt.com.
+      // Cookies are sent via credentials: "include".
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.bjhunt.com";
+      const res = await fetch(`${backendUrl}/api/chat/stream`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
