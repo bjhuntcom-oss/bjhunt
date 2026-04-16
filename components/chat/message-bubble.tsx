@@ -154,7 +154,7 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
         "max-w-[75%] px-4 py-3 text-[13px] leading-relaxed border relative overflow-hidden rounded-2xl",
         isUser
           ? "bg-[var(--bg-card)] border-[var(--border-strong)] text-white"
-          : "bg-[var(--bg-input)] border-[var(--border)] text-[var(--text-muted)]"
+          : "bg-[var(--bg-input)] border-[var(--border)] text-[#e0e0e0]"
       )}>
         {isThinking ? (
           <div className="flex items-center gap-1 py-1">

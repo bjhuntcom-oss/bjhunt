@@ -313,10 +313,11 @@ body {
 .chat-prose li { margin: 0.25em 0; }
 .chat-prose code:not(.hljs) {
   background: var(--bg-card);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   padding: 0.125em 0.375em;
   font-size: 0.85em;
   font-family: "JetBrains Mono", monospace;
+  color: #00cc8a;
 }
 .chat-prose pre    { margin: 0.75em 0; }
 .chat-prose pre code { border: none; padding: 0; background: none; }
@@ -327,7 +328,10 @@ body {
   font-weight: 700;
   margin: 1em 0 0.5em;
   letter-spacing: -0.02em;
+  color: #ffffff;
 }
+.chat-prose strong { color: #ffffff; }
+.chat-prose em { color: #cccccc; }
 .chat-prose h1 { font-size: 1.25em; }
 .chat-prose h2 { font-size: 1.125em; }
 .chat-prose h3 { font-size: 1em; }

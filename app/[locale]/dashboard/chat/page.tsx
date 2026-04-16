@@ -626,16 +626,13 @@ export default function ChatPage() {
             <div key={msg.id}>
               <MessageBubble message={msg} />
 
-              {/* Show tool calls after assistant messages */}
-              {msg.role === "assistant" && !msg.isStreaming && (
-                <>
-                  {sortedToolCalls
-                    .filter((_, idx) => idx >= i - 1)
-                    .slice(0, 5)
-                    .map((tc) => (
-                      <ToolCallBlock key={tc.id} tool={tc} />
-                    ))}
-                </>
+              {/* Show tool calls after the last assistant message */}
+              {msg.role === "assistant" && i === messages.length - 1 && sortedToolCalls.length > 0 && (
+                <div className="space-y-1 mt-2">
+                  {sortedToolCalls.map((tc) => (
+                    <ToolCallBlock key={tc.id} tool={tc} />
+                  ))}
+                </div>
               )}
             </div>
           ))}
