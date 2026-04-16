@@ -143,7 +143,8 @@ toolRoutes.post("/execute", zValidator("json", executeSchema), async (c) => {
 
   return c.json({
     tool,
-    output: result.output,
+    mock: true,
+    output: "[MOCK] " + result.output,
     status: result.status,
     meta: result.meta || {},
     durationMs,

@@ -46,9 +46,10 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     return new Response(backendRes.body, {
       status: backendRes.status,
       headers: {
-        'content-type': 'text/event-stream',
-        'cache-control': 'no-cache',
+        'content-type': 'text/event-stream; charset=utf-8',
+        'cache-control': 'no-cache, no-transform',
         'connection': 'keep-alive',
+        'x-accel-buffering': 'no',
         'x-conversation-id': backendRes.headers.get('x-conversation-id') || '',
       },
     })

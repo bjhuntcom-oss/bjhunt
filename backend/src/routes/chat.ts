@@ -24,6 +24,10 @@ export const chatRoutes = new Hono<{ Variables: AppVariables }>();
 chatRoutes.use("*", requireAuth);
 chatRoutes.use("*", rateLimit(config.rateLimit.api));
 
+/** Validate UUID format to prevent malformed IDs from reaching SQL. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function validateUUID(id: string): boolean { return UUID_RE.test(id); }
+
 /** Strip HTML tags and null bytes from user-provided content to prevent stored XSS. */
 function sanitizeContent(input: string): string {
   return input
@@ -91,7 +95,8 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
       VALUES (${orgId}, ${user.id}, ${engagementId}, ${engagement.name || "Chat"})
       RETURNING id
     `;
-    convId = conv!.id as string;
+    if (!conv) return c.json({ error: "Failed to create conversation" }, 500);
+    convId = conv.id as string;
   }
 
   // Touch the conversation updated_at so it sorts to the top
@@ -136,7 +141,8 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
     VALUES (${orgId}, ${engagementId}, ${convId}, ${agentId}, ${message.slice(0, 200)})
     RETURNING id
   `;
-  const runId = agentRun!.id as string;
+  if (!agentRun) return c.json({ error: "Failed to create agent run" }, 500);
+  const runId = agentRun.id as string;
 
   // Helper to mark agent run as failed in DB
   async function markRunFailed(error: string) {
@@ -185,9 +191,13 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
 
+  let eventCounter = 0;
   function emitSSE(controller: TransformStreamDefaultController<Uint8Array>, event: string, data: unknown) {
+    // CVE-2026-29085: Strip CR/LF from event name to prevent SSE control field injection
+    const safeEvent = event.replace(/[\r\n]/g, "");
+    const id = ++eventCounter;
     try {
-      controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+      controller.enqueue(encoder.encode(`id: ${id}\nevent: ${safeEvent}\ndata: ${JSON.stringify(data)}\n\n`));
     } catch {
       // Controller may be closed if client disconnected
     }
@@ -446,10 +456,10 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
 
   return new Response(wrappedStream, {
     headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
-      "X-Conversation-Id": convId!,
+      "X-Conversation-Id": convId ?? "",
       "X-Accel-Buffering": "no", // Prevent nginx/Caddy from buffering SSE
     },
   });
@@ -461,6 +471,8 @@ chatRoutes.get("/history/:engagementId", async (c) => {
   const orgId = c.get("orgId") as string;
   const user = c.get("user") as AuthUser;
   const engagementId = c.req.param("engagementId");
+
+  if (!validateUUID(engagementId)) return c.json({ error: "Invalid ID format" }, 400);
 
   const conversations = await withOrg(orgId, (tx) =>
     tx`SELECT c.id, c.title, c.status, c.created_at, c.updated_at,
@@ -481,8 +493,11 @@ chatRoutes.get("/history/:engagementId", async (c) => {
 chatRoutes.get("/conversations/:id/messages", async (c) => {
   const orgId = c.get("orgId") as string;
   const convId = c.req.param("id");
-  const limit = Math.min(parseInt(c.req.query("limit") || "100", 10), 500);
-  const offset = parseInt(c.req.query("offset") || "0", 10);
+
+  if (!validateUUID(convId)) return c.json({ error: "Invalid ID format" }, 400);
+
+  const limit = Math.min(Math.max(1, parseInt(c.req.query("limit") || "100", 10) || 100), 500);
+  const offset = Math.max(0, parseInt(c.req.query("offset") || "0", 10) || 0);
 
   const messages = await withOrg(orgId, (tx) =>
     tx`SELECT id, role, content, tool_calls, thinking, tokens_input, tokens_output, model, created_at
@@ -500,7 +515,7 @@ chatRoutes.get("/conversations/:id/messages", async (c) => {
 chatRoutes.get("/conversations", async (c) => {
   const orgId = c.get("orgId") as string;
   const user = c.get("user") as AuthUser;
-  const limit = Math.min(parseInt(c.req.query("limit") || "50", 10), 100);
+  const limit = Math.min(Math.max(1, parseInt(c.req.query("limit") || "50", 10) || 50), 100);
 
   const conversations = await withOrg(orgId, (tx) =>
     tx`SELECT c.id, c.title, c.status, c.engagement_id, c.created_at, c.updated_at,
@@ -540,21 +555,23 @@ chatRoutes.post("/conversations", zValidator("json", createConversationSchema), 
     RETURNING id, org_id, user_id, engagement_id, title, model, status, created_at, updated_at
   `;
 
+  if (!conversation) return c.json({ error: "Failed to create conversation" }, 500);
+
   // If an initial message was provided, save it
   const messages: Record<string, unknown>[] = [];
   if (body.initialMessage) {
     const [userMsg] = await sql`
       INSERT INTO chat_messages (org_id, conversation_id, role, content)
-      VALUES (${orgId}, ${conversation!.id}, 'user', ${body.initialMessage})
+      VALUES (${orgId}, ${conversation.id}, 'user', ${body.initialMessage})
       RETURNING id, role, content, tool_calls, thinking, tokens_input, tokens_output, model, created_at
     `;
-    messages.push(userMsg!);
+    if (userMsg) messages.push(userMsg);
 
     // Link any uploaded attachments to this conversation
     if (body.attachmentIds && body.attachmentIds.length > 0) {
       await sql`
         UPDATE file_uploads
-        SET conversation_id = ${conversation!.id}
+        SET conversation_id = ${conversation.id}
         WHERE id = ANY(${body.attachmentIds}::uuid[])
           AND org_id = ${orgId}
           AND user_id = ${user.id}
@@ -565,7 +582,7 @@ chatRoutes.post("/conversations", zValidator("json", createConversationSchema), 
   // Audit log
   await sql`
     INSERT INTO audit_logs (org_id, user_id, action, resource, details)
-    VALUES (${orgId}, ${user.id}, 'chat.conversation.create', ${"conversation:" + conversation!.id},
+    VALUES (${orgId}, ${user.id}, 'chat.conversation.create', ${"conversation:" + conversation.id},
             ${JSON.stringify({ title, hasInitialMessage: !!body.initialMessage })})
   `.catch(() => {});
 
@@ -578,6 +595,8 @@ chatRoutes.delete("/conversations/:id", async (c) => {
   const orgId = c.get("orgId") as string;
   const user = c.get("user") as AuthUser;
   const convId = c.req.param("id");
+
+  if (!validateUUID(convId)) return c.json({ error: "Invalid ID format" }, 400);
 
   // Soft delete — set status to 'deleted'
   const result = await withOrg(orgId, (tx) =>
@@ -664,11 +683,13 @@ chatRoutes.post("/files", async (c) => {
     RETURNING id, filename, mimetype, size_bytes, created_at
   `;
 
+  if (!record) return c.json({ error: "Failed to save file metadata" }, 500);
+
   return c.json({
-    id: record!.id,
-    filename: record!.filename,
-    mimetype: record!.mimetype,
-    url: `/api/chat/files/${record!.id}`,
+    id: record.id,
+    filename: record.filename,
+    mimetype: record.mimetype,
+    url: `/api/chat/files/${record.id}`,
   }, 201);
 });
 
@@ -677,6 +698,8 @@ chatRoutes.post("/files", async (c) => {
 chatRoutes.get("/files/:id", async (c) => {
   const orgId = c.get("orgId") as string;
   const fileId = c.req.param("id");
+
+  if (!validateUUID(fileId)) return c.json({ error: "Invalid ID format" }, 400);
 
   const [record] = await withOrg(orgId, (tx) =>
     tx`SELECT id, filename, mimetype, size_bytes, storage_path

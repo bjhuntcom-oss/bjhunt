@@ -75,7 +75,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
       a.href = url;
       a.download = `bjhunt-conversation-${new Date().toISOString().slice(0, 10)}.md`;
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
       ctx.setInput("");
     },
   },

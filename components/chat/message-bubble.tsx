@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
-import rehypeSanitize from "rehype-sanitize";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import { Copy, Check, Play } from "lucide-react";
 import { MessageActions } from "./message-actions";
 import { cn } from "@/lib/utils";
@@ -32,6 +32,22 @@ export interface WebSource {
   url: string;
   snippet: string;
 }
+
+/**
+ * Custom sanitize schema that preserves syntax highlighting classes.
+ * defaultSchema already allows `language-*` on `code` elements.
+ * We add `hljs-*` on `span` elements so rehype-highlight's output survives sanitization.
+ */
+const sanitizeSchema = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    span: [
+      ...(defaultSchema.attributes?.span || []),
+      ["className", /^hljs-/],
+    ],
+  },
+};
 
 const PROVIDER_COLORS: Record<string, string> = {
   anthropic: "#d4a574",
@@ -209,7 +225,7 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
         ) : (
           <div className="chat-prose">
             <ReactMarkdown
-              rehypePlugins={[rehypeSanitize, rehypeHighlight]}
+              rehypePlugins={[[rehypeSanitize, sanitizeSchema], rehypeHighlight]}
               components={{
                 code({ className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || "");

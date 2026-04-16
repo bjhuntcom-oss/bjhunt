@@ -16,6 +16,10 @@ reportRoutes.use("*", requireAuth);
 reportRoutes.use("*", rateLimit(config.rateLimit.api));
 reportRoutes.use("*", requireFeature("exportMarkdown"));
 
+/** Validate UUID format to prevent malformed IDs from reaching SQL. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function validateUUID(id: string): boolean { return UUID_RE.test(id); }
+
 // ── Helpers ─────────────────────────────────────────────────────────────
 
 function severityOrder(s: string): number {
@@ -47,6 +51,8 @@ function formatDate(iso: string): string {
 reportRoutes.get("/:engagementId/executive", async (c) => {
   const orgId = c.get("orgId") as string;
   const engagementId = c.req.param("engagementId");
+
+  if (!validateUUID(engagementId)) return c.json({ error: "Invalid ID format" }, 400);
 
   const [engagement] = await withOrg(orgId, (tx) =>
     tx`SELECT * FROM engagements WHERE id = ${engagementId}`,
@@ -146,6 +152,8 @@ reportRoutes.get("/:engagementId/hackerone", async (c) => {
   const orgId = c.get("orgId") as string;
   const engagementId = c.req.param("engagementId");
 
+  if (!validateUUID(engagementId)) return c.json({ error: "Invalid ID format" }, 400);
+
   const [engagement] = await withOrg(orgId, (tx) =>
     tx`SELECT * FROM engagements WHERE id = ${engagementId}`,
   );
@@ -242,6 +250,8 @@ reportRoutes.get("/:engagementId/timeline", async (c) => {
   const orgId = c.get("orgId") as string;
   const engagementId = c.req.param("engagementId");
 
+  if (!validateUUID(engagementId)) return c.json({ error: "Invalid ID format" }, 400);
+
   const [engagement] = await withOrg(orgId, (tx) =>
     tx`SELECT * FROM engagements WHERE id = ${engagementId}`,
   );
@@ -261,6 +271,7 @@ reportRoutes.get("/:engagementId/timeline", async (c) => {
   // Build timeline entries
   interface TimelineEntry {
     timestamp: string;
+    rawTimestamp: string;
     agent: string;
     action: string;
     finding: string;
@@ -269,8 +280,10 @@ reportRoutes.get("/:engagementId/timeline", async (c) => {
   const entries: TimelineEntry[] = [];
 
   for (const run of runs) {
+    const raw = run.createdAt as string;
     entries.push({
-      timestamp: formatDate(run.createdAt as string),
+      timestamp: formatDate(raw),
+      rawTimestamp: raw,
       agent: (run.agentName as string) || "unknown",
       action: `Agent ${run.status === "completed" ? "completed" : run.status === "error" ? "failed" : "started"}: ${(run.inputSummary as string) || "run"}`,
       finding: (run.outputSummary as string) || "-",
@@ -278,16 +291,18 @@ reportRoutes.get("/:engagementId/timeline", async (c) => {
   }
 
   for (const f of findings) {
+    const raw = f.createdAt as string;
     entries.push({
-      timestamp: formatDate(f.createdAt as string),
+      timestamp: formatDate(raw),
+      rawTimestamp: raw,
       agent: "-",
       action: `Finding discovered`,
       finding: `[${(f.severity as string).toUpperCase()}] ${f.title}`,
     });
   }
 
-  // Sort by timestamp string (already formatted consistently)
-  entries.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  // Sort by raw ISO timestamp for correct chronological ordering
+  entries.sort((a, b) => new Date(a.rawTimestamp).getTime() - new Date(b.rawTimestamp).getTime());
 
   let md = `# Engagement Timeline\n\n`;
   md += `**Engagement:** ${engagement.name}\n`;
@@ -315,6 +330,8 @@ reportRoutes.get("/:engagementId/timeline", async (c) => {
 reportRoutes.get("/:engagementId/csv", async (c) => {
   const orgId = c.get("orgId") as string;
   const engagementId = c.req.param("engagementId");
+
+  if (!validateUUID(engagementId)) return c.json({ error: "Invalid ID format" }, 400);
 
   const [engagement] = await withOrg(orgId, (tx) =>
     tx`SELECT id, name FROM engagements WHERE id = ${engagementId}`,

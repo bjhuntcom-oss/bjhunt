@@ -55,8 +55,8 @@ findingsRoutes.get("/", async (c) => {
   const engagementId = c.req.query("engagement_id");
   const search = c.req.query("q");
   const status = c.req.query("status");
-  const limit = Math.min(parseInt(c.req.query("limit") || "50", 10), 100);
-  const offset = parseInt(c.req.query("offset") || "0", 10);
+  const limit = Math.min(Math.max(1, parseInt(c.req.query("limit") || "50", 10) || 50), 100);
+  const offset = Math.max(0, parseInt(c.req.query("offset") || "0", 10) || 0);
 
   const findings = await withOrg(orgId, async (tx) => {
     // Build dynamic WHERE conditions
