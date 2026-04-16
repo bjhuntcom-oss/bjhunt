@@ -73,11 +73,13 @@ const sendMessageSchema = z.object({
 // ── In-memory pending stream store (SP3 split prepare/stream) ────────────
 
 interface PendingStream {
-  stream: ReadableStream<Uint8Array>;
+  threadId: string;
   orgId: string;
   convId: string;
   agentId: string;
   runId: string;
+  message: string;
+  userId: string;
   createdAt: number;
 }
 
@@ -190,31 +192,16 @@ chatRoutes.post("/prepare", enforceDemoLimit(), zValidator("json", sendMessageSc
   if (!agentRun) return c.json({ error: "Failed to create agent run" }, 500);
   const runId = agentRun.id as string;
 
-  // Start LangGraph stream
-  let stream: ReadableStream<Uint8Array>;
-  try {
-    stream = await langgraphClient.streamRun(
-      threadId,
-      agentId,
-      { content: message, user_id: user.id, org_id: orgId },
-    );
-  } catch (err: any) {
-    await sql`
-      UPDATE agent_runs SET status = 'failed', completed_at = now(),
-             error = ${(err.message || "LangGraph connection failed").slice(0, 500)},
-             duration_ms = EXTRACT(EPOCH FROM (now() - started_at))::INTEGER * 1000
-      WHERE id = ${runId} AND status = 'running'
-    `.catch((dbErr: Error) => console.error("Failed to mark agent run as failed:", dbErr));
-    return c.json({ error: "Failed to start AI agent", details: err.message }, 502);
-  }
-
-  // Store the stream in-memory for the GET /stream/:runId endpoint
+  // DON'T start the LangGraph stream yet — the GET /stream/:runId will start it.
+  // This avoids the race condition where the stream finishes before the client connects.
   pendingStreams.set(runId, {
-    stream,
+    threadId: threadId!,
     orgId,
     convId: convId!,
     agentId,
     runId,
+    message,
+    userId: user.id,
     createdAt: Date.now(),
   });
 
@@ -280,8 +267,6 @@ chatRoutes.get("/stream/:runId", async (c) => {
 
   // Verify org matches
   if (pending.orgId !== payload.org) {
-    // Cancel the orphaned stream
-    try { pending.stream.cancel(); } catch { /* ignore */ }
     return c.json({ error: "Organization mismatch" }, 403);
   }
 
@@ -298,6 +283,19 @@ chatRoutes.get("/stream/:runId", async (c) => {
              duration_ms = EXTRACT(EPOCH FROM (now() - started_at))::INTEGER * 1000
       WHERE id = ${runId} AND status = 'running'
     `.catch((dbErr: Error) => console.error("Failed to mark agent run as failed:", dbErr));
+  }
+
+  // Start the LangGraph stream NOW (not in /prepare — avoids race where stream finishes before client connects)
+  let stream: ReadableStream<Uint8Array>;
+  try {
+    stream = await langgraphClient.streamRun(
+      pending.threadId,
+      agentId,
+      { content: pending.message, user_id: userId, org_id: orgId },
+    );
+  } catch (err: any) {
+    await markRunFailed(err.message || "LangGraph connection failed");
+    return c.json({ error: "Failed to start AI agent", details: err.message }, 502);
   }
 
   // Transform the LangGraph SSE stream (same logic as the legacy POST /stream)
