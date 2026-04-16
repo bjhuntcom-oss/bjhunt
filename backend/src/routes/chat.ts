@@ -105,17 +105,32 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
         if (line.startsWith("data: ")) {
           try {
             const data = JSON.parse(line.slice(6));
-            if (data.content) fullResponse += data.content;
-            if (data.tool_calls) toolCalls.push(...data.tool_calls);
+
+            // LangGraph "values" format: data.messages is an array
+            if (Array.isArray(data.messages)) {
+              for (const msg of data.messages) {
+                if (msg.type === "ai" && typeof msg.content === "string" && msg.content) {
+                  fullResponse = msg.content; // Replace (each values event has full state)
+                }
+                if (msg.type === "ai" && msg.tool_calls) {
+                  toolCalls = msg.tool_calls;
+                }
+                if (msg.type === "ai" && msg.response_metadata?.token_usage) {
+                  tokensIn = msg.response_metadata.token_usage.prompt_tokens || 0;
+                  tokensOut = msg.response_metadata.token_usage.completion_tokens || 0;
+                }
+              }
+            }
+
+            // Delta format: data.content directly
+            if (data.content && !data.messages) fullResponse += data.content;
             if (data.thinking) thinkingContent = data.thinking;
             if (data.usage) {
               tokensIn += data.usage.input_tokens || 0;
               tokensOut += data.usage.output_tokens || 0;
             }
           } catch {
-            // Non-JSON — text delta
-            const trimmed = line.slice(6).trim();
-            if (trimmed && trimmed !== "[DONE]") fullResponse += trimmed;
+            // Non-JSON — ignore
           }
         }
       }
