@@ -559,10 +559,10 @@ export default function ChatPage() {
       // CORS is handled by Caddy + backend headers.
       // Auth via Authorization header (cookies are SameSite=Lax, won't cross-origin).
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.bjhunt.com";
-      const sessionCookie = document.cookie
+      const streamCookie = document.cookie
         .split(";").map(c => c.trim())
-        .find(c => c.startsWith("bjhunt_session="));
-      const sessionToken = sessionCookie?.split("=")[1] || "";
+        .find(c => c.startsWith("bjhunt_stream_token="));
+      const sessionToken = streamCookie?.split("=")[1] || "";
 
       const res = await fetch(`${backendUrl}/api/chat/stream`, {
         method: "POST",
