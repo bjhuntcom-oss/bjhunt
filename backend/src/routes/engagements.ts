@@ -477,6 +477,172 @@ engagementRoutes.post("/:id/findings", zValidator("json", createFindingSchema), 
   return c.json({ finding }, 201);
 });
 
+// ── Get knowledge graph for engagement ──────────────────────────────────
+
+engagementRoutes.get("/:id/graph", async (c) => {
+  const orgId = c.get("orgId") as string;
+  const id = c.req.param("id");
+
+  // Verify engagement exists
+  const [engagement] = await withOrg(orgId, (tx) =>
+    tx`SELECT id, name, target, status, config FROM engagements WHERE id = ${id}`,
+  );
+  if (!engagement) return c.json({ error: "Engagement not found" }, 404);
+
+  // Fetch findings for this engagement
+  const findings = await withOrg(orgId, (tx) =>
+    tx`SELECT id, title, description, severity, cvss_score, cvss_vector,
+              cve_ids, mitre_attack, evidence, remediation, status, created_at
+       FROM findings
+       WHERE engagement_id = ${id}
+       ORDER BY
+         CASE severity
+           WHEN 'critical' THEN 0
+           WHEN 'high' THEN 1
+           WHEN 'medium' THEN 2
+           WHEN 'low' THEN 3
+           WHEN 'info' THEN 4
+         END,
+         created_at DESC`,
+  );
+
+  // Build graph nodes
+  const nodes: Array<{
+    id: string;
+    type: string;
+    label: string;
+    properties: Record<string, any>;
+  }> = [];
+  const edges: Array<{
+    id: string;
+    source: string;
+    target: string;
+    type: string;
+  }> = [];
+
+  // Create a HOST node from the engagement target
+  const hostId = `host-${id}`;
+  const target = engagement.target as string;
+  nodes.push({
+    id: hostId,
+    type: "host",
+    label: target,
+    properties: {
+      target,
+      status: engagement.status as string,
+      servicesCount: 0,
+    },
+  });
+
+  // Track severity counts
+  let criticalFindings = 0;
+  let highFindings = 0;
+
+  // Create FINDING nodes and HOST -> AFFECTS -> FINDING edges
+  for (const f of findings) {
+    const fId = `finding-${f.id}`;
+    const severity = f.severity as string;
+
+    if (severity === "critical") criticalFindings++;
+    if (severity === "high") highFindings++;
+
+    const props: Record<string, any> = {
+      severity,
+      status: f.status as string,
+    };
+
+    if (f.cvss_score != null) props.cvssScore = f.cvss_score;
+    if (f.cvss_vector) props.cvssVector = f.cvss_vector;
+    if (f.cve_ids && (f.cve_ids as string[]).length > 0)
+      props.cveIds = (f.cve_ids as string[]).join(", ");
+    if (f.mitre_attack && (f.mitre_attack as string[]).length > 0)
+      props.mitreAttack = (f.mitre_attack as string[]).join(", ");
+    if (f.remediation) props.remediation = f.remediation;
+    if (f.description) props.description = (f.description as string).slice(0, 200);
+
+    nodes.push({
+      id: fId,
+      type: "finding",
+      label: f.title as string,
+      properties: props,
+    });
+
+    edges.push({
+      id: `edge-affects-${f.id}`,
+      source: hostId,
+      target: fId,
+      type: "AFFECTS",
+    });
+  }
+
+  // Build chains: group critical/high findings into attack chains
+  // Each chain: HOST -> AFFECTS -> FINDING
+  // If multiple critical/high findings exist, chain them with ESCALATES_TO
+  const chains: Array<{
+    id: string;
+    severity: string;
+    nodes: string[];
+  }> = [];
+
+  const criticalHighFindings = findings.filter(
+    (f: any) => f.severity === "critical" || f.severity === "high",
+  );
+
+  if (criticalHighFindings.length > 0) {
+    // Build a single primary attack chain with all critical/high findings
+    const chainNodes = [hostId];
+    let highestSeverity = "high";
+
+    for (const f of criticalHighFindings) {
+      const fId = `finding-${f.id}`;
+      chainNodes.push(fId);
+      if ((f.severity as string) === "critical") highestSeverity = "critical";
+    }
+
+    // Add ESCALATES_TO edges between sequential findings in the chain
+    for (let i = 1; i < criticalHighFindings.length; i++) {
+      const prevId = `finding-${criticalHighFindings[i - 1]!.id}`;
+      const currId = `finding-${criticalHighFindings[i]!.id}`;
+      const edgeId = `edge-escalates-${i}`;
+
+      // Only add if not already present
+      if (!edges.some((e) => e.id === edgeId)) {
+        edges.push({
+          id: edgeId,
+          source: prevId,
+          target: currId,
+          type: "ESCALATES_TO",
+        });
+      }
+    }
+
+    chains.push({
+      id: "chain-1",
+      severity: highestSeverity,
+      nodes: chainNodes,
+    });
+  }
+
+  // Also create individual chains for each critical finding
+  const criticalOnly = findings.filter((f: any) => f.severity === "critical");
+  criticalOnly.forEach((f: any, idx: number) => {
+    chains.push({
+      id: `chain-crit-${idx + 1}`,
+      severity: "critical",
+      nodes: [hostId, `finding-${f.id}`],
+    });
+  });
+
+  const stats = {
+    nodeCount: nodes.length,
+    edgeCount: edges.length,
+    criticalFindings,
+    highFindings,
+  };
+
+  return c.json({ nodes, edges, stats, chains });
+});
+
 // ── Delete engagement ────────────────────────────────────────────────────
 
 engagementRoutes.delete("/:id", async (c) => {

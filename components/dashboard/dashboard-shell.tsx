@@ -19,6 +19,8 @@ import {
   ChevronRight,
   ShieldCheck,
   AlertTriangle,
+  ShieldAlert,
+  BookOpen,
 } from "lucide-react";
 
 const COLLAPSE_KEY = "bjhunt:sidebar-collapsed";
@@ -38,6 +40,8 @@ const getUserNav = (locale: string) => [
   { href: "/dashboard",               label: locale === "fr" ? "Aperçu" : "Overview",            icon: BarChart2     },
   { href: "/dashboard/audits",        label: "Audits",                                           icon: ShieldCheck   },
   { href: "/dashboard/findings",     label: "Findings",                                         icon: AlertTriangle },
+  { href: "/dashboard/cve",          label: "CVE Intel",                                        icon: ShieldAlert   },
+  { href: "/dashboard/skills",       label: "Skills",                                           icon: BookOpen      },
   { href: "/dashboard/settings",      label: locale === "fr" ? "Paramètres" : "Settings",        icon: Settings      },
 ];
 

@@ -32,6 +32,8 @@ import { billingRoutes } from "./routes/billing.js";
 import { twoFactorRoutes } from "./routes/two-factor.js";
 import { findingsRoutes } from "./routes/findings.js";
 import { reportRoutes } from "./routes/reports.js";
+import { cveRoutes } from "./routes/cve.js";
+import { skillRoutes } from "./routes/skills.js";
 
 const app = new Hono<{ Variables: AppVariables }>();
 
@@ -62,6 +64,8 @@ app.route("/api/notifications", notificationRoutes);
 app.route("/api/dashboard", dashboardRoutes);
 app.route("/api/billing", billingRoutes);
 app.route("/api/reports", reportRoutes);
+app.route("/api/cve", cveRoutes);
+app.route("/api/skills", skillRoutes);
 
 // Public API v1 (API key auth)
 app.route("/api/v1", publicApiRoutes);
