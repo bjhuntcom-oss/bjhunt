@@ -247,16 +247,21 @@ export default function ChatPage() {
     } finally {
       setIsStreaming(false);
       setThinking((prev) => ({ ...prev, active: false }));
-      // Apply last known AI content from ref (survives React batching)
+
+      // Apply last known AI content from ref — must be captured BEFORE any async ops
       const finalContent = lastAiContentRef.current;
-      setMessages((prev) =>
-        prev.map((m) => {
-          if (m.id !== assistantId) return m;
-          // Use ref content if message content is still empty
-          const content = m.content || finalContent;
-          return { ...m, content, isStreaming: false };
-        })
-      );
+
+      // Use requestAnimationFrame to ensure React has committed previous state updates
+      requestAnimationFrame(() => {
+        setMessages((prev) =>
+          prev.map((m) => {
+            if (m.id !== assistantId) return m;
+            const content = m.content || finalContent;
+            return { ...m, content, isStreaming: false };
+          })
+        );
+      });
+
       lastAiContentRef.current = "";
       abortRef.current = null;
     }
