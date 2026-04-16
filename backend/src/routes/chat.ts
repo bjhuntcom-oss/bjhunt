@@ -485,7 +485,7 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
           controller.close();
         } catch {
           // Stream errored (client disconnect, timeout, etc.)
-          controller.close();
+          try { controller.close(); } catch { /* already closed */ }
         }
       })();
     },
