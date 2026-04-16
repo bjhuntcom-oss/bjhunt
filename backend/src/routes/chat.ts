@@ -219,7 +219,7 @@ chatRoutes.post("/prepare", enforceDemoLimit(), zValidator("json", sendMessageSc
   const streamBase = config.isProduction
     ? "https://api.bjhunt.com"
     : `http://localhost:${config.port}`;
-  const streamUrl = `${streamBase}/api/chat/stream/${runId}?ticket=${encodeURIComponent(ticket)}`;
+  const streamUrl = `${streamBase}/api/chat/stream/${runId}`;
 
   // Audit log
   await sql`
