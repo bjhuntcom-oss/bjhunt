@@ -807,6 +807,96 @@ export default function ChatPage() {
         if (parsed.stats) setGraphStats(parsed.stats);
         break;
 
+      // ── LangGraph "values" events (raw from GET /stream/:runId) ─────
+      case "values": {
+        const msgs = parsed.messages || parsed.values?.messages;
+        if (Array.isArray(msgs)) {
+          const aiMsgs = msgs.filter((m: any) => m.type === "ai" || m.role === "assistant");
+          if (aiMsgs.length > 0) {
+            const latest = aiMsgs[aiMsgs.length - 1];
+            let text = "";
+            if (typeof latest.content === "string") text = latest.content;
+            else if (Array.isArray(latest.content)) {
+              text = latest.content.filter((c: any) => c.type === "text").map((c: any) => c.text).join("");
+            }
+            if (text && text.length > lastAiContentRef.current.length) {
+              const delta = text.slice(lastAiContentRef.current.length);
+              lastAiContentRef.current = text;
+              setMessages((prev) =>
+                prev.map((m) => m.id === assistantId ? { ...m, content: text } : m)
+              );
+              setThinking((prev) => prev.active ? { ...prev, active: false } : prev);
+              const approxTokens = Math.ceil(delta.length / 4);
+              tokensSoFarRef.current += approxTokens;
+              setTokenCount((prev) => prev + approxTokens);
+            }
+            // Token usage
+            if (latest.response_metadata?.token_usage) {
+              const u = latest.response_metadata.token_usage;
+              if (u.total_tokens) setTokenCount(u.total_tokens);
+            }
+          }
+          // Tool calls from AI messages
+          for (const ai of msgs.filter((m: any) => m.type === "ai" && m.tool_calls?.length)) {
+            for (const tc of ai.tool_calls) {
+              setToolCalls((prev) => {
+                if (prev.has(tc.id)) return prev;
+                const next = new Map(prev);
+                next.set(tc.id, { id: tc.id, name: tc.name, args: tc.args || {}, status: "running" });
+                return next;
+              });
+            }
+          }
+          // Tool results
+          for (const toolMsg of msgs.filter((m: any) => m.type === "tool")) {
+            setToolCalls((prev) => {
+              const next = new Map(prev);
+              const existing = next.get(toolMsg.tool_call_id);
+              if (existing) {
+                next.set(toolMsg.tool_call_id, {
+                  ...existing,
+                  result: (typeof toolMsg.content === "string" ? toolMsg.content : JSON.stringify(toolMsg.content)).slice(0, 500),
+                  status: toolMsg.status === "error" ? "error" : "completed",
+                });
+              }
+              return next;
+            });
+          }
+        }
+        break;
+      }
+
+      // ── LangGraph "custom" events (sub-agent lifecycle) ─────────────
+      case "custom": {
+        const evtType = parsed.type || parsed.event;
+        const evtData = parsed.data || parsed;
+        if (evtType === "subagent_start") {
+          setSubAgents((prev) => {
+            const next = new Map(prev);
+            next.set(evtData.id || crypto.randomUUID(), {
+              id: evtData.id || crypto.randomUUID(),
+              name: evtData.name || evtData.agent || "sub-agent",
+              description: evtData.description || "",
+              status: "running",
+              startedAt: new Date().toISOString(),
+              toolCalls: [],
+              messages: [],
+            });
+            return next;
+          });
+        } else if (evtType === "subagent_end") {
+          setSubAgents((prev) => {
+            const next = new Map(prev);
+            const existing = next.get(evtData.id);
+            if (existing) {
+              next.set(evtData.id, { ...existing, status: evtData.error ? "error" : "completed", endedAt: new Date().toISOString() });
+            }
+            return next;
+          });
+        }
+        break;
+      }
+
       // ── Stream error from backend (timeout, LangGraph failure, etc.) ──
       case "error":
         setStreamError(parsed.message || "Stream error from server");
@@ -818,6 +908,10 @@ export default function ChatPage() {
         if (parsed.tokensIn || parsed.tokensOut) {
           setTokenCount(parsed.tokensIn + parsed.tokensOut);
         }
+        break;
+
+      // ── Ignore metadata and other LangGraph events ──────────────────
+      case "metadata":
         break;
     }
   }
