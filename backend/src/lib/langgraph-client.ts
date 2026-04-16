@@ -95,7 +95,7 @@ export const langgraphClient = {
       body: JSON.stringify({
         assistant_id: assistantId,
         input: { messages: [{ role: "human", content: String(input.content || JSON.stringify(input)) }] },
-        stream_mode: "events",
+        stream_mode: "messages",
       }),
       // 30s timeout for initial connection (not the whole stream)
       signal: AbortSignal.timeout(30_000),

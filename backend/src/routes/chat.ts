@@ -162,7 +162,7 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
   }
 
   // Create a transform stream that:
-  // 1. Parses LangGraph "events" SSE to capture content for DB persistence
+  // 1. Parses LangGraph "messages" SSE to capture content for DB persistence
   // 2. Re-emits normalized SSE events the frontend understands:
   //    - event: token       → {"token": "..."}           (progressive text)
   //    - event: tool_call   → {"id","name","args"}       (tool invocation)
@@ -238,6 +238,7 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
       for (const block of blocks) {
         if (!block.trim()) continue;
 
+        // Parse SSE block into event type + data lines
         let eventType = "";
         const dataLines: string[] = [];
         for (const line of block.split("\n")) {
@@ -252,65 +253,79 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
         let parsed: any;
         try { parsed = JSON.parse(raw); } catch { continue; }
 
-        // LangGraph "events" stream mode emits { event: "on_...", data: {...} }
-        const lgEvent = parsed.event || eventType;
+        // ── "messages" mode: LangGraph streams [message_chunk, metadata] tuples ──
+        if (eventType === "messages" || eventType === "messages/partial" || eventType === "messages/complete") {
+          const msgChunk = Array.isArray(parsed) ? parsed[0] : parsed;
+          const metadata = Array.isArray(parsed) ? parsed[1] : {};
 
-        if (lgEvent === "on_chat_model_stream") {
-          // Token-by-token streaming from the LLM
-          const chunk = parsed.data?.chunk;
-          let token = "";
-          if (chunk) {
-            if (typeof chunk.content === "string") {
-              token = chunk.content;
-            } else if (Array.isArray(chunk.content)) {
-              token = chunk.content
-                .filter((c: any) => c.type === "text")
-                .map((c: any) => c.text)
-                .join("");
+          if (!msgChunk) continue;
+
+          // AIMessageChunk — text tokens and/or tool calls
+          if (msgChunk.type === "AIMessageChunk" || msgChunk.type === "ai") {
+            // Text content (string form)
+            if (typeof msgChunk.content === "string" && msgChunk.content) {
+              fullResponse += msgChunk.content;
+              emitSSE(controller, "token", { token: msgChunk.content, agent: metadata?.langgraph_node });
+            }
+            // Content array (Anthropic format: [{type:"text", text:"..."}, ...])
+            else if (Array.isArray(msgChunk.content)) {
+              for (const contentBlock of msgChunk.content) {
+                if (contentBlock.type === "text" && contentBlock.text) {
+                  fullResponse += contentBlock.text;
+                  emitSSE(controller, "token", { token: contentBlock.text, agent: metadata?.langgraph_node });
+                }
+              }
+            }
+
+            // Tool calls (complete — name is present)
+            if (msgChunk.tool_calls && Array.isArray(msgChunk.tool_calls)) {
+              for (const tc of msgChunk.tool_calls) {
+                if (tc.name) {
+                  toolCalls.push({ id: tc.id, name: tc.name, args: tc.args || {} });
+                  emitSSE(controller, "tool_call", { id: tc.id, name: tc.name, args: tc.args || {}, status: "running" });
+                }
+              }
+            }
+
+            // Tool call chunks (incremental — streaming tool call arguments)
+            if (msgChunk.tool_call_chunks && Array.isArray(msgChunk.tool_call_chunks)) {
+              for (const tcc of msgChunk.tool_call_chunks) {
+                if (tcc.name) {
+                  toolCalls.push({ id: tcc.id, name: tcc.name, args: {} });
+                  emitSSE(controller, "tool_call", { id: tcc.id, name: tcc.name, args: {}, status: "running" });
+                }
+              }
+            }
+
+            // Token usage from response_metadata (final chunk often carries this)
+            if (msgChunk.response_metadata?.token_usage) {
+              const usage = msgChunk.response_metadata.token_usage;
+              tokensIn = usage.prompt_tokens || usage.input_tokens || 0;
+              tokensOut = usage.completion_tokens || usage.output_tokens || 0;
+            }
+            if (msgChunk.usage_metadata) {
+              tokensIn = msgChunk.usage_metadata.input_tokens || tokensIn;
+              tokensOut = msgChunk.usage_metadata.output_tokens || tokensOut;
             }
           }
-          if (token) {
-            fullResponse += token;
-            emitSSE(controller, "token", { token });
-          }
-        } else if (lgEvent === "on_tool_start") {
-          const runInfo = parsed.data;
-          if (runInfo) {
-            const tc = {
-              id: runInfo.run_id || crypto.randomUUID(),
-              name: runInfo.name || "tool",
-              args: runInfo.input || {},
-            };
-            toolCalls.push(tc);
-            emitSSE(controller, "tool_call", { ...tc, status: "running" });
-          }
-        } else if (lgEvent === "on_tool_end") {
-          const runInfo = parsed.data;
-          if (runInfo) {
-            const result = typeof runInfo.output === "string"
-              ? runInfo.output.slice(0, 500)
-              : JSON.stringify(runInfo.output).slice(0, 500);
+
+          // ToolMessageChunk — result of a tool invocation
+          else if (msgChunk.type === "ToolMessageChunk" || msgChunk.type === "tool") {
+            const result = typeof msgChunk.content === "string"
+              ? msgChunk.content.slice(0, 500)
+              : JSON.stringify(msgChunk.content).slice(0, 500);
             emitSSE(controller, "tool_result", {
-              id: runInfo.run_id || "",
+              id: msgChunk.tool_call_id || "",
               result,
-              status: runInfo.error ? "error" : "completed",
-              duration: runInfo.duration,
+              status: msgChunk.status === "error" ? "error" : "completed",
             });
           }
-        } else if (lgEvent === "on_chain_end") {
-          // Final chain output — may contain token usage
-          const output = parsed.data?.output;
-          if (output?.response_metadata?.token_usage) {
-            const usage = output.response_metadata.token_usage;
-            tokensIn = usage.prompt_tokens || usage.input_tokens || 0;
-            tokensOut = usage.completion_tokens || usage.output_tokens || 0;
-          }
-        } else if (lgEvent === "on_chat_model_start") {
-          // Thinking indicator
-          emitSSE(controller, "thinking", { content: "", active: true });
+
+          // HumanMessageChunk / SystemMessageChunk — ignore (echo of our input)
         }
-        // Forward "values" events too (backward compat if LangGraph falls back)
-        else if (eventType === "values" || lgEvent === "values") {
+
+        // ── "values" mode fallback (backward compat if LangGraph sends values) ──
+        else if (eventType === "values") {
           const msgs = parsed.messages || parsed.values?.messages;
           if (Array.isArray(msgs)) {
             const aiMsgs = msgs.filter((m: any) => m.type === "ai" || m.role === "assistant");
