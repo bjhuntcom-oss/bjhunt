@@ -14,17 +14,9 @@ export async function browserBackendFetch(path: string, init: RequestInit = {}) 
     headers.set('Content-Type', 'application/json')
   }
 
-  // Use relative path (same origin) so session cookies are sent correctly.
-  // The Next.js catch-all proxy at /api/proxy/[...path] forwards to the backend.
-  let url: string
-  if (path.startsWith('http')) {
-    url = path
-  } else if (path.startsWith('/api/')) {
-    // Route through Next.js proxy to avoid cross-origin cookie issues
-    url = `/api/proxy${path.slice(4)}`
-  } else {
-    url = path
-  }
+  // Use absolute URL to backend. Cookie domain is .bjhunt.com so
+  // cookies set on www.bjhunt.com are sent to api.bjhunt.com.
+  const url = path.startsWith('http') ? path : `${getBackendBaseUrl()}${path}`
 
   return fetch(url, {
     ...init,
