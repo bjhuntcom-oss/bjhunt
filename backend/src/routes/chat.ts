@@ -215,7 +215,7 @@ chatRoutes.post("/prepare", enforceDemoLimit(), zValidator("json", sendMessageSc
 
   // Build the stream URL — production uses the API domain, dev uses same origin
   const streamBase = config.isProduction
-    ? "https://api.bjhunt.com"
+    ? "https://chat.bjhunt.com"
     : `http://localhost:${config.port}`;
   const streamUrl = `${streamBase}/api/chat/stream/${runId}`;
 
