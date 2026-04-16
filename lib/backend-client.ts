@@ -14,9 +14,16 @@ export async function browserBackendFetch(path: string, init: RequestInit = {}) 
     headers.set('Content-Type', 'application/json')
   }
 
-  // Use absolute URL to backend. Cookie domain is .bjhunt.com so
-  // cookies set on www.bjhunt.com are sent to api.bjhunt.com.
-  const url = path.startsWith('http') ? path : `${getBackendBaseUrl()}${path}`
+  // Route through same-origin proxy to avoid cross-site cookie blocking.
+  // /api/proxy/[...path] forwards to the backend with cookies.
+  let url: string
+  if (path.startsWith('http')) {
+    url = path
+  } else if (path.startsWith('/api/')) {
+    url = `/api/proxy${path.slice(4)}`
+  } else {
+    url = path
+  }
 
   return fetch(url, {
     ...init,
