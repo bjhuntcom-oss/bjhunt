@@ -178,6 +178,7 @@ export default function ChatPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const lastAiContentRef = useRef<string>("");
+  const requestIdRef = useRef<number>(0);
   const hasAutoNamedRef = useRef<boolean>(false);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
@@ -555,30 +556,36 @@ export default function ChatPage() {
         requestBody.attachmentIds = uploadedFileIds;
       }
 
-      // Route through same-origin Vercel proxy to avoid CORS entirely.
-      // Vercel Hobby plan has 10s timeout — for longer streams, upgrade to Pro.
-      const res = await fetch(`/api/proxy/chat/stream`, {
+      // ── Phase 1: Prepare (fast REST call via Vercel proxy) ─────────
+      const currentRequestId = ++requestIdRef.current;
+
+      const prepareRes = await fetch(`/api/proxy/chat/prepare`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(requestBody),
         signal: abortRef.current.signal,
       });
 
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
+      if (!prepareRes.ok) {
+        const err = await prepareRes.json().catch(() => ({ error: `HTTP ${prepareRes.status}` }));
+        throw new Error(err.error || err.message || `Prepare failed (${prepareRes.status})`);
       }
 
-      // Fix 2: Capture conversationId from response header
-      const returnedConvId = res.headers.get("X-Conversation-Id");
-      if (returnedConvId) {
-        setActiveConversationId(returnedConvId);
+      const { streamUrl, ticket, conversationId: returnedConvId } = await prepareRes.json();
+      if (returnedConvId) setActiveConversationId(returnedConvId);
+
+      // ── Phase 2: Stream (direct GET to backend, bypasses Vercel timeout) ──
+      const streamRes = await fetch(`${streamUrl}?ticket=${encodeURIComponent(ticket)}`, {
+        signal: abortRef.current.signal,
+      });
+
+      if (!streamRes.ok) {
+        throw new Error(`Stream HTTP ${streamRes.status}`);
       }
 
       // Read SSE stream
-      const reader = res.body?.getReader();
+      const reader = streamRes.body?.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
 
@@ -593,6 +600,9 @@ export default function ChatPage() {
             break;
           }
 
+          // Race condition guard: drop events if user switched conversations
+          if (requestIdRef.current !== currentRequestId) break;
+
           buffer += decoder.decode(value, { stream: true });
           const blocks = buffer.split("\n\n");
           buffer = blocks.pop() ?? "";
@@ -604,7 +614,14 @@ export default function ChatPage() {
         }
       }
     } catch (err: any) {
-      if (err.name !== "AbortError") {
+      if (err.name === "AbortError") {
+        // User clicked Stop — mark message as done without showing an error
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId ? { ...m, isStreaming: false } : m
+          )
+        );
+      } else {
         const errMsg = err.message || "Connection failed";
         setStreamError(errMsg);
         setMessages((prev) =>

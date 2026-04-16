@@ -1,4 +1,4 @@
-api.bjhunt.com {
+api.bjhunt.com, chat.bjhunt.com {
     # CORS is handled entirely by the Hono backend (cors middleware).
     # Caddy only adds security headers and proxies without buffering.
     header {
