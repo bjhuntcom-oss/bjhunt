@@ -1467,16 +1467,17 @@ export default function ChatPage() {
           )}
         </div>
 
-        {/* Input area — ChatInput with slash commands, file upload, voice, etc. */}
-        <div
-          className="chat-input-glass"
-          style={{
-            background: "rgba(10, 10, 10, 0.8)",
-            backdropFilter: "blur(24px)",
-            WebkitBackdropFilter: "blur(24px)",
-            borderTop: "1px solid rgba(255, 255, 255, 0.06)",
-          }}
-        >
+        {/* Input area — floating glass chatbox */}
+        <div className="chat-input-glass px-3 md:px-5 pb-3 md:pb-4 pt-0">
+          <div
+            style={{
+              background: "rgba(13, 13, 13, 0.7)",
+              backdropFilter: "blur(24px)",
+              WebkitBackdropFilter: "blur(24px)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              boxShadow: "0 -4px 30px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.03)",
+            }}
+          >
           <ChatInput
             onSubmit={handleSend}
             onStop={handleStop}
@@ -1498,6 +1499,7 @@ export default function ChatPage() {
             selectedAgent={selectedAgent}
             onSelectAgent={setSelectedAgent}
           />
+        </div>
         </div>
       </div>
 
