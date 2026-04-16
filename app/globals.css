@@ -226,6 +226,11 @@ body {
 
 .chatbox-glow {
   position: relative;
+  background: rgba(13, 13, 13, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .chatbox-glow::before {
@@ -244,21 +249,20 @@ body {
 }
 
 .chatbox-glow:focus-within {
-  border-color: rgba(0,204,138,0.4);
+  border-color: rgba(0,204,138,0.3);
   box-shadow:
-    0 0 0 1px rgba(0,204,138,0.15),
-    0 0 20px rgba(0,204,138,0.08),
-    0 0 40px rgba(0,204,138,0.04);
+    0 0 0 1px rgba(0,204,138,0.1),
+    0 0 30px rgba(0,204,138,0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 /* Subtle idle glow when not focused */
 .chatbox-glow:not(:focus-within) {
-  border-color: var(--border);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .chatbox-glow:not(:focus-within):hover {
-  border-color: var(--border-strong);
+  border-color: rgba(255, 255, 255, 0.12);
   box-shadow: 0 0 15px rgba(0,204,138,0.05);
 }
 
@@ -581,4 +585,48 @@ body {
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
   animation: tech-io-slide 0.8s ease-out forwards;
+}
+
+/* ── GLASSMORPHISM UTILITIES ──────────────────────── */
+
+.glass-panel {
+  background: rgba(10, 10, 10, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-hover {
+  transition: all 0.2s ease;
+}
+.glass-hover:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Smooth scroll for messages area */
+.chat-messages-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fade gradient above the chatbox so messages dissolve as they scroll behind */
+.chat-input-glass {
+  position: relative;
+}
+.chat-input-glass::before {
+  content: "";
+  position: absolute;
+  top: -48px;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: linear-gradient(to bottom, transparent, rgba(10, 10, 10, 0.85));
+  pointer-events: none;
+  z-index: 1;
 }

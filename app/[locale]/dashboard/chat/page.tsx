@@ -905,27 +905,40 @@ export default function ChatPage() {
         <>
           {/* Mobile backdrop */}
           <div
-            className="fixed inset-0 bg-black/60 z-40 md:hidden"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300"
             onClick={() => setShowSidebar(false)}
           />
         </>
       )}
       {showSidebar && (
         <div className={`
-          fixed inset-y-0 left-0 z-50 w-[280px] border-r border-[var(--border)] flex flex-col bg-[var(--bg)]
+          fixed inset-y-0 left-0 z-50 w-[280px] flex flex-col
           md:relative md:inset-auto md:z-auto
-        `}>
+        `}
+        style={{
+          background: "rgba(10, 10, 10, 0.85)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          borderRight: "1px solid rgba(255, 255, 255, 0.06)",
+        }}>
           {/* Sidebar tabs */}
-          <div className="flex border-b border-[var(--border)]">
+          <div className="flex" style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)" }}>
             {(["conversations", "opplan", "graph"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setSidebarTab(tab)}
-                className={`flex-1 py-2 text-[9px] uppercase tracking-wider transition-colors ${
+                className={`flex-1 py-2 text-[9px] uppercase tracking-wider transition-all duration-200 ${
                   sidebarTab === tab
-                    ? "text-white border-b border-white"
+                    ? "text-white"
                     : "text-[var(--text-subtle)] hover:text-[var(--text-muted)]"
                 }`}
+                style={sidebarTab === tab ? {
+                  background: "rgba(255, 255, 255, 0.08)",
+                  borderBottom: "2px solid rgba(255, 255, 255, 0.3)",
+                } : {
+                  background: "rgba(255, 255, 255, 0.04)",
+                  borderBottom: "2px solid transparent",
+                }}
               >
                 {tab === "conversations" ? "Conversations" : tab === "opplan" ? "OPPLAN" : "Graph"}
               </button>
@@ -940,7 +953,13 @@ export default function ChatPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={startNewConversation}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-card)] border border-dashed border-[var(--border)] transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-[var(--text-muted)] hover:text-white transition-all duration-200"
+                    style={{
+                      border: "1px dashed rgba(255, 255, 255, 0.08)",
+                      background: "transparent",
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255, 255, 255, 0.04)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(255, 255, 255, 0.15)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(255, 255, 255, 0.08)"; }}
                     title="New conversation"
                   >
                     <Plus className="w-4 h-4" />
@@ -1033,11 +1052,25 @@ export default function ChatPage() {
                                 setContextMenu({ x: e.clientX, y: e.clientY, engId: conv.id });
                               }}
                               title={conv.lastMessage || conv.title}
-                              className={`w-full text-left px-3 py-2 transition-colors group ${
+                              className={`w-full text-left px-3 py-2 transition-all duration-200 group ${
                                 activeConversationId === conv.id
-                                  ? "bg-[var(--bg-card)] border-l-2 border-l-[var(--success)] border-y border-r border-y-[var(--border-strong)] border-r-[var(--border-strong)]"
-                                  : "hover:bg-[var(--bg-card)] border-l-2 border-l-transparent border-y border-r border-y-transparent border-r-transparent"
+                                  ? "border-l-2 border-y border-r border-y-transparent border-r-transparent"
+                                  : "border-l-2 border-l-transparent border-y border-r border-y-transparent border-r-transparent"
                               }`}
+                              style={activeConversationId === conv.id ? {
+                                background: "rgba(0, 204, 138, 0.08)",
+                                borderLeftColor: "rgba(0, 204, 138, 0.5)",
+                              } : undefined}
+                              onMouseEnter={(e) => {
+                                if (activeConversationId !== conv.id) {
+                                  (e.currentTarget as HTMLElement).style.background = "rgba(255, 255, 255, 0.04)";
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (activeConversationId !== conv.id) {
+                                  (e.currentTarget as HTMLElement).style.background = "transparent";
+                                }
+                              }}
                             >
                               {/* Title: meaningful name, or last message preview, or "Sans titre" */}
                               <div className={`text-[11px] truncate ${
@@ -1108,11 +1141,25 @@ export default function ChatPage() {
                             e.preventDefault();
                             setContextMenu({ x: e.clientX, y: e.clientY, engId: eng.id });
                           }}
-                          className={`w-full text-left px-3 py-2 transition-colors ${
+                          className={`w-full text-left px-3 py-2 transition-all duration-200 ${
                             activeEngagement?.id === eng.id
-                              ? "bg-[var(--bg-card)] border-l-2 border-l-[var(--success)] border-y border-r border-y-[var(--border-strong)] border-r-[var(--border-strong)]"
-                              : "hover:bg-[var(--bg-card)] border-l-2 border-l-transparent border-y border-r border-y-transparent border-r-transparent"
+                              ? "border-l-2 border-y border-r border-y-transparent border-r-transparent"
+                              : "border-l-2 border-l-transparent border-y border-r border-y-transparent border-r-transparent"
                           }`}
+                          style={activeEngagement?.id === eng.id ? {
+                            background: "rgba(0, 204, 138, 0.08)",
+                            borderLeftColor: "rgba(0, 204, 138, 0.5)",
+                          } : undefined}
+                          onMouseEnter={(e) => {
+                            if (activeEngagement?.id !== eng.id) {
+                              (e.currentTarget as HTMLElement).style.background = "rgba(255, 255, 255, 0.04)";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (activeEngagement?.id !== eng.id) {
+                              (e.currentTarget as HTMLElement).style.background = "transparent";
+                            }
+                          }}
                         >
                           <div className="text-[11px] text-white truncate">{eng.name}</div>
                           <div className="text-[9px] text-[var(--text-subtle)] mt-0.5">
@@ -1127,8 +1174,16 @@ export default function ChatPage() {
                 {/* Context menu dropdown */}
                 {contextMenu && (
                   <div
-                    className="fixed z-[60] bg-[var(--bg-card)] border border-[var(--border-strong)] shadow-2xl py-1 min-w-[140px]"
-                    style={{ left: contextMenu.x, top: contextMenu.y }}
+                    className="fixed z-[60] shadow-2xl py-1 min-w-[140px]"
+                    style={{
+                      left: contextMenu.x,
+                      top: contextMenu.y,
+                      background: "rgba(17, 17, 17, 0.9)",
+                      backdropFilter: "blur(24px)",
+                      WebkitBackdropFilter: "blur(24px)",
+                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
+                    }}
                     onMouseDown={(e) => e.stopPropagation()}
                   >
                     <button
@@ -1182,7 +1237,15 @@ export default function ChatPage() {
       {/* ── Main chat area ──────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border)]">
+        <div
+          className="flex items-center justify-between px-4 py-2"
+          style={{
+            background: "rgba(10, 10, 10, 0.7)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+          }}
+        >
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowSidebar(!showSidebar)}
@@ -1235,7 +1298,11 @@ export default function ChatPage() {
         </div>
 
         {/* Messages area */}
-        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 relative">
+        <div
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto px-4 py-4 space-y-4 relative chat-messages-scroll"
+          style={{ background: "rgba(10, 10, 10, 0.5)" }}
+        >
           {/* Fix 4: Loading skeleton */}
           {loadingHistory && messages.length === 0 && (
             <div className="space-y-4">
@@ -1275,12 +1342,30 @@ export default function ChatPage() {
                   <button
                     key={suggestion.text}
                     onClick={() => handleSend(suggestion.text)}
-                    className="flex items-center gap-3 px-4 py-3 border border-[var(--border)] bg-[var(--bg-card)] text-left hover:border-[var(--border-strong)] hover:bg-[var(--bg-input)] transition-colors group"
+                    className="flex items-center gap-3 px-4 py-3 text-left transition-all duration-300 group"
+                    style={{
+                      background: "rgba(255, 255, 255, 0.03)",
+                      backdropFilter: "blur(8px)",
+                      WebkitBackdropFilter: "blur(8px)",
+                      border: "1px solid rgba(255, 255, 255, 0.06)",
+                    }}
+                    onMouseEnter={(e) => {
+                      const el = e.currentTarget as HTMLElement;
+                      el.style.background = "rgba(255, 255, 255, 0.06)";
+                      el.style.borderColor = "rgba(255, 255, 255, 0.1)";
+                      el.style.transform = "translateY(-2px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      const el = e.currentTarget as HTMLElement;
+                      el.style.background = "rgba(255, 255, 255, 0.03)";
+                      el.style.borderColor = "rgba(255, 255, 255, 0.06)";
+                      el.style.transform = "translateY(0)";
+                    }}
                   >
-                    <span className="text-[var(--text-muted)] group-hover:text-white transition-colors flex-shrink-0">
+                    <span className="text-[var(--text-muted)] group-hover:text-white transition-colors duration-200 flex-shrink-0">
                       {suggestion.icon}
                     </span>
-                    <span className="text-[10px] text-[var(--text-muted)] group-hover:text-white transition-colors leading-tight">
+                    <span className="text-[10px] text-[var(--text-muted)] group-hover:text-white transition-colors duration-200 leading-tight">
                       {suggestion.text}
                     </span>
                   </button>
@@ -1332,7 +1417,15 @@ export default function ChatPage() {
 
           {/* Error banner with retry */}
           {streamError && !isStreaming && (
-            <div className="flex items-center gap-3 px-4 py-2 bg-[var(--danger-dim)] border border-[var(--danger)]/30">
+            <div
+              className="flex items-center gap-3 px-4 py-2"
+              style={{
+                background: "rgba(255, 68, 68, 0.08)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                border: "1px solid rgba(255, 68, 68, 0.15)",
+              }}
+            >
               <span className="text-[10px] text-[var(--danger)] font-mono flex-1">
                 Stream error: {streamError}
               </span>
@@ -1359,7 +1452,14 @@ export default function ChatPage() {
           {showScrollDown && messages.length > 0 && (
             <button
               onClick={() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })}
-              className="sticky bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[var(--text-muted)] hover:text-white hover:border-white/30 transition-colors shadow-lg"
+              className="sticky bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-1.5 text-[var(--text-muted)] hover:text-white transition-all duration-200"
+              style={{
+                background: "rgba(17, 17, 17, 0.85)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+              }}
             >
               <ArrowDown className="w-3 h-3" />
               <span className="text-[9px] uppercase tracking-wider">Dernier message</span>
@@ -1368,7 +1468,15 @@ export default function ChatPage() {
         </div>
 
         {/* Input area — ChatInput with slash commands, file upload, voice, etc. */}
-        <div className="border-t border-[var(--border)]">
+        <div
+          className="chat-input-glass"
+          style={{
+            background: "rgba(10, 10, 10, 0.8)",
+            backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
+            borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+          }}
+        >
           <ChatInput
             onSubmit={handleSend}
             onStop={handleStop}
@@ -1396,7 +1504,8 @@ export default function ChatPage() {
       {/* ── Fix 2: Click-outside backdrop for right panels ─────── */}
       {(showSettings || showPromptLibrary) && (
         <div
-          className="fixed inset-0 z-40"
+          className="fixed inset-0 z-40 transition-opacity duration-200"
+          style={{ background: "rgba(0, 0, 0, 0.3)", backdropFilter: "blur(2px)" }}
           onClick={() => { setShowSettings(false); setShowPromptLibrary(false); }}
         />
       )}

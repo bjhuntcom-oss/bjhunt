@@ -44,9 +44,17 @@ export function ModelSettingsPanel({ settings, onChange, onClose }: ModelSetting
     onChange({ ...settings, [k]: v });
 
   return (
-    <div className="w-72 border-l border-[var(--border)] bg-[var(--bg-input)] flex flex-col h-full">
+    <div
+      className="w-72 flex flex-col h-full"
+      style={{
+        background: "rgba(10, 10, 10, 0.9)",
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
+        borderLeft: "1px solid rgba(255, 255, 255, 0.06)",
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
+      <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)" }}>
         <span className="text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)]">Paramètres</span>
         <button onClick={onClose} className="text-[var(--text-muted)] hover:text-white">
           <X className="w-3.5 h-3.5" />

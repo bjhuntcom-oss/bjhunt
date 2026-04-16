@@ -228,9 +228,9 @@ export function AgentSelector({ selectedAgent, onSelect }: AgentSelectorProps) {
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          "flex items-center gap-1.5 px-2 py-1.5 transition-colors",
-          "text-[var(--text-muted)] hover:text-white",
-          open && "text-white"
+          "flex items-center gap-1.5 px-2 py-1.5 transition-all duration-200",
+          "text-[var(--text-muted)] hover:text-white hover:bg-white/[0.06]",
+          open && "text-white bg-white/[0.06]"
         )}
         title={`Agent: ${current.name}`}
       >
@@ -251,9 +251,18 @@ export function AgentSelector({ selectedAgent, onSelect }: AgentSelectorProps) {
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 w-[320px] bg-[var(--bg-card)] border border-[var(--border-strong)] shadow-2xl z-50 slash-menu-enter overflow-hidden">
+        <div
+          className="absolute bottom-full left-0 mb-2 w-[320px] z-50 slash-menu-enter overflow-hidden"
+          style={{
+            background: "rgba(17, 17, 17, 0.9)",
+            backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
+          }}
+        >
           {/* Header */}
-          <div className="px-3 py-1.5 border-b border-[var(--border)] flex items-center justify-between">
+          <div className="px-3 py-1.5 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)" }}>
             <span className="text-[8px] uppercase tracking-[0.2em] text-[var(--text-muted)]">
               Select Agent
             </span>
@@ -269,7 +278,7 @@ export function AgentSelector({ selectedAgent, onSelect }: AgentSelectorProps) {
               return (
                 <div key={category}>
                   {/* Category header */}
-                  <div className="px-3 py-1.5 bg-[var(--bg)] border-b border-[var(--border)] flex items-center gap-2">
+                  <div className="px-3 py-1.5 flex items-center gap-2" style={{ background: "rgba(10, 10, 10, 0.5)", borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
                     <span
                       className="w-1.5 h-1.5 flex-shrink-0"
                       style={{ backgroundColor: meta.color }}
@@ -290,12 +299,12 @@ export function AgentSelector({ selectedAgent, onSelect }: AgentSelectorProps) {
                           setOpen(false);
                         }}
                         className={cn(
-                          "w-full flex items-center gap-3 px-3 py-2 transition-colors text-left",
+                          "w-full flex items-center gap-3 px-3 py-2 transition-all duration-200 text-left",
                           isSelected
-                            ? "bg-[var(--bg-input)] border-l-2"
-                            : "hover:bg-[var(--bg-input)] border-l-2 border-l-transparent"
+                            ? "border-l-2"
+                            : "hover:bg-white/[0.04] border-l-2 border-l-transparent"
                         )}
-                        style={isSelected ? { borderLeftColor: meta.color } : undefined}
+                        style={isSelected ? { background: "rgba(255, 255, 255, 0.06)", borderLeftColor: meta.color } : undefined}
                       >
                         {/* Icon */}
                         <span

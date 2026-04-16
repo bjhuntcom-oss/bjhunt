@@ -183,8 +183,17 @@ export function SlashCommandsMenu({ query, activeIndex = 0, onSelect, onHover }:
   if (filtered.length === 0) return null;
 
   return (
-    <div className="absolute bottom-full left-0 right-0 mb-2 bg-[var(--bg-card)] border border-[var(--border-strong)] shadow-2xl z-50 slash-menu-enter overflow-hidden">
-      <div className="px-3 py-1.5 border-b border-[var(--border)] flex items-center justify-between">
+    <div
+      className="absolute bottom-full left-0 right-0 mb-2 z-50 slash-menu-enter overflow-hidden"
+      style={{
+        background: "rgba(17, 17, 17, 0.9)",
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
+        boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
+      }}
+    >
+      <div className="px-3 py-1.5 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)" }}>
         <span className="text-[8px] uppercase tracking-[0.2em] text-[var(--text-muted)]">Commandes</span>
         <span className="text-[8px] text-[var(--text-subtle)]">↑↓ naviguer · Enter sélectionner · Esc fermer</span>
       </div>
@@ -195,11 +204,12 @@ export function SlashCommandsMenu({ query, activeIndex = 0, onSelect, onHover }:
             onClick={() => onSelect(cmd.command + " ")}
             onMouseEnter={() => onHover?.(i)}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 transition-colors text-left",
+              "w-full flex items-center gap-3 px-3 py-2.5 transition-all duration-200 text-left",
               i === activeIndex
-                ? "bg-[var(--bg-input)] border-l-2 border-l-[var(--success)]"
-                : "hover:bg-[var(--bg-input)] border-l-2 border-l-transparent"
+                ? "border-l-2 border-l-[var(--success)]"
+                : "hover:bg-white/[0.04] border-l-2 border-l-transparent"
             )}
+            style={i === activeIndex ? { background: "rgba(255, 255, 255, 0.06)" } : undefined}
           >
             <span className={cn(
               "transition-colors",

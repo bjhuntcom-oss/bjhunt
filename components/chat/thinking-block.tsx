@@ -14,15 +14,23 @@ export function ThinkingBlock({ content, isActive = false, duration }: ThinkingB
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className={cn(
-      "my-2 border transition-colors",
-      isActive
-        ? "border-[var(--warning)]/30 bg-[var(--warning-dim)]"
-        : "border-[var(--border)]/50 hover:border-[var(--border)]"
-    )}>
+    <div
+      className="my-2 transition-all duration-200"
+      style={isActive ? {
+        background: "rgba(255, 153, 0, 0.04)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        border: "1px solid rgba(255, 153, 0, 0.1)",
+      } : {
+        background: "rgba(255, 255, 255, 0.02)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        border: "1px solid rgba(255, 255, 255, 0.05)",
+      }}
+    >
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-[var(--bg-card)] transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.04] transition-all duration-200"
       >
         {expanded ? (
           <ChevronDown className="w-3 h-3 text-[var(--text-subtle)] shrink-0" />
@@ -66,7 +74,7 @@ export function ThinkingBlock({ content, isActive = false, duration }: ThinkingB
       )}
 
       {expanded && content && (
-        <div className="border-t border-[var(--border)]/30 px-3 py-2 max-h-[300px] overflow-y-auto">
+        <div className="px-3 py-2 max-h-[300px] overflow-y-auto" style={{ borderTop: "1px solid rgba(255, 255, 255, 0.06)" }}>
           <p className="text-[11px] text-[var(--text-subtle)] leading-relaxed whitespace-pre-wrap font-mono">
             {content}
           </p>

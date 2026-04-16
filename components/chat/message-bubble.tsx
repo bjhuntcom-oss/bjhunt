@@ -93,7 +93,14 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
 
   return (
     <div className="relative group/code my-3">
-      <div className="flex items-center justify-between bg-[var(--bg)] border border-[var(--border)] px-3 py-1.5">
+      <div
+        className="flex items-center justify-between px-3 py-1.5"
+        style={{
+          background: "rgba(0, 0, 0, 0.4)",
+          border: "1px solid rgba(255, 255, 255, 0.06)",
+          borderBottom: "none",
+        }}
+      >
         <span className="text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)]">
           {language || "code"}
         </span>
@@ -112,7 +119,14 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
           </button>
         </div>
       </div>
-      <pre className="bg-[var(--bg-input)] border border-t-0 border-[var(--border)] p-4 overflow-x-auto">
+      <pre
+        className="p-4 overflow-x-auto"
+        style={{
+          background: "rgba(0, 0, 0, 0.4)",
+          border: "1px solid rgba(255, 255, 255, 0.06)",
+          borderTop: "none",
+        }}
+      >
         <code className={`language-${language} text-[11px] font-mono leading-relaxed`}>
           {code}
         </code>
@@ -170,12 +184,23 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
       )}
 
       {/* Contenu */}
-      <div className={cn(
-        "max-w-[95%] md:max-w-[75%] px-4 py-3 text-[13px] leading-relaxed border relative overflow-hidden",
-        isUser
-          ? "bg-[var(--bg-card)] border-[var(--border-strong)] text-white"
-          : "bg-[var(--bg-input)] border-[var(--border)] text-[#e0e0e0]"
-      )}>
+      <div
+        className={cn(
+          "max-w-[95%] md:max-w-[75%] px-4 py-3 text-[13px] leading-relaxed relative overflow-hidden transition-all duration-200",
+          isUser ? "text-white" : "text-[#e0e0e0]"
+        )}
+        style={isUser ? {
+          background: "rgba(255, 255, 255, 0.06)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
+        } : {
+          background: "rgba(255, 255, 255, 0.03)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+          border: "1px solid rgba(255, 255, 255, 0.05)",
+        }}
+      >
         {isThinking ? (
           <div className="flex items-center gap-1 py-1">
             <span className="w-1.5 h-1.5 bg-[var(--text-muted)]  animate-bounce [animation-delay:0ms]" />
@@ -246,7 +271,7 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
 
         {/* Inline action bar — assistant messages only, not while streaming, not for empty */}
         {message.role === "assistant" && !message.isStreaming && !isEmpty && (
-          <div className="flex items-center gap-1 mt-2 pt-1.5 border-t border-[var(--border)]/30">
+          <div className="flex items-center gap-1 mt-2 pt-1.5" style={{ borderTop: "1px solid rgba(255, 255, 255, 0.04)" }}>
             {/* Copy */}
             <button
               onClick={() => navigator.clipboard.writeText(message.content)}

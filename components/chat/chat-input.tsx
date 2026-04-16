@@ -159,7 +159,7 @@ export function ChatInput({
   }
 
   return (
-    <div className="bg-[var(--bg)] px-4 py-3">
+    <div className="px-4 py-3" style={{ background: "transparent" }}>
       <FileUploadZone
         files={files}
         onAdd={(newFiles) => setFiles((prev) => [...prev, ...newFiles])}
@@ -168,7 +168,7 @@ export function ChatInput({
         <div
           ref={containerRef}
           className={cn(
-            "relative border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2",
+            "relative px-3 py-2",
             "chatbox-glow transition-all duration-300"
           )}
         >
@@ -212,7 +212,7 @@ export function ChatInput({
 
               {/* File attach */}
               <label
-                className="p-2 md:p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--text-muted)] hover:text-white transition-colors cursor-pointer"
+                className="p-2 md:p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--text-muted)] hover:text-white hover:bg-white/[0.06] transition-all duration-200 cursor-pointer"
                 title="Joindre un fichier"
               >
                 <input
@@ -258,10 +258,10 @@ export function ChatInput({
                 onClick={onToggleWebSearch}
                 title="Recherche web"
                 className={cn(
-                  "p-2 md:p-2 min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors",
+                  "p-2 md:p-2 min-h-[44px] min-w-[44px] flex items-center justify-center transition-all duration-200",
                   webSearch
-                    ? "text-[var(--success)]"
-                    : "text-[var(--text-muted)] hover:text-white"
+                    ? "text-[var(--success)] bg-[rgba(0,204,138,0.08)]"
+                    : "text-[var(--text-muted)] hover:text-white hover:bg-white/[0.06]"
                 )}
               >
                 <Globe className="w-4 h-4" />
@@ -272,7 +272,7 @@ export function ChatInput({
                 type="button"
                 onClick={onOpenPromptLibrary}
                 title="Bibliothèque de prompts (Ctrl+/)"
-                className="p-2 md:p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--text-muted)] hover:text-white transition-colors"
+                className="p-2 md:p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--text-muted)] hover:text-white hover:bg-white/[0.06] transition-all duration-200"
               >
                 <BookOpen className="w-4 h-4" />
               </button>
@@ -282,7 +282,7 @@ export function ChatInput({
                 type="button"
                 onClick={onOpenSettings}
                 title="Paramètres du modèle (Ctrl+M)"
-                className="p-2 md:p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--text-muted)] hover:text-white transition-colors"
+                className="p-2 md:p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--text-muted)] hover:text-white hover:bg-white/[0.06] transition-all duration-200"
               >
                 <Settings2 className="w-4 h-4" />
               </button>
@@ -303,7 +303,12 @@ export function ChatInput({
                 <button
                   onClick={handleSubmit}
                   disabled={!value.trim()}
-                  className="h-8 w-8 flex items-center justify-center bg-white text-black hover:bg-white/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                  className="h-8 w-8 flex items-center justify-center text-black disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0"
+                  style={{
+                    background: "rgba(255, 255, 255, 0.9)",
+                    backdropFilter: "blur(8px)",
+                    WebkitBackdropFilter: "blur(8px)",
+                  }}
                   title="Envoyer (Enter)"
                 >
                   <Send className="w-3.5 h-3.5" />

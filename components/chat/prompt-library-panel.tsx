@@ -89,9 +89,17 @@ export function PromptLibraryPanel({ onSelect, onClose }: PromptLibraryPanelProp
     activeCategory === "Mes prompts" ? customPrompts : PRESET_PROMPTS[activeCategory]
 
   return (
-    <div className="w-80 border-l border-[var(--border)] bg-[var(--bg-input)] flex flex-col h-full flex-shrink-0">
+    <div
+      className="w-80 flex flex-col h-full flex-shrink-0"
+      style={{
+        background: "rgba(10, 10, 10, 0.9)",
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
+        borderLeft: "1px solid rgba(255, 255, 255, 0.06)",
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
+      <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)" }}>
         <span className="text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)]">Bibliothèque de prompts</span>
         <button onClick={onClose} className="text-[var(--text-muted)] hover:text-white">
           <X className="w-3.5 h-3.5" />
@@ -99,7 +107,7 @@ export function PromptLibraryPanel({ onSelect, onClose }: PromptLibraryPanelProp
       </div>
 
       {/* Category tabs */}
-      <div className="flex flex-wrap gap-1 p-3 border-b border-[var(--border)]">
+      <div className="flex flex-wrap gap-1 p-3" style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)" }}>
         {categories.map((cat) => (
           <button
             key={cat}
@@ -127,7 +135,21 @@ export function PromptLibraryPanel({ onSelect, onClose }: PromptLibraryPanelProp
           <div key={p.id} className="group">
             <button
               onClick={() => { onSelect(p.content); onClose() }}
-              className="w-full text-left px-3 py-2.5 bg-[var(--bg-card)] border border-[var(--border)] hover:border-[var(--border-strong)] transition-colors"
+              className="w-full text-left px-3 py-2.5 transition-all duration-200"
+              style={{
+                background: "rgba(255, 255, 255, 0.03)",
+                border: "1px solid rgba(255, 255, 255, 0.06)",
+              }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.background = "rgba(255, 255, 255, 0.06)";
+                el.style.borderColor = "rgba(255, 255, 255, 0.1)";
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.background = "rgba(255, 255, 255, 0.03)";
+                el.style.borderColor = "rgba(255, 255, 255, 0.06)";
+              }}
             >
               <div className="flex items-start justify-between gap-2">
                 <div>
@@ -150,7 +172,7 @@ export function PromptLibraryPanel({ onSelect, onClose }: PromptLibraryPanelProp
 
       {/* Add custom prompt */}
       {activeCategory === "Mes prompts" && (
-        <div className="p-3 border-t border-[var(--border)]">
+        <div className="p-3" style={{ borderTop: "1px solid rgba(255, 255, 255, 0.06)" }}>
           {adding ? (
             <div className="flex flex-col gap-2">
               <input
