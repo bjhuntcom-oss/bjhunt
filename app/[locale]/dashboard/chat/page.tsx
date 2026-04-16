@@ -49,6 +49,7 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const lastAiContentRef = useRef<string>("");
 
   // Auto-scroll
   useEffect(() => {
@@ -231,9 +232,17 @@ export default function ChatPage() {
     } finally {
       setIsStreaming(false);
       setThinking((prev) => ({ ...prev, active: false }));
+      // Apply last known AI content from ref (survives React batching)
+      const finalContent = lastAiContentRef.current;
       setMessages((prev) =>
-        prev.map((m) => (m.id === assistantId ? { ...m, isStreaming: false } : m))
+        prev.map((m) => {
+          if (m.id !== assistantId) return m;
+          // Use ref content if message content is still empty
+          const content = m.content || finalContent;
+          return { ...m, content, isStreaming: false };
+        })
       );
+      lastAiContentRef.current = "";
       abortRef.current = null;
     }
   }
@@ -288,6 +297,7 @@ export default function ChatPage() {
               }
 
               if (text) {
+                lastAiContentRef.current = text;
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === assistantId ? { ...m, content: text } : m
