@@ -247,23 +247,25 @@ export default function ChatPage() {
     } finally {
       setIsStreaming(false);
       setThinking((prev) => ({ ...prev, active: false }));
-
-      // Apply last known AI content from ref — must be captured BEFORE any async ops
-      const finalContent = lastAiContentRef.current;
-
-      // Use requestAnimationFrame to ensure React has committed previous state updates
-      requestAnimationFrame(() => {
-        setMessages((prev) =>
-          prev.map((m) => {
-            if (m.id !== assistantId) return m;
-            const content = m.content || finalContent;
-            return { ...m, content, isStreaming: false };
-          })
-        );
-      });
-
-      lastAiContentRef.current = "";
       abortRef.current = null;
+
+      // The stream is done — fetch the final state from DB as source of truth.
+      // This is more reliable than parsing SSE events in React state.
+      const finalContent = lastAiContentRef.current;
+      lastAiContentRef.current = "";
+
+      // Apply immediately what we have from the ref
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== assistantId) return m;
+          return { ...m, content: m.content || finalContent, isStreaming: false };
+        })
+      );
+
+      // Then reload from DB for guaranteed accuracy (async, non-blocking)
+      if (activeEngagement?.id) {
+        loadHistory(activeEngagement.id);
+      }
     }
   }
 
