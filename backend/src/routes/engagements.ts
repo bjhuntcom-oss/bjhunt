@@ -38,9 +38,11 @@ const createSchema = z.object({
 const updateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).optional(),
+  target: z.string().min(1).max(500).optional(),
   status: z
     .enum(["draft", "planning", "approved", "running", "paused", "completed", "cancelled"])
     .optional(),
+  agentGraph: z.string().max(50).optional(),
   roe: z.record(z.unknown()).optional(),
   opplan: z.record(z.unknown()).optional(),
   config: z.record(z.unknown()).optional(),
@@ -326,7 +328,9 @@ engagementRoutes.patch("/:id", zValidator("json", updateSchema), async (c) => {
 
   if (body.name !== undefined) values.name = body.name;
   if (body.description !== undefined) values.description = body.description;
+  if (body.target !== undefined) values.target = body.target;
   if (body.status !== undefined) values.status = body.status;
+  if (body.agentGraph !== undefined) values.agentGraph = body.agentGraph;
   if (body.roe !== undefined) values.roe = JSON.stringify(body.roe);
   if (body.opplan !== undefined) values.opplan = JSON.stringify(body.opplan);
   if (body.config !== undefined) values.config = JSON.stringify(body.config);
@@ -641,6 +645,303 @@ engagementRoutes.get("/:id/graph", async (c) => {
   };
 
   return c.json({ nodes, edges, stats, chains });
+});
+
+// ── Graph ingest — import scan data (nmap, nuclei, sarif, bloodhound, testssl) ──
+
+engagementRoutes.post("/:id/graph/ingest", requirePlan("pro", "enterprise"), async (c) => {
+  const orgId = c.get("orgId") as string;
+  const user = c.get("user") as AuthUser;
+  const id = c.req.param("id");
+
+  // Verify engagement exists
+  const [engagement] = await withOrg(orgId, (tx) =>
+    tx`SELECT id, target FROM engagements WHERE id = ${id}`,
+  );
+  if (!engagement) return c.json({ error: "Engagement not found" }, 404);
+
+  const formData = await c.req.formData();
+  const file = formData.get("file");
+  if (!file || !(file instanceof File)) {
+    return c.json({ error: "No file uploaded" }, 400);
+  }
+
+  const content = await file.text();
+  const fileName = file.name.toLowerCase();
+  let nodesAdded = 0;
+  let edgesAdded = 0;
+
+  // Auto-detect format and parse
+  try {
+    if (fileName.endsWith(".xml") || content.trimStart().startsWith("<?xml")) {
+      // ── nmap XML ──
+      const hostMatches = content.matchAll(/<host[\s>][\s\S]*?<\/host>/gi);
+      for (const hostMatch of hostMatches) {
+        const hostBlock = hostMatch[0];
+        const addrMatch = hostBlock.match(/addr="([^"]+)"/);
+        const addr = addrMatch ? addrMatch[1] : null;
+        if (!addr) continue;
+
+        // Create a finding for the host
+        await withOrg(orgId, (tx) =>
+          tx`INSERT INTO findings (org_id, engagement_id, title, severity, evidence)
+             VALUES (${orgId}, ${id}, ${"Host discovered: " + addr}, 'info',
+                     ${JSON.stringify({ source: "nmap", ip: addr })})
+             ON CONFLICT DO NOTHING`,
+        );
+        nodesAdded++;
+
+        // Extract ports/services
+        const portMatches = hostBlock.matchAll(
+          /<port protocol="([^"]*)" portid="(\d+)"[\s\S]*?<state state="([^"]*)"[\s\S]*?(?:<service name="([^"]*)")?/gi,
+        );
+        for (const pm of portMatches) {
+          const protocol = pm[1] || "tcp";
+          const port = pm[2];
+          const state = pm[3];
+          const service = pm[4] || "unknown";
+          if (state !== "open") continue;
+
+          await withOrg(orgId, (tx) =>
+            tx`INSERT INTO findings (org_id, engagement_id, title, severity, evidence)
+               VALUES (${orgId}, ${id},
+                       ${"Service: " + service + " on " + addr + ":" + port + "/" + protocol},
+                       'info',
+                       ${JSON.stringify({ source: "nmap", ip: addr, port: Number(port), protocol, service })})`,
+          );
+          nodesAdded++;
+          edgesAdded++; // host -> service edge
+        }
+      }
+    } else if (fileName.endsWith(".jsonl") || (content.trimStart().startsWith("{") && content.includes('"template-id"'))) {
+      // ── nuclei JSONL ──
+      const lines = content.split("\n").filter((l: string) => l.trim());
+      for (const line of lines) {
+        try {
+          const entry = JSON.parse(line);
+          const templateId = entry["template-id"] || entry.templateID || entry.info?.name || "unknown";
+          const sev = (entry.info?.severity || entry.severity || "info").toLowerCase();
+          const matched = entry["matched-at"] || entry.matched || entry.host || "";
+          const desc = entry.info?.description || entry.info?.name || templateId;
+
+          const validSev = ["critical", "high", "medium", "low", "info"].includes(sev) ? sev : "info";
+
+          await withOrg(orgId, (tx) =>
+            tx`INSERT INTO findings (org_id, engagement_id, title, description, severity, evidence)
+               VALUES (${orgId}, ${id},
+                       ${templateId + " — " + matched},
+                       ${typeof desc === "string" ? desc.slice(0, 2000) : String(desc).slice(0, 2000)},
+                       ${validSev},
+                       ${JSON.stringify({ source: "nuclei", templateId, matched, raw: entry.info })})`,
+          );
+          nodesAdded++;
+          edgesAdded++;
+        } catch {
+          // skip malformed lines
+        }
+      }
+    } else if (content.includes('"$schema"') && content.includes("sarif") || fileName.endsWith(".sarif")) {
+      // ── SARIF ──
+      const sarif = JSON.parse(content);
+      const runs = sarif.runs || [];
+      for (const run of runs) {
+        const results = run.results || [];
+        for (const result of results) {
+          const ruleId = result.ruleId || "unknown";
+          const msg = result.message?.text || result.message?.markdown || "";
+          const location = result.locations?.[0]?.physicalLocation?.artifactLocation?.uri || "";
+          const level = result.level || "warning";
+
+          let severity = "medium";
+          if (level === "error") severity = "high";
+          else if (level === "note") severity = "low";
+          else if (level === "none") severity = "info";
+
+          await withOrg(orgId, (tx) =>
+            tx`INSERT INTO findings (org_id, engagement_id, title, description, severity, evidence)
+               VALUES (${orgId}, ${id},
+                       ${ruleId + (location ? " @ " + location : "")},
+                       ${typeof msg === "string" ? msg.slice(0, 2000) : ""},
+                       ${severity},
+                       ${JSON.stringify({ source: "sarif", ruleId, location, level })})`,
+          );
+          nodesAdded++;
+          edgesAdded++;
+        }
+      }
+    } else if (fileName.includes("bloodhound") || fileName.endsWith(".zip")) {
+      // ── BloodHound JSON (simplified — accepts single JSON files) ──
+      try {
+        const bh = JSON.parse(content);
+        const data = bh.data || bh.computers || bh.users || bh.groups || [];
+        const items = Array.isArray(data) ? data : [];
+        for (const item of items.slice(0, 500)) {
+          const name = item.Properties?.name || item.name || item.ObjectIdentifier || "unknown";
+          const type = item.Properties?.objecttype || item.type || "host";
+
+          await withOrg(orgId, (tx) =>
+            tx`INSERT INTO findings (org_id, engagement_id, title, severity, evidence)
+               VALUES (${orgId}, ${id},
+                       ${"BloodHound: " + name},
+                       'info',
+                       ${JSON.stringify({ source: "bloodhound", type, name })})`,
+          );
+          nodesAdded++;
+        }
+      } catch {
+        return c.json({ error: "Invalid BloodHound JSON format" }, 400);
+      }
+    } else if (fileName.includes("testssl") || content.includes('"severity"') && content.includes('"id"')) {
+      // ── testssl JSON ──
+      try {
+        const data = JSON.parse(content);
+        const findings = Array.isArray(data) ? data : data.scanResult || data.findings || [];
+        for (const f of findings) {
+          const fid = f.id || "unknown";
+          const severity = (f.severity || "info").toLowerCase().replace("warn", "medium");
+          const finding = f.finding || f.message || "";
+
+          const validSev = ["critical", "high", "medium", "low", "info"].includes(severity) ? severity : "info";
+
+          await withOrg(orgId, (tx) =>
+            tx`INSERT INTO findings (org_id, engagement_id, title, description, severity, evidence)
+               VALUES (${orgId}, ${id},
+                       ${"TLS: " + fid},
+                       ${typeof finding === "string" ? finding.slice(0, 2000) : ""},
+                       ${validSev},
+                       ${JSON.stringify({ source: "testssl", id: fid })})`,
+          );
+          nodesAdded++;
+        }
+      } catch {
+        return c.json({ error: "Invalid testssl JSON format" }, 400);
+      }
+    } else {
+      return c.json({ error: "Unsupported file format. Supported: nmap XML, nuclei JSONL, SARIF, BloodHound JSON, testssl JSON" }, 400);
+    }
+  } catch (err: any) {
+    return c.json({ error: "Parse error: " + (err?.message || "unknown") }, 400);
+  }
+
+  await sql`
+    INSERT INTO audit_logs (org_id, user_id, action, resource, details)
+    VALUES (${orgId}, ${user.id}, 'graph.ingest',
+            ${"engagement:" + id},
+            ${JSON.stringify({ fileName: file.name, nodesAdded, edgesAdded })})
+  `.catch(() => {});
+
+  return c.json({ nodesAdded, edgesAdded });
+});
+
+// ── Graph chains — build attack chains from findings ────────────────────
+
+engagementRoutes.get("/:id/graph/chains", async (c) => {
+  const orgId = c.get("orgId") as string;
+  const id = c.req.param("id");
+
+  // Verify engagement exists
+  const [engagement] = await withOrg(orgId, (tx) =>
+    tx`SELECT id, target FROM engagements WHERE id = ${id}`,
+  );
+  if (!engagement) return c.json({ error: "Engagement not found" }, 404);
+
+  // Get findings sorted by severity for chain building
+  const findings = await withOrg(orgId, (tx) =>
+    tx`SELECT id, title, severity, cvss_score, mitre_attack, evidence
+       FROM findings
+       WHERE engagement_id = ${id}
+       ORDER BY
+         CASE severity
+           WHEN 'critical' THEN 0
+           WHEN 'high' THEN 1
+           WHEN 'medium' THEN 2
+           WHEN 'low' THEN 3
+           WHEN 'info' THEN 4
+         END,
+         cvss_score DESC NULLS LAST`,
+  );
+
+  const hostId = `host-${id}`;
+  const chains: Array<{
+    id: string;
+    severity: string;
+    riskScore: number;
+    nodes: Array<{
+      id: string;
+      label: string;
+      type: string;
+      severity: string;
+    }>;
+  }> = [];
+
+  // Group findings by severity tier for chain construction
+  const criticals = findings.filter((f: any) => f.severity === "critical");
+  const highs = findings.filter((f: any) => f.severity === "high");
+  const mediums = findings.filter((f: any) => f.severity === "medium");
+
+  // Primary chain: all critical + high findings form an escalation path
+  if (criticals.length > 0 || highs.length > 0) {
+    const chainFindings = [...criticals, ...highs];
+    const riskScore = chainFindings.reduce(
+      (sum: number, f: any) => sum + (f.cvss_score ?? (f.severity === "critical" ? 9.5 : 7.5)),
+      0,
+    );
+
+    chains.push({
+      id: "chain-primary",
+      severity: criticals.length > 0 ? "critical" : "high",
+      riskScore: Math.round((riskScore / chainFindings.length) * 10) / 10,
+      nodes: [
+        { id: hostId, label: engagement.target as string, type: "host", severity: "info" },
+        ...chainFindings.map((f: any) => ({
+          id: `finding-${f.id}`,
+          label: f.title as string,
+          type: "finding",
+          severity: f.severity as string,
+        })),
+      ],
+    });
+  }
+
+  // Individual critical chains
+  criticals.forEach((f: any, idx: number) => {
+    chains.push({
+      id: `chain-crit-${idx + 1}`,
+      severity: "critical",
+      riskScore: f.cvss_score ?? 9.5,
+      nodes: [
+        { id: hostId, label: engagement.target as string, type: "host", severity: "info" },
+        { id: `finding-${f.id}`, label: f.title as string, type: "finding", severity: "critical" },
+      ],
+    });
+  });
+
+  // Medium-severity chain if there are enough mediums to form a path
+  if (mediums.length >= 3) {
+    const riskScore = mediums.reduce(
+      (sum: number, f: any) => sum + (f.cvss_score ?? 5.0),
+      0,
+    );
+    chains.push({
+      id: "chain-medium-agg",
+      severity: "medium",
+      riskScore: Math.round((riskScore / mediums.length) * 10) / 10,
+      nodes: [
+        { id: hostId, label: engagement.target as string, type: "host", severity: "info" },
+        ...mediums.slice(0, 5).map((f: any) => ({
+          id: `finding-${f.id}`,
+          label: f.title as string,
+          type: "finding",
+          severity: "medium",
+        })),
+      ],
+    });
+  }
+
+  // Sort chains by risk score descending
+  chains.sort((a, b) => b.riskScore - a.riskScore);
+
+  return c.json({ chains });
 });
 
 // ── Delete engagement ────────────────────────────────────────────────────

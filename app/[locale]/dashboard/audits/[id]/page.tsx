@@ -105,6 +105,12 @@ export default async function AuditRunDetailPage({
         >
           View Knowledge Graph &rarr;
         </Link>
+        <Link
+          href={`/${locale}/dashboard/audits/${id}/config`}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider border border-[var(--border)] text-[var(--text-muted)] hover:text-white hover:border-[var(--border-strong)] hover:bg-[var(--bg-input)] transition-colors"
+        >
+          Config &rarr;
+        </Link>
       </div>
       <div className="mb-6">
         <ReportExportBar engagementId={id} />

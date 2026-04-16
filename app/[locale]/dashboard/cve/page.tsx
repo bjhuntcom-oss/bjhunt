@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { browserBackendFetch } from "@/lib/backend-client";
 import { PlanGate } from "@/components/dashboard/plan-gate";
 import { usePlan } from "@/lib/use-plan";
@@ -12,6 +13,7 @@ import {
   Crosshair,
   ChevronDown,
   ChevronRight,
+  Package,
 } from "lucide-react";
 
 // ── Types ───────────────────────────────────────────────────────────────
@@ -363,6 +365,13 @@ export default function CveIntelligencePage() {
         <p className="text-[10px] text-[var(--text-subtle)] font-mono mt-1">
           Search vulnerabilities by CVE ID or affected package using NVD + EPSS + OSV data
         </p>
+        <Link
+          href="/dashboard/cve/dependencies"
+          className="inline-flex items-center gap-1.5 mt-3 text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-white px-3 py-1.5 border border-[var(--border)] hover:border-[var(--border-strong)] transition-colors"
+        >
+          <Package size={10} />
+          Dependency Scanner
+        </Link>
       </div>
 
       {/* Search bar */}

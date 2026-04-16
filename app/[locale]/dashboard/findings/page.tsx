@@ -1,12 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
 import { browserBackendFetch } from "@/lib/backend-client";
 import {
   ChevronDown,
   ChevronRight,
   Search,
   Shield,
+  Download,
+  Network,
+  Loader2,
 } from "lucide-react";
 
 // ── Types ───────────────────────────────────────────────────────────────
@@ -25,6 +30,7 @@ interface Finding {
   evidence: Record<string, unknown> | null;
   remediation: string | null;
   status: string;
+  remediationStatus: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -63,9 +69,24 @@ const SEVERITY_BG: Record<string, string> = {
 
 const SEVERITY_ORDER = ["critical", "high", "medium", "low", "info"] as const;
 
+const REMEDIATION_STATUS_COLORS: Record<string, string> = {
+  pending: "var(--warning)",
+  applied: "var(--success)",
+  verified: "#4a9eff",
+};
+
+const REMEDIATION_STATUS_LABELS: Record<string, string> = {
+  pending: "PENDING",
+  applied: "APPLIED",
+  verified: "VERIFIED",
+};
+
 // ── Component ───────────────────────────────────────────────────────────
 
 export default function FindingsPage() {
+  const params = useParams();
+  const locale = (params?.locale as string) || "en";
+
   const [findings, setFindings] = useState<Finding[]>([]);
   const [stats, setStats] = useState<FindingStats>({
     total: 0,
@@ -79,6 +100,10 @@ export default function FindingsPage() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  // Selection for batch export
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [exporting, setExporting] = useState(false);
+
   // Filters
   const [severityFilter, setSeverityFilter] = useState("");
   const [engagementFilter, setEngagementFilter] = useState("");
@@ -89,6 +114,50 @@ export default function FindingsPage() {
   const [offset, setOffset] = useState(0);
   const [total, setTotal] = useState(0);
   const limit = 50;
+
+  // ── Toggle selection ────────────────────────────────────────────────
+
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === findings.length) return new Set();
+      return new Set(findings.map((f) => f.id));
+    });
+  }, [findings]);
+
+  // ── Batch export ────────────────────────────────────────────────────
+
+  const handleExport = useCallback(async () => {
+    if (selectedIds.size === 0) return;
+    setExporting(true);
+    try {
+      const res = await browserBackendFetch("/api/findings/export", {
+        method: "POST",
+        body: JSON.stringify({ ids: [...selectedIds] }),
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `findings-export-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch {
+      // silent
+    } finally {
+      setExporting(false);
+    }
+  }, [selectedIds]);
 
   // ── Fetch stats ─────────────────────────────────────────────────────
 
@@ -235,6 +304,33 @@ export default function FindingsPage() {
         />
       </div>
 
+      {/* Export bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 mb-4 px-3 py-2 border border-[var(--border)] bg-[var(--bg-card)]">
+          <span className="text-[9px] font-mono text-[var(--text-muted)]">
+            {selectedIds.size} finding{selectedIds.size !== 1 ? "s" : ""} selected
+          </span>
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="flex items-center gap-1.5 text-[8px] font-mono uppercase tracking-widest text-white hover:text-white/80 px-3 py-1.5 bg-[var(--bg-input)] border border-[var(--border)] transition-colors disabled:opacity-40"
+          >
+            {exporting ? (
+              <Loader2 size={10} className="animate-spin" />
+            ) : (
+              <Download size={10} />
+            )}
+            Export Selected
+          </button>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] hover:text-white px-2 py-1.5 transition-colors ml-auto"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {/* Filter bar */}
       <div className="flex items-center gap-2 mb-5 flex-wrap">
         {/* Severity dropdown */}
@@ -319,6 +415,14 @@ export default function FindingsPage() {
           <div className="border border-[var(--border)] divide-y divide-[var(--border)]">
             {/* Table header */}
             <div className="flex items-center gap-3 px-4 py-2 bg-[var(--bg-card)]">
+              <div className="w-4 flex-shrink-0">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === findings.length && findings.length > 0}
+                  onChange={toggleAll}
+                  className="w-3 h-3 accent-white cursor-pointer"
+                />
+              </div>
               <div className="w-4 flex-shrink-0" />
               <div className="w-[72px] flex-shrink-0 text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)]">
                 Severity
@@ -332,10 +436,13 @@ export default function FindingsPage() {
               <div className="w-[50px] flex-shrink-0 text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] hidden md:block text-center">
                 CVSS
               </div>
-              <div className="w-[140px] flex-shrink-0 text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] hidden lg:block">
+              <div className="w-[80px] flex-shrink-0 text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] hidden lg:block text-center">
+                Remediation
+              </div>
+              <div className="w-[120px] flex-shrink-0 text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] hidden lg:block">
                 Engagement
               </div>
-              <div className="w-[80px] flex-shrink-0 text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] hidden lg:block text-right">
+              <div className="w-[60px] flex-shrink-0 text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] hidden lg:block text-right">
                 Date
               </div>
             </div>
@@ -343,15 +450,27 @@ export default function FindingsPage() {
             {/* Findings rows */}
             {findings.map((f) => {
               const isExpanded = expandedId === f.id;
+              const remStatus = f.remediationStatus || "pending";
+              const remColor = REMEDIATION_STATUS_COLORS[remStatus] || "var(--text-subtle)";
+
               return (
                 <div key={f.id}>
                   {/* Row */}
-                  <button
-                    onClick={() =>
-                      setExpandedId(isExpanded ? null : f.id)
-                    }
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[var(--bg-card)]/50 transition-colors"
-                  >
+                  <div className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-card)]/50 transition-colors">
+                    {/* Checkbox */}
+                    <div className="w-4 flex-shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(f.id)}
+                        onChange={() => toggleSelected(f.id)}
+                        className="w-3 h-3 accent-white cursor-pointer"
+                      />
+                    </div>
+
+                    <button
+                      onClick={() => setExpandedId(isExpanded ? null : f.id)}
+                      className="flex-1 flex items-center gap-3 text-left min-w-0"
+                    >
                     {/* Expand chevron */}
                     <div className="w-4 flex-shrink-0 text-[var(--text-subtle)]">
                       {isExpanded ? (
@@ -375,11 +494,28 @@ export default function FindingsPage() {
                       </span>
                     </div>
 
-                    {/* Title */}
+                    {/* Title + inline MITRE badges */}
                     <div className="flex-1 min-w-0">
                       <span className="text-[10px] font-mono text-white truncate block">
                         {f.title}
                       </span>
+                      {f.mitreAttack && f.mitreAttack.length > 0 && (
+                        <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                          {f.mitreAttack.slice(0, 3).map((t) => (
+                            <span
+                              key={t}
+                              className="text-[7px] font-mono text-[var(--warning)] bg-[var(--warning-dim)] border border-[var(--warning)] px-1 py-px"
+                            >
+                              {t}
+                            </span>
+                          ))}
+                          {f.mitreAttack.length > 3 && (
+                            <span className="text-[7px] font-mono text-[var(--text-subtle)]">
+                              +{f.mitreAttack.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* CVE */}
@@ -417,15 +553,29 @@ export default function FindingsPage() {
                       )}
                     </div>
 
+                    {/* Remediation status */}
+                    <div className="w-[80px] flex-shrink-0 hidden lg:block text-center">
+                      <span
+                        className="text-[7px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5"
+                        style={{
+                          color: remColor,
+                          backgroundColor: `${remColor}15`,
+                          border: `1px solid ${remColor}`,
+                        }}
+                      >
+                        {REMEDIATION_STATUS_LABELS[remStatus] || remStatus.toUpperCase()}
+                      </span>
+                    </div>
+
                     {/* Engagement */}
-                    <div className="w-[140px] flex-shrink-0 hidden lg:block">
+                    <div className="w-[120px] flex-shrink-0 hidden lg:block">
                       <span className="text-[9px] font-mono text-[var(--text-muted)] truncate block">
                         {f.engagementName ?? "--"}
                       </span>
                     </div>
 
                     {/* Date */}
-                    <div className="w-[80px] flex-shrink-0 hidden lg:block text-right">
+                    <div className="w-[60px] flex-shrink-0 hidden lg:block text-right">
                       <span className="text-[9px] font-mono text-[var(--text-subtle)]">
                         {new Date(f.createdAt).toLocaleDateString("en-US", {
                           month: "short",
@@ -433,7 +583,8 @@ export default function FindingsPage() {
                         })}
                       </span>
                     </div>
-                  </button>
+                    </button>
+                  </div>
 
                   {/* Expanded detail */}
                   {isExpanded && (
@@ -576,6 +727,17 @@ export default function FindingsPage() {
                               )}
                             </span>
                           </div>
+
+                          {/* View in Graph */}
+                          {f.engagementId && (
+                            <Link
+                              href={`/${locale}/dashboard/audits/${f.engagementId}/graph`}
+                              className="flex items-center gap-1 text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-white transition-colors ml-auto"
+                            >
+                              <Network size={9} />
+                              View in Graph
+                            </Link>
+                          )}
                         </div>
                       </div>
                     </div>

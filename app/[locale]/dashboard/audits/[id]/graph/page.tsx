@@ -15,6 +15,11 @@ import {
   ChevronRight,
   ArrowRight,
   Filter,
+  Upload,
+  CheckCircle2,
+  XCircle,
+  Target,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { browserBackendFetch } from "@/lib/backend-client";
@@ -46,6 +51,18 @@ interface GraphChain {
   id: string;
   severity: string;
   nodes: string[];
+}
+
+interface RichChain {
+  id: string;
+  severity: string;
+  riskScore: number;
+  nodes: Array<{
+    id: string;
+    label: string;
+    type: string;
+    severity: string;
+  }>;
 }
 
 interface GraphResponse {
@@ -311,7 +328,7 @@ function NodeDetailPanel({
   );
 }
 
-// ── Attack chain row ────────────────────────────────────────────────────
+// ── Attack chain row (legacy — used for inline chains from graph endpoint) ──
 
 function AttackChainRow({
   chain,
@@ -380,6 +397,249 @@ function AttackChainRow({
   );
 }
 
+// ── Rich attack chain row (for /graph/chains endpoint) ──────────────────
+
+function RichChainRow({
+  chain,
+  onGenerateOpplan,
+}: {
+  chain: RichChain;
+  onGenerateOpplan?: (chain: RichChain) => void;
+}) {
+  const severityColor = SEVERITY_COLORS[chain.severity] || "#555555";
+
+  return (
+    <div className="border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
+      {/* Header: severity + risk score */}
+      <div className="flex items-center gap-2 mb-3">
+        <span
+          className="text-[8px] font-mono uppercase tracking-wider px-1.5 py-0.5"
+          style={{ color: severityColor, backgroundColor: `${severityColor}15` }}
+        >
+          {chain.severity}
+        </span>
+        <span className="text-[8px] font-mono text-[var(--text-subtle)]">
+          {chain.id}
+        </span>
+        <span className="text-[8px] font-mono text-[var(--text-subtle)] ml-auto">
+          Risk Score:{" "}
+          <span style={{ color: severityColor }} className="font-bold">
+            {chain.riskScore.toFixed(1)}
+          </span>
+        </span>
+      </div>
+
+      {/* Chain flow — horizontal nodes */}
+      <div className="flex items-center gap-1 flex-wrap mb-3">
+        {chain.nodes.map((node, i) => {
+          const Icon = NODE_ICONS[node.type] || Network;
+          const color = NODE_TYPE_COLORS[node.type] || "var(--text-muted)";
+          const nodeSevColor = SEVERITY_COLORS[node.severity] || color;
+
+          return (
+            <div key={`${node.id}-${i}`} className="flex items-center gap-1">
+              {i > 0 && (
+                <ArrowRight className="w-3 h-3 text-[var(--text-subtle)] flex-shrink-0" />
+              )}
+              <div
+                className="flex items-center gap-1.5 px-2 py-1.5 border"
+                style={{ borderColor: `${nodeSevColor}40`, backgroundColor: `${nodeSevColor}08` }}
+              >
+                <Icon className="w-3 h-3 flex-shrink-0" style={{ color: nodeSevColor }} />
+                <div className="min-w-0">
+                  <span className="text-[9px] font-mono text-white block truncate max-w-[140px]">
+                    {node.label}
+                  </span>
+                  <span
+                    className="text-[7px] font-mono uppercase tracking-wider"
+                    style={{ color: nodeSevColor }}
+                  >
+                    {node.type}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Generate OPPLAN button */}
+      {onGenerateOpplan && (
+        <button
+          onClick={() => onGenerateOpplan(chain)}
+          className="flex items-center gap-1.5 text-[8px] font-mono uppercase tracking-widest text-[var(--success)] hover:text-white px-2 py-1.5 border border-[var(--success)]/30 hover:border-[var(--success)] transition-colors"
+        >
+          <Target className="w-3 h-3" />
+          Generate OPPLAN
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── Import data panel ───────────────────────────────────────────────────
+
+const SUPPORTED_FORMATS = [
+  { ext: "nmap XML", desc: "Nmap scan output" },
+  { ext: "nuclei JSONL", desc: "Nuclei scan results" },
+  { ext: "SARIF", desc: "Static analysis results" },
+  { ext: "BloodHound JSON", desc: "AD attack paths" },
+  { ext: "testssl JSON", desc: "TLS/SSL scan results" },
+];
+
+function ImportDataPanel({
+  engagementId,
+  onImportComplete,
+}: {
+  engagementId: string;
+  onImportComplete: () => void;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState<{ nodesAdded: number; edgesAdded: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+
+  const handleFile = (f: File) => {
+    setFile(f);
+    setResult(null);
+    setError(null);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  };
+
+  const handleImport = async () => {
+    if (!file) return;
+    setImporting(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await browserBackendFetch(
+        `/api/engagements/${engagementId}/graph/ingest`,
+        { method: "POST", body: formData },
+      );
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Import failed" }));
+        setError(data.error || "Import failed");
+        return;
+      }
+
+      const data = await res.json();
+      setResult(data);
+      setFile(null);
+      onImportComplete();
+    } catch {
+      setError("Network error during import");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <div className="border border-[var(--border)] bg-[var(--bg-card)]">
+      <div className="px-4 py-2.5 border-b border-[var(--border)] flex items-center gap-2">
+        <Upload className="w-3 h-3 text-[var(--text-subtle)]" />
+        <span className="text-[8px] font-mono uppercase tracking-[0.15em] text-[var(--text-subtle)] font-bold">
+          Import Data
+        </span>
+        <span className="text-[8px] font-mono text-[var(--text-subtle)] ml-auto">
+          {SUPPORTED_FORMATS.map((f) => f.ext).join(" | ")}
+        </span>
+      </div>
+
+      <div className="p-4">
+        {/* Drop zone */}
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          className={cn(
+            "border border-dashed px-4 py-5 text-center cursor-pointer transition-colors",
+            dragOver
+              ? "border-white bg-[var(--bg-input)]"
+              : "border-[var(--border)] hover:border-[var(--border-strong)]",
+          )}
+          onClick={() => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".xml,.jsonl,.json,.sarif,.zip,.txt";
+            input.onchange = (e) => {
+              const f = (e.target as HTMLInputElement).files?.[0];
+              if (f) handleFile(f);
+            };
+            input.click();
+          }}
+        >
+          {file ? (
+            <div className="flex items-center justify-center gap-2">
+              <FileText className="w-4 h-4 text-[var(--success)]" />
+              <span className="text-[10px] font-mono text-white">{file.name}</span>
+              <span className="text-[9px] font-mono text-[var(--text-subtle)]">
+                ({(file.size / 1024).toFixed(1)} KB)
+              </span>
+            </div>
+          ) : (
+            <>
+              <Upload className="w-4 h-4 text-[var(--text-subtle)] mx-auto mb-1.5" />
+              <p className="text-[10px] font-mono text-[var(--text-muted)]">
+                Drop scan output here or click to browse
+              </p>
+              <p className="text-[8px] font-mono text-[var(--text-subtle)] mt-1">
+                Auto-detects format from file extension and content
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* Import button + result */}
+        <div className="flex items-center gap-3 mt-3">
+          <button
+            onClick={handleImport}
+            disabled={!file || importing}
+            className="flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-widest px-4 py-2 bg-white text-black hover:bg-white/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            {importing ? (
+              <>
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Importing...
+              </>
+            ) : (
+              <>
+                <Upload className="w-3 h-3" />
+                Import
+              </>
+            )}
+          </button>
+
+          {result && (
+            <div className="flex items-center gap-1.5 text-[9px] font-mono text-[var(--success)]">
+              <CheckCircle2 className="w-3 h-3" />
+              {result.nodesAdded} nodes, {result.edgesAdded} edges added
+            </div>
+          )}
+
+          {error && (
+            <div className="flex items-center gap-1.5 text-[9px] font-mono text-[var(--danger)]">
+              <XCircle className="w-3 h-3" />
+              {error}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ────────────────────────────────────────────────────────────
 
 export default function KnowledgeGraphPage() {
@@ -396,41 +656,83 @@ export default function KnowledgeGraphPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
 
+  // Tab state: "explorer" | "chains"
+  const [activeTab, setActiveTab] = useState<"explorer" | "chains">("explorer");
+
+  // Rich chains from dedicated endpoint
+  const [richChains, setRichChains] = useState<RichChain[]>([]);
+  const [chainsLoading, setChainsLoading] = useState(false);
+
+  // Reload counter to trigger data refresh after import
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const loadGraphData = useCallback(async () => {
+    try {
+      const [graphRes, engRes] = await Promise.all([
+        browserBackendFetch(`/api/engagements/${id}/graph`),
+        browserBackendFetch(`/api/engagements/${id}`),
+      ]);
+
+      if (!graphRes.ok) {
+        setError("Failed to load knowledge graph data");
+        setLoading(false);
+        return;
+      }
+
+      const gData = await graphRes.json();
+      setGraphData(gData);
+
+      if (engRes.ok) {
+        const engData = await engRes.json();
+        setEngagement(engData.engagement ?? null);
+      }
+    } catch {
+      setError("Network error loading knowledge graph");
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
   useEffect(() => {
     let cancelled = false;
-    async function load() {
-      try {
-        const [graphRes, engRes] = await Promise.all([
-          browserBackendFetch(`/api/engagements/${id}/graph`),
-          browserBackendFetch(`/api/engagements/${id}`),
-        ]);
+    setLoading(true);
+    loadGraphData().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
+  }, [loadGraphData, reloadKey]);
 
+  // Load rich chains when chains tab is active
+  useEffect(() => {
+    if (activeTab !== "chains") return;
+    let cancelled = false;
+    setChainsLoading(true);
+
+    browserBackendFetch(`/api/engagements/${id}/graph/chains`)
+      .then(async (res) => {
         if (cancelled) return;
-
-        if (!graphRes.ok) {
-          setError("Failed to load knowledge graph data");
-          setLoading(false);
-          return;
+        if (res.ok) {
+          const data = await res.json();
+          setRichChains(data.chains ?? []);
         }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setChainsLoading(false);
+      });
 
-        const gData = await graphRes.json();
-        setGraphData(gData);
+    return () => { cancelled = true; };
+  }, [id, activeTab, reloadKey]);
 
-        if (engRes.ok) {
-          const engData = await engRes.json();
-          setEngagement(engData.engagement ?? null);
-        }
-      } catch {
-        if (!cancelled) setError("Network error loading knowledge graph");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
+  const handleImportComplete = useCallback(() => {
+    setReloadKey((k) => k + 1);
+  }, []);
+
+  const handleGenerateOpplan = useCallback(
+    (chain: RichChain) => {
+      // Navigate to opplan page — the chain data can be used to seed objectives
+      window.location.href = `/${locale}/dashboard/audits/${id}/opplan`;
+    },
+    [locale, id],
+  );
 
   // Filter nodes
   const filteredNodes = useMemo(() => {
@@ -559,8 +861,46 @@ export default function KnowledgeGraphPage() {
         </div>
       )}
 
-      {/* Filter controls */}
-      {!isEmpty && (
+      {/* Import data panel */}
+      <div className="flex-shrink-0 mb-4">
+        <ImportDataPanel engagementId={id} onImportComplete={handleImportComplete} />
+      </div>
+
+      {/* Tab bar: Explorer | Attack Chains */}
+      {!loading && !error && (
+        <div className="flex-shrink-0 mb-4 flex items-center gap-0">
+          <button
+            onClick={() => setActiveTab("explorer")}
+            className={cn(
+              "text-[8px] font-mono uppercase tracking-widest px-4 py-2 border transition-colors",
+              activeTab === "explorer"
+                ? "text-white bg-[var(--bg-card)] border-[var(--border-strong)]"
+                : "text-[var(--text-subtle)] border-[var(--border)] hover:text-[var(--text-muted)]",
+            )}
+          >
+            Explorer
+          </button>
+          <button
+            onClick={() => setActiveTab("chains")}
+            className={cn(
+              "text-[8px] font-mono uppercase tracking-widest px-4 py-2 border border-l-0 transition-colors",
+              activeTab === "chains"
+                ? "text-white bg-[var(--bg-card)] border-[var(--border-strong)]"
+                : "text-[var(--text-subtle)] border-[var(--border)] hover:text-[var(--text-muted)]",
+            )}
+          >
+            Attack Chains
+            {richChains.length > 0 && activeTab !== "chains" && (
+              <span className="ml-1.5 text-[7px] text-[var(--danger)]">
+                {richChains.length}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Filter controls — only in explorer tab */}
+      {!isEmpty && activeTab === "explorer" && (
         <div className="flex-shrink-0 mb-4 flex items-center gap-3">
           <Filter className="w-3 h-3 text-[var(--text-subtle)]" />
           <select
@@ -617,23 +957,10 @@ export default function KnowledgeGraphPage() {
         </div>
       )}
 
-      {/* Empty state */}
-      {!loading && !error && isEmpty && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center border border-[var(--border)] px-8 py-8">
-            <Network className="w-5 h-5 text-[var(--text-subtle)] mx-auto mb-2" />
-            <p className="text-[11px] font-mono text-[var(--text-muted)]">
-              No graph data yet.
-            </p>
-            <p className="text-[9px] font-mono text-[var(--text-subtle)] mt-1">
-              Run a scan to populate the knowledge graph.
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Empty state — handled per-tab below */}
 
-      {/* Main graph explorer */}
-      {!loading && !error && !isEmpty && graphData && (
+      {/* Main content — Explorer tab */}
+      {!loading && !error && activeTab === "explorer" && !isEmpty && graphData && (
         <div className="flex-1 flex flex-col min-h-0 gap-4">
           {/* Two-panel explorer */}
           <div className="flex-1 flex gap-px bg-[var(--border)] min-h-0 border border-[var(--border)]">
@@ -713,7 +1040,7 @@ export default function KnowledgeGraphPage() {
             </div>
           </div>
 
-          {/* Attack chains section */}
+          {/* Inline attack chains (from graph endpoint) */}
           {chains.length > 0 && (
             <div className="flex-shrink-0">
               <div className="flex items-center gap-2 mb-2">
@@ -735,6 +1062,63 @@ export default function KnowledgeGraphPage() {
                   />
                 ))}
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Main content — Explorer tab, empty state */}
+      {!loading && !error && activeTab === "explorer" && isEmpty && (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center border border-[var(--border)] px-8 py-8">
+            <Network className="w-5 h-5 text-[var(--text-subtle)] mx-auto mb-2" />
+            <p className="text-[11px] font-mono text-[var(--text-muted)]">
+              No graph data yet.
+            </p>
+            <p className="text-[9px] font-mono text-[var(--text-subtle)] mt-1">
+              Import scan data above or run a scan to populate the knowledge graph.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Main content — Attack Chains tab */}
+      {!loading && !error && activeTab === "chains" && (
+        <div className="flex-1 flex flex-col min-h-0">
+          {chainsLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <Loader2 className="w-5 h-5 animate-spin text-[var(--text-muted)]" />
+            </div>
+          ) : richChains.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center border border-[var(--border)] px-8 py-8">
+                <Shield className="w-5 h-5 text-[var(--text-subtle)] mx-auto mb-2" />
+                <p className="text-[11px] font-mono text-[var(--text-muted)]">
+                  No attack chains found.
+                </p>
+                <p className="text-[9px] font-mono text-[var(--text-subtle)] mt-1">
+                  Attack chains are built from critical and high severity findings.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto space-y-2">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-1.5 h-1.5 bg-[var(--danger)]" />
+                <span className="text-[8px] font-mono uppercase tracking-[0.15em] text-[var(--text-subtle)] font-bold">
+                  Attack Chains — ranked by risk
+                </span>
+                <span className="text-[8px] font-mono text-[var(--text-subtle)]">
+                  ({richChains.length})
+                </span>
+              </div>
+              {richChains.map((chain) => (
+                <RichChainRow
+                  key={chain.id}
+                  chain={chain}
+                  onGenerateOpplan={handleGenerateOpplan}
+                />
+              ))}
             </div>
           )}
         </div>
