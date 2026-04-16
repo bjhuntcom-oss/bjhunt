@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
+import rehypeSanitize from "rehype-sanitize";
 import { Copy, Check, Play } from "lucide-react";
 import { MessageActions } from "./message-actions";
 import { cn } from "@/lib/utils";
@@ -208,7 +209,7 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
         ) : (
           <div className="chat-prose">
             <ReactMarkdown
-              rehypePlugins={[rehypeHighlight]}
+              rehypePlugins={[rehypeSanitize, rehypeHighlight]}
               components={{
                 code({ className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || "");

@@ -132,10 +132,13 @@ export default function ChatPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [lastMessage, setLastMessage] = useState<string>("");
-  const [showSidebar, setShowSidebar] = useState(
-    typeof window !== "undefined" ? window.innerWidth >= 768 : true
-  );
+  const [showSidebar, setShowSidebar] = useState(true);
   const [sidebarTab, setSidebarTab] = useState<"conversations" | "opplan" | "graph">("conversations");
+
+  // Set sidebar visibility based on viewport after hydration (avoids SSR mismatch)
+  useEffect(() => {
+    if (window.innerWidth < 768) setShowSidebar(false);
+  }, []);
   const [webSearch, setWebSearch] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
@@ -794,7 +797,10 @@ export default function ChatPage() {
 
       // ── Stream done ─────────────────────────────────────────────────
       case "done":
-        // Backend signals stream complete — nothing to do, finally block handles cleanup
+        // Use real token counts from backend if provided
+        if (parsed.tokensIn || parsed.tokensOut) {
+          setTokenCount(parsed.tokensIn + parsed.tokensOut);
+        }
         break;
     }
   }

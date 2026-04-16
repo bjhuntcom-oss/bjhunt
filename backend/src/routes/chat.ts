@@ -382,8 +382,8 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
         });
       }
 
-      // Emit done event
-      emitSSE(controller, "done", {});
+      // Emit done event with token usage
+      emitSSE(controller, "done", { tokensIn, tokensOut });
 
       // Save assistant response to DB
       if (fullResponse || toolCalls.length > 0) {
@@ -701,7 +701,7 @@ chatRoutes.get("/files/:id", async (c) => {
     headers: {
       "Content-Type": (record.mimetype as string) || "application/octet-stream",
       "Content-Length": String(record.sizeBytes),
-      "Content-Disposition": `inline; filename="${record.filename}"`,
+      "Content-Disposition": `inline; filename="${String(record.filename).replace(/["\\]/g, "_")}"`,
       "Cache-Control": "private, max-age=3600",
     },
   });
