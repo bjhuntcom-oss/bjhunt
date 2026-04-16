@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { getBackendBaseUrl } from '@/lib/backend-client'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60 // Allow up to 60s for SSE streams (Vercel Pro: 300s)
 
 type RouteContext = { params: Promise<{ path: string[] }> }
 

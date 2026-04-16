@@ -14,14 +14,11 @@ export async function browserBackendFetch(path: string, init: RequestInit = {}) 
     headers.set('Content-Type', 'application/json')
   }
 
-  // Route through same-origin proxy for REST calls (cookie forwarding).
-  // SSE streams (/api/chat/stream) go DIRECTLY to backend (Vercel can't proxy SSE).
+  // All browser API calls go through same-origin proxy for cookie forwarding.
+  // The proxy at /api/proxy/[...path] handles SSE streaming too.
   let url: string
   if (path.startsWith('http')) {
     url = path
-  } else if (path === '/api/chat/stream') {
-    // SSE stream must go direct to backend — Vercel serverless can't proxy streaming
-    url = `${getBackendBaseUrl()}${path}`
   } else if (path.startsWith('/api/')) {
     url = `/api/proxy${path.slice(4)}`
   } else {
