@@ -31,13 +31,13 @@ export const chatRoutes = new Hono<{ Variables: AppVariables }>();
 
 // Apply auth + rate limit to all routes EXCEPT GET /stream/:runId (uses ticket auth)
 chatRoutes.use("*", async (c, next) => {
-  if (c.req.method === "GET" && c.req.path.match(/^\/stream\/[0-9a-f-]+$/i)) {
+  if (c.req.method === "GET" && c.req.path.match(/\/stream\/[0-9a-f-]+$/i)) {
     return next(); // Skip — ticket auth handled inside the handler
   }
   return requireAuth(c, next);
 });
 chatRoutes.use("*", async (c, next) => {
-  if (c.req.method === "GET" && c.req.path.match(/^\/stream\/[0-9a-f-]+$/i)) {
+  if (c.req.method === "GET" && c.req.path.match(/\/stream\/[0-9a-f-]+$/i)) {
     return next(); // Skip rate limit for ticket-authed streams
   }
   return rateLimit(config.rateLimit.api)(c, next);
