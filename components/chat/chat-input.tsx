@@ -1,10 +1,10 @@
 /// <reference lib="dom" />
 "use client";
 
-import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import { useState, useRef, useEffect, useCallback, KeyboardEvent } from "react";
 import { Send, Globe, Settings2, BookOpen, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SlashCommandsMenu } from "./slash-commands";
+import { SlashCommandsMenu, SLASH_COMMANDS, type SlashCommandContext } from "./slash-commands";
 import { FileUploadZone, type PendingFile } from "./file-upload-zone";
 import { VoiceRecorder } from "./voice-recorder";
 
@@ -13,6 +13,7 @@ interface ChatInputProps {
   onStop: () => void;
   onOpenSettings: () => void;
   onOpenPromptLibrary: () => void;
+  onSlashCommand?: (context: SlashCommandContext) => void;
   webSearch: boolean;
   onToggleWebSearch: () => void;
   disabled?: boolean;
@@ -27,6 +28,7 @@ export function ChatInput({
   onStop,
   onOpenSettings,
   onOpenPromptLibrary,
+  onSlashCommand,
   webSearch,
   onToggleWebSearch,
   disabled,
@@ -38,7 +40,9 @@ export function ChatInput({
   const [value, setValue] = useState("");
   const [files, setFiles] = useState<PendingFile[]>([]);
   const [showSlash, setShowSlash] = useState(false);
+  const [slashIndex, setSlashIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Revoke object URLs when files are removed
   const prevFilesRef = useRef<PendingFile[]>([]);
@@ -80,13 +84,51 @@ export function ChatInput({
     }
   }, [initialValue, onConsumeInitialValue]);
 
+  // Click-outside to dismiss slash menu
+  useEffect(() => {
+    if (!showSlash) return;
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowSlash(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showSlash]);
+
+  // Filtered slash commands for keyboard nav
+  const filteredCommands = SLASH_COMMANDS.filter((c) =>
+    c.command.includes(value.toLowerCase())
+  );
+
   function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const v = e.target.value;
     setValue(v);
-    setShowSlash(v.startsWith("/") && !v.includes(" "));
+    const isSlash = v.startsWith("/") && !v.includes(" ");
+    setShowSlash(isSlash);
+    if (isSlash) setSlashIndex(0);
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    // Slash menu keyboard navigation
+    if (showSlash && filteredCommands.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSlashIndex((i) => (i + 1) % filteredCommands.length);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSlashIndex((i) => (i - 1 + filteredCommands.length) % filteredCommands.length);
+        return;
+      }
+      if (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey)) {
+        e.preventDefault();
+        handleSlashSelect(filteredCommands[slashIndex].command + " ");
+        return;
+      }
+    }
+
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
@@ -94,6 +136,13 @@ export function ChatInput({
     if (e.key === "Escape") {
       setShowSlash(false);
     }
+  }
+
+  function handleSlashSelect(cmd: string) {
+    setValue(cmd);
+    setShowSlash(false);
+    setSlashIndex(0);
+    textareaRef.current?.focus();
   }
 
   function handleSubmit() {
@@ -105,22 +154,26 @@ export function ChatInput({
   }
 
   return (
-    <div className="border-t border-[var(--border)] bg-[var(--bg)] px-4 py-3">
+    <div className="bg-[var(--bg)] px-4 py-3">
       <FileUploadZone
         files={files}
         onAdd={(newFiles) => setFiles((prev) => [...prev, ...newFiles])}
         onRemove={(id) => setFiles((prev) => prev.filter((f) => f.id !== id))}
       >
-        <div className="relative rounded-2xl border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2">
+        <div
+          ref={containerRef}
+          className={cn(
+            "relative border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2",
+            "chatbox-glow transition-all duration-300"
+          )}
+        >
           {/* Slash commands */}
-          {showSlash && (
+          {showSlash && filteredCommands.length > 0 && (
             <SlashCommandsMenu
               query={value}
-              onSelect={(cmd) => {
-                setValue(cmd);
-                setShowSlash(false);
-                textareaRef.current?.focus();
-              }}
+              activeIndex={slashIndex}
+              onSelect={handleSlashSelect}
+              onHover={setSlashIndex}
             />
           )}
 
@@ -135,7 +188,7 @@ export function ChatInput({
             rows={1}
             className={cn(
               "w-full bg-transparent text-[13px] text-white placeholder:text-[var(--text-muted)]",
-              "resize-none outline-none leading-relaxed py-2",
+              "resize-none outline-none leading-relaxed py-2 font-mono",
               "min-h-[40px] overflow-y-auto"
             )}
           />
@@ -227,7 +280,7 @@ export function ChatInput({
               {isStreaming ? (
                 <button
                   onClick={onStop}
-                  className="h-8 px-3 flex items-center gap-1.5 bg-[var(--danger)]/20 border border-[var(--danger)]/40 text-[var(--danger)] hover:bg-[var(--danger)]/30 transition-colors text-[10px] uppercase tracking-wider rounded-xl"
+                  className="h-8 px-3 flex items-center gap-1.5 bg-[var(--danger)]/20 border border-[var(--danger)]/40 text-[var(--danger)] hover:bg-[var(--danger)]/30 transition-colors text-[10px] uppercase tracking-wider"
                   title="Arrêter la génération"
                 >
                   <Square className="w-3 h-3 fill-current" />
@@ -237,7 +290,7 @@ export function ChatInput({
                 <button
                   onClick={handleSubmit}
                   disabled={!value.trim() || disabled}
-                  className="h-8 w-8 flex items-center justify-center bg-white text-black hover:bg-white/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0 rounded-xl"
+                  className="h-8 w-8 flex items-center justify-center bg-white text-black hover:bg-white/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
                   title="Envoyer (Enter)"
                 >
                   <Send className="w-3.5 h-3.5" />
@@ -257,7 +310,7 @@ export function ChatInput({
               )}
             </div>
             <span className="text-[8px] text-[var(--text-subtle)]">
-              Enter · Shift+Enter newline · Ctrl+K nouvelle conv
+              Enter · Shift+Enter newline · / commandes
             </span>
           </div>
         </div>

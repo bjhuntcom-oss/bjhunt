@@ -217,6 +217,68 @@ body {
   vertical-align: text-bottom;
 }
 
+/* ── CHATBOX GLOW ─────────────────────────────────── */
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.7; }
+}
+
+.chatbox-glow {
+  position: relative;
+}
+
+.chatbox-glow::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(135deg, rgba(0,204,138,0.15), rgba(0,204,138,0.05), rgba(116,164,212,0.1));
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.chatbox-glow:focus-within::before {
+  opacity: 1;
+}
+
+.chatbox-glow:focus-within {
+  border-color: rgba(0,204,138,0.4);
+  box-shadow:
+    0 0 0 1px rgba(0,204,138,0.15),
+    0 0 20px rgba(0,204,138,0.08),
+    0 0 40px rgba(0,204,138,0.04);
+}
+
+/* Subtle idle glow when not focused */
+.chatbox-glow:not(:focus-within) {
+  border-color: var(--border);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.chatbox-glow:not(:focus-within):hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 15px rgba(0,204,138,0.05);
+}
+
+/* ── SLASH MENU ANIMATION ─────────────────────────── */
+
+@keyframes slide-up-fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slash-menu-enter {
+  animation: slide-up-fade 0.15s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* Status dot */
 .status-dot {
   display: inline-block;

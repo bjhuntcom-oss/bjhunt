@@ -14,6 +14,7 @@ import {
   Activity,
   Shield,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface SlashCommand {
   command: string;
@@ -169,10 +170,12 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 
 interface SlashCommandsProps {
   query: string;
+  activeIndex?: number;
   onSelect: (command: string) => void;
+  onHover?: (index: number) => void;
 }
 
-export function SlashCommandsMenu({ query, onSelect }: SlashCommandsProps) {
+export function SlashCommandsMenu({ query, activeIndex = 0, onSelect, onHover }: SlashCommandsProps) {
   const filtered = SLASH_COMMANDS.filter((c) =>
     c.command.includes(query.toLowerCase())
   );
@@ -180,23 +183,42 @@ export function SlashCommandsMenu({ query, onSelect }: SlashCommandsProps) {
   if (filtered.length === 0) return null;
 
   return (
-    <div className="absolute bottom-full left-0 right-0 mb-1 bg-[var(--bg-card)] border border-[var(--border)] shadow-xl z-50">
-      <div className="px-3 py-1.5 border-b border-[var(--border)]">
+    <div className="absolute bottom-full left-0 right-0 mb-2 bg-[var(--bg-card)] border border-[var(--border-strong)] shadow-2xl z-50 slash-menu-enter overflow-hidden">
+      <div className="px-3 py-1.5 border-b border-[var(--border)] flex items-center justify-between">
         <span className="text-[8px] uppercase tracking-[0.2em] text-[var(--text-muted)]">Commandes</span>
+        <span className="text-[8px] text-[var(--text-subtle)]">↑↓ naviguer · Enter sélectionner · Esc fermer</span>
       </div>
-      {filtered.map((cmd) => (
-        <button
-          key={cmd.command}
-          onClick={() => onSelect(cmd.command + " ")}
-          className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[var(--bg-input)] transition-colors text-left"
-        >
-          <span className="text-[var(--success)]">{cmd.icon}</span>
-          <div>
-            <div className="text-[11px] text-white font-mono">{cmd.command}</div>
-            <div className="text-[9px] text-[var(--text-muted)]">{cmd.description}</div>
-          </div>
-        </button>
-      ))}
+      <div className="max-h-[300px] overflow-y-auto">
+        {filtered.map((cmd, i) => (
+          <button
+            key={cmd.command}
+            onClick={() => onSelect(cmd.command + " ")}
+            onMouseEnter={() => onHover?.(i)}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2.5 transition-colors text-left",
+              i === activeIndex
+                ? "bg-[var(--bg-input)] border-l-2 border-l-[var(--success)]"
+                : "hover:bg-[var(--bg-input)] border-l-2 border-l-transparent"
+            )}
+          >
+            <span className={cn(
+              "transition-colors",
+              i === activeIndex ? "text-[var(--success)]" : "text-[var(--text-muted)]"
+            )}>
+              {cmd.icon}
+            </span>
+            <div className="min-w-0">
+              <div className={cn(
+                "text-[11px] font-mono",
+                i === activeIndex ? "text-white" : "text-[var(--text-muted)]"
+              )}>
+                {cmd.command}
+              </div>
+              <div className="text-[9px] text-[var(--text-subtle)] truncate">{cmd.description}</div>
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

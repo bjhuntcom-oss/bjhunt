@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Terminal, Globe, Shield, Cloud, Database, Code, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Terminal, Globe, Shield, Cloud, Database, Code, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface ToolCall {
@@ -50,11 +50,15 @@ export function ToolCallBlock({ tool }: { tool: ToolCall }) {
   const color = getToolColor(tool.name);
   const isRunning = tool.status === "running" || tool.status === "pending";
   const isError = tool.status === "error";
+  const isCompleted = tool.status === "completed";
 
   return (
     <div className={cn(
-      "my-2 border transition-colors",
-      isError ? "border-[var(--danger)]/30" : "border-[var(--border)]",
+      "my-2 border transition-all",
+      isRunning && "border-[var(--warning)]/30 bg-[var(--warning-dim)]",
+      isError && "border-[var(--danger)]/30 bg-[var(--danger-dim)]",
+      isCompleted && "border-[var(--border)] hover:border-[var(--border-strong)]",
+      !isRunning && !isError && !isCompleted && "border-[var(--border)]",
       expanded && "bg-[var(--bg-input)]"
     )}>
       {/* Header */}
@@ -92,18 +96,21 @@ export function ToolCallBlock({ tool }: { tool: ToolCall }) {
 
         <span className="ml-auto flex items-center gap-2">
           {tool.duration !== undefined && (
-            <span className="text-[9px] text-[var(--text-subtle)]">
+            <span className="text-[9px] text-[var(--text-subtle)] font-mono">
               {tool.duration < 1000 ? `${tool.duration}ms` : `${(tool.duration / 1000).toFixed(1)}s`}
             </span>
           )}
-          <span className={cn(
-            "text-[8px] uppercase tracking-wider px-1.5 py-0.5",
-            isRunning && "text-[var(--warning)] bg-[var(--warning-dim)]",
-            tool.status === "completed" && "text-[var(--success)] bg-[var(--success-dim)]",
-            isError && "text-[var(--danger)] bg-[var(--danger-dim)]"
-          )}>
-            {isRunning ? "running" : tool.status}
-          </span>
+
+          {/* Status icon instead of text badge */}
+          {isRunning && (
+            <Loader2 className="w-3 h-3 animate-spin text-[var(--warning)]" />
+          )}
+          {isCompleted && (
+            <CheckCircle2 className="w-3 h-3 text-[var(--success)]" />
+          )}
+          {isError && (
+            <XCircle className="w-3 h-3 text-[var(--danger)]" />
+          )}
         </span>
       </button>
 

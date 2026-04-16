@@ -1,13 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Square, Plus, PanelRightOpen, PanelRightClose } from "lucide-react";
+import { Plus, PanelRightOpen, PanelRightClose } from "lucide-react";
 import { MessageBubble, type ChatMessage } from "@/components/chat/message-bubble";
 import { ToolCallBlock, type ToolCall } from "@/components/chat/tool-call-block";
 import { ThinkingBlock } from "@/components/chat/thinking-block";
 import { SubAgentCard, type SubAgentSession } from "@/components/chat/sub-agent-card";
 import { OpplanPanel, type Objective } from "@/components/chat/opplan-panel";
 import { KnowledgeGraphPanel, type GraphNode, type GraphEdge, type GraphStats } from "@/components/chat/knowledge-graph-panel";
+import { ChatInput } from "@/components/chat/chat-input";
+import { type PendingFile } from "@/components/chat/file-upload-zone";
+import { ModelSettingsPanel, type ModelSettings } from "@/components/chat/model-settings-panel";
+import { PromptLibraryPanel } from "@/components/chat/prompt-library-panel";
+import { SLASH_COMMANDS, type SlashCommandContext } from "@/components/chat/slash-commands";
 import { browserBackendFetch } from "@/lib/backend-client";
 
 // ── Types ────────────────────────────────────────────────────────────────
@@ -42,15 +47,25 @@ export default function ChatPage() {
   const [graphEdges, setGraphEdges] = useState<GraphEdge[]>([]);
   const [graphStats, setGraphStats] = useState<GraphStats>({ nodeCount: 0, edgeCount: 0, criticalFindings: 0, highFindings: 0 });
   const [thinking, setThinking] = useState<{ content: string; active: boolean }>({ content: "", active: false });
-  const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [lastMessage, setLastMessage] = useState<string>("");
   const [showSidebar, setShowSidebar] = useState(true);
   const [sidebarTab, setSidebarTab] = useState<"engagements" | "opplan" | "graph">("engagements");
+  const [webSearch, setWebSearch] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showPromptLibrary, setShowPromptLibrary] = useState(false);
+  const [promptInitialValue, setPromptInitialValue] = useState("");
+  const [modelSettings, setModelSettings] = useState<ModelSettings>({
+    systemPrompt: "",
+    temperature: 0.7,
+    maxTokens: 4096,
+    topP: 1,
+    streamResponse: true,
+    webSearch: false,
+  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const lastAiContentRef = useRef<string>("");
 
@@ -146,11 +161,44 @@ export default function ChatPage() {
     }
   }
 
+  // ── Slash command handler ─────────────────────────────────────────────
+
+  const handleSlashCommand = useCallback((ctx: SlashCommandContext) => {
+    // Slash commands are handled by their action functions
+  }, []);
+
   // ── Send message ─────────────────────────────────────────────────────
 
-  async function handleSend() {
-    const text = input.trim();
+  async function handleSend(text: string, files: PendingFile[] = []) {
     if (!text || isStreaming) return;
+
+    // Check for slash command
+    const slashCmd = SLASH_COMMANDS.find((c) => text.startsWith(c.command));
+    if (slashCmd?.action) {
+      const ctx: SlashCommandContext = {
+        setInput: () => {},
+        sendMessage: (msg) => {
+          const sysMsg: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: msg,
+            createdAt: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, sysMsg]);
+        },
+        clearMessages: () => {
+          setMessages([]);
+          setToolCalls(new Map());
+          setSubAgents(new Map());
+        },
+        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        engagementId: activeEngagement?.id,
+      };
+      slashCmd.action(ctx);
+      return;
+    }
+
+    // TODO: handle file uploads — POST /api/chat/files
 
     // Add user message
     const userMsg: ChatMessage = {
@@ -160,7 +208,6 @@ export default function ChatPage() {
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMsg]);
-    setInput("");
     setIsStreaming(true);
     setStreamError(null);
     setLastMessage(text);
@@ -479,13 +526,6 @@ export default function ChatPage() {
     abortRef.current?.abort();
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  }
-
   // ── Render ───────────────────────────────────────────────────────────
 
   // Interleave messages and tool calls chronologically
@@ -669,8 +709,7 @@ export default function ChatPage() {
                   setMessages((prev) => prev.filter((m) => !(m.role === "assistant" && m.content.startsWith("Error:"))));
                   // Re-send last message
                   if (lastMessage) {
-                    setInput(lastMessage);
-                    setTimeout(() => handleSend(), 100);
+                    handleSend(lastMessage);
                   }
                 }}
                 className="text-[9px] uppercase tracking-wider px-3 py-1 bg-[var(--danger)] text-white hover:bg-[var(--danger)]/80 transition-colors"
@@ -683,59 +722,45 @@ export default function ChatPage() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input area */}
-        <div className="border-t border-[var(--border)] px-4 py-3">
-          <div className="flex items-end gap-2">
-            <div className="flex-1 relative">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={activeEngagement
-                  ? "Describe your target, ask for a scan, or chat with the agents..."
-                  : "Create an assessment first..."
-                }
-                disabled={!activeEngagement}
-                rows={1}
-                className="w-full bg-[var(--bg-input)] border border-[var(--border)] px-4 py-3 text-[12px] text-white placeholder:text-[var(--text-subtle)] resize-none outline-none focus:border-[var(--border-strong)] transition-colors disabled:opacity-50 font-mono"
-                style={{ maxHeight: "40vh" }}
-                onInput={(e) => {
-                  const target = e.target as HTMLTextAreaElement;
-                  target.style.height = "auto";
-                  target.style.height = `${Math.min(target.scrollHeight, window.innerHeight * 0.4)}px`;
-                }}
-              />
-            </div>
-
-            {isStreaming ? (
-              <button
-                onClick={handleStop}
-                className="p-3 bg-[var(--danger)] text-white hover:bg-[var(--danger)]/80 transition-colors shrink-0"
-              >
-                <Square className="w-4 h-4" />
-              </button>
-            ) : (
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() || !activeEngagement}
-                className="p-3 bg-white text-black hover:bg-white/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between mt-1.5">
-            <span className="text-[8px] text-[var(--text-subtle)]">
-              Shift+Enter for newline
-            </span>
-            <span className="text-[8px] text-[var(--text-subtle)]">
-              BJHUNT ALPHA 1.0 — 17 AI agents
-            </span>
-          </div>
+        {/* Input area — ChatInput with slash commands, file upload, voice, etc. */}
+        <div className="border-t border-[var(--border)]">
+          <ChatInput
+            onSubmit={handleSend}
+            onStop={handleStop}
+            onOpenSettings={() => setShowSettings((v) => !v)}
+            onOpenPromptLibrary={() => setShowPromptLibrary((v) => !v)}
+            onSlashCommand={handleSlashCommand}
+            webSearch={webSearch}
+            onToggleWebSearch={() => setWebSearch((v) => !v)}
+            disabled={!activeEngagement}
+            isStreaming={isStreaming}
+            placeholder={activeEngagement
+              ? "Describe your target, ask for a scan, or chat with the agents..."
+              : "Create an assessment first..."
+            }
+            initialValue={promptInitialValue}
+            onConsumeInitialValue={() => setPromptInitialValue("")}
+          />
         </div>
       </div>
+
+      {/* ── Right panels ──────────────────────────────────────────── */}
+      {showSettings && (
+        <ModelSettingsPanel
+          settings={modelSettings}
+          onChange={setModelSettings}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+      {showPromptLibrary && (
+        <PromptLibraryPanel
+          onSelect={(content) => {
+            setPromptInitialValue(content);
+            setShowPromptLibrary(false);
+          }}
+          onClose={() => setShowPromptLibrary(false)}
+        />
+      )}
     </div>
   );
 }
