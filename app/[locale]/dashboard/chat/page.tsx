@@ -94,7 +94,6 @@ interface StreamEvent {
 // ── Chat Page ────────────────────────────────────────────────────────────
 
 // Direct backend URL for SSE (bypasses Vercel proxy timeout)
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.bjhunt.com";
 
 export default function ChatPage() {
   const params = useParams();
@@ -502,14 +501,6 @@ export default function ChatPage() {
     try {
       abortRef.current = new AbortController();
 
-      // SSE stream goes DIRECTLY to backend (Vercel proxy has 10s timeout).
-      // Read the non-HttpOnly stream token cookie for cross-origin auth.
-      const tokenCookie = document.cookie
-        .split(";")
-        .map((c) => c.trim())
-        .find((c) => c.startsWith("bjhunt_stream_token="));
-      const sessionToken = tokenCookie?.split("=")[1] || "";
-
       // Include conversationId so backend reuses existing conversation,
       // and attachmentIds so uploaded files get linked.
       const requestBody: Record<string, unknown> = {
@@ -524,13 +515,14 @@ export default function ChatPage() {
         requestBody.attachmentIds = uploadedFileIds;
       }
 
-      const res = await fetch(`${BACKEND_URL}/api/chat/stream`, {
+      // Route through same-origin proxy to avoid CORS issues.
+      // The proxy at /api/proxy/* forwards cookies and supports SSE streaming.
+      const res = await fetch(`/api/proxy/chat/stream`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Cookie": `bjhunt_session=${sessionToken}`,
-          "Authorization": `Bearer session:${sessionToken}`,
         },
+        credentials: "include",
         body: JSON.stringify(requestBody),
         signal: abortRef.current.signal,
       });
