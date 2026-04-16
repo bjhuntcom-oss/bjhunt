@@ -27,6 +27,9 @@ interface StreamEvent {
 
 // ── Chat Page ────────────────────────────────────────────────────────────
 
+// Direct backend URL for SSE (bypasses Vercel proxy timeout)
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.bjhunt.com";
+
 export default function ChatPage() {
   // State
   const [engagements, setEngagements] = useState<Engagement[]>([]);
@@ -177,9 +180,21 @@ export default function ChatPage() {
     try {
       abortRef.current = new AbortController();
 
-      const res = await browserBackendFetch("/api/chat/stream", {
+      // SSE stream goes DIRECTLY to backend (Vercel proxy has 10s timeout).
+      // Read session cookie and pass as header for cross-origin auth.
+      const sessionCookie = document.cookie
+        .split(";")
+        .map((c) => c.trim())
+        .find((c) => c.startsWith("bjhunt_session="));
+      const sessionToken = sessionCookie?.split("=")[1] || "";
+
+      const res = await fetch(`${BACKEND_URL}/api/chat/stream`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Cookie": `bjhunt_session=${sessionToken}`,
+          "Authorization": `Bearer session:${sessionToken}`,
+        },
         body: JSON.stringify({
           message: text,
           engagementId: activeEngagement?.id || "",

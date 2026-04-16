@@ -35,8 +35,15 @@ export const resolveAuth: MiddlewareHandler = async (c, next) => {
     return next();
   }
 
-  // Try session cookie
-  const sessionId = getCookie(c, "bjhunt_session");
+  // Try session cookie or session token in Authorization header
+  let sessionId = getCookie(c, "bjhunt_session");
+
+  // Fallback: session token passed as Authorization: Bearer session:<token>
+  // Used for cross-origin SSE streams where cookies are blocked
+  if (!sessionId && authHeader.startsWith("Bearer session:")) {
+    sessionId = authHeader.slice(15);
+  }
+
   if (sessionId) {
     const session = await getSession(sessionId);
     if (session) {
