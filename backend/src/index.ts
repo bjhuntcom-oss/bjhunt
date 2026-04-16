@@ -42,8 +42,15 @@ const app = new Hono<{ Variables: AppVariables }>();
 
 app.use("*", requestId);
 app.use("*", logger());
-app.use("*", secureHeaders());
 app.use("*", corsMiddleware);
+app.use("*", secureHeaders({
+  strictTransportSecurity: "max-age=31536000; includeSubDomains",
+  xContentTypeOptions: "nosniff",
+  xFrameOptions: "DENY",
+  referrerPolicy: "strict-origin-when-cross-origin",
+  crossOriginOpenerPolicy: "same-origin",
+  crossOriginResourcePolicy: "same-origin",
+}));
 app.use("*", csrfMiddleware);
 app.use("*", resolveAuth);
 

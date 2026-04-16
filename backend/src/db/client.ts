@@ -9,6 +9,7 @@ export const sql = postgres(config.database.url, {
   max: 20,
   idle_timeout: 20,
   connect_timeout: 10,
+  max_lifetime: 60 * 30,    // recycle connections every 30 min
   transform: postgres.camel,
 });
 
@@ -25,3 +26,16 @@ export async function withOrg<T>(
     return fn(tx);
   }) as Promise<T>;
 }
+
+/**
+ * Graceful shutdown — drain the connection pool so in-flight queries
+ * finish before the process exits. Called on SIGTERM / SIGINT.
+ */
+async function drainPool() {
+  console.log("[DB] Draining PostgreSQL connection pool...");
+  await sql.end({ timeout: 5 });
+  console.log("[DB] Pool drained.");
+}
+
+process.on("SIGTERM", drainPool);
+process.on("SIGINT", drainPool);

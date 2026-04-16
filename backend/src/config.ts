@@ -36,7 +36,7 @@ export const config = {
 
   // CORS
   cors: {
-    origins: optional("CORS_ORIGINS", "http://localhost:3000,https://bjhunt.com,https://www.bjhunt.com")
+    origins: optional("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,https://bjhunt.com,https://www.bjhunt.com")
       .split(",")
       .map((s) => s.trim()),
   },

@@ -32,6 +32,12 @@ services:
     networks:
       - bjhunt-mgmt
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3001/api/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   # ── PostgreSQL (app data + LiteLLM) ────────────────────────────────
   postgres:
@@ -79,6 +85,7 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+      start_period: 5s
 
   # ── LiteLLM Proxy ──────────────────────────────────────────────────
   litellm:
@@ -200,6 +207,12 @@ services:
     networks:
       - bjhunt-mgmt
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:2024/ok || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   # ── Caddy (Reverse Proxy) ─────────────────────────────────────────
   caddy:
@@ -213,11 +226,22 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - backend
-      - langgraph
+      backend:
+        condition: service_healthy
+      langgraph:
+        condition: service_healthy
+    mem_limit: 256m
+    cpus: 0.25
+    pids_limit: 64
     networks:
       - bjhunt-mgmt
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   postgres_data:

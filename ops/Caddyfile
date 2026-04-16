@@ -1,10 +1,15 @@
 api.bjhunt.com {
-    reverse_proxy backend:3001
+    reverse_proxy backend:3001 {
+        # Disable response buffering so SSE events are flushed immediately
+        flush_interval -1
+    }
     encode gzip
     header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
         Referrer-Policy "strict-origin-when-cross-origin"
+        Cross-Origin-Opener-Policy "same-origin"
         -Server
     }
 }

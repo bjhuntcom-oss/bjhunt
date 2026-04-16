@@ -369,6 +369,50 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
             }
           }
         }
+
+        // ── "custom" mode: sub-agent lifecycle events from StreamingRunnable ──
+        else if (eventType === "custom") {
+          const evtType = parsed.type || parsed.event;
+          const evtData = parsed.data || parsed;
+
+          if (evtType === "subagent_start") {
+            emitSSE(controller, "subagent_start", {
+              id: evtData.id || crypto.randomUUID(),
+              name: evtData.name || evtData.agent || "sub-agent",
+              description: evtData.description || "",
+            });
+          } else if (evtType === "subagent_end") {
+            emitSSE(controller, "subagent_end", {
+              id: evtData.id || "",
+              error: evtData.error || null,
+            });
+          } else if (evtType === "subagent_tool_call") {
+            emitSSE(controller, "tool_call", {
+              id: evtData.id || crypto.randomUUID(),
+              name: evtData.name || evtData.tool || "tool",
+              args: evtData.args || evtData.input || {},
+              status: "running",
+            });
+          } else if (evtType === "subagent_tool_result") {
+            const result = typeof evtData.output === "string"
+              ? evtData.output.slice(0, 500)
+              : JSON.stringify(evtData.output).slice(0, 500);
+            emitSSE(controller, "tool_result", {
+              id: evtData.id || "",
+              result,
+              status: evtData.error ? "error" : "completed",
+            });
+          } else if (evtType === "subagent_message") {
+            // Sub-agent text — append to full response
+            if (evtData.content) {
+              fullResponse += evtData.content;
+              emitSSE(controller, "token", { token: evtData.content, agent: evtData.agent });
+            }
+          } else if (evtType === "thinking" || evtType === "reasoning") {
+            thinkingContent = evtData.content || "";
+            emitSSE(controller, "thinking", { content: thinkingContent, active: true });
+          }
+        }
       }
     },
     async flush(controller) {

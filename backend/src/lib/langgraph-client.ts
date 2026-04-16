@@ -60,7 +60,7 @@ export const langgraphClient = {
       method: "POST",
       body: JSON.stringify({
         assistant_id: assistantId,
-        input: { messages: [{ role: "human", content: String(input.content || JSON.stringify(input)) }] },
+        input: { messages: [{ role: "user", content: String(input.content || JSON.stringify(input)) }] },
       }),
     });
     const data = (await res.json()) as { run_id: string; status: string };
@@ -89,17 +89,26 @@ export const langgraphClient = {
     input: Record<string, unknown>,
   ): Promise<ReadableStream<Uint8Array>> {
     const url = `${BASE_URL}/threads/${threadId}/runs/stream`;
+
+    // Connection-only timeout: abort if server doesn't respond within 30s.
+    // Once streaming starts, the timeout is cleared so long-running agents work.
+    const connAbort = new AbortController();
+    const connTimer = setTimeout(() => connAbort.abort(), 30_000);
+
     const res = await fetch(url, {
       method: "POST",
       headers: HEADERS,
       body: JSON.stringify({
         assistant_id: assistantId,
-        input: { messages: [{ role: "human", content: String(input.content || JSON.stringify(input)) }] },
-        stream_mode: "messages",
+        input: { messages: [{ role: "user", content: String(input.content || JSON.stringify(input)) }] },
+        stream_mode: ["values", "custom"],
+        on_disconnect: "cancel",
       }),
-      // 30s timeout for initial connection (not the whole stream)
-      signal: AbortSignal.timeout(30_000),
+      signal: connAbort.signal,
     });
+
+    // Connection established — clear the timeout so the stream can run indefinitely
+    clearTimeout(connTimer);
 
     if (!res.ok) {
       const body = await res.text().catch(() => "");
