@@ -181,12 +181,12 @@ export default function ChatPage() {
       abortRef.current = new AbortController();
 
       // SSE stream goes DIRECTLY to backend (Vercel proxy has 10s timeout).
-      // Read session cookie and pass as header for cross-origin auth.
-      const sessionCookie = document.cookie
+      // Read the non-HttpOnly stream token cookie for cross-origin auth.
+      const tokenCookie = document.cookie
         .split(";")
         .map((c) => c.trim())
-        .find((c) => c.startsWith("bjhunt_session="));
-      const sessionToken = sessionCookie?.split("=")[1] || "";
+        .find((c) => c.startsWith("bjhunt_stream_token="));
+      const sessionToken = tokenCookie?.split("=")[1] || "";
 
       const res = await fetch(`${BACKEND_URL}/api/chat/stream`, {
         method: "POST",

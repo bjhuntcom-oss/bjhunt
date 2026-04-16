@@ -32,8 +32,18 @@ export async function loginAction(email: string, password: string) {
   // The backend returns sessionToken in the body so we can set it here.
   if (data.sessionToken) {
     const cookieStore = await cookies()
+    // HttpOnly cookie for server-side auth (Next.js SSR)
     cookieStore.set(SESSION_COOKIE, data.sessionToken, {
       httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: SESSION_MAX_AGE,
+      ...(SESSION_COOKIE_DOMAIN ? { domain: SESSION_COOKIE_DOMAIN } : {}),
+    })
+    // Non-HttpOnly cookie for client-side SSE stream auth (readable by JS)
+    cookieStore.set('bjhunt_stream_token', data.sessionToken, {
+      httpOnly: false,
       secure: true,
       sameSite: 'lax',
       path: '/',
@@ -66,6 +76,14 @@ export async function registerAction(email: string, password: string, displayNam
     const cookieStore = await cookies()
     cookieStore.set(SESSION_COOKIE, data.sessionToken, {
       httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: SESSION_MAX_AGE,
+      ...(SESSION_COOKIE_DOMAIN ? { domain: SESSION_COOKIE_DOMAIN } : {}),
+    })
+    cookieStore.set('bjhunt_stream_token', data.sessionToken, {
+      httpOnly: false,
       secure: true,
       sameSite: 'lax',
       path: '/',
