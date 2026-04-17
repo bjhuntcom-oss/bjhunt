@@ -566,6 +566,17 @@ export default function ChatPage() {
       if (uploadedFileIds.length > 0) {
         requestBody.attachmentIds = uploadedFileIds;
       }
+      if (webSearch) {
+        requestBody.webSearch = true;
+      }
+      if (modelSettings) {
+        requestBody.modelSettings = {
+          temperature: modelSettings.temperature,
+          maxTokens: modelSettings.maxTokens,
+          topP: modelSettings.topP,
+          ...(modelSettings.systemPrompt?.trim() ? { systemPrompt: modelSettings.systemPrompt.trim() } : {}),
+        };
+      }
 
       // ── Phase 1: Prepare (fast REST call via Vercel proxy) ─────────
       const currentRequestId = ++requestIdRef.current;
@@ -1589,9 +1600,32 @@ export default function ChatPage() {
               <MessageBubble
                 message={msg}
                 onRetry={msg.role === "assistant" && msg.emptyResponse && !msg.content ? () => {
-                  // Remove the empty assistant message and re-send
                   setMessages((prev) => prev.filter((m) => m.id !== msg.id));
                   if (lastMessage) handleSend(lastMessage);
+                } : undefined}
+                onRegenerate={msg.role === "assistant" && !msg.isStreaming ? () => {
+                  // Find the user message immediately before this assistant message
+                  const idx = messages.findIndex((m) => m.id === msg.id);
+                  const prevUser = [...messages.slice(0, idx)].reverse().find((m) => m.role === "user");
+                  if (!prevUser) return;
+                  // Drop this assistant message (and any messages after it) and re-send
+                  setMessages((prev) => prev.slice(0, idx));
+                  handleSend(prevUser.content);
+                } : undefined}
+                onEdit={msg.role === "user" && !isStreaming ? (newContent: string) => {
+                  const trimmed = newContent.trim();
+                  if (!trimmed || trimmed === msg.content) return;
+                  const idx = messages.findIndex((m) => m.id === msg.id);
+                  // Truncate at the edited message + resubmit
+                  setMessages((prev) => prev.slice(0, idx));
+                  handleSend(trimmed);
+                } : undefined}
+                onFeedback={msg.role === "assistant" && !msg.isStreaming ? (type: "up" | "down") => {
+                  browserBackendFetch(`/api/chat/messages/${msg.id}/feedback`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ rating: type === "up" ? 1 : -1 }),
+                  }).catch(() => {});
                 } : undefined}
               />
 
