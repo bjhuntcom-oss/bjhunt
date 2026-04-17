@@ -10,7 +10,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import { requireApiKeyCreation } from "../middleware/plan-gate.js";
 import { createApiKey, listApiKeys, revokeApiKey } from "../auth/api-keys.js";
-import { sql } from "../db/client.js";
+import { sql, withOrg } from "../db/client.js";
 import { config } from "../config.js";
 import { getPlanLimits } from "../plans.js";
 import type { AuthUser } from "../middleware/auth.js";
@@ -40,10 +40,13 @@ apiKeyRoutes.post("/", requireApiKeyCreation(), zValidator("json", createKeySche
 
   const { key, plaintext } = await createApiKey(orgId, user.id, name, expiresInDays);
 
-  await sql`
-    INSERT INTO audit_logs (org_id, user_id, action, resource)
-    VALUES (${orgId}, ${user.id}, 'api_key.create', ${"api_key:" + key.id})
-  `;
+  // Audit log under tenant RLS context (FORCE RLS + WITH CHECK require it).
+  await withOrg(orgId, (tx) =>
+    tx`
+      INSERT INTO audit_logs (org_id, user_id, action, resource)
+      VALUES (${orgId}, ${user.id}, 'api_key.create', ${"api_key:" + key.id})
+    `,
+  );
 
   // The plaintext is only returned once — the client must save it
   return c.json({ key, plaintext }, 201);
@@ -58,10 +61,12 @@ apiKeyRoutes.delete("/:id", async (c) => {
   const deleted = await revokeApiKey(id, orgId);
   if (!deleted) return c.json({ error: "API key not found" }, 404);
 
-  await sql`
-    INSERT INTO audit_logs (org_id, user_id, action, resource)
-    VALUES (${orgId}, ${user.id}, 'api_key.revoke', ${"api_key:" + id})
-  `;
+  await withOrg(orgId, (tx) =>
+    tx`
+      INSERT INTO audit_logs (org_id, user_id, action, resource)
+      VALUES (${orgId}, ${user.id}, 'api_key.revoke', ${"api_key:" + id})
+    `,
+  );
 
   return c.json({ ok: true });
 });
@@ -71,27 +76,32 @@ apiKeyRoutes.delete("/:id", async (c) => {
 apiKeyRoutes.get("/usage", async (c) => {
   const orgId = c.get("orgId") as string;
 
+  // `organizations` is platform-global (no RLS) — keyed by org id directly.
   const [orgRow] = await sql`SELECT plan FROM organizations WHERE id = ${orgId}`;
   const plan = (orgRow as any)?.plan ?? "free";
   const limits = getPlanLimits(plan);
 
+  // api_key_requests is tenant-scoped but not yet under RLS (it's a
+  // write-heavy usage ledger). Bare sql with explicit WHERE org_id is safe.
   const [requestCount] = await sql`
     SELECT count(*)::int AS total
     FROM api_key_requests
     WHERE org_id = ${orgId} AND created_at >= date_trunc('month', now())
   `;
 
-  const [lastUsedRow] = await sql`
-    SELECT max(last_used_at) AS last_used_at
-    FROM api_keys
-    WHERE org_id = ${orgId}
-  `;
+  const [lastUsedRow] = await withOrg(orgId, (tx) =>
+    tx`
+      SELECT max(last_used_at) AS last_used_at
+      FROM api_keys
+    `,
+  );
 
-  const [keyCountRow] = await sql`
-    SELECT count(*)::int AS total
-    FROM api_keys
-    WHERE org_id = ${orgId}
-  `;
+  const [keyCountRow] = await withOrg(orgId, (tx) =>
+    tx`
+      SELECT count(*)::int AS total
+      FROM api_keys
+    `,
+  );
 
   return c.json({
     plan,

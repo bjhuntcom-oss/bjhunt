@@ -63,21 +63,28 @@ dashboardRoutes.get("/stats", async (c) => {
         ORDER BY d
       `,
     ),
-    // Organization plan
+    // Organization plan (organizations is platform-global, no RLS).
     sql`SELECT plan FROM organizations WHERE id = ${orgId}`,
-    // Active sessions count for this org
-    sql`
-      SELECT COUNT(*)::int AS count
-      FROM sessions s
-      JOIN users u ON s.user_id = u.id
-      WHERE u.org_id = ${orgId} AND s.expires_at > now()
-    `,
+    // Active sessions count for this org — sessions table is platform-global
+    // (keyed by user_id, no RLS). The JOIN through users crosses into the
+    // RLS-protected users table, so run it inside withOrg() so the users
+    // read side applies RLS for defence-in-depth.
+    withOrg(orgId, (tx) =>
+      tx`
+        SELECT COUNT(*)::int AS count
+        FROM sessions s
+        JOIN users u ON s.user_id = u.id
+        WHERE s.expires_at > now()
+      `,
+    ),
     // Audit logs in last 24h for this org
-    sql`
-      SELECT COUNT(*)::int AS count
-      FROM audit_logs
-      WHERE org_id = ${orgId} AND created_at >= now() - interval '24 hours'
-    `,
+    withOrg(orgId, (tx) =>
+      tx`
+        SELECT COUNT(*)::int AS count
+        FROM audit_logs
+        WHERE created_at >= now() - interval '24 hours'
+      `,
+    ),
   ]);
 
   const tokenRow = tokenRows[0] as any;

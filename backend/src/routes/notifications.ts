@@ -5,7 +5,7 @@ import type { AppVariables } from "../types.js";
 
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth.js";
-import { withOrg, sql } from "../db/client.js";
+import { withOrg } from "../db/client.js";
 import type { AuthUser } from "../middleware/auth.js";
 
 export const notificationRoutes = new Hono<{ Variables: AppVariables }>();
@@ -51,13 +51,19 @@ notificationRoutes.get("/count", async (c) => {
 
 // Mark notification(s) as read
 notificationRoutes.post("/read", async (c) => {
+  const orgId = c.get("orgId") as string;
   const user = c.get("user") as AuthUser;
   const body = await c.req.json<{ ids?: string[]; all?: boolean }>();
 
   if (body.all) {
-    await sql`UPDATE notifications SET read_at = now() WHERE user_id = ${user.id} AND read_at IS NULL`;
-  } else if (body.ids?.length) {
-    await sql`UPDATE notifications SET read_at = now() WHERE user_id = ${user.id} AND id = ANY(${body.ids})`;
+    await withOrg(orgId, (tx) =>
+      tx`UPDATE notifications SET read_at = now() WHERE user_id = ${user.id} AND read_at IS NULL`,
+    );
+  } else if (body.ids && body.ids.length > 0) {
+    const ids = body.ids;
+    await withOrg(orgId, (tx) =>
+      tx`UPDATE notifications SET read_at = now() WHERE user_id = ${user.id} AND id = ANY(${ids})`,
+    );
   }
 
   return c.json({ ok: true });

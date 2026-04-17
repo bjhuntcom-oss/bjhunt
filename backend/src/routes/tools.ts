@@ -11,7 +11,7 @@ import { rateLimit } from "../middleware/rate-limit.js";
 import { requireFeature } from "../middleware/plan-gate.js";
 import { config } from "../config.js";
 import type { AuthUser } from "../middleware/auth.js";
-import { sql } from "../db/client.js";
+import { withOrg } from "../db/client.js";
 
 export const toolRoutes = new Hono<{ Variables: AppVariables }>();
 
@@ -134,12 +134,14 @@ toolRoutes.post("/execute", zValidator("json", executeSchema), async (c) => {
   const durationMs = Date.now() - startTime;
 
   // Audit log
-  await sql`
-    INSERT INTO audit_logs (org_id, user_id, action, resource, details)
-    VALUES (${orgId}, ${user.id}, 'tool.execute',
-            ${engagementId ? "engagement:" + engagementId : "playground"},
-            ${JSON.stringify({ tool, durationMs, status: result.status })})
-  `.catch(() => {});
+  await withOrg(orgId, (tx) =>
+    tx`
+      INSERT INTO audit_logs (org_id, user_id, action, resource, details)
+      VALUES (${orgId}, ${user.id}, 'tool.execute',
+              ${engagementId ? "engagement:" + engagementId : "playground"},
+              ${JSON.stringify({ tool, durationMs, status: result.status })})
+    `,
+  ).catch(() => {});
 
   return c.json({
     tool,

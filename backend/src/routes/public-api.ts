@@ -149,17 +149,21 @@ publicApiRoutes.post("/scans", zValidator("json", createScanSchema), async (c) =
   }
 
   // Track agent run
-  await sql`
-    INSERT INTO agent_runs (org_id, engagement_id, agent_name, input_summary, status)
-    VALUES (${orgId}, ${engagement!.id}, ${agentGraph}, ${`API scan: ${body.target}`}, 'running')
-  `;
+  await withOrg(orgId, (tx) =>
+    tx`
+      INSERT INTO agent_runs (org_id, engagement_id, agent_name, input_summary, status)
+      VALUES (${orgId}, ${engagement!.id}, ${agentGraph}, ${`API scan: ${body.target}`}, 'running')
+    `,
+  );
 
   // Audit log
-  await sql`
-    INSERT INTO audit_logs (org_id, user_id, action, resource, details)
-    VALUES (${orgId}, ${userId}, 'api.scan.create', ${"engagement:" + engagement!.id},
-            ${JSON.stringify({ target: body.target, type: body.type, agent: agentGraph })})
-  `;
+  await withOrg(orgId, (tx) =>
+    tx`
+      INSERT INTO audit_logs (org_id, user_id, action, resource, details)
+      VALUES (${orgId}, ${userId}, 'api.scan.create', ${"engagement:" + engagement!.id},
+              ${JSON.stringify({ target: body.target, type: body.type, agent: agentGraph })})
+    `,
+  );
 
   return c.json({
     id: engagement!.id,
@@ -292,10 +296,12 @@ publicApiRoutes.delete("/scans/:id", async (c) => {
     );
   }
 
-  await sql`
-    INSERT INTO audit_logs (org_id, user_id, action, resource)
-    VALUES (${orgId}, ${userId}, 'api.scan.delete', ${"engagement:" + id})
-  `;
+  await withOrg(orgId, (tx) =>
+    tx`
+      INSERT INTO audit_logs (org_id, user_id, action, resource)
+      VALUES (${orgId}, ${userId}, 'api.scan.delete', ${"engagement:" + id})
+    `,
+  );
 
   return c.json({ ok: true });
 });

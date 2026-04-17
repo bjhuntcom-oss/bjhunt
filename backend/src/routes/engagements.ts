@@ -6,7 +6,7 @@ import type { AppVariables } from "../types.js";
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { withOrg, sql } from "../db/client.js";
+import { withOrg } from "../db/client.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import { requirePlan, enforceScanQuota } from "../middleware/plan-gate.js";
@@ -307,10 +307,12 @@ engagementRoutes.post("/", requirePlan("pro", "enterprise"), enforceScanQuota(),
     `,
   );
 
-  await sql`
-    INSERT INTO audit_logs (org_id, user_id, action, resource)
-    VALUES (${orgId}, ${user.id}, 'engagement.create', ${"engagement:" + engagement!.id})
-  `;
+  await withOrg(orgId, (tx) =>
+    tx`
+      INSERT INTO audit_logs (org_id, user_id, action, resource)
+      VALUES (${orgId}, ${user.id}, 'engagement.create', ${"engagement:" + engagement!.id})
+    `,
+  );
 
   return c.json({ engagement }, 201);
 });
@@ -354,11 +356,13 @@ engagementRoutes.patch("/:id", zValidator("json", updateSchema), async (c) => {
 
   if (!updated) return c.json({ error: "Engagement not found" }, 404);
 
-  await sql`
-    INSERT INTO audit_logs (org_id, user_id, action, resource, details)
-    VALUES (${orgId}, ${user.id}, 'engagement.update',
-            ${"engagement:" + id}, ${JSON.stringify({ fields: Object.keys(values) })})
-  `;
+  await withOrg(orgId, (tx) =>
+    tx`
+      INSERT INTO audit_logs (org_id, user_id, action, resource, details)
+      VALUES (${orgId}, ${user.id}, 'engagement.update',
+              ${"engagement:" + id}, ${JSON.stringify({ fields: Object.keys(values) })})
+    `,
+  );
 
   return c.json({ engagement: updated });
 });
@@ -400,11 +404,13 @@ engagementRoutes.post("/:id/launch", requirePlan("pro", "enterprise"), enforceSc
     opplan: engagement.opplan,
   });
 
-  await sql`
-    INSERT INTO audit_logs (org_id, user_id, action, resource, details)
-    VALUES (${orgId}, ${user.id}, 'engagement.launch',
-            ${"engagement:" + id}, ${JSON.stringify({ threadId: thread.threadId })})
-  `;
+  await withOrg(orgId, (tx) =>
+    tx`
+      INSERT INTO audit_logs (org_id, user_id, action, resource, details)
+      VALUES (${orgId}, ${user.id}, 'engagement.launch',
+              ${"engagement:" + id}, ${JSON.stringify({ threadId: thread.threadId })})
+    `,
+  );
 
   return c.json({ status: "running", threadId: thread.threadId });
 });
@@ -473,10 +479,12 @@ engagementRoutes.post("/:id/findings", zValidator("json", createFindingSchema), 
     `,
   );
 
-  await sql`
-    INSERT INTO audit_logs (org_id, user_id, action, resource)
-    VALUES (${orgId}, ${user.id}, 'finding.create', ${"finding:" + finding!.id})
-  `;
+  await withOrg(orgId, (tx) =>
+    tx`
+      INSERT INTO audit_logs (org_id, user_id, action, resource)
+      VALUES (${orgId}, ${user.id}, 'finding.create', ${"finding:" + finding!.id})
+    `,
+  );
 
   return c.json({ finding }, 201);
 });
@@ -823,12 +831,14 @@ engagementRoutes.post("/:id/graph/ingest", requirePlan("pro", "enterprise"), asy
     return c.json({ error: "Parse error: " + (err?.message || "unknown") }, 400);
   }
 
-  await sql`
-    INSERT INTO audit_logs (org_id, user_id, action, resource, details)
-    VALUES (${orgId}, ${user.id}, 'graph.ingest',
-            ${"engagement:" + id},
-            ${JSON.stringify({ fileName: file.name, nodesAdded, edgesAdded })})
-  `.catch(() => {});
+  await withOrg(orgId, (tx) =>
+    tx`
+      INSERT INTO audit_logs (org_id, user_id, action, resource, details)
+      VALUES (${orgId}, ${user.id}, 'graph.ingest',
+              ${"engagement:" + id},
+              ${JSON.stringify({ fileName: file.name, nodesAdded, edgesAdded })})
+    `,
+  ).catch(() => {});
 
   return c.json({ nodesAdded, edgesAdded });
 });
@@ -957,10 +967,12 @@ engagementRoutes.delete("/:id", async (c) => {
 
   if (result.count === 0) return c.json({ error: "Engagement not found" }, 404);
 
-  await sql`
-    INSERT INTO audit_logs (org_id, user_id, action, resource)
-    VALUES (${orgId}, ${user.id}, 'engagement.delete', ${"engagement:" + id})
-  `;
+  await withOrg(orgId, (tx) =>
+    tx`
+      INSERT INTO audit_logs (org_id, user_id, action, resource)
+      VALUES (${orgId}, ${user.id}, 'engagement.delete', ${"engagement:" + id})
+    `,
+  );
 
   return c.json({ ok: true });
 });
@@ -1285,12 +1297,14 @@ engagementRoutes.post("/:id/defense-actions/:actionId/approve", async (c) => {
   if (!engagement) return c.json({ error: "Engagement not found" }, 404);
 
   // Audit log
-  await sql`
-    INSERT INTO audit_logs (org_id, user_id, action, resource, details)
-    VALUES (${orgId}, ${user.id}, 'defense.approve',
-            ${"engagement:" + id},
-            ${JSON.stringify({ actionId })})
-  `.catch(() => {});
+  await withOrg(orgId, (tx) =>
+    tx`
+      INSERT INTO audit_logs (org_id, user_id, action, resource, details)
+      VALUES (${orgId}, ${user.id}, 'defense.approve',
+              ${"engagement:" + id},
+              ${JSON.stringify({ actionId })})
+    `,
+  ).catch(() => {});
 
   return c.json({ ok: true, actionId, status: "approved", approvedAt: new Date().toISOString() });
 });
@@ -1310,12 +1324,14 @@ engagementRoutes.post("/:id/defense-actions/:actionId/reject", async (c) => {
   if (!engagement) return c.json({ error: "Engagement not found" }, 404);
 
   // Audit log
-  await sql`
-    INSERT INTO audit_logs (org_id, user_id, action, resource, details)
-    VALUES (${orgId}, ${user.id}, 'defense.reject',
-            ${"engagement:" + id},
-            ${JSON.stringify({ actionId })})
-  `.catch(() => {});
+  await withOrg(orgId, (tx) =>
+    tx`
+      INSERT INTO audit_logs (org_id, user_id, action, resource, details)
+      VALUES (${orgId}, ${user.id}, 'defense.reject',
+              ${"engagement:" + id},
+              ${JSON.stringify({ actionId })})
+    `,
+  ).catch(() => {});
 
   return c.json({ ok: true, actionId, status: "rejected", rejectedAt: new Date().toISOString() });
 });

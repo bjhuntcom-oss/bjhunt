@@ -6,7 +6,7 @@ import type { AppVariables } from "../types.js";
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { withOrg, sql } from "../db/client.js";
+import { withOrg } from "../db/client.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import { config } from "../config.js";
@@ -202,11 +202,13 @@ findingsRoutes.patch("/:id", zValidator("json", updateFindingSchema), async (c) 
 
   if (!updated) return c.json({ error: "Finding not found" }, 404);
 
-  await sql`
-    INSERT INTO audit_logs (org_id, user_id, action, resource, details)
-    VALUES (${orgId}, ${user.id}, 'finding.update',
-            ${"finding:" + id}, ${JSON.stringify({ fields: Object.keys(values) })})
-  `.catch(() => {});
+  await withOrg(orgId, (tx) =>
+    tx`
+      INSERT INTO audit_logs (org_id, user_id, action, resource, details)
+      VALUES (${orgId}, ${user.id}, 'finding.update',
+              ${"finding:" + id}, ${JSON.stringify({ fields: Object.keys(values) })})
+    `,
+  ).catch(() => {});
 
   return c.json({ finding: updated });
 });

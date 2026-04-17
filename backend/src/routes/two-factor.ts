@@ -5,7 +5,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { sql } from "../db/client.js";
+import { sql, withOrg } from "../db/client.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import { config } from "../config.js";
@@ -41,10 +41,10 @@ const verifySchema = z.object({
 twoFactorRoutes.post("/setup", requireAuth, async (c) => {
   const user = c.get("user") as AuthUser;
 
-  // Check if 2FA is already enabled
-  const [dbUser] = await sql`
-    SELECT totp_enabled FROM users WHERE id = ${user.id}
-  `;
+  // Check if 2FA is already enabled (users is under RLS FORCE — use withOrg).
+  const [dbUser] = await withOrg(user.orgId, (tx) =>
+    tx`SELECT totp_enabled FROM users WHERE id = ${user.id}`,
+  );
   if (dbUser?.totpEnabled) {
     return c.json({ error: "Two-factor authentication is already enabled" }, 400);
   }
@@ -52,14 +52,16 @@ twoFactorRoutes.post("/setup", requireAuth, async (c) => {
   const { secret, uri, qrDataUrl } = generateTOTPSecret(user.email);
 
   // Store the secret temporarily (not yet enabled)
-  await sql`
-    UPDATE users SET totp_secret = ${secret} WHERE id = ${user.id}
-  `;
+  await withOrg(user.orgId, (tx) =>
+    tx`UPDATE users SET totp_secret = ${secret} WHERE id = ${user.id}`,
+  );
 
-  await sql`
-    INSERT INTO audit_logs (org_id, user_id, action)
-    VALUES (${user.orgId}, ${user.id}, 'user.2fa_setup_initiated')
-  `;
+  await withOrg(user.orgId, (tx) =>
+    tx`
+      INSERT INTO audit_logs (org_id, user_id, action)
+      VALUES (${user.orgId}, ${user.id}, 'user.2fa_setup_initiated')
+    `,
+  );
 
   return c.json({ secret, uri, qrDataUrl });
 });
@@ -74,10 +76,10 @@ twoFactorRoutes.post(
     const user = c.get("user") as AuthUser;
     const { code } = c.req.valid("json");
 
-    // Get the pending secret
-    const [dbUser] = await sql`
-      SELECT totp_secret, totp_enabled FROM users WHERE id = ${user.id}
-    `;
+    // Get the pending secret (users is under RLS FORCE — use withOrg).
+    const [dbUser] = await withOrg(user.orgId, (tx) =>
+      tx`SELECT totp_secret, totp_enabled FROM users WHERE id = ${user.id}`,
+    );
 
     if (!dbUser?.totpSecret) {
       return c.json({ error: "No 2FA setup in progress. Call /setup first." }, 400);
@@ -96,17 +98,21 @@ twoFactorRoutes.post(
     const backupCodes = generateBackupCodes();
 
     // Enable 2FA
-    await sql`
-      UPDATE users
-      SET totp_enabled = true,
-          totp_backup_codes = ${backupCodes}
-      WHERE id = ${user.id}
-    `;
+    await withOrg(user.orgId, (tx) =>
+      tx`
+        UPDATE users
+        SET totp_enabled = true,
+            totp_backup_codes = ${backupCodes}
+        WHERE id = ${user.id}
+      `,
+    );
 
-    await sql`
-      INSERT INTO audit_logs (org_id, user_id, action)
-      VALUES (${user.orgId}, ${user.id}, 'user.2fa_enabled')
-    `;
+    await withOrg(user.orgId, (tx) =>
+      tx`
+        INSERT INTO audit_logs (org_id, user_id, action)
+        VALUES (${user.orgId}, ${user.id}, 'user.2fa_enabled')
+      `,
+    );
 
     return c.json({
       enabled: true,
@@ -126,9 +132,9 @@ twoFactorRoutes.post(
     const user = c.get("user") as AuthUser;
     const { code } = c.req.valid("json");
 
-    const [dbUser] = await sql`
-      SELECT totp_secret, totp_enabled, totp_backup_codes FROM users WHERE id = ${user.id}
-    `;
+    const [dbUser] = await withOrg(user.orgId, (tx) =>
+      tx`SELECT totp_secret, totp_enabled, totp_backup_codes FROM users WHERE id = ${user.id}`,
+    );
 
     if (!dbUser?.totpEnabled) {
       return c.json({ error: "Two-factor authentication is not enabled" }, 400);
@@ -147,18 +153,22 @@ twoFactorRoutes.post(
     }
 
     // Disable 2FA and clear secrets
-    await sql`
-      UPDATE users
-      SET totp_enabled = false,
-          totp_secret = NULL,
-          totp_backup_codes = NULL
-      WHERE id = ${user.id}
-    `;
+    await withOrg(user.orgId, (tx) =>
+      tx`
+        UPDATE users
+        SET totp_enabled = false,
+            totp_secret = NULL,
+            totp_backup_codes = NULL
+        WHERE id = ${user.id}
+      `,
+    );
 
-    await sql`
-      INSERT INTO audit_logs (org_id, user_id, action)
-      VALUES (${user.orgId}, ${user.id}, 'user.2fa_disabled')
-    `;
+    await withOrg(user.orgId, (tx) =>
+      tx`
+        INSERT INTO audit_logs (org_id, user_id, action)
+        VALUES (${user.orgId}, ${user.id}, 'user.2fa_disabled')
+      `,
+    );
 
     return c.json({ disabled: true });
   },
@@ -196,7 +206,19 @@ twoFactorRoutes.post(
       return c.json({ error: "Invalid temporary token" }, 401);
     }
 
-    // Get user and verify TOTP
+    // Get user and verify TOTP.
+    // NOTE (RLS): this lookup is a pre-session bootstrap step — at this point
+    // the request has no authenticated org context, so we cannot use
+    // withOrg(). The `users` table is under RLS FORCE (migration
+    // 2026-04-17-force-rls-and-with-check.sql); this bare `sql` call will
+    // therefore return ZERO rows once the backend is switched to the
+    // `bjhunt_app` non-owner role. The follow-up (outside this ticket) is
+    // to either (a) use a SECURITY DEFINER function for the pre-session
+    // user lookup, or (b) issue the temp token as a signed JWT that embeds
+    // the org_id so /verify can call withOrg() directly. Until then, this
+    // path still works because the app still connects as the table owner,
+    // which bypasses RLS unless BOTH FORCE is set and the role is
+    // non-owner.
     const uid = userId as string;
     const [user] = await sql`
       SELECT id, org_id, email, role, is_platform_admin, totp_secret, totp_enabled, totp_backup_codes
@@ -207,24 +229,28 @@ twoFactorRoutes.post(
       return c.json({ error: "Invalid temporary token" }, 401);
     }
 
+    const userOrgId = user.orgId as string;
+
     // Try TOTP code first, then backup code
     let totpValid = verifyTOTP(user.totpSecret as string, code);
     if (!totpValid && user.totpBackupCodes) {
       const remaining = verifyBackupCode(user.totpBackupCodes as string[], code);
       if (remaining !== null) {
         totpValid = true;
-        // Consume the backup code
-        await sql`
-          UPDATE users SET totp_backup_codes = ${remaining as string[]} WHERE id = ${uid}
-        `;
+        // Consume the backup code — now that we know the orgId, use withOrg.
+        await withOrg(userOrgId, (tx) =>
+          tx`UPDATE users SET totp_backup_codes = ${remaining as string[]} WHERE id = ${uid}`,
+        );
       }
     }
 
     if (!totpValid) {
-      await sql`
-        INSERT INTO audit_logs (org_id, user_id, action, details)
-        VALUES (${user.orgId}, ${user.id}, 'user.2fa_verify_failed', '{"reason":"invalid_code"}'::jsonb)
-      `;
+      await withOrg(userOrgId, (tx) =>
+        tx`
+          INSERT INTO audit_logs (org_id, user_id, action, details)
+          VALUES (${userOrgId}, ${user.id}, 'user.2fa_verify_failed', '{"reason":"invalid_code"}'::jsonb)
+        `,
+      );
       return c.json({ error: "Invalid verification code" }, 401);
     }
 
@@ -240,10 +266,12 @@ twoFactorRoutes.post(
       `bjhunt_session=${session.id}; Path=/; HttpOnly; SameSite=Lax${secure}; Expires=${session.expiresAt.toUTCString()}`,
     );
 
-    await sql`
-      INSERT INTO audit_logs (org_id, user_id, action, ip_address)
-      VALUES (${user.orgId}, ${user.id}, 'user.login_2fa_verified', ${ip})
-    `;
+    await withOrg(userOrgId, (tx) =>
+      tx`
+        INSERT INTO audit_logs (org_id, user_id, action, ip_address)
+        VALUES (${userOrgId}, ${user.id}, 'user.login_2fa_verified', ${ip})
+      `,
+    );
 
     // SECURITY (audit #3-21 / C-13): session.id stays in the HttpOnly
     // cookie only. Do not echo it in JSON.
