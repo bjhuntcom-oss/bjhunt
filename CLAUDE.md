@@ -2,162 +2,119 @@
 
 > CE FICHIER EST LE CONTEXTE COMPLET DU PROJET. Lis-le entierement avant de faire quoi que ce soit.
 > Il n'y a PAS de memoire partagee entre sessions. Tout est ici.
+> **Dernière mise à jour : 17 avril 2026.** État post-audit 6 agents Opus 4.7 + vague W1 (chat fix) + W2 (sécurité) déployées.
 
-## Mission immediate
+## Etat actuel (17 avril 2026)
 
-**Cloner, auditer et adapter https://github.com/PurpleAILAB/Decepticon comme backend/engine de BJHUNT.**
+**La plateforme FONCTIONNE en production** : frontend Vercel, backend + engine sur VPS Hostinger, chat SSE token-par-token opérationnel.
 
-Le dossier `engine/` dans ce repo contient une copie statique de Decepticon qui a ete faite le 15 avril 2026. Elle n'est PAS a jour et n'a PAS ete adaptee. Il faut :
+### Ce qui est fait
+- ✅ Frontend Next.js 16 complet (pages marketing, auth, dashboard, chat, admin)
+- ✅ Backend Hono+Bun (auth Lucia, sessions HttpOnly, routes engagements/findings/billing/admin/chat)
+- ✅ Engine Decepticon intégré dans `engine/` (17 agents, LiteLLM, Kali sandbox, Neo4j)
+- ✅ Docker Compose prod avec 8 services (backend, postgres, redis, litellm, neo4j, sandbox, langgraph, caddy)
+- ✅ CI/CD GitHub Actions (ci.yml, deploy-vps.yml)
+- ✅ Chat SSE stable : Hono `streamSSE` backend + parser CRLF-safe frontend + streaming token-par-token
+- ✅ 6-agent parallel audit livré (`docs/AUDIT-2026-04-17.md`) : 288 findings, 22 Critical, 78 High
+- ✅ Vague W1 déployée (chat fix : C-17, C-18, Finding #2-10 partiel)
+- ✅ Vague W2 déployée (sécurité critique) :
+  - Session token hardening (B1) : retrait `bjhunt_stream_token`, `?token=`, `Bearer session:`, `sessionToken` en body
+  - RLS FORCE + `WITH CHECK` + rôle `bjhunt_app` (B2, migration écrite, non appliquée)
+  - Provider API keys AES-256-GCM at rest (B3) + SSRF admin gateway fermé
+  - CSP complet (12 directives) + CSRF origin check sur server actions + beta captcha wired (B4)
+  - LangGraph CMD : `--no-reload --n-jobs-per-worker 10 --allow-blocking` (mitigation partielle C-09)
 
-1. **Recloner** le vrai repo `https://github.com/PurpleAILAB/Decepticon` dans `engine/` (supprimer l'ancien, refaire un clone propre sans le `.git/`)
-2. **Auditer a fond** tout le code Python du engine — securite, architecture, agents, tools, middleware, config, docker, CI
-3. **Adapter pour BJHUNT** — renommer/rebrander, securiser les credentials par defaut, ajouter l'auth API, adapter les Dockerfiles, integrer avec notre frontend Next.js
-4. **Construire le backend API** dans `backend/` — couche Hono+Bun qui orchestre Decepticon, gere l'auth, les users, le multi-tenant
-5. **Creer le Docker Compose de production** qui fait tourner tout ensemble sur le VPS
-6. **Configurer les GitHub Actions** pour le CI/CD complet (lint, test, build, security scan, deploy)
-7. **Deployer** le tout sur le VPS
+### Ce qui reste (vagues restantes)
+- ⏳ **W3 — Infra** (partiellement utilisateur) :
+  - Rotate token Hostinger (C-01) — TOI via dashboard Hostinger
+  - Activer 2FA GitHub (**deadline 2 mai 2026**) — TOI
+  - Opt-out Copilot training (**deadline 24 avril 2026**) — TOI
+  - Provisionner `NEXT_PUBLIC_HCAPTCHA_SITEKEY` + `HCAPTCHA_SECRET` dans env Vercel — TOI
+  - Provisionner `ENCRYPTION_KEY` (`openssl rand -base64 32`) dans `.env` VPS — TOI
+  - Ré-entrer les clés providers dans admin/gateway (migration NULL les anciennes)
+  - SSH hardening VPS (désactiver root login + password auth) — joint TOI/moi
+  - Backups PG + Neo4j + S3 externe — moi
+  - Observability (Prometheus + Grafana + Loki + Sentry) — moi
+  - Docker hardening : `cap_drop`, `no-new-privileges`, non-root — moi
+  - Migrer `langgraph dev` → `langgraph up` (Postgres-backed, prod-grade) — moi
+  - Appliquer migration RLS + adapter `auth.ts` + `chat.ts` + `admin/*` pour `bjhunt_app` role — moi
+- ⏳ **W4 — Engine Decepticon** :
+  - SafeCommandMiddleware whitelist-based (C-21)
+  - Multi-tenant isolation engine (sandbox per tenant, Neo4j DB per tenant)
+  - Fix Cypher injection Neo4jStore
+  - Retirer Docker socket mount (C-08 / C2)
+  - Sandbox caps scopées (C-10 / C3)
+  - Defender target fix (protège la cible, pas le sandbox)
+  - Branding cleanup (529 refs "decepticon" → "bjhunt" dans 113 fichiers)
+
+### Références docs vivantes
+- [`docs/AUDIT-2026-04-17.md`](docs/AUDIT-2026-04-17.md) — rapport consolidé post-audit (22 Critical, 78 High, roadmap P0/P1/P2)
+- [`docs/audit-2026-04-17/partial/`](docs/audit-2026-04-17/partial/) — 6 rapports spécialisés
+- [`docs/audit-2026-04-17/verification/rls-withOrg-audit.md`](docs/audit-2026-04-17/verification/rls-withOrg-audit.md) — détail RLS + queries à migrer
+- [`docs/CHAT-DEBUG-PROMPT.md`](docs/CHAT-DEBUG-PROMPT.md) — historique des 15 fix tentatives chat (obsolète mais utile pour contexte)
+- [`docs/superpowers/specs/`](docs/superpowers/specs/) — specs par vague
 
 ---
 
 ## Qu'est-ce que BJHUNT
 
-Plateforme SaaS de cybersecurite offensive propulsee par l'IA. Le frontend (Next.js) est la partie visible — dashboard, chat, pages marketing. Le backend orchestre le moteur Decepticon qui fait le vrai travail : des agents IA autonomes qui planifient et executent des audits de securite dans des sandboxes Kali isoles.
+Plateforme SaaS de cybersécurité offensive propulsée par l'IA. Frontend Next.js (dashboard, chat, marketing) + backend Hono+Bun (auth, orchestration) + engine Decepticon (17 agents IA qui planifient et exécutent des audits dans des sandboxes Kali isolés).
 
-## Qu'est-ce que Decepticon (https://github.com/PurpleAILAB/Decepticon)
+## Qu'est-ce que Decepticon
 
-Framework de red team autonome par agents IA. Cree par PurpleAILAB (equipe coreenne), licence Apache-2.0, version 1.0.3.
-
-### Architecture Decepticon
-
-```
-Ink CLI (React/TSX)  ──HTTP──>  LangGraph API (Python 3.13, port 2024)
-                                    │
-                    ┌───────────────┼───────────────┐
-                    │               │               │
-              LiteLLM Proxy    Docker Sandbox    Neo4j Graph
-              (port 4000)      (Kali Linux)      (Attack KG)
-              Anthropic/       nmap, nuclei,
-              OpenAI/Google    sqlmap, hydra,
-                               sliver C2
-```
+Framework de red team autonome par agents IA, forké de https://github.com/PurpleAILAB/Decepticon (équipe coréenne PurpleAILAB, licence Apache-2.0). Le code vit dans `engine/` — il a été audité en profondeur (54 findings Agent 5) et partiellement durci (C1 FIXED, H2 FIXED, H1/M1 PARTIAL, reste à faire en W4).
 
 ### Les 17 agents IA
-- **Decepticon** — orchestrateur principal, coordonne les 9 sous-agents
-- **Soundwave** — planification d'engagement (RoE, CONOPS, OPPLAN), interview operateur
-- **Recon** — OSINT, enumeration sous-domaines, scan de ports, detection de services
-- **Exploit** — SQLi, SSTI, Kerberoasting, ADCS, attaques credentials
-- **PostExploit** — acces credentials, escalade privileges, mouvement lateral, C2
-- **Analyst** — code review, analyse statique, CVE sweeps, fuzzing, construction de chaines
-- **Reverser** — ELF/PE/firmware triage, detection packer, ROP gadgets, scripts Ghidra
-- **Contract Auditor** — Solidity/EVM : reentrancy, flash loans, Slither, Foundry PoC
-- **Cloud Hunter** — AWS IAM privesc, S3 takeover, K8s RBAC, secrets Terraform
-- **AD Operator** — BloodHound, Kerberoast, AS-REP roast, ADCS ESC1-15, DCSync
-- **VulnResearch** — coordinateur pipeline de recherche de vulnerabilites
-- **Scanner** — agent de scan
-- **Detector** — detection de vulnerabilites
-- **Verifier** — verification de vulnerabilites
-- **Patcher** — generation de patchs
-- **Exploiter** — generation d'exploits
-- **Defender** — agent defensif (vaccine : attaque → defense → verification)
+- **BJHUNT** — orchestrateur principal (anciennement "Decepticon"), coordonne les sous-agents
+- **Soundwave** — planification d'engagement (RoE, CONOPS, OPPLAN)
+- **Recon** — OSINT, enum sous-domaines, scan ports, détection services
+- **Exploit** — SQLi, SSTI, Kerberoasting, ADCS
+- **PostExploit** — accès credentials, escalade privilèges, mouvement latéral, C2
+- **Analyst** — code review, CVE sweeps, fuzzing, chaînes d'attaque
+- **Reverser** — ELF/PE/firmware triage, ROP, Ghidra
+- **Contract Auditor** — Solidity/EVM, reentrancy, flash loans, Slither
+- **Cloud Hunter** — AWS IAM privesc, S3 takeover, K8s RBAC
+- **AD Operator** — BloodHound, Kerberoast, ADCS ESC1-15, DCSync
+- **VulnResearch / Scanner / Detector / Verifier / Patcher / Exploiter** — pipeline recherche
+- **Defender** — agent défensif (vaccine loop)
 
-### Structure des fichiers Decepticon
+### Structure engine/
 ```
-Decepticon/
-  decepticon/                    Python core
-    agents/                      17 agents specialises + prompts/
-    backends/                    docker_sandbox.py, defense.py
-    core/                        config.py, engagement.py, schemas.py, types.py
-    llm/                         factory.py, models.py, router.py
-    middleware/                  safe_command.py, opplan.py, skills.py
-    tools/                       bash/, web/, ad/, cloud/, contracts/, defense/, references/, reporting/, research/, reversing/
-    orchestrator.py              Boucle vaccine (attaque → defense → verification)
-    observability/               Metriques, tracing
-  clients/cli/                   React/Ink terminal CLI (TypeScript, Node 22)
-  skills/                        SKILL.md par technique
-  containers/                    Dockerfiles (sandbox, langgraph, cli, c2-sliver)
-  config/litellm.yaml            Config LiteLLM multi-provider
-  docker-compose.yml             Infrastructure complete
-  scripts/install.sh             Installeur one-line
-  tests/unit/                    Tests Python
-  docs/                          Architecture, vision, recherche
+engine/
+  decepticon/              Python core (agents, tools, middleware, llm, backends)
+  clients/cli/             React/Ink terminal CLI
+  skills/                  SKILL.md par technique
+  containers/              Dockerfiles (sandbox, langgraph, cli, c2-sliver)
+  config/litellm.yaml      Config LiteLLM multi-provider
+  docker-compose.yml       [legacy Decepticon, pas utilisé en prod — nous utilisons le compose racine]
+  langgraph.json           17 agents enregistrés
+  tests/unit/              Tests Python
 ```
 
-### Technologies Decepticon
-- Python 3.13, LangGraph, LangChain, deepagents
-- LiteLLM proxy multi-provider (Anthropic, OpenAI, Google)
-- PostgreSQL 17 (LiteLLM spend tracking uniquement)
-- Neo4j 5.24 (knowledge graph des chaines d'attaque)
-- Docker Compose avec isolation reseau (decepticon-net vs sandbox-net)
-- Kali Linux sandbox avec tmux, NET_RAW + NET_ADMIN
-- Sliver C2 (framework swappable)
+### Technologies engine
+- Python 3.13, LangGraph 0.7, LangChain, deepagents
+- LiteLLM proxy (Ollama Cloud, Anthropic, OpenAI)
+- PostgreSQL 17 (spend LiteLLM uniquement)
+- Neo4j 5.24 (knowledge graph attack chains)
+- Docker Compose avec réseaux isolés (bjhunt-mgmt vs bjhunt-sandbox-net)
+- Kali Linux sandbox, tmux, NET_RAW + NET_ADMIN (à scoper en W4)
 - uv (Python), npm workspaces (CLI)
 
-### Vulnerabilites connues de Decepticon (a corriger lors de l'adaptation)
-- **C1** : Credentials par defaut — `sk-decepticon-master`, `POSTGRES_PASSWORD=decepticon`, `NEO4J_PASSWORD=decepticon-graph`
-- **C2** : Docker socket monte read-only dans LangGraph → peut lire env vars de tous les containers
-- **C3** : Sandbox root avec NET_RAW + NET_ADMIN (necessaire pour nmap SYN, mais dangereux)
-- **H1** : SafeCommandMiddleware contournable (`exec`, `source /tmp/x.sh`, `$(cat /tmp/cmd)`, `CMD=pkill; $CMD bash`)
-- **H2** : LangGraph API (port 2024) sans aucune authentification — ouvert a quiconque a acces reseau
-- **H3** : LiteLLM proxy expose toutes les cles API des providers
-- **H4** : install.sh utilise `curl | bash` (risque supply chain)
-- **M1** : Pas de validation d'input sur le parametre `command` du bash tool
-- **M2** : Pas de TLS entre containers
-- **M3** : Neo4j APOC non restreint (acces filesystem)
-
-### Ce que Decepticon fournit et qu'on garde
-- Orchestration multi-agent avec kill chain complet
-- Sandbox Kali isole avec 100+ outils
-- Schemas Pydantic pour RoE, CONOPS, OPPLAN, Findings
-- Integration MITRE ATT&CK, CVSS
-- Knowledge graph Neo4j
-- LiteLLM multi-LLM
-- Skills system (technique documents progressifs)
-- CI/CD (lint, test, Trivy, CodeQL, gitleaks, cosign)
-
-### Ce que Decepticon NE fournit PAS (a construire)
-- Authentification utilisateur / RBAC
-- Interface web (il n'a qu'un CLI terminal)
-- Multi-tenant / isolation des donnees entre utilisateurs
-- API authentifiee
-- Billing / abonnements
-- Job queue / execution asynchrone
-- Schema relationnel pour les donnees applicatives
-- Scaling horizontal
+### Vulnérabilités connues — statut au 17 avril 2026
+- C1 default credentials — **FIXED** (compose `${VAR:?err}` guards)
+- C2 Docker socket mount dans LangGraph — **STILL VULNERABLE** (W4)
+- C3 sandbox root + NET_RAW/NET_ADMIN — **STILL VULNERABLE** (W4)
+- H1 SafeCommandMiddleware bypass — **PARTIAL** (shlex OK, unicode/IFS/xargs bypass encore)
+- H2 LangGraph port 2024 sans auth — **FIXED** (api_auth.py wire dans langgraph.json)
+- H3 LiteLLM keys exposées — **STILL VULNERABLE** (W4)
+- H4 `curl | bash` installer — **STILL VULNERABLE** (W4)
+- M1 validation input bash tool — **PARTIAL**
+- M2 pas de TLS inter-container — **STILL VULNERABLE** (W3)
+- M3 Neo4j APOC unrestricted — **PARTIAL** (scoped à apoc.merge/create/path/algo)
 
 ---
 
-## Etat actuel du projet (15 avril 2026)
-
-### Ce qui EXISTE dans ce repo
-- **Frontend Next.js 15** complet : `app/`, `components/`, `lib/`, `messages/` — 138 fichiers, ~1MB
-  - Pages : home, pricing, investors, legal, contact, beta, login, forgot-password, reset-password
-  - Dashboard : overview, chat AI, settings, API keys, audits
-  - Dashboard admin : users, agents, gateway, LLM, logs, monitoring, settings
-  - Components : shadcn/ui, animations (hex-grid, radar, etc.), chat (input, messages, sidebar, model selector, file upload, voice recorder)
-  - i18n : FR/EN complet (next-intl)
-- **Engine Decepticon** dans `engine/` — copie du 15 avril, PAS encore adaptee
-- **GitHub Actions** : CI (ci.yml) + Deploy VPS (deploy-vps.yml)
-- **MCP config** : `.mcp.json` avec Hostinger, Playwright, AIDesigner
-- **Ops** : Caddyfile, deploy script
-
-### Ce qui N'EXISTE PAS (a creer)
-- `backend/` — API Hono+Bun (auth, RBAC, jobs, orchestration Decepticon)
-- `docker-compose.yml` de production (racine du repo)
-- `.env.example` complet
-- Integration frontend ↔ backend (les routes API frontend appellent un backend qui n'existe plus)
-- Deploiement fonctionnel sur le VPS
-
-### Points d'attention sur le frontend existant
-- `app/api/auth/[...slug]/route.ts` — proxy catch-all vers le backend (GET, POST, DELETE, PATCH)
-- `app/api/beta/route.ts` et `app/api/contact/route.ts` — rate limiter in-memory (pas Redis, ne survit pas au restart)
-- `app/actions/auth.ts` — server actions pour login/register/logout
-- `middleware.ts` — CSP `strict-dynamic` nonce-based (pas de `unsafe-eval`)
-- `lib/backend-client.ts` — `getBackendBaseUrl()` retourne `process.env.BJHUNT_BACKEND_URL` ou `https://api.bjhunt.com`
-- `components/dashboard/dashboard-shell.tsx` — shell du dashboard, reference `NEXT_PUBLIC_BACKEND_URL`
-
----
-
-## Architecture cible
+## Architecture cible en prod
 
 ```
 INTERNET
@@ -165,52 +122,41 @@ INTERNET
    ▼
 ┌──────────────────────┐
 │  Vercel (frontend)   │  bjhunt.com / www.bjhunt.com
-│  Next.js 15          │  Pages marketing + Dashboard + Chat UI
+│  Next.js 16          │  Marketing + Dashboard + Chat UI
 └──────────┬───────────┘
            │ HTTPS
            ▼
-┌──────────────────────┐
-│  VPS Hostinger       │  82.25.117.79
-│  ┌────────────────┐  │
-│  │ sslh (port 443)│  │  Multiplex SSH + HTTPS
-│  └───┬────────┬───┘  │
-│      │        │      │
-│   SSH:22   TLS:8443  │
-│      │        │      │
-│      │  ┌─────▼────┐ │
-│      │  │  Caddy    │ │  Reverse proxy
-│      │  │  80+8443  │ │  api.bjhunt.com → backend:3001
-│      │  └─────┬─────┘ │  chat.bjhunt.com → langgraph:2024
-│      │        │       │
-│  ┌───▼────────▼────┐  │
-│  │ Backend API     │  │  Hono+Bun, port 3001
-│  │ Auth, RBAC,     │  │  A CONSTRUIRE
-│  │ Jobs, Billing   │  │
-│  └────────┬────────┘  │
-│           │           │
-│  ┌────────▼────────┐  │
-│  │ LangGraph API   │  │  Decepticon engine, port 2024
-│  │ 17 agents IA    │  │  Python 3.13
-│  └────────┬────────┘  │
-│           │           │
-│  ┌────────▼────────┐  │
-│  │ Kali Sandbox    │  │  Docker, reseau isole
-│  │ nmap, nuclei,   │  │  sandbox-net (pas d'acces management)
-│  │ sqlmap, sliver  │  │
-│  └─────────────────┘  │
-│                       │
-│  ┌──────┐ ┌────────┐  │
-│  │ PG17 │ │ Redis7 │  │  Donnees persistantes
-│  └──────┘ └────────┘  │
-│  ┌──────────────────┐  │
-│  │ Neo4j 5.24       │  │  Attack chain knowledge graph
-│  └──────────────────┘  │
-└───────────────────────┘
+┌──────────────────────────────────────────┐
+│  VPS Hostinger (82.25.117.79)           │
+│  ┌────────────────────────────────────┐  │
+│  │ Caddy (port 80 + 443, direct)      │  │  Reverse proxy TLS
+│  │ api.bjhunt.com → backend:3001      │  │
+│  │ chat.bjhunt.com → backend:3001     │  │
+│  └───────────┬────────────────────────┘  │
+│              │                           │
+│  ┌───────────▼────────────┐              │
+│  │ Backend Hono+Bun :3001 │              │
+│  │ Lucia auth, RLS, jobs  │              │
+│  └───────────┬────────────┘              │
+│              │                           │
+│  ┌───────────▼────────────┐              │
+│  │ LangGraph API :2024     │  ← 17 agents
+│  │ Python 3.13, dev mode   │    [dev flags: no-reload, 10 jobs, allow-blocking]
+│  └───────────┬────────────┘              │
+│              │                           │
+│  ┌───────────▼────────────┐              │
+│  │ Kali Sandbox           │              │
+│  │ nmap, nuclei, sqlmap   │              │
+│  └────────────────────────┘              │
+│                                          │
+│  Postgres 17 │ Redis 7 │ Neo4j 5.24     │
+│  LiteLLM :4000 → Ollama Cloud (GLM-5.1) │
+└──────────────────────────────────────────┘
 ```
 
 ---
 
-## VPS Hostinger — Configuration complete
+## VPS Hostinger — Configuration factuelle (audit 17 avril 2026)
 
 ### Connexion SSH
 ```bash
@@ -218,7 +164,7 @@ ssh bjhunt-vps
 # equivalent a : ssh -p 443 -i ~/.ssh/bjhunt_vps root@82.25.117.79
 ```
 
-La config SSH est dans `~/.ssh/config` :
+Config `~/.ssh/config` :
 ```
 Host bjhunt-vps
     HostName 82.25.117.79
@@ -228,28 +174,27 @@ Host bjhunt-vps
     IdentitiesOnly yes
 ```
 
-### Pourquoi port 443
-Le FAI de l'utilisateur **bloque TOUS les ports sauf 80 et 443**. SSH passe par sslh qui multiplex SSH et HTTPS sur le port 443. **Ne jamais tenter SSH sur le port 22**, ca timeout.
+### Pourquoi port 443 (note factuelle corrigée)
+Le FAI de l'utilisateur **bloque TOUS les ports sauf 80 et 443**. **NOTE** : contrairement à ce que l'ancienne doc disait, `sslh` n'est PAS installé sur le VPS. SSH écoute bien sur le port 443 directement (via sshd), et Caddy sert HTTPS également sur 443 — les deux coexistent parce que le protocole HTTP peut se différencier de SSH par le handshake initial. (Vérifié Agent 6 F6-2.)
 
 ### Specs VPS
 - **IP** : 82.25.117.79 (IPv6: 2a02:4780:28:3349::1)
-- **OS** : Ubuntu 25.10
+- **OS** : Ubuntu 24.04.4 LTS (kernel 6.8.0-107, update 6.8.0-110 pending) — **PAS 25.10**
 - **Plan** : KVM 8 — 8 vCPU, 32GB RAM, 400GB disk
-- **Disque utilise** : 27GB (7%) — nettoye le 14 avril 2026
+- **Disque utilise** : ~27GB (7%)
 - **Datacenter** : Paris (id: 15)
 - **VPS ID** : 1295179 (pour API Hostinger / MCP)
 - **Firewall ID** : 255451
 - **Expiration** : 25 janvier 2027
-- **Auto-renewal** : active
+- **Auto-renewal** : actif
 
 ### Services actifs sur le VPS
-- **sslh** : systemd, ecoute 0.0.0.0:443, dispatch SSH→localhost:22 + TLS→localhost:8443
-  - Config : `/etc/default/sslh`
-  - DAEMON_OPTS : `--user sslh --listen 0.0.0.0:443 --ssh 127.0.0.1:22 --tls 127.0.0.1:8443`
-- **sshd** : systemd, ecoute port 22 + 8022, cle ed25519 dans `/root/.ssh/authorized_keys`
-- **UFW** : actif, default deny incoming, allow outgoing
-  - Ports TCP ouverts : 22, 80, 443, 2222, 8022, 25, 587, 465, 993, 4190, 8888, 5000, 3005, 8080, 18789, 19000:19999
-- **Docker** : installe mais aucun container actif (tout a ete nettoye)
+- **sshd** : systemd, port 443 + 22 (fallback) — ⚠️ `PermitRootLogin yes` et `PasswordAuthentication yes` encore actifs (C-02 à fix en W3)
+- **UFW** : actif, default deny incoming. Ports TCP ouverts : **22, 80, 443** uniquement (pas les 15 ports listés dans l'ancienne doc — corrigé Agent 6 F6-3)
+- **fail2ban** : présent mais jails minimaux
+- **unattended-upgrades** : actif
+- **Monarx antimalware** : **PAS installé** (corrigé Agent 6 F6-4)
+- **Docker** : actif, 8 containers prod (backend, postgres, redis, neo4j, litellm, langgraph, caddy, sandbox) + 1 orphelin `ecstatic_tu` (à nettoyer)
 
 ### Firewall Hostinger (niveau hyperviseur)
 - Port 22 TCP any → accept
@@ -258,144 +203,148 @@ Le FAI de l'utilisateur **bloque TOUS les ports sauf 80 et 443**. SSH passe par 
 - Port 2222 TCP any → accept
 - Port 8022 TCP any → accept
 
-### Etat du disque VPS
-```
-/dev/sda1  387G  27G  360G  7%  /
-```
-Docker : aucune image, aucun container, aucun volume actif.
-
 ### Structure fichiers VPS
 ```
 /opt/bjhunt/app/       ← clone de ce repo (bjhuntcom-oss/bjhunt)
-/opt/bjhunt/stack/     ← docker-compose et .env (preserve de l'ancien)
-/opt/bjhunt/stack/.env ← secrets de production (PG password, API keys, etc.)
-/srv/bjhunt/           ← donnees persistantes (postgres, runtimes, uploads)
+/opt/bjhunt/app/.env   ← secrets prod (⚠️ mode 644 world-readable — F6-7 à fix W3)
+/srv/bjhunt/           ← données persistantes (postgres, runtimes, uploads)
 ```
-
-### Audit securite VPS (14 avril 2026) — PROPRE
-- Aucune backdoor trouvee
-- Seul user root (UID 0)
-- Aucun crypto-miner
-- Aucune connexion suspecte
-- /tmp et /dev/shm propres
-- SUID binaires tous normaux (containerd)
-- Monarx antimalware installe
-- Snapshot de sauvegarde cree
+**Note** : contrairement à l'ancienne doc, `/opt/bjhunt/stack/` n'existe PAS — tout vit sous `/opt/bjhunt/app/`.
 
 ---
 
 ## MCP Servers
 
-Configures dans `.mcp.json` a la racine du repo.
+Configurés dans `.mcp.json` à la racine du repo.
 
 ### Hostinger MCP (`hostinger-mcp`)
-Gestion complete du VPS depuis Claude Code : machines virtuelles, firewall, DNS, backups, snapshots, cles SSH, metriques.
+Gestion VPS depuis Claude Code : VMs, firewall, DNS, backups, snapshots, SSH keys, métriques.
 - Type : stdio, `npx hostinger-api-mcp@latest`
-- API Token : hardcoded dans `.mcp.json` (NE PAS utiliser `${input:...}` — ca se perd entre sessions)
-- Outils principaux : `VPS_getVirtualMachinesV1`, `VPS_getFirewallListV1`, `VPS_syncFirewallV1`, `VPS_createSnapshotV1`, `VPS_getMetricsV1`, `VPS_getProjectListV1`, `VPS_getProjectLogsV1`, `DNS_getDNSRecordsV1`
+- ⚠️ **API token committé dans `.mcp.json:8`** (C-01 / F5-1) — à rotate en W3 par TOI.
 
 ### Playwright MCP (`mcp-playwright`)
 Automatisation navigateur : tests E2E, connexions web, audit visuel.
 - Type : stdio, `npx -y @playwright/mcp@latest`
-- Sessions existantes : Hostinger hPanel connecte, Vercel connecte, GitHub connecte (tout via Google `bjhuntcom@gmail.com`)
+- Sessions existantes : Hostinger hPanel, Vercel, GitHub (tout via Google `bjhuntcom@gmail.com`)
 
 ### AIDesigner MCP (`aidesigner`)
-- Type : http, URL `https://api.aidesigner.ai/api/v1/mcp`
+- Type : http, `https://api.aidesigner.ai/api/v1/mcp`
 
 ### Kali MCP Server (`kali-mcp-server`) — DISABLED
-- Type : sse, URL `http://localhost:8000/sse`
-- Pas encore deploye
+- Type : sse, `http://localhost:8000/sse` — pas encore déployé
 
 ---
 
 ## Comptes et credentials
 
-- **GitHub** : `bjhuntcom-oss` — connecte via Google `bjhuntcom@gmail.com`
-  - **ATTENTION** : 2FA non active ! Deadline **27 mai 2026** sinon compte restreint
+- **GitHub** : `bjhuntcom-oss` (connecté via Google `bjhuntcom@gmail.com`)
+  - ⚠️ **2FA NON activée — deadline 2 mai 2026** (15 jours restants au 17/04/2026)
+  - ⚠️ **Copilot training opt-out — deadline 24 avril 2026** (7 jours restants)
   - Repo actuel : `bjhuntcom-oss/bjhunt`
   - Repo legacy : `bjhuntcom-oss/bjhunt-v1-legacy`
-- **Vercel** : `bjhunts-projects` (plan Hobby) — connecte via GitHub
-  - Projet `bjhunt` deploye automatiquement depuis le repo GitHub
-- **Hostinger** : API key dans `.mcp.json`
-- **Ollama Cloud** : API key dans `.env` sur le VPS (OLLAMA_CLOUD_API_KEY)
+  - ⚠️ Aucune branch protection, pas de CODEOWNERS, pas de Dependabot
+- **Vercel** : `bjhunts-projects` (plan Hobby) — auto-deploy depuis GitHub main
+  - Env vars à provisionner : `NEXT_PUBLIC_HCAPTCHA_SITEKEY`, `HCAPTCHA_SECRET`
+- **Hostinger** : API key dans `.mcp.json` (à rotate)
+- **Ollama Cloud** : API key dans `.env` VPS (`OLLAMA_CLOUD_API_KEY`)
   - Base URL : `https://ollama.com/v1` (OpenAI-compatible, Bearer auth)
-  - Modeles actifs : GLM-5.1:cloud (primary), DeepSeek-v3.2:cloud, Kimi-k2.5:cloud
-- **Email utilisateur** : `leformateurcha@gmail.com` (compte Claude/Anthropic)
+  - Modèles actifs : GLM-5.1:cloud (primary — ⚠️ 17/18 agents dépendent d'un seul provider), DeepSeek-v3.2:cloud, Kimi-k2.5:cloud
+- **Email utilisateur** : `leformateurcha@gmail.com`
+
+### Env vars à provisionner post-W2
+- `ENCRYPTION_KEY` — 32 bytes base64 (`openssl rand -base64 32`) — pour chiffrement provider API keys at rest. Requis en prod, fallback dérivé de `SESSION_SECRET` en dev.
+- `NEXT_PUBLIC_HCAPTCHA_SITEKEY` + `HCAPTCHA_SECRET` — pour beta + contact forms.
 
 ---
 
-## Regles de developpement
+## Règles de développement
 
-- Code securise — c'est une plateforme de cybersecurite, la securite est NON-NEGOCIABLE
-- SQL toujours parametre, jamais d'interpolation de strings
-- Argon2id pour les passwords, AES-256-GCM pour les secrets
-- RLS PostgreSQL pour l'isolation multi-tenant
-- Pas de `unsafe-eval` dans le CSP
-- Valider TOUS les inputs avec Zod (backend) et aussi cote frontend
-- Rate limiting Redis sur TOUS les endpoints publics
-- Pas de secrets dans le code — tout dans `.env`
-- Docker pour l'isolation — jamais d'execution directe sur le host
-- Tests de securite dans le CI (Trivy, Gitleaks)
+- Code sécurisé — plateforme de cybersécurité, sécurité NON-NÉGOCIABLE.
+- SQL toujours paramétré, jamais d'interpolation de strings.
+- Argon2id pour passwords, AES-256-GCM pour secrets (cf. `backend/src/lib/crypto.ts`).
+- RLS PostgreSQL pour multi-tenant isolation (migration écrite, **pas encore appliquée** — voir W3).
+- Pas de `unsafe-eval` dans CSP. Avec W2, CSP couvre 12 directives (`middleware.ts`).
+- Valider TOUS les inputs avec Zod (backend) et aussi côté frontend.
+- Rate limiting Redis sur tous les endpoints publics (en mémoire sur `/api/beta` + `/api/contact` à fix en W3).
+- Pas de secrets dans le code — tout dans `.env`.
+- Docker pour l'isolation — jamais d'exécution directe sur le host.
+- Tests de sécurité dans le CI (Trivy, Gitleaks — à renforcer en W3 : CodeQL, Semgrep, SBOM, cosign).
 - Commits avec prefix conventionnel : `feat:`, `fix:`, `chore:`, `ci:`, `docs:`, `refactor:`
-- Ajouter `Co-Authored-By: Claude <noreply@anthropic.com>` dans les commits
+- Ajouter `Co-Authored-By: Claude <noreply@anthropic.com>` dans les commits importants.
 
 ---
 
-## TODO — Ce qu'il faut faire (dans l'ordre)
+## Conventions chat SSE (contexte W1)
 
-### Etape 1 : Re-clone et audit Decepticon
-1. Supprimer `engine/` actuel
-2. `git clone https://github.com/PurpleAILAB/Decepticon.git engine/` (sans le .git/)
-3. Auditer TOUT le code Python : `decepticon/agents/`, `decepticon/tools/`, `decepticon/core/`, `decepticon/middleware/`, `decepticon/llm/`
-4. Auditer les Dockerfiles dans `containers/`
-5. Auditer `docker-compose.yml` et `config/litellm.yaml`
-6. Auditer les tests dans `tests/`
-7. Lire et comprendre la doc dans `docs/`
-8. Identifier tout ce qui doit etre modifie pour l'adaptation BJHUNT
+Le chat utilise le flow **SP3 signed ticket** :
+1. `POST /api/chat/prepare` (HttpOnly cookie auth) — crée le run LangGraph en memoire + retourne HMAC ticket.
+2. `GET /api/chat/stream/:runId?ticket=<jwt>` (ticket auth, pas de cookie nécessaire côté CORS) — stream SSE via Hono `streamSSE`.
 
-### Etape 2 : Adapter Decepticon pour BJHUNT
-1. Securiser les credentials par defaut (generer des vrais secrets)
-2. Ajouter une couche d'auth sur l'API LangGraph (port 2024)
-3. Renforcer le SafeCommandMiddleware (bloquer `exec`, `source`, `$()`)
-4. Retirer le montage Docker socket si possible
-5. Adapter la config LiteLLM pour nos providers (Ollama Cloud, Anthropic, OpenAI)
-6. Adapter les Dockerfiles pour notre stack
-7. Rebrander les references Decepticon → BJHUNT
+Le backend demande `stream_mode: ["values", "custom", "messages"]` à LangGraph. Les events :
+- `values` — snapshot complet de l'état (réconciliation finale)
+- `custom` — lifecycle sub-agents (subagent_start/end)
+- `messages` / `messages/partial` / `messages/complete` — chunks tokens (AIMessageChunk)
 
-### Etape 3 : Construire le backend API
-1. Creer `backend/` avec Hono + Bun
-2. Schema PostgreSQL : users, organizations, sessions, engagements, findings, api_keys, audit_logs, platform_settings
-3. Auth : register, login, logout, sessions Lucia, password reset, API keys
-4. Middleware : CORS (whitelist origins), CSRF (origin check), rate limiting Redis, session resolution
-5. Routes admin : users CRUD, settings, audit logs, providers, agents
-6. Routes engagements : CRUD engagement, lancement d'agent, suivi statut, resultats
-7. Integration Decepticon : HTTP client vers LangGraph API (port 2024), streaming SSE
-8. Health checks : /api/health/live, /api/health/ready, /api/health/version
+Le frontend parse via `splitSSEBlocks()` dans `app/[locale]/dashboard/chat/parseSSE.ts` (normalise CRLF → LF, robuste aux tests unitaires bun).
 
-### Etape 4 : Docker Compose production
-1. `docker-compose.yml` a la racine du repo
-2. Services : caddy, backend, langgraph (decepticon), postgres, redis, neo4j, sandbox (kali), litellm
-3. Reseaux isoles : `bjhunt-mgmt` (caddy, backend, langgraph, pg, redis) + `bjhunt-sandbox` (sandbox, neo4j)
-4. Volumes persistants pour PG, Redis, Neo4j, uploads
-5. Caddy config : api.bjhunt.com → backend:3001, chat.bjhunt.com → langgraph:2024
+Le handler `case "messages"` dans `page.tsx` gère à la fois **delta** (OpenAI/Anthropic) et **cumulatif** (Ollama/GLM) en détectant si le chunk incoming est un superset du contenu courant.
 
-### Etape 5 : Connecter le frontend
-1. Verifier que `lib/backend-client.ts` pointe vers le bon URL
-2. Adapter les pages auth (login, register, forgot-password)
-3. Adapter le dashboard (overview, settings, API keys)
-4. Adapter le dashboard admin (users, providers, agents, logs)
-5. Connecter le chat AI au backend → LangGraph streaming
+**Textbox** non disabled pendant streaming : user peut typer + envoyer, ça abort le stream courant et envoie le nouveau message (pattern ChatGPT).
 
-### Etape 6 : Premier deploiement
-1. Push sur GitHub → CI passe
-2. SSH bjhunt-vps → `cd /opt/bjhunt/app && git pull`
-3. Copier `.env` → `docker compose up -d`
-4. Verifier health checks
-5. Tester le frontend
-6. Configurer le DNS si necessaire
+---
 
-### Etape 7 : Finalisation
-1. Activer 2FA GitHub (deadline 27 mai)
-2. Opt-out Copilot training (avant 24 avril)
-3. Configurer monitoring (metriques, alertes)
-4. Tests E2E avec Playwright
+## TODO — Ce qu'il reste (vagues restantes)
+
+### W3 — Infra (actions TOI + moi)
+
+**Actions TOI (ne peuvent pas être automatisées)** :
+1. Rotate token Hostinger (C-01) : aller sur Hostinger → API Tokens → regénérer → mettre dans `.env.local` (jamais committer). Retirer ligne `HOSTINGER_API_TOKEN` de `.mcp.json` ou utiliser `${env:...}`.
+2. Activer 2FA GitHub avant **2 mai 2026**.
+3. Opt-out Copilot training avant **24 avril 2026** : Settings → Copilot → Policies → disable data-for-training.
+4. Provisionner dans Vercel env : `NEXT_PUBLIC_HCAPTCHA_SITEKEY`, `HCAPTCHA_SECRET`.
+5. Provisionner dans `.env` VPS : `ENCRYPTION_KEY=$(openssl rand -base64 32)` + redeploy backend.
+6. Ré-entrer les clés providers dans `/dashboard/admin/gateway` après que la migration B3 a NULL-ifié les anciennes plaintext.
+
+**Actions moi (code + compose + VPS ops)** :
+7. SSH hardening : `PermitRootLogin no`, `PasswordAuthentication no`, créer user `bjhunt` non-root avec clé, tester via session parallèle pour éviter lock-out.
+8. Backup Postgres + Neo4j : cron quotidien vers snapshot Hostinger + S3 externe (Backblaze B2 ou AWS S3).
+9. Observability : Prometheus + Grafana + Loki + Sentry + Uptime Kuma external.
+10. SECURITY.md + CODEOWNERS + Dependabot config.
+11. Docker hardening : `cap_drop: ALL`, `no-new-privileges: true`, non-root users, `read_only` rootfs où possible.
+12. Migrer LangGraph `dev` → `up` (Postgres-backed) — évite in-memory + concurrent limits.
+13. Appliquer migration RLS (`0001_force_rls_and_with_check.sql`) après avoir migré `backend/src/routes/auth.ts` + `chat.ts` + `admin/*` pour qu'ils utilisent `withOrg()`. Voir `docs/audit-2026-04-17/verification/rls-withOrg-audit.md`.
+14. Caddy hardening : rate-limit edge, `tls min=1.3`, HSTS `preload`, headers sécurité.
+15. CI/CD : CodeQL + Semgrep SAST, SBOM cosign + SLSA, deploy via image registry (pas `git pull` sur VPS).
+16. Migrer `/api/beta` + `/api/contact` de rate-limit in-memory → Redis.
+
+### W4 — Engine Decepticon
+17. SafeCommandMiddleware refactor : whitelist plutôt que blacklist.
+18. Multi-tenant engine : sandbox par tenant, Neo4j database par tenant.
+19. Fix Cypher injection Neo4jStore (`neo4j_store.py`).
+20. Retirer Docker socket mount de langgraph container (C2).
+21. Scoper sandbox capabilities (C3).
+22. Defender : cible l'infra cliente, pas le sandbox attaquant.
+23. Branding cleanup : 529 refs "decepticon" → "bjhunt" dans 113 fichiers.
+24. Retirer `curl | bash` installer (H4) — fournir tarballs signés + checksums.
+25. LiteLLM config : clés providers en secret files Docker, pas env plaintext (H3).
+26. TLS inter-container (M2).
+
+### W5 — Qualité / polish
+27. Tests unitaires parser SSE étendus (plus de cas) + tests backend Hono streamSSE.
+28. Frontend : `prefers-reduced-motion` sur toutes les animations (WCAG 2.2).
+29. Logout UI unifié (éviter les 2 chemins incorrects actuels).
+30. CookieConsent bilingue FR/EN.
+31. Loading skeletons sur dashboard findings/engagements.
+32. Nettoyer les anciennes conversations de test dans le chat.
+
+---
+
+## Ce que je DOIS lire AVANT de toucher au code
+
+1. Ce fichier (CLAUDE.md) en entier.
+2. [`docs/AUDIT-2026-04-17.md`](docs/AUDIT-2026-04-17.md) — rapport consolidé.
+3. Si je touche le chat : [`docs/audit-2026-04-17/partial/agent-1-chat-frontend.md`](docs/audit-2026-04-17/partial/agent-1-chat-frontend.md) et [`docs/audit-2026-04-17/partial/agent-2-chat-backend.md`](docs/audit-2026-04-17/partial/agent-2-chat-backend.md).
+4. Si je touche la sécurité : [`docs/audit-2026-04-17/partial/agent-3-backend-api.md`](docs/audit-2026-04-17/partial/agent-3-backend-api.md) + [`agent-4-frontend.md`](docs/audit-2026-04-17/partial/agent-4-frontend.md).
+5. Si je touche l'engine : [`docs/audit-2026-04-17/partial/agent-5-engine-decepticon.md`](docs/audit-2026-04-17/partial/agent-5-engine-decepticon.md).
+6. Si je touche l'infra : [`docs/audit-2026-04-17/partial/agent-6-infra-security.md`](docs/audit-2026-04-17/partial/agent-6-infra-security.md).
+7. Specs des vagues : `docs/superpowers/specs/`.
