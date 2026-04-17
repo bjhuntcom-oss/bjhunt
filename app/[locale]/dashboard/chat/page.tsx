@@ -515,6 +515,9 @@ export default function ChatPage() {
     setStreamError(null);
     setLastMessage(text);
     setThinking({ content: "", active: true });
+    // Reset per-response buffers so this turn does not inherit the
+    // previous assistant message's content from lastAiContentRef.
+    lastAiContentRef.current = "";
 
     // Reset token tracking
     setTokenCount(0);
@@ -853,12 +856,20 @@ export default function ChatPage() {
           if (incoming) {
             const current = lastAiContentRef.current;
             let nextContent: string;
-            if (incoming.length >= current.length && incoming.startsWith(current)) {
+            if (incoming.startsWith(current)) {
               nextContent = incoming;
-            } else if (current.endsWith(incoming)) {
+            } else if (current.startsWith(incoming) || current.endsWith(incoming)) {
               nextContent = current;
             } else {
-              nextContent = current + incoming;
+              let overlap = 0;
+              const maxOverlap = Math.min(current.length, incoming.length);
+              for (let k = maxOverlap; k > 0; k--) {
+                if (current.slice(-k) === incoming.slice(0, k)) {
+                  overlap = k;
+                  break;
+                }
+              }
+              nextContent = current + incoming.slice(overlap);
             }
             if (nextContent !== current) {
               const addedLen = nextContent.length - current.length;
@@ -887,7 +898,20 @@ export default function ChatPage() {
       case "values": {
         const msgs = parsed.messages || parsed.values?.messages;
         if (Array.isArray(msgs)) {
-          const aiMsgs = msgs.filter((m: any) => m.type === "ai" || m.role === "assistant");
+          // Only consider AI messages that come AFTER the most recent user
+          // message — otherwise a frame emitted before the new AI message
+          // has been appended can pick up the previous turn's assistant
+          // content and contaminate lastAiContentRef.
+          let lastUserIdx = -1;
+          for (let i = msgs.length - 1; i >= 0; i--) {
+            if (msgs[i]?.type === "human" || msgs[i]?.role === "user") {
+              lastUserIdx = i;
+              break;
+            }
+          }
+          const aiMsgs = msgs
+            .slice(lastUserIdx + 1)
+            .filter((m: any) => m.type === "ai" || m.role === "assistant");
           if (aiMsgs.length > 0) {
             const latest = aiMsgs[aiMsgs.length - 1];
             let text = "";
