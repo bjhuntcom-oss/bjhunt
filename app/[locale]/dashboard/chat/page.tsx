@@ -14,6 +14,7 @@ import { ModelSettingsPanel, type ModelSettings } from "@/components/chat/model-
 import { PromptLibraryPanel } from "@/components/chat/prompt-library-panel";
 import { SLASH_COMMANDS, type SlashCommandContext } from "@/components/chat/slash-commands";
 import { browserBackendFetch } from "@/lib/backend-client";
+import { splitSSEBlocks } from "./parseSSE";
 import { VaccineMonitor } from "@/components/dashboard/vaccine-monitor";
 import { AGENTS } from "@/components/chat/agent-selector";
 import { OnboardingOverlay } from "@/components/dashboard/onboarding-overlay";
@@ -605,8 +606,8 @@ export default function ChatPage() {
           if (requestIdRef.current !== currentRequestId) break;
 
           buffer += decoder.decode(value, { stream: true });
-          const blocks = buffer.split("\n\n");
-          buffer = blocks.pop() ?? "";
+          const { blocks, remainder } = splitSSEBlocks(buffer);
+          buffer = remainder;
 
           for (const block of blocks) {
             if (!block.trim()) continue;
@@ -700,7 +701,16 @@ export default function ChatPage() {
     if (!data || data === "[DONE]") return;
 
     let parsed: any;
-    try { parsed = JSON.parse(data); } catch { return; }
+    try {
+      parsed = JSON.parse(data);
+    } catch (err) {
+      console.error("[chat] SSE parse failure", {
+        err,
+        event,
+        snippet: data.slice(0, 200),
+      });
+      return;
+    }
 
     switch (event) {
       // ── Progressive token streaming (from backend transform) ────────

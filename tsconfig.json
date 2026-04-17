@@ -45,6 +45,7 @@
     "vendor",
     ".agents",
     "_audit",
-    ".claude"
+    ".claude",
+    "**/__tests__/**"
   ]
 }
