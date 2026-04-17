@@ -34,6 +34,13 @@ export const config = {
     apiKeyPrefix: "bjk_",
   },
 
+  // Symmetric encryption for secrets at rest (provider API keys, etc.)
+  // 32-byte base64 — generate with: openssl rand -base64 32
+  // REQUIRED in production; dev falls back to SHA-256(SESSION_SECRET) via lib/crypto.ts.
+  encryption: {
+    key: process.env.ENCRYPTION_KEY || "",
+  },
+
   // CORS
   cors: {
     origins: optional("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,https://bjhunt.com,https://www.bjhunt.com")

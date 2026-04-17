@@ -18,6 +18,7 @@ import { sql } from "../../db/client.js";
 import { requireAuth, requireAdmin } from "../../middleware/auth.js";
 import { rateLimit } from "../../middleware/rate-limit.js";
 import { config } from "../../config.js";
+import { encryptSecret, decryptSecret, looksEncrypted } from "../../lib/crypto.js";
 import { stream } from "hono/streaming";
 
 export const gatewayRoutes = new Hono<{ Variables: AppVariables }>();
@@ -155,20 +156,22 @@ gatewayRoutes.post(
         models: JSON.stringify(body.models),
         config: JSON.stringify(configJson),
       };
-      // Only update API key if a real (non-masked) key was provided
+      // Only update API key if a real (non-masked) key was provided. Always
+      // encrypt before hitting the DB (C-14, CWE-312) — column holds ciphertext.
       if (body.apiKey && !body.apiKey.includes("...")) {
-        updates.apiKeyEncrypted = body.apiKey;
+        updates.apiKeyEncrypted = encryptSecret(body.apiKey);
       }
       await sql`
         UPDATE gateway_providers SET ${sql(updates as any)}
         WHERE provider_type = ${providerId}
       `;
     } else {
-      // Insert
+      // Insert — encrypt apiKey at rest (null if no key was supplied).
+      const encryptedKey = body.apiKey ? encryptSecret(body.apiKey) : null;
       await sql`
         INSERT INTO gateway_providers (name, provider_type, api_key_encrypted, api_base, enabled, models, config)
         VALUES (
-          ${body.name}, ${providerId}, ${body.apiKey || null},
+          ${body.name}, ${providerId}, ${encryptedKey},
           ${body.baseUrl}, ${body.enabled},
           ${JSON.stringify(body.models)}, ${JSON.stringify(configJson)}
         )
@@ -230,13 +233,33 @@ gatewayRoutes.post(
     const providerId = c.req.param("id");
     const body = c.req.valid("json");
 
-    // Resolve the actual API key: use provided key if real, or fetch from DB
+    // Resolve the actual API key: use provided key if real, or fetch from DB.
+    // Stored values are AES-256-GCM ciphertext (C-14) — decrypt before use.
     let apiKey = body.apiKey;
     if (!apiKey || apiKey.includes("...")) {
       const [row] = await sql`
         SELECT api_key_encrypted FROM gateway_providers WHERE provider_type = ${providerId}
       `;
-      apiKey = (row?.apiKeyEncrypted as string) || "";
+      const stored = (row?.apiKeyEncrypted as string) || "";
+      if (stored) {
+        if (looksEncrypted(stored)) {
+          try {
+            apiKey = decryptSecret(stored);
+          } catch {
+            return c.json({
+              ok: false,
+              error: "Stored API key could not be decrypted — re-enter and save it",
+            });
+          }
+        } else {
+          // Legacy plaintext row that pre-dates C-14 — ask admin to re-save.
+          return c.json({
+            ok: false,
+            error:
+              "Stored API key is in legacy plaintext format — re-enter and save it to encrypt at rest",
+          });
+        }
+      }
     }
 
     if (!apiKey) {
