@@ -28,29 +28,13 @@ export async function loginAction(email: string, password: string) {
     throw new Error(data.error ?? 'AUTH_FAILED')
   }
 
-  // Vercel strips Set-Cookie from server-to-server fetch responses.
-  // The backend returns sessionToken in the body so we can set it here.
-  if (data.sessionToken) {
-    const cookieStore = await cookies()
-    // HttpOnly cookie for server-side auth (Next.js SSR)
-    cookieStore.set(SESSION_COOKIE, data.sessionToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: SESSION_MAX_AGE,
-      ...(SESSION_COOKIE_DOMAIN ? { domain: SESSION_COOKIE_DOMAIN } : {}),
-    })
-    // Non-HttpOnly cookie for client-side SSE stream auth (readable by JS)
-    cookieStore.set('bjhunt_stream_token', data.sessionToken, {
-      httpOnly: false,
-      secure: true,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: SESSION_MAX_AGE,
-      ...(SESSION_COOKIE_DOMAIN ? { domain: SESSION_COOKIE_DOMAIN } : {}),
-    })
-  }
+  // Re-forward the backend HttpOnly session cookie onto the Next response.
+  // Vercel strips backend Set-Cookie headers from server-to-server fetch
+  // responses, so we read the raw header and re-set it ourselves.
+  // SECURITY (audit C-13 / F-002 / #3-21): we DO NOT store the session id
+  // in any JS-readable cookie. The HttpOnly cookie is the only session
+  // material and the JSON body must not contain it.
+  await applySessionCookieFromBackend(res)
 
   return data as { user: { email: string; role: string }; organization: { id: string } }
 }
@@ -72,25 +56,9 @@ export async function registerAction(email: string, password: string, displayNam
     throw new Error(data.error ?? 'AUTH_FAILED')
   }
 
-  if (data.sessionToken) {
-    const cookieStore = await cookies()
-    cookieStore.set(SESSION_COOKIE, data.sessionToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: SESSION_MAX_AGE,
-      ...(SESSION_COOKIE_DOMAIN ? { domain: SESSION_COOKIE_DOMAIN } : {}),
-    })
-    cookieStore.set('bjhunt_stream_token', data.sessionToken, {
-      httpOnly: false,
-      secure: true,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: SESSION_MAX_AGE,
-      ...(SESSION_COOKIE_DOMAIN ? { domain: SESSION_COOKIE_DOMAIN } : {}),
-    })
-  }
+  // SECURITY (audit C-13 / F-002 / #3-21): HttpOnly cookie only, no JS-readable
+  // duplicate, no session id in JSON body.
+  await applySessionCookieFromBackend(res)
 
   return data as { user: { email: string; role: string }; organization: { id: string } }
 }
@@ -112,5 +80,52 @@ export async function logoutAction() {
     ).catch(() => { /* ignore errors — cookie is cleared regardless */ })
   }
 
+  // Clear the HttpOnly session cookie.
   cookieStore.delete(SESSION_COOKIE)
+
+  // Belt-and-suspenders: also emit explicit Max-Age=0 Set-Cookie entries for
+  // any legacy JS-readable duplicate cookies that may still exist in clients
+  // from before audit C-13 / F-002 was fixed. Safe to leave in place.
+  for (const legacyName of ['bjhunt_stream_token']) {
+    cookieStore.set(legacyName, '', {
+      httpOnly: false,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 0,
+      ...(SESSION_COOKIE_DOMAIN ? { domain: SESSION_COOKIE_DOMAIN } : {}),
+    })
+  }
+}
+
+/**
+ * Reads Set-Cookie headers from the backend response and re-applies the
+ * `bjhunt_session` HttpOnly cookie on the outgoing Next.js response. Vercel
+ * strips Set-Cookie from server-to-server fetches so this is required.
+ *
+ * Only the HttpOnly session cookie is forwarded. Any other Set-Cookie entries
+ * (including legacy JS-readable duplicates) are intentionally discarded —
+ * see audit C-13 / F-002 / #3-21.
+ */
+async function applySessionCookieFromBackend(res: Response) {
+  const setCookies = res.headers.getSetCookie?.() ?? []
+  let sessionValue: string | undefined
+  for (const entry of setCookies) {
+    const m = entry.match(/^bjhunt_session=([^;]*)/)
+    if (m) {
+      sessionValue = m[1]
+      break
+    }
+  }
+  if (!sessionValue) return
+
+  const cookieStore = await cookies()
+  cookieStore.set(SESSION_COOKIE, sessionValue, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: SESSION_MAX_AGE,
+    ...(SESSION_COOKIE_DOMAIN ? { domain: SESSION_COOKIE_DOMAIN } : {}),
+  })
 }
