@@ -11,6 +11,8 @@ export interface ToolCall {
   result?: string;
   status: "pending" | "running" | "completed" | "error";
   duration?: number;
+  /** Assistant message this tool call belongs to, so prior-turn tools stay visible. */
+  messageId?: string;
 }
 
 const TOOL_ICONS: Record<string, typeof Terminal> = {

@@ -761,6 +761,7 @@ export default function ChatPage() {
             name: parsed.name || "tool",
             args: parsed.args || {},
             status: "running",
+            messageId: assistantId,
           });
           return next;
         });
@@ -952,7 +953,7 @@ export default function ChatPage() {
               setToolCalls((prev) => {
                 if (prev.has(tc.id)) return prev;
                 const next = new Map(prev);
-                next.set(tc.id, { id: tc.id, name: tc.name, args: tc.args || {}, status: "running" });
+                next.set(tc.id, { id: tc.id, name: tc.name, args: tc.args || {}, status: "running", messageId: assistantId });
                 return next;
               });
             }
@@ -1629,14 +1630,22 @@ export default function ChatPage() {
                 } : undefined}
               />
 
-              {/* Show tool calls after the last assistant message */}
-              {msg.role === "assistant" && i === messages.length - 1 && sortedToolCalls.length > 0 && (
-                <div className="space-y-1 mt-2">
-                  {sortedToolCalls.map((tc) => (
-                    <ToolCallBlock key={tc.id} tool={tc} />
-                  ))}
-                </div>
-              )}
+              {/* Show tool calls attached to this assistant message. Tool calls
+                  without a messageId (legacy / history-loaded) attach to the last
+                  assistant message as a fallback. */}
+              {msg.role === "assistant" && (() => {
+                const tools = sortedToolCalls.filter(
+                  (tc) => tc.messageId === msg.id || (!tc.messageId && i === messages.length - 1)
+                );
+                if (tools.length === 0) return null;
+                return (
+                  <div className="space-y-1 mt-2">
+                    {tools.map((tc) => (
+                      <ToolCallBlock key={tc.id} tool={tc} />
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           ))}
 
