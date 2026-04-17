@@ -435,7 +435,14 @@ export default function ChatPage() {
   // ── Send message ─────────────────────────────────────────────────────
 
   async function handleSend(text: string, files: PendingFile[] = []) {
-    if (!text || isStreaming) return;
+    if (!text) return;
+
+    // If a stream is running, abort it and let the user's new message replace it.
+    // Classic chat UX: submit during streaming cancels the current response.
+    if (isStreaming) {
+      abortRef.current?.abort();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
 
     // Check for slash command
     const slashCmd = SLASH_COMMANDS.find((c) => text.startsWith(c.command));
@@ -817,6 +824,52 @@ export default function ChatPage() {
         if (parsed.edges) setGraphEdges(parsed.edges);
         if (parsed.stats) setGraphStats(parsed.stats);
         break;
+
+      // ── LangGraph "messages" events — token-by-token streaming ─────
+      // Emitted when stream_mode includes "messages"; each frame is
+      // [AIMessageChunk, metadata] with incremental content.
+      case "messages":
+      case "messages/partial":
+      case "messages/complete": {
+        const chunk = Array.isArray(parsed) ? parsed[0] : parsed;
+        const metadata = Array.isArray(parsed) ? parsed[1] : {};
+        if (!chunk) break;
+
+        // AIMessageChunk with text content (string or content-block array)
+        if (chunk.type === "AIMessageChunk" || chunk.type === "ai") {
+          let deltaText = "";
+          if (typeof chunk.content === "string") {
+            deltaText = chunk.content;
+          } else if (Array.isArray(chunk.content)) {
+            for (const block of chunk.content) {
+              if (block?.type === "text" && typeof block.text === "string") {
+                deltaText += block.text;
+              }
+            }
+          }
+          if (deltaText) {
+            lastAiContentRef.current += deltaText;
+            const approxTokens = Math.ceil(deltaText.length / 4);
+            tokensSoFarRef.current += approxTokens;
+            setTokenCount((prev) => prev + approxTokens);
+            if (metadata?.langgraph_node) setActiveAgent(metadata.langgraph_node);
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? { ...m, content: (m.content || "") + deltaText }
+                  : m
+              )
+            );
+            setThinking((prev) => (prev.active ? { ...prev, active: false } : prev));
+          }
+          // Final chunk token usage (if provided)
+          if (chunk.response_metadata?.token_usage) {
+            const u = chunk.response_metadata.token_usage;
+            if (u.total_tokens) setTokenCount(u.total_tokens);
+          }
+        }
+        break;
+      }
 
       // ── LangGraph "values" events (raw from GET /stream/:runId) ─────
       case "values": {

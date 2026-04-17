@@ -188,7 +188,6 @@ export function ChatInput({
             value={value}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
-            disabled={isStreaming}
             placeholder={placeholder ?? "Message… (/ pour les commandes)"}
             rows={1}
             className={cn(
@@ -288,9 +287,9 @@ export function ChatInput({
               </button>
             </div>
 
-            {/* Right: send / stop */}
+            {/* Right: stop (while streaming) + send (always, if text) */}
             <div className="flex items-center gap-2">
-              {isStreaming ? (
+              {isStreaming && (
                 <button
                   onClick={onStop}
                   className="h-8 px-3 flex items-center gap-1.5 bg-[var(--danger)]/20 border border-[var(--danger)]/40 text-[var(--danger)] hover:bg-[var(--danger)]/30 transition-colors text-[10px] uppercase tracking-wider"
@@ -299,21 +298,20 @@ export function ChatInput({
                   <Square className="w-3 h-3 fill-current" />
                   Stop
                 </button>
-              ) : (
-                <button
-                  onClick={handleSubmit}
-                  disabled={!value.trim()}
-                  className="h-8 w-8 flex items-center justify-center text-black disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0"
-                  style={{
-                    background: "rgba(255, 255, 255, 0.9)",
-                    backdropFilter: "blur(8px)",
-                    WebkitBackdropFilter: "blur(8px)",
-                  }}
-                  title="Envoyer (Enter)"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                </button>
               )}
+              <button
+                onClick={handleSubmit}
+                disabled={!value.trim()}
+                className="h-8 w-8 flex items-center justify-center text-black disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0"
+                style={{
+                  background: "rgba(255, 255, 255, 0.9)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                }}
+                title={isStreaming ? "Remplacer la réponse en cours (Enter)" : "Envoyer (Enter)"}
+              >
+                <Send className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
 
