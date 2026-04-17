@@ -587,8 +587,7 @@ export default function ChatPage() {
       if (returnedConvId) setActiveConversationId(returnedConvId);
 
       // ── Phase 2: Stream (direct GET to backend, bypasses Vercel timeout) ──
-      // Add cache-busting _t param to avoid stale CORS preflight cache (24h TTL in Chrome)
-      const streamRes = await fetch(`${streamUrl}?ticket=${encodeURIComponent(ticket)}&_t=${Date.now()}`, {
+      const streamRes = await fetch(`${streamUrl}?ticket=${encodeURIComponent(ticket)}`, {
         signal: abortRef.current.signal,
       });
 

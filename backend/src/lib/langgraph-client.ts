@@ -106,7 +106,7 @@ export const langgraphClient = {
       body: JSON.stringify({
         assistant_id: assistantId,
         input: { messages: [{ role: "user", content: String(input.content || JSON.stringify(input)) }] },
-        stream_mode: ["values", "custom", "messages"],
+        stream_mode: ["messages", "custom"],
         on_disconnect: "cancel",
       }),
       signal: connAbort.signal,

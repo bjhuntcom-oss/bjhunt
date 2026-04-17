@@ -261,6 +261,19 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
                   }
                   return <code className="bg-[var(--bg-card)] border border-[var(--border)] px-1.5 py-0.5 text-[10px] font-mono" {...props}>{children}</code>;
                 },
+                a({ href, children, ...props }) {
+                  return (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="text-[var(--accent)] underline underline-offset-2 hover:opacity-80"
+                      {...props}
+                    >
+                      {children}
+                    </a>
+                  );
+                },
               }}
             >
               {message.content}
