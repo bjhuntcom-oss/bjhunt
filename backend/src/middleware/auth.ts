@@ -35,19 +35,22 @@ export const resolveAuth: MiddlewareHandler = async (c, next) => {
     return next();
   }
 
-  // Try session cookie or session token in Authorization header
-  let sessionId = getCookie(c, "bjhunt_session");
-
-  // Fallback: session token in Authorization header or query string
-  // Used for cross-origin SSE streams where cookies are SameSite=Lax
-  if (!sessionId && authHeader.startsWith("Bearer session:")) {
-    sessionId = authHeader.slice(15);
-  }
-  // Fallback: token in query string (avoids CORS preflight from Authorization header)
-  if (!sessionId) {
-    const qsToken = new URL(c.req.url).searchParams.get("token");
-    if (qsToken) sessionId = qsToken;
-  }
+  // Session auth: HttpOnly cookie is the ONLY accepted transport.
+  //
+  // SECURITY (audit C-13 / #3-03):
+  // We previously accepted the session id via `?token=<sid>` query string
+  // and `Authorization: Bearer session:<sid>` header as fallbacks for
+  // cross-origin SSE. Both were removed:
+  //   - query strings are logged by proxies/browsers and forbidden by
+  //     OWASP Session Management Cheat Sheet (Session ID in URL)
+  //   - `Bearer session:` let any party that obtained the cookie value
+  //     replay it without the browser's HttpOnly/SameSite protections
+  //
+  // Cross-origin streaming now goes through the signed SP3 ticket flow
+  // (see lib/stream-ticket.ts + routes/chat.ts GET /stream/:runId). That
+  // path does NOT accept a raw session id — it verifies an HMAC-signed
+  // payload and is unaffected by this change.
+  const sessionId = getCookie(c, "bjhunt_session");
 
   if (sessionId) {
     const session = await getSession(sessionId);
