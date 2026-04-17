@@ -87,13 +87,18 @@ export const langgraphClient = {
     threadId: string,
     assistantId: string,
     input: Record<string, unknown>,
+    signal?: AbortSignal,
   ): Promise<ReadableStream<Uint8Array>> {
     const url = `${BASE_URL}/threads/${threadId}/runs/stream`;
 
-    // Connection-only timeout: abort if server doesn't respond within 30s.
-    // Once streaming starts, the timeout is cleared so long-running agents work.
     const connAbort = new AbortController();
     const connTimer = setTimeout(() => connAbort.abort(), 30_000);
+
+    const onExternalAbort = () => connAbort.abort();
+    if (signal) {
+      if (signal.aborted) connAbort.abort();
+      else signal.addEventListener("abort", onExternalAbort, { once: true });
+    }
 
     const res = await fetch(url, {
       method: "POST",
@@ -107,15 +112,16 @@ export const langgraphClient = {
       signal: connAbort.signal,
     });
 
-    // Connection established — clear the timeout so the stream can run indefinitely
     clearTimeout(connTimer);
 
     if (!res.ok) {
+      if (signal) signal.removeEventListener("abort", onExternalAbort);
       const body = await res.text().catch(() => "");
       throw new Error(`LangGraph API error: ${res.status} ${res.statusText} — ${body}`);
     }
 
     if (!res.body) {
+      if (signal) signal.removeEventListener("abort", onExternalAbort);
       throw new Error("LangGraph stream returned no body");
     }
 
