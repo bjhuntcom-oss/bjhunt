@@ -9,6 +9,17 @@ const backendBaseUrl =
 
 const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
+  // SECURITY (audit C-16 / F-003): Next.js performs an Origin check against
+  // this allowlist before dispatching server actions. Combined with the
+  // explicit `assertOrigin()` helper inside each action (see
+  // `app/actions/_helpers.ts`), this blocks cross-origin `<form>` CSRF on
+  // login / register / logout.
+  // Ref: https://nextjs.org/docs/app/api-reference/config/next-config-js/serverActions
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['bjhunt.com', 'www.bjhunt.com'],
+    },
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'www.bjhunt.com' },

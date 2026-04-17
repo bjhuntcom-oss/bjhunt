@@ -2,6 +2,7 @@
 
 import { cookies } from 'next/headers'
 import { serverBackendFetch } from '@/lib/backend-client'
+import { assertOrigin } from './_helpers'
 
 const SESSION_COOKIE = 'bjhunt_session'
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30 // 30 days
@@ -12,6 +13,9 @@ const SESSION_COOKIE_DOMAIN =
   (process.env.NODE_ENV === 'production' ? '.bjhunt.com' : undefined)
 
 export async function loginAction(email: string, password: string) {
+  // SECURITY (audit C-16 / F-003): reject cross-origin POSTs before any work.
+  await assertOrigin()
+
   const res = await serverBackendFetch(
     '/api/auth/login',
     {
@@ -40,6 +44,9 @@ export async function loginAction(email: string, password: string) {
 }
 
 export async function registerAction(email: string, password: string, displayName: string) {
+  // SECURITY (audit C-16 / F-003): reject cross-origin POSTs before any work.
+  await assertOrigin()
+
   const res = await serverBackendFetch(
     '/api/auth/register',
     {
@@ -64,6 +71,9 @@ export async function registerAction(email: string, password: string, displayNam
 }
 
 export async function logoutAction() {
+  // SECURITY (audit C-16 / F-003): reject cross-origin POSTs before any work.
+  await assertOrigin()
+
   const cookieStore = await cookies()
   const sessionToken = cookieStore.get(SESSION_COOKIE)?.value
 
