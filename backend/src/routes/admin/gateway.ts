@@ -19,6 +19,7 @@ import { requireAuth, requireAdmin } from "../../middleware/auth.js";
 import { rateLimit } from "../../middleware/rate-limit.js";
 import { config } from "../../config.js";
 import { encryptSecret, decryptSecret, looksEncrypted } from "../../lib/crypto.js";
+import { isPublicHttpsUrl } from "../../lib/url-validator.js";
 import { stream } from "hono/streaming";
 
 export const gatewayRoutes = new Hono<{ Variables: AppVariables }>();
@@ -225,128 +226,174 @@ gatewayRoutes.delete("/providers/:id", async (c) => {
 });
 
 // ── POST /providers/:id/test — Test provider connectivity ───────────────
+//
+// Fixed against SSRF (C-15, Finding #3-37): request body is ignored — the
+// endpoint tests the provider config already stored in the DB (looked up
+// by :id) and never accepts an attacker-chosen baseUrl. The resolved URL
+// is additionally run through `isPublicHttpsUrl` to block cloud metadata,
+// link-local, loopback, and RFC1918 destinations at fetch time.
 
-gatewayRoutes.post(
-  "/providers/:id/test",
-  zValidator("json", providerSchema),
-  async (c) => {
-    const providerId = c.req.param("id");
-    const body = c.req.valid("json");
+gatewayRoutes.post("/providers/:id/test", async (c) => {
+  const providerId = c.req.param("id");
 
-    // Resolve the actual API key: use provided key if real, or fetch from DB.
-    // Stored values are AES-256-GCM ciphertext (C-14) — decrypt before use.
-    let apiKey = body.apiKey;
-    if (!apiKey || apiKey.includes("...")) {
-      const [row] = await sql`
-        SELECT api_key_encrypted FROM gateway_providers WHERE provider_type = ${providerId}
-      `;
-      const stored = (row?.apiKeyEncrypted as string) || "";
-      if (stored) {
-        if (looksEncrypted(stored)) {
-          try {
-            apiKey = decryptSecret(stored);
-          } catch {
-            return c.json({
-              ok: false,
-              error: "Stored API key could not be decrypted — re-enter and save it",
-            });
-          }
-        } else {
-          // Legacy plaintext row that pre-dates C-14 — ask admin to re-save.
-          return c.json({
-            ok: false,
-            error:
-              "Stored API key is in legacy plaintext format — re-enter and save it to encrypt at rest",
-          });
-        }
-      }
-    }
+  const [row] = await sql`
+    SELECT provider_type, api_key_encrypted, api_base, config, models
+    FROM gateway_providers
+    WHERE provider_type = ${providerId}
+  `;
 
-    if (!apiKey) {
-      return c.json({ ok: false, error: "No API key configured" });
-    }
+  if (!row) {
+    return c.json({ error: "Provider not found" }, 404);
+  }
 
-    const start = Date.now();
+  const providerRow = row as unknown as {
+    providerType: string;
+    apiKeyEncrypted: string | null;
+    apiBase: string | null;
+    config: Record<string, unknown> | null;
+    models: Array<{ id?: string }> | null;
+  };
 
-    try {
-      let response: Response;
+  const baseUrl = providerRow.apiBase || "";
+  if (!baseUrl) {
+    return c.json({ ok: false, error: "Provider has no base URL configured" });
+  }
 
-      if (body.api === "ollama") {
-        // Ollama API — just list models
-        response = await fetch(`${body.baseUrl}/api/tags`, {
-          signal: AbortSignal.timeout(15000),
-        });
-      } else {
-        // OpenAI-compatible API — send a minimal chat completion
-        const model = body.models[0]?.id || "gpt-4";
-        response = await fetch(`${body.baseUrl}/chat/completions`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [{ role: "user", content: "ping" }],
-            max_tokens: 1,
-          }),
-          signal: AbortSignal.timeout(15000),
+  const urlCheck = isPublicHttpsUrl(baseUrl);
+  if (!urlCheck.ok) {
+    return c.json({ ok: false, error: `Base URL rejected: ${urlCheck.reason}` });
+  }
+
+  // Decrypt the stored API key. Legacy rows that predate C-14 will still be
+  // plaintext; we surface a clear error asking the admin to re-save.
+  let apiKey = "";
+  const stored = providerRow.apiKeyEncrypted || "";
+  if (stored) {
+    if (looksEncrypted(stored)) {
+      try {
+        apiKey = decryptSecret(stored);
+      } catch {
+        return c.json({
+          ok: false,
+          error: "Stored API key could not be decrypted — re-enter and save it",
         });
       }
+    } else {
+      return c.json({
+        ok: false,
+        error:
+          "Stored API key is in legacy plaintext format — re-enter and save it to encrypt at rest",
+      });
+    }
+  }
 
-      const latencyMs = Date.now() - start;
+  const isOllama = (providerRow.config as { api?: string } | null)?.api === "ollama";
+  if (!apiKey && !isOllama) {
+    return c.json({ ok: false, error: "No API key configured" });
+  }
 
-      if (response.ok) {
-        // Update last_tested in DB if provider exists
-        await sql`
-          UPDATE gateway_providers SET
-            last_tested_at = now(),
-            last_test_status = 'success',
-            last_test_latency = ${latencyMs}
-          WHERE provider_type = ${providerId}
-        `.catch(() => {});
+  const start = Date.now();
 
-        return c.json({ ok: true, latencyMs });
+  try {
+    let response: Response;
+
+    if (isOllama) {
+      // Ollama API — just list models. No auth header.
+      response = await fetch(`${baseUrl}/api/tags`, {
+        signal: AbortSignal.timeout(15000),
+        redirect: "manual",
+      });
+    } else {
+      // OpenAI-compatible API — send a minimal chat completion.
+      const modelId = providerRow.models?.[0]?.id || "gpt-4";
+      response = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: modelId,
+          messages: [{ role: "user", content: "ping" }],
+          max_tokens: 1,
+        }),
+        signal: AbortSignal.timeout(15000),
+        redirect: "manual",
+      });
+    }
+
+    // Reject redirects — otherwise the upstream could send us to an internal
+    // host that passed the initial `isPublicHttpsUrl` check.
+    if (response.status >= 300 && response.status < 400) {
+      const loc = response.headers.get("location") || "";
+      const locCheck = loc
+        ? isPublicHttpsUrl(loc)
+        : { ok: false as const, reason: "empty Location" };
+      if (!locCheck.ok) {
+        return c.json({
+          ok: false,
+          error: `Upstream redirected to a disallowed target (${locCheck.reason})`,
+        });
       }
+      // Even if the Location is public, we do not follow it automatically;
+      // treat as failure so the admin reconfigures the base URL.
+      return c.json({
+        ok: false,
+        error: `Upstream returned redirect ${response.status} — update base URL`,
+      });
+    }
 
-      const errorText = await response.text().catch(() => "Unknown error");
-      const errorMsg =
-        response.status === 401
-          ? "Invalid API key"
-          : response.status === 403
-            ? "Access denied"
-            : `HTTP ${response.status}: ${errorText.slice(0, 200)}`;
+    const latencyMs = Date.now() - start;
 
+    if (response.ok) {
       await sql`
         UPDATE gateway_providers SET
           last_tested_at = now(),
-          last_test_status = 'error',
+          last_test_status = 'success',
           last_test_latency = ${latencyMs}
         WHERE provider_type = ${providerId}
       `.catch(() => {});
 
-      return c.json({ ok: false, error: errorMsg });
-    } catch (err) {
-      const latencyMs = Date.now() - start;
-      const errorMsg =
-        err instanceof Error
-          ? err.name === "TimeoutError"
-            ? "Connection timeout (15s)"
-            : err.message
-          : "Unknown error";
-
-      await sql`
-        UPDATE gateway_providers SET
-          last_tested_at = now(),
-          last_test_status = 'error',
-          last_test_latency = ${latencyMs}
-        WHERE provider_type = ${providerId}
-      `.catch(() => {});
-
-      return c.json({ ok: false, error: errorMsg });
+      return c.json({ ok: true, latencyMs });
     }
-  },
-);
+
+    const errorText = await response.text().catch(() => "Unknown error");
+    const errorMsg =
+      response.status === 401
+        ? "Invalid API key"
+        : response.status === 403
+          ? "Access denied"
+          : `HTTP ${response.status}: ${errorText.slice(0, 200)}`;
+
+    await sql`
+      UPDATE gateway_providers SET
+        last_tested_at = now(),
+        last_test_status = 'error',
+        last_test_latency = ${latencyMs}
+      WHERE provider_type = ${providerId}
+    `.catch(() => {});
+
+    return c.json({ ok: false, error: errorMsg });
+  } catch (err) {
+    const latencyMs = Date.now() - start;
+    const errorMsg =
+      err instanceof Error
+        ? err.name === "TimeoutError"
+          ? "Connection timeout (15s)"
+          : err.message
+        : "Unknown error";
+
+    await sql`
+      UPDATE gateway_providers SET
+        last_tested_at = now(),
+        last_test_status = 'error',
+        last_test_latency = ${latencyMs}
+      WHERE provider_type = ${providerId}
+    `.catch(() => {});
+
+    return c.json({ ok: false, error: errorMsg });
+  }
+});
 
 // ── PATCH /defaults — Set default model ─────────────────────────────────
 
