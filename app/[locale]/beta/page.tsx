@@ -1,13 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import { Check, Loader2, Mail, User, Building2, MessageSquare, Bell, Shield, ArrowRight, Users } from 'lucide-react'
 import Link from 'next/link'
+import HCaptcha from '@hcaptcha/react-hcaptcha'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { SectionLabel } from '@/components/ui/section-label'
 import { HexGridSVG } from '@/components/animations/hex-grid'
+
+const HCAPTCHA_SITEKEY = process.env.NEXT_PUBLIC_HCAPTCHA_SITEKEY ?? ''
 
 export default function BetaPage() {
   const { locale } = useParams<{ locale: string }>()
@@ -25,6 +28,8 @@ export default function BetaPage() {
   const [submitted, setSubmitted] = useState(justRegistered)
   const [error, setError] = useState('')
   const [betaCount, setBetaCount] = useState<number | null>(null)
+  const [captchaToken, setCaptchaToken] = useState('')
+  const captchaRef = useRef<HCaptcha>(null)
   const BETA_LIMIT = 100
 
   useEffect(() => {
@@ -51,17 +56,32 @@ export default function BetaPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    // SECURITY (audit C-20 / F-004): /api/beta rejects requests without a
+    // captchaToken. In production NEXT_PUBLIC_HCAPTCHA_SITEKEY is set and the
+    // hCaptcha widget produces the token. In dev the sitekey may be empty;
+    // treat that as a local-only bypass (the backend route still verifies
+    // server-side and will reject dev submissions unless HCAPTCHA_SECRET is
+    // intentionally unset — see `/api/beta/route.ts`).
+    if (HCAPTCHA_SITEKEY && !captchaToken) {
+      setError(isFr ? 'Veuillez valider le captcha.' : 'Please solve the captcha.')
+      return
+    }
+
     setSubmitting(true)
 
     try {
       const response = await fetch('/api/beta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, captchaToken }),
       })
 
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}))
+        // Reset captcha on failure so the user can retry with a fresh token.
+        captchaRef.current?.resetCaptcha()
+        setCaptchaToken('')
         throw new Error(payload.error || 'Failed to submit')
       }
 
@@ -257,6 +277,25 @@ export default function BetaPage() {
               />
             </div>
           </div>
+
+          {HCAPTCHA_SITEKEY ? (
+            <div className="pt-1">
+              <HCaptcha
+                sitekey={HCAPTCHA_SITEKEY}
+                onVerify={(token) => setCaptchaToken(token)}
+                onExpire={() => setCaptchaToken('')}
+                onError={() => setCaptchaToken('')}
+                ref={captchaRef}
+                theme="dark"
+              />
+            </div>
+          ) : (
+            <p className="text-[10px] text-[var(--text-muted)] italic">
+              {isFr
+                ? 'Captcha désactivé en développement.'
+                : 'Captcha disabled in development.'}
+            </p>
+          )}
 
           {error && (
             <div className="flex items-start gap-2 text-[11px] border border-red-500/20 bg-red-500/5 px-3 py-2.5">
