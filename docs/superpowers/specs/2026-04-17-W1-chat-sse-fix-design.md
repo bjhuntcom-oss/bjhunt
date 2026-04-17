@@ -17,7 +17,7 @@ Both bugs must be fixed together. Fixing only one still leaves the chat broken.
 
 ### In scope
 
-1. **Backend:** migrate `backend/src/routes/chat.ts` streaming handlers from raw `ReadableStream` to Hono's `streamSSE` helper so every event is flushed synchronously to the socket.
+1. **Backend:** migrate the `GET /stream/:runId` handler in `backend/src/routes/chat.ts` from raw `ReadableStream` to Hono's `streamSSE` helper so every event is flushed synchronously to the socket. This is the path used by the current frontend via the SP3 ticket flow (`POST /prepare` → `GET /stream/:runId`). The `POST /stream` handler is deprecated, not used by the current frontend, and its 500+ lines of `TransformStream` event-normalisation logic warrant a dedicated migration — deferred to W2.
 2. **Frontend:** normalize CRLF to LF in the SSE parser before splitting on `\n\n`, and replace the silent `catch` with a structured log that surfaces future parser regressions.
 3. **Abort propagation:** wire `c.req.raw.signal` into `langgraphClient.streamRun` so a client disconnect cancels the upstream LangGraph run (partial fix for Finding #2-10 — prevents Ollama spend continuing after user closed the tab).
 4. **Validation:** Playwright end-to-end test using the existing auth flow, screenshot evidence committed to `docs/audit-2026-04-17/verification/`.
@@ -25,6 +25,7 @@ Both bugs must be fixed together. Fixing only one still leaves the chat broken.
 
 ### Out of scope — deferred to W2 or later
 
+- **Migrating `POST /stream` to `streamSSE`** — deprecated handler, not exercised by current frontend (which uses `POST /prepare` + `GET /stream/:runId`). Its 500+ line `TransformStream` event-normalisation layer warrants its own plan.
 - Migrating `pendingStreams` from in-memory `Map` to Redis (Finding #2-4) — belongs with the broader session/ticket refactor.
 - Replacing the homegrown signed ticket with a proper JWT (`iat`, `typ`, `aud`, `jti`, separate signing key) (Finding #2-5).
 - Removing the `?token=` and `Authorization: Bearer session:<id>` fallbacks in `backend/src/middleware/auth.ts` (C-13) — W2 security wave.
@@ -67,7 +68,7 @@ parse each block; log parse failures with snippet
 
 ### C1 — Backend migrate to `streamSSE` — `backend/src/routes/chat.ts`
 
-- Replace the `new Response(new ReadableStream({ start(controller) { ... } }))` pattern in both `GET /stream/:runId` and `POST /stream` (keep both for transition compatibility) with Hono's `streamSSE` helper.
+- Replace the `new Response(new ReadableStream({ start(controller) { ... } }))` pattern in the `GET /stream/:runId` handler with Hono's `streamSSE` helper. `POST /stream` (deprecated, unused by current frontend) is left untouched in W1 — its migration is deferred to W2.
 - All prior `controller.enqueue(encoder.encode("..."))` calls become `await stream.writeSSE({ event, data })`.
 - Preserve existing headers: `Content-Type: text/event-stream`, `Cache-Control: no-cache, no-transform`, `Connection: keep-alive`.
 - Add `X-Accel-Buffering: no` to harden against any future proxy that buffers without honoring `flush_interval`.
