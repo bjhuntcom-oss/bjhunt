@@ -14,6 +14,7 @@ import type { AppVariables } from "../types.js";
  */
 
 import { Hono } from "hono";
+import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { requireAuth } from "../middleware/auth.js";
@@ -283,110 +284,113 @@ chatRoutes.get("/stream/:runId", async (c) => {
     `.catch((dbErr: Error) => console.error("Failed to mark agent run as failed:", dbErr));
   }
 
-  // Start the LangGraph stream NOW (not in /prepare — avoids race where stream finishes before client connects)
-  let stream: ReadableStream<Uint8Array>;
-  try {
-    stream = await langgraphClient.streamRun(
-      pending.threadId,
-      agentId,
-      { content: pending.message, user_id: userId, org_id: orgId },
-    );
-  } catch (err: any) {
-    await markRunFailed(err.message || "LangGraph connection failed");
-    return c.json({ error: "Failed to start AI agent", details: err.message }, 502);
-  }
+  // CORS + SSE headers. streamSSE sets Content-Type; the rest are explicit
+  // so Caddy and any downstream proxy forward bytes synchronously.
+  const reqOrigin = c.req.header("origin") || "https://www.bjhunt.com";
+  c.header("Cache-Control", "no-cache, no-transform");
+  c.header("Connection", "keep-alive");
+  c.header("X-Conversation-Id", convId);
+  c.header("X-Accel-Buffering", "no");
+  c.header("Access-Control-Allow-Origin", reqOrigin);
+  c.header("Access-Control-Allow-Credentials", "true");
+  c.header("Access-Control-Expose-Headers", "X-Conversation-Id");
 
-  // State for DB persistence — captured while piping raw bytes to client
-  let fullResponse = "";
-  let tokensIn = 0;
-  let tokensOut = 0;
+  return streamSSE(c, async (stream) => {
+    const abort = new AbortController();
+    stream.onAbort(() => {
+      abort.abort();
+      markRunFailed("Client disconnected").catch(() => {});
+    });
 
-  // Simple pipe: forward LangGraph SSE bytes directly to client.
-  // The frontend parses values/custom events natively.
-  // We capture the response text for DB persistence by reading chunks in parallel.
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-  let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+    let upstream: ReadableStream<Uint8Array>;
+    try {
+      upstream = await langgraphClient.streamRun(
+        pending.threadId,
+        agentId,
+        { content: pending.message, user_id: userId, org_id: orgId },
+        abort.signal,
+      );
+    } catch (err: any) {
+      await markRunFailed(err.message || "LangGraph connection failed");
+      await stream.writeSSE({
+        event: "error",
+        data: JSON.stringify({ message: err.message || "LangGraph connection failed" }),
+      });
+      return;
+    }
 
-  const wrappedStream = new ReadableStream<Uint8Array>({
-    start(controller) {
-      // Heartbeat
-      heartbeatTimer = setInterval(() => {
-        try { controller.enqueue(encoder.encode(": heartbeat\n\n")); } catch {}
-      }, HEARTBEAT_INTERVAL_MS);
+    const heartbeatTimer = setInterval(() => {
+      stream.write(": heartbeat\n\n").catch(() => {});
+    }, HEARTBEAT_INTERVAL_MS);
 
-      const reader = stream.getReader();
-      (async () => {
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            controller.enqueue(value);
+    let fullResponse = "";
+    let tokensIn = 0;
+    let tokensOut = 0;
 
-            // Capture AI response for DB save
-            const text = decoder.decode(value, { stream: true });
-            for (const line of text.split("\n")) {
-              if (line.startsWith("data: ")) {
-                try {
-                  const data = JSON.parse(line.slice(6));
-                  if (Array.isArray(data?.messages)) {
-                    for (const msg of data.messages) {
-                      if (msg.type === "ai" && typeof msg.content === "string" && msg.content) {
-                        fullResponse = msg.content;
-                      }
-                      if (msg.type === "ai" && msg.response_metadata?.token_usage) {
-                        tokensIn = msg.response_metadata.token_usage.prompt_tokens || 0;
-                        tokensOut = msg.response_metadata.token_usage.completion_tokens || 0;
-                      }
-                    }
+    const decoder = new TextDecoder();
+    let sseBuffer = "";
+
+    const reader = upstream.getReader();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        await stream.write(chunk);
+
+        sseBuffer += chunk;
+        const normalised = sseBuffer.replace(/\r\n/g, "\n");
+        const parts = normalised.split("\n\n");
+        sseBuffer = parts.pop() ?? "";
+        for (const block of parts) {
+          for (const line of block.split("\n")) {
+            if (!line.startsWith("data: ")) continue;
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (Array.isArray(data?.messages)) {
+                for (const msg of data.messages) {
+                  if (msg.type === "ai" && typeof msg.content === "string" && msg.content) {
+                    fullResponse = msg.content;
                   }
-                } catch {}
+                  if (msg.type === "ai" && msg.response_metadata?.token_usage) {
+                    tokensIn = msg.response_metadata.token_usage.prompt_tokens || 0;
+                    tokensOut = msg.response_metadata.token_usage.completion_tokens || 0;
+                  }
+                }
               }
+            } catch {
+              // persistence-only path — client receives raw frames regardless
             }
           }
-          // Stream done — emit done event + save to DB
-          try {
-            controller.enqueue(encoder.encode(`event: done\ndata: {"tokensIn":${tokensIn},"tokensOut":${tokensOut}}\n\n`));
-          } catch {}
-          if (heartbeatTimer) clearInterval(heartbeatTimer);
-
-          // Save assistant response
-          if (fullResponse) {
-            await sql`INSERT INTO chat_messages (org_id, conversation_id, role, content, tokens_input, tokens_output)
-              VALUES (${orgId}, ${convId}, 'assistant', ${fullResponse}, ${tokensIn || null}, ${tokensOut || null})`.catch(() => {});
-          }
-          await sql`UPDATE agent_runs SET status = 'completed', completed_at = now(),
-            tokens_input = ${tokensIn}, tokens_output = ${tokensOut},
-            output_summary = ${fullResponse.slice(0, 200)}
-            WHERE id = ${runId}`.catch(() => {});
-
-          controller.close();
-        } catch {
-          if (heartbeatTimer) clearInterval(heartbeatTimer);
-          try { controller.close(); } catch {}
         }
-      })();
-    },
-    cancel() {
-      if (heartbeatTimer) clearInterval(heartbeatTimer);
-      markRunFailed("Client disconnected");
-    },
-  });
+      }
 
-  // CORS origin from request
-  const reqOrigin = c.req.header("origin") || "https://www.bjhunt.com";
+      await stream.writeSSE({
+        event: "done",
+        data: JSON.stringify({ tokensIn, tokensOut }),
+      });
 
-  return new Response(wrappedStream, {
-    headers: {
-      "Content-Type": "text/event-stream; charset=utf-8",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-      "X-Conversation-Id": convId,
-      "X-Accel-Buffering": "no",
-      "Access-Control-Allow-Origin": reqOrigin,
-      "Access-Control-Allow-Credentials": "true",
-      "Access-Control-Expose-Headers": "X-Conversation-Id",
-    },
+      if (fullResponse) {
+        await sql`INSERT INTO chat_messages (org_id, conversation_id, role, content, tokens_input, tokens_output)
+          VALUES (${orgId}, ${convId}, 'assistant', ${fullResponse}, ${tokensIn || null}, ${tokensOut || null})`.catch(() => {});
+      }
+      await sql`UPDATE agent_runs SET status = 'completed', completed_at = now(),
+        tokens_input = ${tokensIn}, tokens_output = ${tokensOut},
+        output_summary = ${fullResponse.slice(0, 200)}
+        WHERE id = ${runId}`.catch(() => {});
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        await stream.writeSSE({
+          event: "error",
+          data: JSON.stringify({ message: err?.message || "Stream failed" }),
+        }).catch(() => {});
+        await markRunFailed(err?.message || "Stream failed");
+      }
+    } finally {
+      clearInterval(heartbeatTimer);
+      try { reader.releaseLock(); } catch {}
+    }
   });
 });
 
