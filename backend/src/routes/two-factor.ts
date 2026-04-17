@@ -245,6 +245,8 @@ twoFactorRoutes.post(
       VALUES (${user.orgId}, ${user.id}, 'user.login_2fa_verified', ${ip})
     `;
 
+    // SECURITY (audit #3-21 / C-13): session.id stays in the HttpOnly
+    // cookie only. Do not echo it in JSON.
     return c.json({
       user: {
         id: user.id,
@@ -252,7 +254,6 @@ twoFactorRoutes.post(
         orgId: user.orgId,
         role: user.role,
       },
-      sessionToken: session.id,
       organization: { id: user.orgId },
     });
   },

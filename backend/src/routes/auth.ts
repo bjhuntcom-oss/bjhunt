@@ -83,6 +83,11 @@ authRoutes.post(
     const welcome = welcomeEmail(displayName || email.split("@")[0]!);
     sendEmail({ to: email, subject: welcome.subject, html: welcome.html }).catch(() => {});
 
+    // SECURITY (audit #3-21 / C-13): NEVER include session.id in the JSON
+    // body. The session is communicated exclusively via the HttpOnly
+    // bjhunt_session cookie set above by setSessionCookie(). Any JSON
+    // exposure makes it readable by JS and re-introduces the XSS-to-ATO
+    // path we closed in DEEP-AUDIT-2026-04-16.
     return c.json({
       user: {
         id: result.id,
@@ -90,7 +95,6 @@ authRoutes.post(
         orgId: result.orgId,
         role: result.role,
       },
-      sessionToken: session.id,
       organization: { id: result.orgId },
     }, 201);
   },
@@ -160,6 +164,8 @@ authRoutes.post(
     );
     sendEmail({ to: email, subject: loginAlert.subject, html: loginAlert.html }).catch(() => {});
 
+    // SECURITY (audit #3-21 / C-13): session.id stays in the HttpOnly
+    // cookie only. Do not echo it in JSON.
     return c.json({
       user: {
         id: user.id,
@@ -167,7 +173,6 @@ authRoutes.post(
         orgId: user.orgId,
         role: user.role,
       },
-      sessionToken: session.id,
       organization: { id: user.orgId },
     });
   },
@@ -181,9 +186,18 @@ authRoutes.post("/logout", async (c) => {
     await deleteSession(sessionId);
   }
 
+  // Clear the HttpOnly session cookie, plus any legacy JS-readable
+  // duplicates that may still exist on pre-C-13 clients.
+  // Hono's c.header() with append: true lets us emit multiple Set-Cookie
+  // entries on a single response.
   c.header(
     "Set-Cookie",
     `bjhunt_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`,
+  );
+  c.header(
+    "Set-Cookie",
+    `bjhunt_stream_token=; Path=/; SameSite=Lax; Max-Age=0`,
+    { append: true },
   );
 
   return c.json({ ok: true });
