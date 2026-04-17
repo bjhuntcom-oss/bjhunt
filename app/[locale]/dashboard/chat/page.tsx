@@ -827,7 +827,11 @@ export default function ChatPage() {
 
       // ── LangGraph "messages" events — token-by-token streaming ─────
       // Emitted when stream_mode includes "messages"; each frame is
-      // [AIMessageChunk, metadata] with incremental content.
+      // [AIMessageChunk, metadata]. Depending on the provider, `content`
+      // may be either an incremental delta (OpenAI/Anthropic) or the
+      // cumulative text so far (some Ollama / GLM / Qwen setups). We
+      // handle both by replacing when the incoming content is a superset
+      // of the current, and appending otherwise.
       case "messages":
       case "messages/partial":
       case "messages/complete": {
@@ -835,34 +839,42 @@ export default function ChatPage() {
         const metadata = Array.isArray(parsed) ? parsed[1] : {};
         if (!chunk) break;
 
-        // AIMessageChunk with text content (string or content-block array)
         if (chunk.type === "AIMessageChunk" || chunk.type === "ai") {
-          let deltaText = "";
+          let incoming = "";
           if (typeof chunk.content === "string") {
-            deltaText = chunk.content;
+            incoming = chunk.content;
           } else if (Array.isArray(chunk.content)) {
             for (const block of chunk.content) {
               if (block?.type === "text" && typeof block.text === "string") {
-                deltaText += block.text;
+                incoming += block.text;
               }
             }
           }
-          if (deltaText) {
-            lastAiContentRef.current += deltaText;
-            const approxTokens = Math.ceil(deltaText.length / 4);
-            tokensSoFarRef.current += approxTokens;
-            setTokenCount((prev) => prev + approxTokens);
-            if (metadata?.langgraph_node) setActiveAgent(metadata.langgraph_node);
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantId
-                  ? { ...m, content: (m.content || "") + deltaText }
-                  : m
-              )
-            );
-            setThinking((prev) => (prev.active ? { ...prev, active: false } : prev));
+          if (incoming) {
+            const current = lastAiContentRef.current;
+            let nextContent: string;
+            if (incoming.length >= current.length && incoming.startsWith(current)) {
+              nextContent = incoming;
+            } else if (current.endsWith(incoming)) {
+              nextContent = current;
+            } else {
+              nextContent = current + incoming;
+            }
+            if (nextContent !== current) {
+              const addedLen = nextContent.length - current.length;
+              lastAiContentRef.current = nextContent;
+              const approxTokens = Math.ceil(addedLen / 4);
+              tokensSoFarRef.current += approxTokens;
+              setTokenCount((prev) => prev + approxTokens);
+              if (metadata?.langgraph_node) setActiveAgent(metadata.langgraph_node);
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId ? { ...m, content: nextContent } : m
+                )
+              );
+              setThinking((prev) => (prev.active ? { ...prev, active: false } : prev));
+            }
           }
-          // Final chunk token usage (if provided)
           if (chunk.response_metadata?.token_usage) {
             const u = chunk.response_metadata.token_usage;
             if (u.total_tokens) setTokenCount(u.total_tokens);
