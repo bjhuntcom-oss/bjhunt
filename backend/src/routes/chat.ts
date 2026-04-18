@@ -332,8 +332,10 @@ chatRoutes.get("/stream/:runId", async (c) => {
     const earlyKeepalive = setInterval(() => {
       stream.write(": ping\n\n").catch(() => {});
     }, 5_000);
-    // Initial flush so Caddy sees byte-1 immediately.
-    await stream.write(": connected\n\n").catch(() => {});
+    // Initial flush so Caddy sees byte-1 immediately. No await — Bun/Hono's
+    // stream.write() resolves only after the chunk drains, and if the client
+    // isn't reading yet the await blocks, freezing the rest of the handler.
+    stream.write(": connected\n\n").catch(() => {});
 
     let upstream: ReadableStream<Uint8Array>;
     let threadId = pending.threadId;
