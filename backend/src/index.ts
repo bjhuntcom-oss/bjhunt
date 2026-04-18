@@ -28,6 +28,7 @@ import { gatewayRoutes, ollamaRoutes } from "./routes/admin/gateway.js";
 import { agentRoutes } from "./routes/admin/agents.js";
 import { adminLogsRoutes } from "./routes/admin/logs.js";
 import { adminMonitoringRoutes } from "./routes/admin/monitoring.js";
+import { securityRoutes } from "./routes/security.js";
 import { notificationRoutes } from "./routes/notifications.js";
 import { publicApiRoutes } from "./routes/public-api.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
@@ -83,6 +84,9 @@ app.route("/api/tools", toolRoutes);
 
 // Public API v1 (API key auth)
 app.route("/api/v1", publicApiRoutes);
+
+// Security telemetry sink (CSP violation reports — no auth, browsers post).
+app.route("/api/security", securityRoutes);
 
 // Admin routes (platform admin only)
 app.route("/api/admin/users", adminUserRoutes);
