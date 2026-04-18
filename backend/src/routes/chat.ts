@@ -319,9 +319,11 @@ chatRoutes.get("/stream/:runId", async (c) => {
   return streamSSE(c, async (stream) => {
     const abort = new AbortController();
     stream.onAbort(() => {
+      console.log(`[chat-stream ${runId}] client aborted`);
       abort.abort();
       markRunFailed("Client disconnected").catch(() => {});
     });
+    console.log(`[chat-stream ${runId}] callback start, agent=${agentId} thread=${pending.threadId}`);
 
     // Arm the keepalive BEFORE we await langgraphClient.streamRun. Cold
     // LiteLLM + Ollama can take 10–20s to emit a first token; without bytes
@@ -340,13 +342,16 @@ chatRoutes.get("/stream/:runId", async (c) => {
     let upstream: ReadableStream<Uint8Array>;
     let threadId = pending.threadId;
     try {
+      console.log(`[chat-stream ${runId}] calling streamRun…`);
       upstream = await langgraphClient.streamRun(
         threadId,
         agentId,
         { content: pending.message, user_id: userId, org_id: orgId },
         abort.signal,
       );
+      console.log(`[chat-stream ${runId}] streamRun resolved`);
     } catch (err: any) {
+      console.log(`[chat-stream ${runId}] streamRun threw:`, err?.message);
       clearInterval(earlyKeepalive);
       // LangGraph dev profile uses an in-memory runtime — every restart wipes
       // its thread store, but the engagement row in postgres still references
