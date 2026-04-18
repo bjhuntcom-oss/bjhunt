@@ -453,7 +453,8 @@ chatRoutes.get("/stream/:runId", async (c) => {
         if (streamFailed) break;
         chunkCount++;
         if (chunkCount <= 3) {
-          console.log(`[chat-stream ${runId}] chunk#${chunkCount} bytes=${value?.byteLength}`);
+          const preview = new TextDecoder().decode(value).slice(0, 400).replace(/\n/g, "\\n");
+          console.log(`[chat-stream ${runId}] chunk#${chunkCount} bytes=${value?.byteLength} preview=${preview}`);
         }
         armTimeout();
         processChunk(value, transformState, emit);
