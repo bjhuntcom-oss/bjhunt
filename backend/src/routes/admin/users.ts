@@ -157,6 +157,37 @@ const updateUserSchema = z.object({
 adminUserRoutes.patch("/:id", zValidator("json", updateUserSchema), async (c) => {
   const id = c.req.param("id");
   const body = c.req.valid("json");
+  const adminUser = c.get("user" as never) as { id: string; isPlatformAdmin: boolean };
+
+  // DOC-08 P0: an admin must not be able to demote themselves out of admin.
+  // Prevents accidental self-lockout that would leave the platform without
+  // any super_admin capable of restoring the role.
+  if (id === adminUser.id && body.isPlatformAdmin === false) {
+    return c.json(
+      {
+        error: "You cannot revoke your own platform_admin role. Ask another platform_admin to do it.",
+        code: "SELF_DEMOTE_FORBIDDEN",
+      },
+      403,
+    );
+  }
+
+  // DOC-08 P0: a platform_admin must not be able to demote ANOTHER
+  // platform_admin without an explicit "force" flag. Reduces hostile-admin risk.
+  if (body.isPlatformAdmin === false && id !== adminUser.id) {
+    const [target] = await sql`SELECT is_platform_admin FROM users WHERE id = ${id}`;
+    if (target?.isPlatformAdmin) {
+      return c.json(
+        {
+          error:
+            "Demoting another platform_admin requires a manual database action " +
+            "(prevents collusion / hostile takeover). Contact security@bjhunt.com.",
+          code: "PEER_DEMOTE_FORBIDDEN",
+        },
+        403,
+      );
+    }
+  }
 
   const values: Record<string, unknown> = {};
   if (body.role !== undefined) values.role = body.role;
@@ -174,7 +205,6 @@ adminUserRoutes.patch("/:id", zValidator("json", updateUserSchema), async (c) =>
 
   if (!updated) return c.json({ error: "User not found" }, 404);
 
-  const adminUser = c.get("user" as never) as { id: string };
   await sql`
     INSERT INTO audit_logs (org_id, user_id, action, resource, details)
     VALUES (${(updated as any).orgId || null}, ${adminUser.id}, 'admin.user.update',
@@ -208,8 +238,40 @@ adminUserRoutes.delete("/:id", async (c) => {
   const id = c.req.param("id");
   const adminUser = c.get("user" as never) as { id: string };
 
-  // Fetch user org_id before deletion for audit log
-  const [target] = await sql`SELECT org_id, email FROM users WHERE id = ${id}`;
+  // DOC-08 P0 — no self-delete (would lock the operator out and leave audit
+  // logs with a NULL FK).
+  if (id === adminUser.id) {
+    return c.json(
+      {
+        error: "You cannot delete your own account from the admin panel. " +
+          "Use Settings → Account if you really mean to leave the platform.",
+        code: "SELF_DELETE_FORBIDDEN",
+      },
+      403,
+    );
+  }
+
+  // Fetch user org_id + platform_admin flag BEFORE deletion (for audit log
+  // and the peer-delete guard).
+  const [target] = await sql`
+    SELECT org_id, email, is_platform_admin FROM users WHERE id = ${id}
+  `;
+  if (!target) return c.json({ error: "User not found" }, 404);
+
+  // DOC-08 P0 — no peer-platform-admin delete (prevents one rogue admin from
+  // sweeping the others). Manual DB action required.
+  if ((target as any).isPlatformAdmin) {
+    return c.json(
+      {
+        error:
+          "Deleting another platform_admin requires a manual database action. " +
+          "Contact security@bjhunt.com.",
+        code: "PEER_DELETE_FORBIDDEN",
+      },
+      403,
+    );
+  }
+
   const result = await sql`DELETE FROM users WHERE id = ${id}`;
   if (result.count === 0) return c.json({ error: "User not found" }, 404);
 

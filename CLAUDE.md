@@ -4,48 +4,107 @@
 > Il n'y a PAS de memoire partagee entre sessions. Tout est ici.
 > **Dernière mise à jour : 17 avril 2026.** État post-audit 6 agents Opus 4.7 + vague W1 (chat fix) + W2 (sécurité) déployées.
 
-## Etat actuel (17 avril 2026)
+## Etat actuel (18 avril 2026)
 
-**La plateforme FONCTIONNE en production** : frontend Vercel, backend + engine sur VPS Hostinger, chat SSE token-par-token opérationnel.
+**La plateforme FONCTIONNE en production** : frontend Vercel, backend + engine sur VPS Hostinger, chat SSE token-par-token opérationnel, RLS FORCE + WITH CHECK actif.
 
-### Ce qui est fait
+### Ce qui est fait (post W3 + W4 partial — 2026-04-18)
 - ✅ Frontend Next.js 16 complet (pages marketing, auth, dashboard, chat, admin)
-- ✅ Backend Hono+Bun (auth Lucia, sessions HttpOnly, routes engagements/findings/billing/admin/chat)
-- ✅ Engine Decepticon intégré dans `engine/` (17 agents, LiteLLM, Kali sandbox, Neo4j)
-- ✅ Docker Compose prod avec 8 services (backend, postgres, redis, litellm, neo4j, sandbox, langgraph, caddy)
-- ✅ CI/CD GitHub Actions (ci.yml, deploy-vps.yml)
-- ✅ Chat SSE stable : Hono `streamSSE` backend + parser CRLF-safe frontend + streaming token-par-token
-- ✅ 6-agent parallel audit livré (`docs/AUDIT-2026-04-17.md`) : 288 findings, 22 Critical, 78 High
-- ✅ Vague W1 déployée (chat fix : C-17, C-18, Finding #2-10 partiel)
-- ✅ Vague W2 déployée (sécurité critique) :
-  - Session token hardening (B1) : retrait `bjhunt_stream_token`, `?token=`, `Bearer session:`, `sessionToken` en body
-  - RLS FORCE + `WITH CHECK` + rôle `bjhunt_app` (B2, migration écrite, non appliquée)
-  - Provider API keys AES-256-GCM at rest (B3) + SSRF admin gateway fermé
-  - CSP complet (12 directives) + CSRF origin check sur server actions + beta captcha wired (B4)
-  - LangGraph CMD : `--no-reload --n-jobs-per-worker 10 --allow-blocking` (mitigation partielle C-09)
+- ✅ Backend Hono+Bun. **Auth est custom maison** (`backend/src/auth/session.ts` nanoid + cookie HttpOnly Secure SameSite=Lax + table `sessions`) — **PAS Lucia**. Postgres via `postgres.js` raw paramétré — **PAS Drizzle**.
+- ✅ Engine BJHUNT ALPHA 1.0 (fork upstream PurpleAILAB/Decepticon, vendored dans `engine/decepticon/`) : 17 agents, LiteLLM, Kali sandbox, Neo4j. Wrapper layer `engine/bjhunt_engine/` (skeletons W5/W6/W7).
+- ✅ OpenHands SDK cloné dans `engine/external/openhands-sdk/` (gitignored, lecture seule, 4 packages 1.17.0). Optional pip extra `[openhands]` pinné `>=1.17.0,<2.0.0`.
+- ✅ Docker Compose prod 8 services (backend, postgres, redis, litellm, neo4j, sandbox, langgraph, caddy)
+- ✅ CI/CD GitHub Actions (ci.yml 5 jobs, deploy-vps.yml port 22 + appleboy/ssh-action + git fetch+reset --hard + health-check loop 30 essais)
+- ✅ Chat SSE stable (SP3 ticket flow + transform 8 typed events: token/tool_call/tool_result/thinking/subagent_*/objective/graph_update)
+- ✅ Vague W1 déployée (chat fix C-17/C-18 + Finding #2-10 partiel)
+- ✅ Vague W2 déployée (sécurité critique B1-B4)
+- ✅ **Vague W3 hardening déployée 2026-04-18** :
+  - Caddy hardening : security headers complets, HSTS preload 2y, JSON log rotation, security headers, CSP report-uri, Reporting-Endpoints + Report-To
+  - 16 routes backend mountées avec 6 admin (logs CSV export, monitoring health/metrics/queue, agents, gateway, ollama, settings, users)
+  - Errors typed (`backend/src/lib/errors.ts` — 8 classes AppError + global handler JSON envelope)
+  - Account lockout (`backend/src/auth/lockout.ts` — 5/15min Redis sliding window per (email, ip))
+  - Password policy unifiée (10+ chars + lowercase + uppercase + digit) sur register/reset/change
+  - Backup codes 2FA hashés SHA-256 au repos + constant-time compare
+  - Rate-limit Upstash Redis pour /api/beta + /api/contact (fallback in-memory dev)
+  - dependabot.yml + CODEOWNERS + SECURITY.md
+  - ops/scripts/ : install-sslh, snapshot-vps, backup-postgres, backup-neo4j, health-check, apply-rls-migration, sync-upstream-decepticon
+  - ops/observability/ overlay opt-in (Prometheus + Grafana + Loki + Promtail) — non démarré par défaut
+  - Migration `0002_schema_completeness.sql` appliquée prod (jobs + quota_usage + stream_events tables avec RLS)
+  - Migration `0003_grant_app_role_on_new_tables.sql` appliquée prod (grants + FORCE RLS extension)
+- ✅ **Vague W4 RLS appliqué prod 2026-04-18 04:30Z** :
+  - Migration `0001_force_rls_and_with_check.sql` appliquée — FORCE ROW LEVEL SECURITY + WITH CHECK sur 13 tables tenant
+  - Role `bjhunt_app` provisionné (NOSUPERUSER, NOCREATEDB, NOBYPASSRLS, LOGIN)
+  - Dual pool live (`backend/src/db/client.ts` : `appSql` + `adminSql` + `withOrg(orgId, fn)` + `withSuperAdmin(fn)`)
+  - `BJHUNT_APP_DATABASE_URL` provisionné dans .env VPS — backend connecte comme bjhunt_app
+  - admin routes + auth.ts + two-factor.ts + chat.ts utilisent `adminSql` (BYPASSRLS) pour les flows cross-org / pre-session
+  - Test cross-tenant : sans `app.current_org_id` set → 0 rows visible ✓ ; avec set_config → scoped ✓
+- ✅ **Conformité 2026** :
+  - EU AI Act Article 50 (deadline 2 août 2026) — badge "AI-generated" dans chat header + AUP page `/legal/ai-policy`
+  - EAA 2025 (Directive 2019/882) — Accessibility Statement `/legal/accessibility`
+  - CNIL ePrivacy 2026 — equal-prominence Reject/Accept cookie buttons
+  - WCAG 2.2 partiel — focus 2.4.13, bypass 2.4.1 (skip link), prefers-reduced-motion
+  - Pricing aligned backend (`pricing-teaser.tsx` $0/$200/$2000) — DGCCRF risk closed
+- ✅ **Audit 22 agents Opus 4.7** dispatched 2026-04-18 — 1 par doc + cross-cutting + rebrand. Tous revenus avec findings consolidés.
+- ✅ **Branding BJHUNT ALPHA 1.0 Phase A** (user-facing) : 0 trace decepticon visible utilisateur dans `lib/agent-labels.ts`, `dashboard/guide/page.tsx`, `dashboard/skills/page.tsx`. Phase B-E (1042 occurrences engine) demande arbitrage utilisateur (casse merges upstream).
+- ✅ Self-delete + peer-platform-admin protection sur `/api/admin/users/:id` (DELETE + PATCH)
 
-### Ce qui reste (vagues restantes)
-- ⏳ **W3 — Infra** (partiellement utilisateur) :
-  - Rotate token Hostinger (C-01) — TOI via dashboard Hostinger
+### Ce qui reste (vagues restantes — effort 13-15j dev)
+- ⏳ **W3 actions TOI manuelles** :
+  - Rotate token Hostinger (C-01) — TOI via dashboard Hostinger (deferred per consigne user)
   - Activer 2FA GitHub (**deadline 2 mai 2026**) — TOI
   - Opt-out Copilot training (**deadline 24 avril 2026**) — TOI
   - Provisionner `NEXT_PUBLIC_HCAPTCHA_SITEKEY` + `HCAPTCHA_SECRET` dans env Vercel — TOI
-  - Provisionner `ENCRYPTION_KEY` (`openssl rand -base64 32`) dans `.env` VPS — TOI
-  - Ré-entrer les clés providers dans admin/gateway (migration NULL les anciennes)
-  - SSH hardening VPS (désactiver root login + password auth) — joint TOI/moi
-  - Backups PG + Neo4j + S3 externe — moi
-  - Observability (Prometheus + Grafana + Loki + Sentry) — moi
-  - Docker hardening : `cap_drop`, `no-new-privileges`, non-root — moi
-  - Migrer `langgraph dev` → `langgraph up` (Postgres-backed, prod-grade) — moi
-  - Appliquer migration RLS + adapter `auth.ts` + `chat.ts` + `admin/*` pour `bjhunt_app` role — moi
-- ⏳ **W4 — Engine Decepticon** :
-  - SafeCommandMiddleware whitelist-based (C-21)
+  - `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` env Vercel — TOI
+  - Ré-entrer clés providers admin/gateway (W2 NULL-ifié les anciennes)
+  - SSH hardening VPS (`PermitRootLogin no` + `PasswordAuthentication no` + user `bjhunt` non-root) — TOI via `ops/scripts/install-sslh.sh`
+  - Installer crons VPS : backup-postgres daily, backup-neo4j daily, snapshot weekly, health-check 5min — TOI via `ops/README.md`
+  - Configurer rclone B2 + créer bucket `bjhunt-backups` — TOI
+  - Activer observability stack `docker compose -f docker-compose.yml -f ops/observability/docker-compose.observability.yml up -d` — TOI
+- ⏳ **W4-followup (chat refactor + tools wiring)** :
+  - chat.ts : 28 sql calls direct → wrap chacun en `withOrg(orgId, tx => …)` (defense-in-depth DB level) — 1.5j
+  - tools.ts : implémenter dispatch des 30 cases manquantes (frontend annonce 36, backend handle 6) — 1j
+  - migration `langgraph dev` → `langgraph up` (Postgres-backed) — 1j
+- ⏳ **W5 — Engine vulns** :
+  - SafeCommandMiddleware whitelist-based (`bjhunt_engine/middleware/whitelist_command.py` stub raise NotImplementedError pour éviter false-pass)
   - Multi-tenant isolation engine (sandbox per tenant, Neo4j DB per tenant)
-  - Fix Cypher injection Neo4jStore
-  - Retirer Docker socket mount (C-08 / C2)
-  - Sandbox caps scopées (C-10 / C3)
-  - Defender target fix (protège la cible, pas le sandbox)
-  - Branding cleanup (529 refs "decepticon" → "bjhunt" dans 113 fichiers)
+  - Fix Cypher injection Neo4jStore (`bjhunt_engine/neo4j/tenant_store.py` stub)
+  - Retirer Docker socket mount (C-08 / C2) — port PR #22 docker-socket-proxy upstream PurpleAILAB
+  - Sandbox caps scopées + cap_drop:ALL (C-10 / C3)
+  - Defender target fix
+- ⏳ **W6+W7 — OpenHands embedding** :
+  - `bjhunt_engine/multi_tenant/{secret_registry,security_analyzer,workspace_manager,tenant_orchestrator}.py` — implémenter (stubs lazy ImportError actuels)
+  - 1 engagement = 1 OpenHands DockerWorkspace longue durée (per D5)
+  - SecretRegistry per-tenant + output masking SSE
+  - PentestSecurityAnalyzer (nmap=LOW, exploit=HIGH, etc.)
+- ⏳ **W8+W9 — Frontend polish** :
+  - chat/page.tsx 1797 lignes → use-audit-stream hook (dead code aujourd'hui, à câbler)
+  - 7 dead handlers chat (Generate OPPLAN, KG panel data, code Run, onFork, voice lang, edit message, regenerate)
+  - audits/[id]/report standalone page (backend reports.ts a 4 formats)
+  - FindingCard + ProgressBarPhases + AgentTransition components manquants
+  - Mobile responsive layout SOC (3-col → tabs)
+  - JetBrains Mono next/font/local migration (perf)
+  - Border-radius:0 !important retrait + design tokens migration page-par-page
+  - audit-logs-viewer + monitoring-dashboard wiring vers nouvelles routes /api/admin/{logs,monitoring}
+- ⏳ **W10 — Stripe billing** :
+  - lib/stripe.ts + STRIPE_SECRET_KEY/STRIPE_WEBHOOK_SECRET/STRIPE_PRICE_PRO/STRIPE_PRICE_ENT
+  - POST /api/billing/{checkout,portal,webhook} (idempotence via stripe_events table)
+  - Migration 0004 stripe_events table + organizations.{trial_ends_at, subscription_status, current_period_end}
+  - QuotaService consume quota_usage table + middleware tier-aware (api requests/min, max concurrent, max scan duration, sandbox RAM, max API keys)
+  - Stripe Meters API report-usage (overage $25 Pro / $15 Ent)
+  - Dunning : invoice.payment_failed → email + freeze + grace 7j → downgrade
+- ⏳ **W11 — Polish + Phase 2 prep** :
+  - Sentry SDK backend + frontend + DSN + source maps CI
+  - stream_events fan-out persist + endpoint `GET /api/chat/stream/:runId/replay?cursor=`
+  - Mode interactive LangGraph `interrupt()` + UI approval modal
+  - Postgres + Redis exporters Prometheus
+  - Capacity SLO + alerts (queue >5, RAM >80%)
+  - SLSA L3 prep (cosign sign images + GHCR + provenance)
+  - GDPR DSAR `/api/users/me/export` + `/api/users/me DELETE` (cascade + retention)
+- ⏳ **Branding Phase B-E (rebrand massif decepticon → BJHUNT ALPHA 1.0)** — décision utilisateur sur abandon merges upstream PurpleAILAB :
+  - Phase B Python imports (448 occurrences / 122 fichiers) — 3j
+  - Phase C `langgraph.json` keys + paths (18 occurrences) — 0.5j
+  - Phase D Docker sync paths + Dockerfiles — 0.5j
+  - Phase E rename `engine/decepticon/` folder + skills/decepticon/ — 5-7j (casse `ops/scripts/sync-upstream-decepticon.sh`)
 
 ### Références docs vivantes
 - [`docs/AUDIT-2026-04-17.md`](docs/AUDIT-2026-04-17.md) — rapport consolidé post-audit (22 Critical, 78 High, roadmap P0/P1/P2)
