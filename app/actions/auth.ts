@@ -133,7 +133,24 @@ function extractErrorCode(data: unknown): string {
  * see audit C-13 / F-002 / #3-21.
  */
 async function applySessionCookieFromBackend(res: Response) {
-  const setCookies = res.headers.getSetCookie?.() ?? []
+  // Vercel's Node runtime sometimes returns an empty array from getSetCookie()
+  // even when the upstream did send Set-Cookie headers. Fall through to the
+  // joined .get('set-cookie') string (which Next/undici DOES expose) so we
+  // always find the session value as long as the backend actually emitted it.
+  const setCookies: string[] = res.headers.getSetCookie?.() ?? []
+  if (setCookies.length === 0) {
+    const joined = res.headers.get('set-cookie')
+    if (joined) {
+      // Multi-cookie strings are comma-joined inside undici's Headers.get().
+      // Only safe to split on `, ` between cookies because cookie values
+      // never contain literal commas (RFC 6265). Date attribute uses commas
+      // but we only need the first attribute (`name=value`).
+      for (const part of joined.split(/,(?=\s*[A-Za-z0-9_-]+=)/)) {
+        setCookies.push(part.trim())
+      }
+    }
+  }
+
   let sessionValue: string | undefined
   for (const entry of setCookies) {
     const m = entry.match(/^bjhunt_session=([^;]*)/)
