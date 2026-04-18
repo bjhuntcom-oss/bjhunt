@@ -93,6 +93,11 @@ function buildCspHeader(nonce: string): string {
     'media-src': ["'self'", 'data:', 'blob:'],
     // Force HTTPS for any subresource loaded via HTTP on an HTTPS page.
     'upgrade-insecure-requests': [],
+    // Endpoint that receives violation reports. The backend route logs
+    // them to audit_logs (`security.csp_violation`) and exposes them to
+    // /dashboard/admin/monitoring (TODO panel). Older browsers fall back
+    // to `report-uri`; modern ones honor `report-to` (set via header below).
+    'report-uri': ['/api/security/csp-report'],
   }
 
   return Object.entries(directives)
@@ -122,6 +127,17 @@ export default async function middleware(request: NextRequest) {
   const response = intlMiddleware(nextRequest)
   response.headers.set('x-nonce', nonce)
   response.headers.set('Content-Security-Policy', buildCspHeader(nonce))
+  // Reporting API counterpart for `report-uri`. Browsers that ignore
+  // `report-uri` (Safari Technology Preview, modern Chromium) read this.
+  response.headers.set(
+    'Reporting-Endpoints',
+    'csp-endpoint="/api/security/csp-report"',
+  )
+  response.headers.set('Report-To', JSON.stringify({
+    group: 'csp-endpoint',
+    max_age: 10886400,
+    endpoints: [{ url: '/api/security/csp-report' }],
+  }))
   return response
 }
 
