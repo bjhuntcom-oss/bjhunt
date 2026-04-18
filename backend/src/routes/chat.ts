@@ -324,20 +324,55 @@ chatRoutes.get("/stream/:runId", async (c) => {
     });
 
     let upstream: ReadableStream<Uint8Array>;
+    let threadId = pending.threadId;
     try {
       upstream = await langgraphClient.streamRun(
-        pending.threadId,
+        threadId,
         agentId,
         { content: pending.message, user_id: userId, org_id: orgId },
         abort.signal,
       );
     } catch (err: any) {
-      await markRunFailed(err.message || "LangGraph connection failed");
-      await stream.writeSSE({
-        event: "error",
-        data: JSON.stringify({ message: err.message || "LangGraph connection failed" }),
-      });
-      return;
+      // LangGraph dev profile uses an in-memory runtime — every restart wipes
+      // its thread store, but the engagement row in postgres still references
+      // the old thread_id. The first stream after a restart fails with a 404
+      // ("Thread or assistant not found"). Recover transparently: create a
+      // fresh thread, update the engagement, and retry once.
+      const isStaleThread =
+        typeof err?.message === "string" && err.message.includes("404") && err.message.includes("Thread");
+      if (!isStaleThread) {
+        await markRunFailed(err.message || "LangGraph connection failed");
+        await stream.writeSSE({
+          event: "error",
+          data: JSON.stringify({ message: err.message || "LangGraph connection failed" }),
+        });
+        return;
+      }
+
+      try {
+        const fresh = await langgraphClient.createThread();
+        threadId = fresh.threadId;
+        // Persist the new thread on the engagement so subsequent runs reuse it.
+        await sql`
+          UPDATE engagements SET langgraph_thread_id = ${threadId}
+          WHERE langgraph_thread_id = ${pending.threadId}
+        `.catch(() => {});
+        upstream = await langgraphClient.streamRun(
+          threadId,
+          agentId,
+          { content: pending.message, user_id: userId, org_id: orgId },
+          abort.signal,
+        );
+      } catch (retryErr: any) {
+        await markRunFailed(retryErr.message || "LangGraph connection failed (after thread recreation)");
+        await stream.writeSSE({
+          event: "error",
+          data: JSON.stringify({
+            message: retryErr.message || "LangGraph connection failed (after thread recreation)",
+          }),
+        });
+        return;
+      }
     }
 
     const heartbeatTimer = setInterval(() => {
