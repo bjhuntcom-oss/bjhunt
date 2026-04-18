@@ -42,6 +42,23 @@ interface SidebarConversation {
 }
 
 /** Group sidebar conversations by relative date */
+// Backend errors come back in two shapes: legacy `{error: "STRING"}` and
+// the new typed envelope `{error: {code, message}}`. Pull a renderable
+// string out of either; previously the chat tried to render the envelope
+// as a React child and crashed with React error #31.
+function errorToString(payload: unknown): string {
+  if (!payload || typeof payload !== "object") return "";
+  const e = payload as { error?: unknown; message?: unknown };
+  if (typeof e.error === "string") return e.error;
+  if (e.error && typeof e.error === "object") {
+    const inner = e.error as { message?: unknown; code?: unknown };
+    if (typeof inner.message === "string") return inner.message;
+    if (typeof inner.code === "string") return inner.code;
+  }
+  if (typeof e.message === "string") return e.message;
+  return "";
+}
+
 function groupByDate(items: SidebarConversation[]): { label: string; items: SidebarConversation[] }[] {
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -412,7 +429,7 @@ export default function ChatPage() {
         return eng;
       } else {
         const err = await res.json().catch(() => ({ message: `Error ${res.status}` }));
-        setStreamError(err.message || err.error || `Failed to start conversation (${res.status})`);
+        setStreamError(errorToString(err) || `Failed to start conversation (${res.status})`);
         return null;
       }
     } catch (e: any) {
@@ -602,7 +619,7 @@ export default function ChatPage() {
 
       if (!prepareRes.ok) {
         const err = await prepareRes.json().catch(() => ({ error: `HTTP ${prepareRes.status}` }));
-        throw new Error(err.error || err.message || `Prepare failed (${prepareRes.status})`);
+        throw new Error(errorToString(err) || `Prepare failed (${prepareRes.status})`);
       }
 
       const { streamUrl, ticket, conversationId: returnedConvId } = await prepareRes.json();
