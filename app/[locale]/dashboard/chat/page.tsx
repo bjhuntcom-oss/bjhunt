@@ -18,7 +18,7 @@ import { splitSSEBlocks } from "./parseSSE";
 import { VaccineMonitor } from "@/components/dashboard/vaccine-monitor";
 import { AGENTS } from "@/components/chat/agent-selector";
 import { OnboardingOverlay } from "@/components/dashboard/onboarding-overlay";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -144,6 +144,17 @@ export default function ChatPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
   const [promptInitialValue, setPromptInitialValue] = useState("");
+
+  // Pre-fill the input from a `?seed=` query param (used by other dashboard
+  // pages to hand off context — e.g. CVE "Create Exploit Objective" CTA).
+  // Runs once per mount; the input clears the value via onConsumeInitialValue.
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const seed = searchParams.get("seed");
+    if (seed) setPromptInitialValue(seed);
+    // Intentionally no dependency on searchParams to avoid re-priming on nav.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [selectedAgent, setSelectedAgent] = useState("bjhunt");
   const [modelSettings, setModelSettings] = useState<ModelSettings>({
     systemPrompt: "",

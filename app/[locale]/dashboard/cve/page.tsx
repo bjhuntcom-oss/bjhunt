@@ -338,12 +338,22 @@ export default function CveIntelligencePage() {
                   <Copy size={9} />
                   {copiedId === cve.cveId ? "Copied" : "Copy CVE ID"}
                 </button>
-                <button
+                {/* Bridges the dead "Create Exploit Objective" CTA (DOC-07 audit P1)
+                    by handing the CVE off to the chat with an OPPLAN seed prompt.
+                    The full POST /api/engagements/:id/opplan/objectives endpoint
+                    lands in W8 — until then the user gets an instant, working
+                    workflow instead of a no-op button. */}
+                <Link
+                  href={`/dashboard/chat?seed=${encodeURIComponent(
+                    `Create an exploitation objective for ${cve.cveId} ` +
+                    `(${cve.severity ?? 'unknown severity'}, CVSS ${cve.cvssScore ?? 'n/a'}). ` +
+                    `Describe the attack chain and propose verification steps.`
+                  )}`}
                   className="flex items-center gap-1.5 text-[8px] font-mono uppercase tracking-widest text-[var(--success)] hover:text-white px-2 py-1.5 border border-[var(--success)]/30 hover:border-[var(--success)] transition-colors"
                 >
                   <Crosshair size={9} />
                   Create Exploit Objective
-                </button>
+                </Link>
               </div>
             </div>
           </div>

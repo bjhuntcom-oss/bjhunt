@@ -2,14 +2,26 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useLocale } from "next-intl";
 import { Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Map next-intl locale -> BCP-47 tag accepted by the SpeechRecognition / TTS APIs.
+// Browsers reject bare 'en'/'fr' for some engines; pin a region for predictability.
+function localeToBCP47(locale: string): string {
+  switch (locale) {
+    case "fr": return "fr-FR";
+    case "en": return "en-US";
+    default:   return locale; // forward through (caller may pass already-tagged value)
+  }
+}
 
 interface VoiceRecorderProps {
   onTranscript: (text: string) => void;
 }
 
 export function VoiceRecorder({ onTranscript }: VoiceRecorderProps) {
+  const locale = useLocale();
   const [listening, setListening] = useState(false);
   const [supported, setSupported] = useState(false);
   const recognitionRef = useRef<any>(null);
@@ -29,7 +41,7 @@ export function VoiceRecorder({ onTranscript }: VoiceRecorderProps) {
 
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SR() as any;
-    recognition.lang = "fr-FR";
+    recognition.lang = localeToBCP47(locale);
     recognition.continuous = false;
     recognition.interimResults = false;
 
@@ -69,6 +81,7 @@ interface TTSButtonProps {
 }
 
 export function TTSButton({ text }: TTSButtonProps) {
+  const locale = useLocale();
   const [speaking, setSpeaking] = useState(false);
 
   function toggle() {
@@ -78,7 +91,7 @@ export function TTSButton({ text }: TTSButtonProps) {
       return;
     }
     const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = "fr-FR";
+    utter.lang = localeToBCP47(locale);
     utter.rate = 1.0;
     utter.onend = () => setSpeaking(false);
     window.speechSynthesis.speak(utter);
