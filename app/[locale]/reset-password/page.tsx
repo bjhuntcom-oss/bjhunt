@@ -79,7 +79,7 @@ export default function ResetPasswordPage() {
 
       <div className="relative z-10 w-full max-w-sm">
         <div className="flex justify-center mb-10">
-          <Link href={`/${locale}`} className="flex items-center gap-2.5">
+          <Link href="/" className="flex items-center gap-2.5">
             <LogoSymbol size={22} />
             <LogoWordmark />
           </Link>
@@ -101,7 +101,7 @@ export default function ResetPasswordPage() {
                   : 'Password reset successfully.'}
               </div>
               <Link
-                href={`/${locale}/login`}
+                href="/login"
                 className="inline-flex w-full items-center justify-center bg-white px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition-colors hover:bg-white/90"
               >
                 {isFr ? 'Se connecter' : 'Sign in'}
@@ -163,7 +163,7 @@ export default function ResetPasswordPage() {
           <div className="mt-6 pt-6 border-t border-[var(--border)] text-center">
             <span className="text-[10px] text-[var(--text-muted)]">
               <Link
-                href={`/${locale}/login`}
+                href="/login"
                 className="text-white hover:underline underline-offset-2"
               >
                 {isFr ? 'Retour a la connexion' : 'Back to sign in'}

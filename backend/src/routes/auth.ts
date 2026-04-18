@@ -133,7 +133,7 @@ authRoutes.post(
       c.header("Retry-After", String(lockout.retryAfter));
       return c.json(
         {
-          error: "Too many failed attempts. Account locked temporarily.",
+          error: { code: "AUTH_RATE_LIMITED", message: "Too many failed attempts. Account locked temporarily." },
           retryAfter: lockout.retryAfter,
         },
         429,
@@ -151,7 +151,7 @@ authRoutes.post(
       await recordFailure(email, clientIp);
       // Constant-time fake hash to prevent timing attacks
       await hashPassword("fake-password-for-timing");
-      return c.json({ error: "Invalid email or password" }, 401);
+      return c.json({ error: { code: "INVALID_CREDENTIALS", message: "Invalid email or password" } }, 401);
     }
 
     const valid = await verifyPassword(user.passwordHash as string, password);
@@ -165,7 +165,7 @@ authRoutes.post(
                   ${JSON.stringify({ failures: LOCKOUT_LIMITS.maxFailures })})
         `.catch(() => {});
       }
-      return c.json({ error: "Invalid email or password" }, 401);
+      return c.json({ error: { code: "INVALID_CREDENTIALS", message: "Invalid email or password" } }, 401);
     }
 
     // Successful credential check — clear the lockout counter.

@@ -29,7 +29,7 @@ export async function loginAction(email: string, password: string) {
   const data = await res.json()
 
   if (!res.ok) {
-    throw new Error(data.error ?? 'AUTH_FAILED')
+    throw new Error(extractErrorCode(data))
   }
 
   // Re-forward the backend HttpOnly session cookie onto the Next response.
@@ -60,7 +60,7 @@ export async function registerAction(email: string, password: string, displayNam
   const data = await res.json()
 
   if (!res.ok) {
-    throw new Error(data.error ?? 'AUTH_FAILED')
+    throw new Error(extractErrorCode(data))
   }
 
   // SECURITY (audit C-13 / F-002 / #3-21): HttpOnly cookie only, no JS-readable
@@ -106,6 +106,21 @@ export async function logoutAction() {
       ...(SESSION_COOKIE_DOMAIN ? { domain: SESSION_COOKIE_DOMAIN } : {}),
     })
   }
+}
+
+// Backend now returns either { error: { code, message } } (new envelope) or
+// { error: "STRING_CODE" } (legacy). Normalise to the bare code so the client
+// can switch on it without re-implementing the parsing.
+function extractErrorCode(data: unknown): string {
+  if (data && typeof data === 'object' && 'error' in data) {
+    const err = (data as { error: unknown }).error
+    if (typeof err === 'string') return err
+    if (err && typeof err === 'object' && 'code' in err) {
+      const code = (err as { code: unknown }).code
+      if (typeof code === 'string') return code
+    }
+  }
+  return 'AUTH_FAILED'
 }
 
 /**

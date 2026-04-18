@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
 
       <div className="relative z-10 w-full max-w-sm">
         <div className="flex justify-center mb-10">
-          <Link href={`/${locale}`} className="flex items-center gap-2.5">
+          <Link href="/" className="flex items-center gap-2.5">
             <LogoSymbol size={22} />
             <LogoWordmark />
           </Link>
@@ -108,7 +108,7 @@ export default function ForgotPasswordPage() {
           <div className="mt-6 pt-6 border-t border-[var(--border)] text-center">
             <span className="text-[10px] text-[var(--text-muted)]">
               <Link
-                href={`/${locale}/login`}
+                href="/login"
                 className="text-white hover:underline underline-offset-2"
               >
                 {isFr ? 'Retour a la connexion' : 'Back to sign in'}

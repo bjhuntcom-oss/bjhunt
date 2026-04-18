@@ -219,7 +219,7 @@ export function HeroTerminal({ className }: { className?: string }) {
             >
               BJHUNT AI
             </p>
-            <p className="text-[var(--text-muted)] text-[11px]">{tx(`${sid}.thinking`)}</p>
+            <p className="text-[var(--text-muted)] text-[11px]">{tx(`${sid}.think`)}</p>
           </div>
         )}
 

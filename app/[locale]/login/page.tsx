@@ -93,7 +93,7 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-sm">
         {/* Logo */}
         <div className="flex justify-center mb-10">
-          <Link href={`/${locale}`} className="flex items-center gap-2.5">
+          <Link href="/" className="flex items-center gap-2.5">
             <LogoSymbol size={22} />
             <LogoWordmark />
           </Link>
@@ -164,7 +164,7 @@ export default function LoginPage() {
             {mode === 'login' && (
               <div className="text-right -mt-2">
                 <Link
-                  href={`/${locale}/forgot-password`}
+                  href="/forgot-password"
                   className="text-[10px] text-[var(--text-muted)] hover:text-white transition-colors"
                 >
                   {isFr ? 'Mot de passe oublie ?' : 'Forgot password?'}
