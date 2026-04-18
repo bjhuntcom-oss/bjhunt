@@ -3,22 +3,24 @@
 import { useState, useTransition } from 'react'
 import { browserBackendFetch } from '@/lib/backend-client'
 
+// Schema mirrors the new backend route /api/admin/logs (logs.ts) which
+// reads directly from audit_logs table — single column names, no aliasing.
 interface AuditLog {
   id: string
   userId: string | null
-  organizationId: string | null
+  orgId: string | null
   action: string
-  resourceType: string | null
-  resourceId: string | null
-  payload: Record<string, unknown> | null
+  resource: string | null
+  details: Record<string, unknown> | null
+  ipAddress: string | null
   createdAt: string
 }
 
 interface AuditLogsData {
   logs: AuditLog[]
   total: number
+  page: number
   limit: number
-  offset: number
 }
 
 interface UserOption {
@@ -42,41 +44,34 @@ export function AuditLogsViewer({
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const fetchLogs = (offset = 0) => {
+  // Use the new /api/admin/logs route (Hono+Zod typed, supports filters
+  // user_id/action/resource/from/to + pagination via page=, returns 50k cap).
+  // The previous /api/admin/settings/audit-logs is deprecated.
+  const fetchLogs = (page = 1) => {
     startTransition(async () => {
-      const q = new URLSearchParams({ limit: '50', offset: String(offset) })
-      if (filterUserId) q.set('userId', filterUserId)
+      const q = new URLSearchParams({ limit: '50', page: String(page) })
+      if (filterUserId) q.set('user_id', filterUserId)
       if (filterAction) q.set('action', filterAction)
-      if (filterResourceType) q.set('resourceType', filterResourceType)
+      if (filterResourceType) q.set('resource', filterResourceType)
       if (filterFrom) q.set('from', filterFrom)
       if (filterTo) q.set('to', filterTo)
-      const res = await browserBackendFetch(`/api/admin/settings/audit-logs?${q}`)
+      const res = await browserBackendFetch(`/api/admin/logs?${q}`)
       if (res.ok) setData(await res.json())
     })
   }
 
+  // Server-side CSV export (50k row cap, properly escaped, audit-logged).
+  // Drops the in-browser ad-hoc CSV (50-row visible page only) and forwards
+  // the same filter params so the export matches what the user sees.
   const exportCsv = () => {
-    const header = 'Date,Utilisateur,Action,Type,Resource ID\n'
-    const rows = data.logs
-      .map((l) =>
-        [
-          new Date(l.createdAt).toISOString(),
-          users.find((u) => u.id === l.userId)?.email ?? l.userId ?? '—',
-          l.action,
-          l.resourceType ?? '—',
-          l.resourceId ?? '—',
-        ]
-          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-          .join(',')
-      )
-      .join('\n')
-    const blob = new Blob([header + rows], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'audit-logs.csv'
-    a.click()
-    URL.revokeObjectURL(url)
+    const q = new URLSearchParams()
+    if (filterUserId) q.set('user_id', filterUserId)
+    if (filterAction) q.set('action', filterAction)
+    if (filterResourceType) q.set('resource', filterResourceType)
+    if (filterFrom) q.set('from', filterFrom)
+    if (filterTo) q.set('to', filterTo)
+    // Trigger download via same-origin proxy so cookies attach.
+    window.location.href = `/api/proxy/admin/logs/export?${q}`
   }
 
   const inputClass =
@@ -84,7 +79,7 @@ export function AuditLogsViewer({
   const labelClass =
     'text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-[0.15em] block mb-1'
 
-  const page = Math.floor(data.offset / data.limit) + 1
+  const page = data.page ?? 1
   const totalPages = Math.ceil(data.total / data.limit)
 
   return (
@@ -197,16 +192,16 @@ export function AuditLogsViewer({
                 <span className="text-[10px] font-mono text-white truncate">{userEmail}</span>
                 <span className="text-[10px] font-mono text-[var(--text-muted)]">{log.action}</span>
                 <span className="text-[10px] font-mono text-[var(--text-muted)]">
-                  {log.resourceType ?? '—'}
+                  {log.resource?.split(':')[0] ?? '—'}
                 </span>
                 <span className="text-[10px] font-mono text-[var(--text-subtle)] truncate">
-                  {log.resourceId ?? '—'}
+                  {log.resource ?? '—'}
                 </span>
               </div>
-              {isExpanded && log.payload && (
+              {isExpanded && log.details && (
                 <div className="px-4 pb-3 bg-[var(--bg-input)]">
                   <pre className="text-[9px] font-mono text-[var(--text-muted)] overflow-x-auto">
-                    {JSON.stringify(log.payload, null, 2)}
+                    {JSON.stringify(log.details, null, 2)}
                   </pre>
                 </div>
               )}
@@ -222,15 +217,15 @@ export function AuditLogsViewer({
         </span>
         <div className="flex gap-2">
           <button
-            onClick={() => fetchLogs(data.offset - data.limit)}
-            disabled={isPending || data.offset === 0}
+            onClick={() => fetchLogs(page - 1)}
+            disabled={isPending || page <= 1}
             className="px-3 py-1.5 border border-[var(--border)] text-[9px] font-mono disabled:opacity-30 hover:text-white transition-colors"
           >
             ← Précédent
           </button>
           <button
-            onClick={() => fetchLogs(data.offset + data.limit)}
-            disabled={isPending || data.offset + data.limit >= data.total}
+            onClick={() => fetchLogs(page + 1)}
+            disabled={isPending || page >= totalPages}
             className="px-3 py-1.5 border border-[var(--border)] text-[9px] font-mono disabled:opacity-30 hover:text-white transition-colors"
           >
             Suivant →

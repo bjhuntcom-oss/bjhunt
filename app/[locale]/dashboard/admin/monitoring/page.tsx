@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { serverBackendFetch } from '@/lib/backend-client'
 import { MonitoringDashboard } from './monitoring-dashboard'
 
+// Hits the new /api/admin/monitoring/{health,metrics,queue} routes (commit a654818).
 export default async function AdminMonitoringPage({
   params,
 }: {
@@ -12,45 +13,40 @@ export default async function AdminMonitoringPage({
   const cookieHeader = (await headers()).get('cookie') ?? ''
   if (!cookieHeader) redirect(`/${locale}/login`)
 
-  const healthRes = await serverBackendFetch('/api/health/ready', {}, cookieHeader)
+  const [healthRes, metricsRes, queueRes] = await Promise.all([
+    serverBackendFetch('/api/admin/monitoring/health', {}, cookieHeader),
+    serverBackendFetch('/api/admin/monitoring/metrics', {}, cookieHeader),
+    serverBackendFetch('/api/admin/monitoring/queue', {}, cookieHeader),
+  ])
 
-  const healthResult = healthRes.ok
+  const initialHealth = healthRes.ok
     ? await healthRes.json()
-    : { status: 'not ready', checks: {} }
-  // Map real health check data to the format expected by MonitoringDashboard
-  const checksObj = healthResult.checks ?? {}
-  // Fetch agent runs for initial queue stats
-  const runsRes = await serverBackendFetch('/api/admin/settings/agent-runs', {}, cookieHeader)
-  let queueStats = { total: 0, running: 0, completed: 0, failed: 0 }
-  if (runsRes.ok) {
-    const runsData = await runsRes.json() as { runs?: Array<{ status: string }> }
-    const runs = runsData.runs ?? []
-    queueStats = {
-      total: runs.length,
-      running: runs.filter((r) => r.status === 'running').length,
-      completed: runs.filter((r) => r.status === 'completed').length,
-      failed: runs.filter((r) => r.status === 'failed').length,
-    }
-  }
-  const healthData = {
-    ready: healthResult.status === 'ready',
-    checks: Object.fromEntries(
-      Object.entries(checksObj).map(([name, info]: [string, any]) => [
-        name,
-        info?.status === 'connected',
-      ])
-    ),
-  }
+    : { status: 'degraded', services: {}, timestamp: new Date().toISOString() }
+
+  const initialMetrics = metricsRes.ok
+    ? await metricsRes.json()
+    : {
+        users: { total: 0, active_30d: 0 },
+        engagements: { total: 0, running: 0, this_month: 0 },
+        findings: { total: 0, critical: 0, high: 0 },
+        timestamp: new Date().toISOString(),
+      }
+
+  const initialQueue = queueRes.ok ? await queueRes.json() : { status: 'not_implemented' }
 
   return (
     <div className="p-6 md:p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-black tracking-tight">Monitoring</h1>
         <p className="text-[11px] text-[var(--text-muted)] font-mono mt-1">
-          État de la queue et santé des services
+          Santé des services + métriques plateforme + queue (BullMQ — W4)
         </p>
       </div>
-      <MonitoringDashboard initialQueue={queueStats} initialHealth={healthData} />
+      <MonitoringDashboard
+        initialHealth={initialHealth}
+        initialMetrics={initialMetrics}
+        initialQueue={initialQueue}
+      />
     </div>
   )
 }
