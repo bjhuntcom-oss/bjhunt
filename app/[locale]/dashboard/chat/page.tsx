@@ -378,6 +378,9 @@ export default function ChatPage() {
       const eng = engagements.find((e) => e.id === conv.engagementId);
       if (eng) {
         setActiveEngagement(eng);
+        // Sync the agent picker to the engagement's agent so the header
+        // and the next-turn submission use the right one.
+        if (eng.agentGraph) setSelectedAgent(eng.agentGraph);
       } else {
         // Create a minimal engagement reference
         setActiveEngagement({
@@ -1385,6 +1388,14 @@ export default function ChatPage() {
                             setMessages([]);
                             setToolCalls(new Map());
                             setSubAgents(new Map());
+                            // Restore the agent that was active for this
+                            // engagement so the header / send button reflect
+                            // the right one. Without this, the agent stays on
+                            // whatever the user picked last (e.g. switching
+                            // from a fresh "analyst" chat back to an old
+                            // "recon" thread used to leave the header on
+                            // ANALYST and the next turn hit Analyst by mistake).
+                            if (eng.agentGraph) setSelectedAgent(eng.agentGraph);
                             loadHistory(eng.id);
                           }}
                           onContextMenu={(e) => {
