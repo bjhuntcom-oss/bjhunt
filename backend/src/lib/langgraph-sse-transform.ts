@@ -113,17 +113,50 @@ function processBlock(block: string, state: TransformState, emit: EmitFn): void 
     if (!msgChunk) return;
 
     if (msgChunk.type === "AIMessageChunk" || msgChunk.type === "ai") {
+      // Providers split into two camps:
+      //   * delta-mode (OpenAI, Anthropic): each chunk's `content` is just the
+      //     new piece — append it.
+      //   * cumulative-mode (Ollama Cloud / GLM / fp_ollama): each chunk's
+      //     `content` is the FULL accumulated reply so far — emit only the
+      //     trailing slice that wasn't already sent.
+      //
+      // Detection: if the incoming content starts with everything we've seen
+      // so far AND is longer, it's cumulative. Otherwise treat it as a delta.
+      // Without this guard we double the response at every chunk and the chat
+      // turns into a wall of "I'm not familiar with...I'm not familiar with..."
+      // (verified live against the bjhunt orchestrator on Ollama GLM-5.1).
+
       // Text content (string form)
       if (typeof msgChunk.content === "string" && msgChunk.content) {
-        state.fullResponse += msgChunk.content;
-        emit("token", { token: msgChunk.content, agent: metadata?.langgraph_node });
+        const incoming = msgChunk.content;
+        let delta = incoming;
+        if (incoming.length > state.fullResponse.length && incoming.startsWith(state.fullResponse)) {
+          delta = incoming.slice(state.fullResponse.length);
+          state.fullResponse = incoming;
+        } else if (incoming === state.fullResponse) {
+          // Provider re-sent the same accumulated content (Ollama emits the
+          // final chunk twice, once for `finish_reason:stop` decoration). Skip.
+          delta = "";
+        } else {
+          state.fullResponse += incoming;
+        }
+        if (delta) emit("token", { token: delta, agent: metadata?.langgraph_node });
       }
       // Content array (Anthropic format)
       else if (Array.isArray(msgChunk.content)) {
         for (const contentBlock of msgChunk.content) {
           if (contentBlock.type === "text" && contentBlock.text) {
-            state.fullResponse += contentBlock.text;
-            emit("token", { token: contentBlock.text, agent: metadata?.langgraph_node });
+            const incoming = contentBlock.text;
+            let delta = incoming;
+            if (incoming.length > state.fullResponse.length && incoming.startsWith(state.fullResponse)) {
+              delta = incoming.slice(state.fullResponse.length);
+              state.fullResponse = incoming;
+            } else if (incoming === state.fullResponse) {
+              delta = "";
+            } else {
+              state.fullResponse += incoming;
+            }
+            if (delta) emit("token", { token: delta, agent: metadata?.langgraph_node });
           } else if (contentBlock.type === "thinking" && contentBlock.thinking) {
             state.thinkingContent += contentBlock.thinking;
             emit("thinking", { content: state.thinkingContent, active: true });
