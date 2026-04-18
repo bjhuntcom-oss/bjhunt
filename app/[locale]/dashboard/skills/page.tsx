@@ -48,7 +48,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   exploiter: "Exploiter",
   shared: "Shared",
   soundwave: "Soundwave",
-  decepticon: "Orchestrator",
+  decepticon: "BJHUNT ALPHA 1.0",   // user-facing brand for the orchestrator graph (internal id stays for engine compat)
   vulnresearch: "Vuln Research",
 };
 
@@ -144,7 +144,7 @@ const CATEGORY_TREE: { key: string; label: string; children?: { key: string; lab
   { key: "vulnresearch", label: "Vuln Research" },
   { key: "shared", label: "Shared" },
   { key: "soundwave", label: "Soundwave" },
-  { key: "decepticon", label: "Orchestrator" },
+  { key: "decepticon", label: "BJHUNT ALPHA 1.0" },
 ];
 
 // ── Component ───────────────────────────────────────────────────────────

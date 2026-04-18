@@ -49,9 +49,12 @@ export interface AgentMeta {
  * Mapping table. Order matches the kill-chain (planning → offensive → analysis → defensive).
  */
 export const AGENT_META: Readonly<Record<AgentId, AgentMeta>> = Object.freeze({
+  // The internal id 'decepticon' is the upstream graph name in
+  // engine/langgraph.json (PurpleAILAB Apache-2.0 fork). User-facing label
+  // is "BJHUNT ALPHA 1.0" — the public brand for our orchestration layer.
   decepticon: {
-    label: 'Orchestrator',
-    description: 'Coordinates the full engagement and delegates to specialist agents.',
+    label: 'BJHUNT ALPHA 1.0',
+    description: 'Coordinates the full engagement and delegates to all specialist agents.',
     role: 'orchestrator',
     color: 'indigo',
     icon: 'Workflow',

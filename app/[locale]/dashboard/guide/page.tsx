@@ -6,7 +6,7 @@ import Link from "next/link";
 // ── Agent table data ──────────────────────────────────────────────────────
 
 const AGENTS = [
-  { name: "Decepticon (BJHUNT)", role: "Orchestrateur principal", description: "Coordonne les 9 sous-agents, gere le cycle complet de la mission" },
+  { name: "BJHUNT ALPHA 1.0", role: "Orchestrateur principal", description: "Coordonne les 9 sous-agents, gere le cycle complet de la mission" },
   { name: "Soundwave", role: "Planification", description: "Interview operateur, genere RoE, CONOPS, OPPLAN" },
   { name: "Recon", role: "Reconnaissance", description: "OSINT, enumeration sous-domaines, scan de ports, detection de services" },
   { name: "Exploit", role: "Exploitation", description: "SQLi, SSTI, Kerberoasting, ADCS, attaques credentials" },

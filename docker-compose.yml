@@ -19,6 +19,14 @@ services:
       - REDIS_URL=redis://redis:6379
       - SESSION_SECRET=${SESSION_SECRET:?required}
       - BJHUNT_API_SECRET=${BJHUNT_API_SECRET:?required}
+      # AES-256-GCM key for at-rest encryption of provider keys (admin/gateway).
+      # Without this the crypto module falls back to a key derived from
+      # SESSION_SECRET — works but degrades crypto guarantee.
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?required}
+      # BJHUNT_APP_DATABASE_URL is read directly by db/client.ts when set —
+      # switches the appSql pool to the bjhunt_app role (NOSUPERUSER, NOBYPASSRLS).
+      # If unset, appSql falls back to DATABASE_URL (superuser, bypasses RLS).
+      - BJHUNT_APP_DATABASE_URL=${BJHUNT_APP_DATABASE_URL:-}
       - LANGGRAPH_URL=http://langgraph:2024
       - CORS_ORIGINS=${CORS_ORIGINS:-https://bjhunt.com,https://www.bjhunt.com}
     depends_on:
