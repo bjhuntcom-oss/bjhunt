@@ -194,10 +194,10 @@ export default async function DashboardPage({
   };
 
   const severityBars = [
-    { label: "CRITIQUE", count: severity.critical, color: "var(--danger)" },
-    { label: "HAUTE",    count: severity.high,     color: "var(--warning)" },
-    { label: "MOYENNE",  count: severity.medium,   color: "var(--warning)" },
-    { label: "FAIBLE",   count: severity.low,      color: "var(--success)" },
+    { label: "CRITIQUE", count: severity.critical, color: "var(--bjhunt-severity-critical)" },
+    { label: "HAUTE",    count: severity.high,     color: "var(--bjhunt-severity-high)" },
+    { label: "MOYENNE",  count: severity.medium,   color: "var(--bjhunt-severity-medium)" },
+    { label: "FAIBLE",   count: severity.low,      color: "var(--bjhunt-severity-low)" },
   ];
   const maxSeverity = Math.max(...severityBars.map((s) => s.count), 1);
 
