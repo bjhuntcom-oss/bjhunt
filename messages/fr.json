@@ -1190,5 +1190,38 @@
       "find2": "J'ai détecté une clé API secrète dans vos variables d'environnement. Elle doit être déplacée dans un vault sécurisé.",
       "result": "✓ Plan de remédiation généré · Infra sécurisée"
     }
+  },
+  "cookies": {
+    "title": "Paramètres de confidentialité",
+    "subtitle": "BJHUNT respecte votre vie privée",
+    "intro": "Nous utilisons des cookies pour analyser le trafic, améliorer votre expérience et personnaliser le contenu. Vous pouvez choisir les cookies que vous acceptez.",
+    "close": "Fermer",
+    "required": "Requis",
+    "customize": "Personnaliser",
+    "hide": "Masquer les options",
+    "save": "Enregistrer mes choix",
+    "rejectAll": "Refuser tout",
+    "acceptAll": "Tout accepter",
+    "footerLearnMore": "En savoir plus dans notre",
+    "footerPolicy": "politique de confidentialité",
+    "footerCompliance": "RGPD Compliant",
+    "categories": {
+      "necessary": {
+        "name": "Essentiels",
+        "description": "Cookies nécessaires au fonctionnement du site. Toujours actifs."
+      },
+      "analytics": {
+        "name": "Analytiques",
+        "description": "Nous aident à comprendre comment vous utilisez le site pour l'améliorer."
+      },
+      "marketing": {
+        "name": "Marketing",
+        "description": "Utilisés pour vous proposer des publicités pertinentes."
+      },
+      "preferences": {
+        "name": "Préférences",
+        "description": "Permettent de mémoriser vos choix et personnaliser votre expérience."
+      }
+    }
   }
 }

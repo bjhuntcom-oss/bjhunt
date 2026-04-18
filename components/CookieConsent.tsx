@@ -1,47 +1,29 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Cookie, Shield, BarChart3, Target, Settings, ChevronRight, Check } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { X, Cookie, Shield, BarChart3, Target, Settings, Check } from 'lucide-react'
 import { getConsent, setConsent, CookieConsent as CookieConsentType, defaultConsent } from '@/lib/cookies'
-import { initTracking, shutdownTracking } from '@/lib/tracking'
+import { initTracking } from '@/lib/tracking'
+
+type ConsentKey = keyof Omit<CookieConsentType, 'timestamp'>
 
 interface ConsentOption {
-  id: keyof Omit<CookieConsentType, 'timestamp'>
-  name: string
-  description: string
+  id: ConsentKey
   icon: React.ReactNode
   required?: boolean
 }
 
+// Strings come from messages/{en,fr}.json#cookies — DOC-A3 + DOC-20 P1.
 const consentOptions: ConsentOption[] = [
-  {
-    id: 'necessary',
-    name: 'Essentiels',
-    description: 'Cookies nécessaires au fonctionnement du site. Toujours actifs.',
-    icon: <Shield className="w-4 h-4" />,
-    required: true,
-  },
-  {
-    id: 'analytics',
-    name: 'Analytiques',
-    description: 'Nous aident à comprendre comment vous utilisez le site pour l\'améliorer.',
-    icon: <BarChart3 className="w-4 h-4" />,
-  },
-  {
-    id: 'marketing',
-    name: 'Marketing',
-    description: 'Utilisés pour vous proposer des publicités pertinentes.',
-    icon: <Target className="w-4 h-4" />,
-  },
-  {
-    id: 'preferences',
-    name: 'Préférences',
-    description: 'Permettent de mémoriser vos choix et personnaliser votre expérience.',
-    icon: <Settings className="w-4 h-4" />,
-  },
+  { id: 'necessary', icon: <Shield className="w-4 h-4" />, required: true },
+  { id: 'analytics', icon: <BarChart3 className="w-4 h-4" /> },
+  { id: 'marketing', icon: <Target className="w-4 h-4" /> },
+  { id: 'preferences', icon: <Settings className="w-4 h-4" /> },
 ]
 
 export default function CookieConsentBanner() {
+  const t = useTranslations('cookies')
   const [isVisible, setIsVisible] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
   const [consent, setConsentState] = useState<CookieConsentType>(defaultConsent)
@@ -142,25 +124,24 @@ export default function CookieConsentBanner() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold tracking-wider text-white uppercase">
-                      Paramètres de confidentialité
+                      {t('title')}
                     </h3>
                     <p className="text-[10px] text-white/50 tracking-widest uppercase mt-0.5">
-                      BJHUNT respecte votre vie privée
+                      {t('subtitle')}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={handleRejectAll}
                   className="p-2 hover:bg-white/10 transition-colors"
-                  aria-label="Fermer"
+                  aria-label={t('close')}
                 >
                   <X className="w-4 h-4 text-white/50" />
                 </button>
               </div>
 
               <p className="text-xs text-white/70 mt-4 leading-relaxed">
-                Nous utilisons des cookies pour analyser le trafic, améliorer votre expérience et personnaliser le contenu. 
-                Vous pouvez choisir les cookies que vous acceptez.
+                {t('intro')}
               </p>
             </div>
 
@@ -185,16 +166,16 @@ export default function CookieConsentBanner() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold text-white uppercase tracking-wider">
-                            {option.name}
+                            {t(`categories.${option.id}.name`)}
                           </span>
                           {option.required && (
                             <span className="text-[8px] px-1.5 py-0.5 bg-white/10 text-white/50 uppercase tracking-widest">
-                              Requis
+                              {t('required')}
                             </span>
                           )}
                         </div>
                         <p className="text-[10px] text-white/50 mt-0.5 max-w-xs">
-                          {option.description}
+                          {t(`categories.${option.id}.description`)}
                         </p>
                       </div>
                     </div>
@@ -229,7 +210,7 @@ export default function CookieConsentBanner() {
                 className="flex items-center justify-center gap-2 px-4 py-2.5 border border-white/20 text-[10px] font-bold tracking-wider uppercase hover:bg-white/5 transition-colors order-3 sm:order-1"
               >
                 <Settings className="w-3 h-3" />
-                {showDetails ? 'Masquer les options' : 'Personnaliser'}
+                {showDetails ? t('hide') : t('customize')}
               </button>
 
               <div className="flex-1 order-1 sm:order-2" />
@@ -241,24 +222,23 @@ export default function CookieConsentBanner() {
                     className="flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-black text-[10px] font-bold tracking-wider uppercase hover:bg-white/90 transition-colors"
                   >
                     <Check className="w-3 h-3" />
-                    Enregistrer mes choix
+                    {t('save')}
                   </button>
                 ) : (
                   <>
-                    {/* CNIL guidance (mise à jour 2026) : "Refuser" doit être aussi facile, */}
-                    {/* visible et rapide qu'"Accepter". Styles identiques, ordre Refuser→Accepter. */}
-                    {/* Cf. https://www.cnil.fr/fr/cookies-et-traceurs (recommandations 2026). */}
+                    {/* CNIL 2026 : "Refuser" aussi facile/visible/rapide qu'"Accepter".
+                        Mêmes styles, même taille, ordre Refuser → Accepter. */}
                     <button
                       onClick={handleRejectAll}
                       className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-black text-[10px] font-bold tracking-wider uppercase hover:bg-white/90 transition-colors"
                     >
-                      Refuser tout
+                      {t('rejectAll')}
                     </button>
                     <button
                       onClick={handleAcceptAll}
                       className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-black text-[10px] font-bold tracking-wider uppercase hover:bg-white/90 transition-colors"
                     >
-                      Tout accepter
+                      {t('acceptAll')}
                     </button>
                   </>
                 )}
@@ -268,14 +248,14 @@ export default function CookieConsentBanner() {
             {/* Footer info */}
             <div className="px-4 md:px-6 pb-4 flex items-center justify-between">
               <p className="text-[9px] text-white/30 tracking-widest uppercase">
-                En savoir plus dans notre{' '}
+                {t('footerLearnMore')}{' '}
                 <a href="/legal" className="underline hover:text-white/50">
-                  politique de confidentialité
+                  {t('footerPolicy')}
                 </a>
               </p>
               <div className="flex items-center gap-2 text-[9px] text-white/30">
                 <Shield className="w-3 h-3" />
-                <span>RGPD Compliant</span>
+                <span>{t('footerCompliance')}</span>
               </div>
             </div>
           </div>

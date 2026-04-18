@@ -1190,5 +1190,38 @@
       "find2": "I found a secret API key in your environment variables. It should be moved to a secure vault.",
       "result": "✓ Remediation plan generated · Infrastructure secured"
     }
+  },
+  "cookies": {
+    "title": "Privacy preferences",
+    "subtitle": "BJHUNT respects your privacy",
+    "intro": "We use cookies to analyse traffic, improve your experience and personalise content. You can choose which cookies you accept.",
+    "close": "Close",
+    "required": "Required",
+    "customize": "Customise",
+    "hide": "Hide options",
+    "save": "Save my choices",
+    "rejectAll": "Reject all",
+    "acceptAll": "Accept all",
+    "footerLearnMore": "Learn more in our",
+    "footerPolicy": "privacy policy",
+    "footerCompliance": "GDPR compliant",
+    "categories": {
+      "necessary": {
+        "name": "Essential",
+        "description": "Cookies required for the site to function. Always active."
+      },
+      "analytics": {
+        "name": "Analytics",
+        "description": "Help us understand how you use the site so we can improve it."
+      },
+      "marketing": {
+        "name": "Marketing",
+        "description": "Used to show you relevant advertisements."
+      },
+      "preferences": {
+        "name": "Preferences",
+        "description": "Remember your choices and personalise your experience."
+      }
+    }
   }
 }
