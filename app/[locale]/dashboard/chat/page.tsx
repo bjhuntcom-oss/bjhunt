@@ -1516,6 +1516,20 @@ export default function ChatPage() {
             ) : (
               <span className="text-[var(--text-subtle)]">ready</span>
             )}
+
+            {/* AI Act EU Article 50 (applicable 2026-08-02) — persistent
+                disclosure that the user is interacting with AI. The chat
+                context already implies it but a machine-readable badge
+                with a tooltip satisfies the transparency obligation. */}
+            <span
+              role="note"
+              aria-label="Outputs in this chat are AI-generated. See /legal for our acceptable use policy."
+              title="AI-generated content — outputs may be inaccurate. See /legal/ai-policy for the acceptable use policy."
+              className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 border border-[var(--border)] text-[9px] uppercase tracking-[0.15em] text-[var(--text-subtle)]"
+            >
+              <span aria-hidden>◇</span>
+              AI-generated
+            </span>
           </div>
         </div>
 
