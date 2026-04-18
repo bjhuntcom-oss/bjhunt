@@ -10,6 +10,7 @@ import { zValidator } from "@hono/zod-validator";
 // email, session/token lookups, password reset). They need cross-org access
 // by definition. Use the BYPASSRLS pool — per docs/architecture/10 §131-148.
 import { adminSql as sql } from "../db/client.js";
+import { checkLockout, recordFailure, clearFailures, LOCKOUT_LIMITS } from "../auth/lockout.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { createSession, deleteSession } from "../auth/session.js";
 import { config } from "../config.js";
@@ -119,6 +120,20 @@ authRoutes.post(
   zValidator("json", loginSchema),
   async (c) => {
     const { email, password } = c.req.valid("json");
+    const clientIp = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+
+    // ── Account lockout pre-check (OWASP A07:2025) ────────────────────
+    const lockout = await checkLockout(email, clientIp);
+    if (lockout.locked) {
+      c.header("Retry-After", String(lockout.retryAfter));
+      return c.json(
+        {
+          error: "Too many failed attempts. Account locked temporarily.",
+          retryAfter: lockout.retryAfter,
+        },
+        429,
+      );
+    }
 
     const [user] = await sql`
       SELECT id, org_id, email, password_hash, role, is_platform_admin
@@ -126,6 +141,9 @@ authRoutes.post(
     `;
 
     if (!user) {
+      // Record the failure even when the email doesn't exist — this prevents
+      // attackers from probing for valid emails via the lockout side-channel.
+      await recordFailure(email, clientIp);
       // Constant-time fake hash to prevent timing attacks
       await hashPassword("fake-password-for-timing");
       return c.json({ error: "Invalid email or password" }, 401);
@@ -133,8 +151,20 @@ authRoutes.post(
 
     const valid = await verifyPassword(user.passwordHash as string, password);
     if (!valid) {
+      const { tripped } = await recordFailure(email, clientIp);
+      if (tripped) {
+        await sql`
+          INSERT INTO audit_logs (org_id, user_id, action, resource, ip_address, details)
+          VALUES (${user.orgId}, ${user.id}, 'auth.lockout.tripped',
+                  ${"user:" + (user.id as string)}, ${clientIp},
+                  ${JSON.stringify({ failures: LOCKOUT_LIMITS.maxFailures })})
+        `.catch(() => {});
+      }
       return c.json({ error: "Invalid email or password" }, 401);
     }
+
+    // Successful credential check — clear the lockout counter.
+    await clearFailures(email, clientIp);
 
     // ── 2FA check ─────────────────────────────────────────────────────
     // If the user has TOTP enabled, do NOT create a session yet.
