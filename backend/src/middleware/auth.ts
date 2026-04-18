@@ -76,7 +76,11 @@ export const requireAuth: MiddlewareHandler = async (c, next) => {
 };
 
 /**
- * Require platform admin role.
+ * Require platform admin role (a.k.a. super_admin in docs/architecture/09).
+ *
+ * BJHUNT keeps the schema org-centric (per D2 in the master roadmap) so
+ * "super_admin" is implemented as the boolean column `users.is_platform_admin`.
+ * The `requireSuperAdmin` alias below exists for spec-compliance with doc 05.
  */
 export const requireAdmin: MiddlewareHandler = async (c, next) => {
   const user = c.get("user") as AuthUser | undefined;
@@ -85,6 +89,12 @@ export const requireAdmin: MiddlewareHandler = async (c, next) => {
   }
   await next();
 };
+
+/**
+ * Spec alias — equivalent to `requireAdmin`. Use this on routes the spec
+ * marks as `super_admin` (e.g. DELETE /api/admin/users/:id, PATCH platform settings).
+ */
+export const requireSuperAdmin = requireAdmin;
 
 /**
  * Require org admin or owner role.

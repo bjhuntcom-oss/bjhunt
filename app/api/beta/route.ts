@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { betaSignupSchema } from '@/lib/validations'
 import { sendBetaSignupNotification } from '@/lib/email'
 import { sanitizeFormData } from '@/lib/sanitize'
+import { rateLimit, getClientIp, rateLimitHeaders } from '@/lib/rate-limit'
 
 async function verifyCaptcha(token: string): Promise<boolean> {
   try {
@@ -20,34 +21,18 @@ async function verifyCaptcha(token: string): Promise<boolean> {
   }
 }
 
-const rateLimitMap = new Map<string, { count: number; lastReset: number }>()
+// Per docs/architecture/14-SECURITY.md §Rate Limiting → Register: 5/min/IP
 const RATE_LIMIT = 5
-const RATE_LIMIT_WINDOW = 60 * 1000
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const record = rateLimitMap.get(ip)
-
-  if (!record || now - record.lastReset > RATE_LIMIT_WINDOW) {
-    rateLimitMap.set(ip, { count: 1, lastReset: now })
-    return false
-  }
-
-  if (record.count >= RATE_LIMIT) {
-    return true
-  }
-
-  record.count++
-  return false
-}
+const RATE_LIMIT_WINDOW_MS = 60 * 1000
 
 export async function POST(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || 'unknown'
-    if (isRateLimited(ip)) {
+    const ip = getClientIp(request)
+    const rl = await rateLimit('beta', ip, RATE_LIMIT, RATE_LIMIT_WINDOW_MS)
+    if (!rl.success) {
       return NextResponse.json(
         { error: 'rate_limit_exceeded', error_code: 'RATE_LIMITED' },
-        { status: 429 }
+        { status: 429, headers: rateLimitHeaders(rl) },
       )
     }
 

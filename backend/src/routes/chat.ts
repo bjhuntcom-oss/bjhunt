@@ -27,6 +27,12 @@ import type { AuthUser } from "../middleware/auth.js";
 import { join } from "node:path";
 import { mkdir, stat } from "node:fs/promises";
 import { signTicket, verifyTicket } from "../lib/stream-ticket.js";
+import {
+  createTransformState,
+  processChunk,
+  flushBuffer,
+  type EmitFn,
+} from "../lib/langgraph-sse-transform.js";
 
 export const chatRoutes = new Hono<{ Variables: AppVariables }>();
 
@@ -323,73 +329,87 @@ chatRoutes.get("/stream/:runId", async (c) => {
       stream.write(": heartbeat\n\n").catch(() => {});
     }, HEARTBEAT_INTERVAL_MS);
 
-    let fullResponse = "";
-    let tokensIn = 0;
-    let tokensOut = 0;
+    // Inactivity timeout — abort the upstream if no chunk arrives for STREAM_TIMEOUT_MS.
+    let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
+    let streamFailed = false;
+    const armTimeout = () => {
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      timeoutTimer = setTimeout(() => {
+        streamFailed = true;
+        stream
+          .writeSSE({
+            event: "error",
+            data: JSON.stringify({
+              message: "Stream timed out — no data from AI agent for 120 seconds",
+              code: "stream_timeout",
+            }),
+          })
+          .catch(() => {});
+        abort.abort();
+      }, STREAM_TIMEOUT_MS);
+    };
+    armTimeout();
 
-    const decoder = new TextDecoder();
-    let sseBuffer = "";
+    // Typed event emitter: writes SSE frames the frontend handlers consume directly.
+    // Per docs/architecture/02-STREAMING.md §SSE Event Types.
+    let eventCounter = 0;
+    const emit: EmitFn = (event, data) => {
+      const id = ++eventCounter;
+      // CVE-2026-29085: strip CR/LF from event name.
+      const safeEvent = event.replace(/[\r\n]/g, "");
+      stream
+        .write(`id: ${id}\nevent: ${safeEvent}\ndata: ${JSON.stringify(data)}\n\n`)
+        .catch(() => {});
+    };
+
+    const transformState = createTransformState();
 
     const reader = upstream.getReader();
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        if (streamFailed) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        await stream.write(chunk);
+        armTimeout();
+        processChunk(value, transformState, emit);
+      }
+      flushBuffer(transformState, emit);
 
-        sseBuffer += chunk;
-        const normalised = sseBuffer.replace(/\r\n/g, "\n");
-        const parts = normalised.split("\n\n");
-        sseBuffer = parts.pop() ?? "";
-        for (const block of parts) {
-          for (const line of block.split("\n")) {
-            if (!line.startsWith("data: ")) continue;
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (Array.isArray(data?.messages)) {
-                for (const msg of data.messages) {
-                  if (msg.type === "ai" && typeof msg.content === "string" && msg.content) {
-                    fullResponse = msg.content;
-                  }
-                  if (msg.type === "ai" && msg.response_metadata?.token_usage) {
-                    tokensIn = msg.response_metadata.token_usage.prompt_tokens || 0;
-                    tokensOut = msg.response_metadata.token_usage.completion_tokens || 0;
-                  }
-                }
-              }
-            } catch {
-              // persistence-only path — client receives raw frames regardless
-            }
-          }
-        }
+      // Detect empty response (LangGraph delivered stream but no content/tools)
+      if (!streamFailed && !transformState.fullResponse && transformState.toolCalls.length === 0) {
+        emit("error", {
+          message:
+            "L'agent IA n'a pas retourné de réponse. Le moteur est peut-être indisponible ou le modèle n'a pas pu générer de contenu.",
+          code: "empty_response",
+        });
       }
 
-      await stream.writeSSE({
-        event: "done",
-        data: JSON.stringify({ tokensIn, tokensOut }),
+      emit("done", {
+        tokensIn: transformState.tokensIn,
+        tokensOut: transformState.tokensOut,
       });
 
-      if (fullResponse) {
+      if (transformState.fullResponse) {
         await sql`INSERT INTO chat_messages (org_id, conversation_id, role, content, tokens_input, tokens_output)
-          VALUES (${orgId}, ${convId}, 'assistant', ${fullResponse}, ${tokensIn || null}, ${tokensOut || null})`.catch(() => {});
+          VALUES (${orgId}, ${convId}, 'assistant', ${transformState.fullResponse},
+                  ${transformState.tokensIn || null}, ${transformState.tokensOut || null})`.catch(() => {});
       }
       await sql`UPDATE agent_runs SET status = 'completed', completed_at = now(),
-        tokens_input = ${tokensIn}, tokens_output = ${tokensOut},
-        output_summary = ${fullResponse.slice(0, 200)}
+        tokens_input = ${transformState.tokensIn}, tokens_output = ${transformState.tokensOut},
+        output_summary = ${transformState.fullResponse.slice(0, 200)}
         WHERE id = ${runId}`.catch(() => {});
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        await stream.writeSSE({
-          event: "error",
-          data: JSON.stringify({ message: err?.message || "Stream failed" }),
-        }).catch(() => {});
+        emit("error", { message: err?.message || "Stream failed" });
         await markRunFailed(err?.message || "Stream failed");
       }
     } finally {
+      if (timeoutTimer) clearTimeout(timeoutTimer);
       clearInterval(heartbeatTimer);
-      try { reader.releaseLock(); } catch {}
+      try {
+        reader.releaseLock();
+      } catch {}
     }
   });
 });

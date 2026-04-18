@@ -1,0 +1,909 @@
+BJHUNT x OpenClaw - reflexion d'architecture, couts, multi-tenant, adaptation reelle
+Date: 2026-04-17
+Auteur: Codex
+
+========================================================================
+1. EXECUTIVE SUMMARY
+========================================================================
+
+Conclusion courte:
+
+- OpenClaw peut remplacer le "cerveau agentique" et la couche d'orchestration de BJHUNT.
+- OpenClaw ne doit PAS remplacer a lui seul tout le backend SaaS de BJHUNT.
+- Le bon modele est:
+  1. BJHUNT Backend = control plane SaaS (auth, users, orgs, billing, RBAC, jobs, audit logs, quotas)
+  2. OpenClaw = agent kernel interne (sessions, taskflow, prompts, tools, streaming, sandboxes)
+  3. Sandbox Broker = execution plane cyber dedie (Kali, scans, artefacts, reseaux, quotas)
+
+Verdict:
+
+- Oui, OpenClaw est une base beaucoup plus moderne et legere que Decepticon pour la couche agentique.
+- Non, OpenClaw n'est pas une frontiere multi-tenant hostile "out of the box".
+- Donc:
+  - pour une beta privee ou un petit SaaS, OpenClaw est tres interessant
+  - pour du multi-tenant offensif serieux, il faut l'encapsuler derriere le backend BJHUNT et isoler les tenants
+
+La meilleure direction pour BJHUNT n'est pas:
+
+- "chaque user a son OpenClaw expose"
+- "chaque user a son port public"
+- "chaque user a son GPU Runpod"
+
+La meilleure direction est:
+
+- 1 seul point d'entree public sur 443
+- 1 backend Bun/Hono qui route les users, applique auth/RBAC/RLS/rate limit
+- 1 pool interne de workers OpenClaw
+- 1 file de jobs
+- des sandboxes lancees a la demande par engagement ou par job
+- une isolation plus forte uniquement pour les orgs premium / enterprise
+
+
+========================================================================
+2. CE QUE DIT LA RECHERCHE WEB SUR OPENCLAW
+========================================================================
+
+Ce qu'OpenClaw est vraiment:
+
+- OpenClaw est un gateway/runtime agentique TypeScript/Node, multi-canaux, multi-agents, avec WebSocket control plane, sessions, tools, skills, plugins et une API HTTP/OpenResponses.
+- Sa doc officielle le positionne comme un gateway self-hosted d'agents AI, pas comme un backend SaaS multi-tenant securise pret a l'emploi.
+
+Points tres favorables pour BJHUNT:
+
+- Leger:
+  - la doc officielle dit qu'il peut tourner sur Raspberry Pi
+  - la FAQ cite 512MB-1GB RAM, 1 core, environ 500MB disque comme base perso
+  - en clair: le runtime OpenClaw lui-meme n'est pas gourmand
+- API exploitable:
+  - OpenClaw expose un endpoint compatible OpenResponses: POST /v1/responses
+  - SSE streaming supporte
+  - routage par agent et par session
+- Multi-agents:
+  - workspaces, auth profiles, sessions et agentDir separent par agent
+- Sandboxing:
+  - support Docker sandbox
+  - scope possible par session, agent ou shared
+- Plusieurs gateways possibles:
+  - profils separes
+  - state dirs separes
+  - ports separes
+
+Points de friction critiques pour BJHUNT:
+
+- Le modele de securite officiel n'est PAS celui d'un SaaS hostile multi-tenant.
+- La doc de securite OpenClaw dit explicitement:
+  - un gateway partage n'est pas une vraie frontiere de securite pour des utilisateurs adverses
+  - si des utilisateurs mutuellement non fiables partagent un gateway/host/config, il faut separer les frontieres de confiance avec des gateways et credentials distincts, idealement des OS users / hosts separes
+- Le endpoint OpenResponses est a traiter comme un acces operateur complet au gateway.
+  - Donc il ne faut jamais l'exposer directement au navigateur utilisateur.
+- OpenClaw recommande Node pour la prod.
+  - Bun n'est pas recommande pour le gateway runtime
+- Un gateway par host est le modele recommande.
+  - Plusieurs gateways sur un meme host sont possibles, mais surtout pour isolation stricte ou rescue bot
+
+Lecture BJHUNT:
+
+- OpenClaw est une excellente "machine a agents"
+- OpenClaw n'est pas le "tenant isolation layer"
+- le tenant isolation layer doit etre construit par BJHUNT autour d'OpenClaw
+
+
+========================================================================
+3. VERDICT STRATEGIQUE POUR BJHUNT
+========================================================================
+
+Remplacer Decepticon par OpenClaw comme coeur?
+
+Oui, mais avec une precision importante:
+
+- OpenClaw doit remplacer la couche:
+  - orchestrateur agentique
+  - sessions
+  - prompts
+  - skills/plugins
+  - streaming
+  - outils typed
+  - taches / taskflows
+
+- OpenClaw ne doit PAS remplacer la couche:
+  - auth utilisateur
+  - orgs / tenants
+  - RBAC
+  - facturation
+  - quotas
+  - audit logs SaaS
+  - persistance relationnelle BJHUNT
+  - politique d'isolation entre clients
+  - gouvernance des sandboxes offensives
+
+Donc la vraie cible est:
+
+- remplacer Decepticon/LangGraph comme runtime agent
+- garder / construire un vrai backend BJHUNT autour
+
+Formulation simple:
+
+- Decepticon = framework offensif assez monolithique
+- OpenClaw = noyau agentique plus flexible
+- BJHUNT doit devenir le produit SaaS qui enferme OpenClaw dans une architecture securisee
+
+
+========================================================================
+4. ARCHITECTURE CIBLE RECOMMANDEE
+========================================================================
+
+Architecture recommande pour BJHUNT:
+
+Internet
+  |
+  v
+Vercel (Next.js frontend)
+  |
+  v
+BJHUNT API (Bun + Hono)
+  |
+  +--> PostgreSQL 17
+  +--> Redis
+  +--> Object storage / artefacts
+  +--> Job scheduler / queue
+  |
+  v
+OpenClaw Worker Pool (Node 24, interne seulement)
+  |
+  v
+Sandbox Broker (interne)
+  |
+  +--> Kali containers / CPU workers
+  +--> Browser workers
+  +--> Optional GPU inference endpoint
+  |
+  v
+Resultats -> PG / artefacts / stream SSE -> frontend
+
+Decoupage concret:
+
+1. Frontend public
+- Next.js 15 sur Vercel
+- pages marketing
+- dashboard user
+- dashboard admin
+- chat UI
+
+2. Control plane SaaS
+- backend/ en Bun + Hono
+- point d'entree unique pour:
+  - auth
+  - orgs
+  - users
+  - API keys
+  - plans
+  - engagements
+  - findings
+  - audit logs
+  - quotas
+  - orchestration de jobs
+
+3. Agent plane
+- pool de 1 a N workers OpenClaw
+- aucun acces direct internet public
+- appeles uniquement par le backend
+- utilisent uniquement des tools BJHUNT allowlistes
+
+4. Execution plane
+- sandboxes Kali creees a la demande
+- workers de scan
+- workers browser
+- eventuellement GPU inference partage si necessaire
+
+5. Data plane
+- PostgreSQL pour les donnees metier
+- Redis pour rate limit / cache / pubsub / coordination rapide
+- stockage objet pour rapports, captures, artefacts lourds
+
+
+========================================================================
+5. CHOIX TECHNOLOGIQUES RECOMMANDES
+========================================================================
+
+Frontend:
+
+- Garder Next.js 15 existant sur Vercel
+
+Backend SaaS:
+
+- Garder Bun + Hono
+- Zod partout pour validation input/output
+- Postgres 17 comme source de verite
+- RLS Postgres pour org isolation
+- cookies de session httpOnly + CSRF d'origine
+- Argon2id pour les mots de passe
+- AES-256-GCM pour secrets d'integration stockes
+
+Runtime agentique:
+
+- OpenClaw en Node 24
+- pas Bun pour le gateway OpenClaw en prod
+- deploye en container(s) internes
+
+Streaming:
+
+- frontend -> backend SSE
+- backend -> OpenClaw via OpenResponses SSE ou WebSocket RPC
+
+Queue:
+
+- garder simple
+- recommandation:
+  - PostgreSQL pour les jobs persistants et les etats
+  - Redis pour rate limiting, locks courts, pubsub, fanout SSE
+- ne pas partir sur Kafka/RabbitMQ tant qu'il n'y a pas un vrai besoin
+
+Sandbox:
+
+- ne pas donner a OpenClaw l'acces raw et large au host
+- ne pas baser toute la securite sur le tool exec generique
+- creer un "Sandbox Broker" BJHUNT
+- OpenClaw doit appeler des tools BJHUNT typed:
+  - bjhunt_scope_validate
+  - bjhunt_recon_scan
+  - bjhunt_http_probe
+  - bjhunt_nuclei_scan
+  - bjhunt_code_audit
+  - bjhunt_store_artifact
+  - bjhunt_create_finding
+  - bjhunt_finalize_report
+
+Important:
+
+- pour le shared multi-tenant, je desactiverais completement:
+  - exec host
+  - tools.elevated
+  - browser libre
+  - plugins communautaires non audites
+  - channels type WhatsApp/Telegram/Discord
+  - nodes mobiles/macOS
+
+En d'autres termes:
+
+- OpenClaw ne doit pas etre utilise ici comme "assistant perso full power"
+- il doit etre utilise comme runtime enferme, specialise BJHUNT
+
+
+========================================================================
+6. SEPARATION USER / ADMIN / INTERNAL
+========================================================================
+
+Separation fonctionnelle recommande:
+
+Public:
+
+- /api/public/*
+- contact, beta, pricing, status
+- rate limit strict
+- pas d'acces OpenClaw
+
+Auth:
+
+- /api/auth/*
+- register
+- login
+- logout
+- reset password
+- API keys user
+- sessions
+
+User app:
+
+- /api/app/*
+- org profile
+- engagements
+- assets / scopes
+- findings
+- reports
+- artefacts
+- chat / conversations
+- reruns limites par plan
+
+Admin:
+
+- /api/admin/*
+- users CRUD
+- orgs CRUD
+- plans / quotas
+- worker pools
+- provider routing
+- gateway health
+- sandbox inventory
+- audit logs
+- security incidents
+- kill switch / disable tenant
+
+Internal only:
+
+- /api/internal/*
+- callbacks worker -> backend
+- broker sandbox -> backend
+- artefact ingestion
+- reporting finalization
+- healthcheck inter-services
+
+Recommendation securite:
+
+- admin = role separe + step-up auth
+- jamais de partage de cookies admin/user sans controle supplementaire
+- endpoints internes non exposes publiquement
+
+
+========================================================================
+7. MODELE MULTI-TENANT REELLEMENT ADAPTE A BJHUNT
+========================================================================
+
+Il faut penser en "niveaux d'isolation", pas en "une solution unique pour tout le monde".
+
+Niveau A - Shared beta / low-cost
+
+- pool partage de workers OpenClaw
+- tools tres limites
+- sandboxes scope=session
+- workspaceAccess = none
+- pas d'exec raw arbitraire
+- pas de plugins tiers
+- pas de credentials globaux reutilisables
+- jobs offensifs mis en file
+
+Pour qui:
+
+- beta privee
+- usage interne
+- petits clients non hostiles
+
+Risque:
+
+- acceptable si les tools sont tres controles
+- pas ideal pour des tenants mutuellement adverses
+
+Niveau B - Shared control plane + dedicated org runtime
+
+- backend shared
+- Postgres shared avec RLS
+- un gateway OpenClaw dedie par organisation premium
+- state dir dedie
+- workspace dedie
+- port interne dedie
+- eventuellement OS user dedie
+
+Pour qui:
+
+- vrais clients payants
+- besoins d'isolation plus forte
+
+Niveau C - Dedicated org host
+
+- backend shared
+- org enterprise execute ses jobs sur host/VM dedie
+- gateway OpenClaw dedie
+- sandbox node(s) dedie(s)
+- secrets dedies
+
+Pour qui:
+
+- enterprise
+- contrats sensibles
+- scopes offensifs plus dangereux
+
+Recommendation pratique BJHUNT:
+
+- commencer avec A + B
+- ne pas commencer directement avec C pour tout le monde
+- reserver C aux gros comptes
+
+
+========================================================================
+8. EST-CE QUE CHAQUE USER AURA UN PORT ? NON
+========================================================================
+
+Non, il ne faut PAS penser comme ca.
+
+Bon modele:
+
+- 1 port public 443
+- 1 backend API interne, par ex 3001
+- 1 ou quelques gateways OpenClaw internes, par ex 18789, 18790, 18791
+- les users sont multiplexes par:
+  - org_id
+  - user_id
+  - conversation_id
+  - job_id
+  - session_key
+
+Quand un port dedie apparait:
+
+- uniquement si tu choisis un gateway OpenClaw distinct par org / tenant
+- meme dans ce cas, le port reste INTERNE
+- le user ne voit jamais ce port
+
+Donc:
+
+- pas "1 user = 1 port"
+- pas "1 user = 1 container toujours allume"
+- pas "1 user = 1 GPU"
+
+Ce qui tourne a la demande:
+
+- une sandbox de job
+- un browser worker
+- un worker GPU eventuel
+
+Ce qui reste stable:
+
+- le backend
+- la base
+- Redis
+- le petit pool de workers OpenClaw
+
+
+========================================================================
+9. EST-CE QUE LE VPS HOSTINGER KVM 8 SUFFIT ?
+========================================================================
+
+Reponse courte:
+
+- pour demarrer: OUI
+- pour scaler des audits offensifs simultanes: PAS tout seul
+
+Pourquoi il suffit au debut:
+
+- Hostinger KVM 8 actuel:
+  - 8 vCPU
+  - 32GB RAM
+  - 400GB NVMe
+- OpenClaw est leger
+  - la doc officielle montre qu'il peut meme tourner sur Raspberry Pi
+- donc le control plane BJHUNT + quelques workers OpenClaw tiennent tres bien dessus
+
+Ce qui consomme vraiment:
+
+- pas OpenClaw en premier
+- ce sont:
+  - les sandboxes Kali
+  - Chromium / browser automation
+  - scans reseau
+  - gros artefacts
+  - concurrents simultanes
+
+Estimation de charge raisonnable sur KVM 8:
+
+Base services, sans gros jobs:
+
+- backend Bun/Hono
+- PostgreSQL
+- Redis
+- 1-2 workers OpenClaw
+- Caddy
+- logs / exporters
+
+Budget RAM raisonnable:
+
+- environ 4GB a 8GB au total selon tuning et buffers
+
+Budget restant pour execution:
+
+- environ 24GB de RAM exploitables avec marge
+
+Charge par job active (estimation architecture, pas spec officielle):
+
+- job "light" (planification, synthese, petits checks HTTP):
+  - 1 vCPU
+  - 1GB a 2GB RAM
+- job "medium" (nuclei/httpx/browser ponctuel):
+  - 1 a 2 vCPU
+  - 3GB a 5GB RAM
+- job "heavy" (browser + scans + artefacts + chaines):
+  - 2 a 4 vCPU
+  - 6GB a 8GB RAM
+
+Conclusion operationnelle:
+
+- oui pour:
+  - une petite beta
+  - 10-30 users connectes
+  - 2-3 jobs offensifs moyens en parallele avec queue
+- non pour:
+  - des dizaines de jobs lourds simultanes
+  - du dedie enterprise pour beaucoup de tenants
+
+Reglage recommande au debut:
+
+- maxConcurrent OpenClaw bas
+- queue stricte des jobs
+- 2 jobs medium simultanes max
+- 1 job heavy + 1 light max
+
+
+========================================================================
+10. FAUT-IL RUNPOD ?
+========================================================================
+
+Reponse courte:
+
+- pas pour la v1 de BJHUNT
+- pas pour "donner un user par GPU"
+- oui seulement comme extension optionnelle pour certains workloads
+
+Pourquoi Runpod n'est pas obligatoire:
+
+- OpenClaw n'a pas besoin de GPU pour tourner
+- BJHUNT peut utiliser des modeles externes via API
+  - Ollama Cloud
+  - OpenAI
+  - Anthropic
+- les taches cyber classiques (nmap, nuclei, recon, HTTP probing, code review) sont surtout CPU / reseau / IO
+
+Quand Runpod devient interessant:
+
+- si tu veux servir des modeles local/self-hosted
+- si tu veux embeddings/rerank/vision partages en interne
+- si tu veux un pool GPU burst pour analyses specifiques
+
+Quand Runpod devient une erreur:
+
+- si tu alloues une GPU dediee par user
+- si tu gardes des endpoints always-on pour des users quasi inactifs
+- si tu t'en sers pour heberger tout le backend alors que le vrai besoin est CPU + sandboxes
+
+Recommendation BJHUNT:
+
+- v1/v2:
+  - Hostinger KVM 8 pour le control plane
+  - providers cloud pour les LLMs
+  - zero Runpod au debut
+- plus tard:
+  - 1 endpoint GPU partage si et seulement si un cas d'usage reel le justifie
+
+
+========================================================================
+11. GRILLE TARIFAIRE / COUTS
+========================================================================
+
+Prix officiels trouves pendant la recherche web (etat observe le 2026-04-17).
+
+11.1 Infrastructures de base
+
+Hostinger VPS:
+
+- KVM 8:
+  - $25.99/mo en promo
+  - renewal observe: $49.99/mo
+  - 8 vCPU, 32GB RAM, 400GB NVMe
+
+Vercel:
+
+- Hobby:
+  - gratuit
+- Pro:
+  - $20/mo + usage
+  - inclut $20 de credits d'usage
+
+Upstash Redis (optionnel si tu ne veux pas self-host Redis):
+
+- Free:
+  - $0
+  - 256MB
+  - 500k commandes / mois
+- Pay-as-you-go:
+  - $0.20 / 100k commandes
+- Fixed:
+  - a partir de $10/mo
+
+11.2 Runpod serverless (optionnel)
+
+Tarifs officiels docs Runpod serverless:
+
+- classe 24GB "L4, A5000, 3090"
+  - Flex: $0.00019/s ~= $0.684/h
+  - Active: $0.00013/s ~= $0.468/h
+
+- 4090 PRO 24GB
+  - Flex: $0.00031/s ~= $1.116/h
+  - Active: $0.00021/s ~= $0.756/h
+
+- A100 80GB
+  - Flex: $0.00076/s ~= $2.736/h
+  - Active: $0.00060/s ~= $2.160/h
+
+- stockage Runpod:
+  - container disk: ~ $0.10/GB/mo
+  - network volume: $0.07/GB/mo (<1TB)
+
+Traduction budgetaire simple:
+
+- 1 GPU 4090 PRO active 24/7:
+  - environ $551.88 / mois
+- 1 GPU A100 active 24/7:
+  - environ $1576.80 / mois
+- 1 GPU 24GB classe L4/A5000/3090 active 24/7:
+  - environ $341.64 / mois
+
+Conclusion:
+
+- oui, une GPU par user serait vite etranglante
+- non, il ne faut jamais modeler BJHUNT comme ca
+
+11.3 Scenarios de cout BJHUNT
+
+Scenario 1 - Lean beta sans Runpod
+
+- Hostinger KVM 8: $25.99 a $49.99 / mois
+- Vercel Pro: $20 / mois
+- Redis self-host sur le VPS: $0 incremental
+- Total infra fixe estime:
+  - environ $46 a $70 / mois
+- hors cout LLM providers
+
+Scenario 2 - Beta plus safe avec services optionnels
+
+- Hostinger KVM 8
+- Vercel Pro
+- Upstash ou stockage objet externe
+- Total fixe estime:
+  - environ $60 a $150 / mois
+- hors cout LLM providers
+
+Scenario 3 - Ajout d'un endpoint GPU partage 4090 active
+
+- base scenario 1 ou 2
+- + environ $552 / mois
+- total:
+  - environ $600 a $700+ / mois
+
+Scenario 4 - Mauvais design "1 GPU par user"
+
+- 10 users avec 10 x 4090 active
+- 10 x $551.88 ~= $5518.80 / mois
+- sans compter le reste
+
+Conclusion:
+
+- le cout n'est pas le port
+- le cout n'est meme pas OpenClaw
+- le vrai tueur de marge, c'est:
+  - GPU always-on
+  - sandboxes non nettoyees
+  - artefacts lourds mal stockes
+  - scans simultanes non limites
+  - usage LLM non budgete
+
+
+========================================================================
+12. RECOMMANDATION D'ADAPTATION REELLE D'OPENCLAW POUR BJHUNT
+========================================================================
+
+Ce que je ferais concretement:
+
+1. Fork / vendor OpenClaw dans engine/openclaw/
+
+- garder le runtime agentique
+- supprimer la logique "assistant perso" qui n'aide pas BJHUNT
+
+2. Le deployer en Node 24, pas en Bun
+
+- container dedie
+- loopback only ou reseau interne seulement
+
+3. N'activer que l'interface interne utile
+
+- activer OpenResponses API ou WS RPC
+- bind uniquement en interne
+- token auth fort
+- jamais expose au browser
+
+4. Ecrire un plugin BJHUNT OpenClaw
+
+Le plugin doit fournir:
+
+- tools cyber metier
+- taskflow templates BJHUNT
+- skills internes BJHUNT
+- restrictions de tool policy
+- hooks d'audit et de telemetry
+
+5. Interdire le mode "exec libre" pour le shared tier
+
+- pas de raw host exec
+- pas de elevated
+- pas de plugins communautaires
+- pas de browser libre par defaut
+
+6. Construire un Sandbox Broker BJHUNT
+
+Role:
+
+- cree / detruit les sandboxes Kali
+- applique les limites CPU/RAM/duree
+- injecte les secrets a la demande
+- restreint les scopes cibles
+- remonte les artefacts
+
+7. Le backend BJHUNT garde la main
+
+Le backend:
+
+- authentifie l'utilisateur
+- verifie org/role/plan/quota
+- cree le job
+- choisit le worker OpenClaw
+- choisit le sandbox profile
+- suit l'execution
+- persiste findings / reports / artefacts
+
+8. Stocker les donnees metier hors d'OpenClaw
+
+Dans Postgres BJHUNT:
+
+- users
+- organizations
+- memberships
+- sessions
+- api_keys
+- engagements
+- assets
+- jobs
+- runs
+- findings
+- reports
+- audit_logs
+- quotas
+- provider_settings
+
+OpenClaw ne doit pas etre la base metier principale.
+
+9. Isoler selon le plan
+
+Starter / beta:
+
+- shared worker pool
+- queue stricte
+- tools limites
+
+Pro / Team:
+
+- org runtime dedie
+- state dir dedie
+- port interne dedie
+
+Enterprise:
+
+- host dedie ou node dedie
+
+
+========================================================================
+13. FEUILLE DE ROUTE D'IMPLEMENTATION
+========================================================================
+
+Phase 0 - Validation rapide
+
+- integrer un worker OpenClaw unique en interne
+- activer /v1/responses en loopback
+- backend Bun appelle OpenClaw pour un simple chat interne
+- aucun user n'y accede directement
+
+Phase 1 - Noyau BJHUNT
+
+- plugin BJHUNT OpenClaw
+- tools typed
+- sessions mappees sur org/user/conversation
+- SSE bout en bout
+- audit logs
+
+Phase 2 - Execution cyber
+
+- Sandbox Broker
+- profils de jobs
+- collecte d'artefacts
+- findings automatiques
+
+Phase 3 - Multi-tenant propre
+
+- shared pool pour beta
+- org-dedicated runtimes pour plans plus hauts
+- quotas et autoscaling manuel
+
+Phase 4 - Scale
+
+- ajouter un 2e node CPU avant d'ajouter du GPU
+- n'ajouter Runpod qu'apres preuve d'un besoin reel
+
+
+========================================================================
+14. RECOMMANDATION FINALE
+========================================================================
+
+Ma recommandation nette pour BJHUNT:
+
+- Oui a OpenClaw comme coeur agentique.
+- Non a OpenClaw comme backend SaaS expose.
+- Oui a Bun + Hono comme control plane.
+- Oui a Hostinger KVM 8 pour lancer la v1/v2.
+- Non a "1 user = 1 port" ou "1 user = 1 GPU".
+- Non a Runpod tant que le besoin principal reste cyber scanning / orchestration.
+- Oui a Runpod plus tard, uniquement comme pool GPU partage ou burst inference.
+
+Decision pratique:
+
+- lance BJHUNT avec:
+  - Vercel frontend
+  - Hostinger KVM 8 control plane
+  - backend Bun/Hono
+  - 1-2 workers OpenClaw internes
+  - Redis + Postgres
+  - sandboxes Kali a la demande
+- puis observe:
+  - combien de jobs lourds simultanes
+  - combien coute le LLM
+  - combien de temps vivent les sandboxes
+
+Le premier seuil de scale ne sera probablement PAS:
+
+- "il faut Runpod"
+
+Le premier seuil de scale sera plutot:
+
+- "il faut un 2e node CPU / sandbox host"
+- "il faut de meilleures quotas"
+- "il faut passer certains orgs en runtime dedie"
+
+
+========================================================================
+15. SOURCES PRINCIPALES UTILISEES
+========================================================================
+
+OpenClaw docs officielles:
+
+- Home / overview:
+  - https://docs.openclaw.ai/
+- OpenResponses API:
+  - https://docs.openclaw.ai/gateway/openresponses-http-api
+- Security:
+  - https://docs.openclaw.ai/gateway/security
+- Trusted proxy auth:
+  - https://docs.openclaw.ai/gateway/trusted-proxy-auth
+- Sandboxing:
+  - https://docs.openclaw.ai/gateway/sandboxing
+- Docker:
+  - https://docs.openclaw.ai/install/docker
+- Multiple gateways:
+  - https://docs.openclaw.ai/gateway/multiple-gateways
+- Architecture:
+  - https://docs.openclaw.ai/architecture
+- Multi-agent routing:
+  - https://docs.openclaw.ai/multi-agent
+- FAQ / lightweight runtime:
+  - https://docs.openclaw.ai/help/faq
+- Raspberry Pi:
+  - https://docs.openclaw.ai/install/raspberry-pi
+- Bun warning:
+  - https://docs.openclaw.ai/bun
+
+Microsoft Security Blog:
+
+- Running OpenClaw safely: identity, isolation, and runtime risk
+  - https://www.microsoft.com/en-us/security/blog/2026/02/19/running-openclaw-safely-identity-isolation-runtime-risk/
+
+Infrastructure pricing officielles:
+
+- Hostinger VPS pricing:
+  - https://www.hostinger.com/vps-hosting
+- Vercel pricing:
+  - https://vercel.com/pricing
+- Vercel pricing docs:
+  - https://vercel.com/docs/pricing
+- Upstash Redis pricing:
+  - https://upstash.com/pricing/redis
+- Runpod pricing:
+  - https://www.runpod.io/pricing
+- Runpod serverless pricing docs:
+  - https://docs.runpod.io/serverless/pricing
+- Runpod billing:
+  - https://docs.runpod.io/accounts-billing/billing
+
+Fin du document.

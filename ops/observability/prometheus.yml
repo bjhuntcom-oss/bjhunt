@@ -1,0 +1,53 @@
+# Prometheus scrape config for BJHUNT.
+# Per docs/architecture/19-SCALING.md and 14-SECURITY.md §9 Logging.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: production
+    deployment: vps-paris
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: backend
+    metrics_path: /api/health/metrics
+    static_configs:
+      - targets: ["bjhunt-backend:3001"]
+        labels:
+          service: backend
+
+  - job_name: langgraph
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["bjhunt-langgraph:2024"]
+        labels:
+          service: langgraph
+
+  - job_name: litellm
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["bjhunt-litellm:4000"]
+        labels:
+          service: litellm
+
+  - job_name: caddy
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["bjhunt-caddy:2019"]
+        labels:
+          service: caddy
+
+  # Postgres + Redis exporters (require dedicated exporter containers, add later).
+  # - job_name: postgres-exporter
+  # - job_name: redis-exporter
+
+# Alerting rules — start minimal, expand as we learn the system's baseline.
+rule_files: []
+
+# alertmanager config (start without; add Slack/email when alerts are tuned)
+alerting:
+  alertmanagers: []

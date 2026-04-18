@@ -1,0 +1,140 @@
+# BJHUNT Dependabot configuration
+# Docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# Strategy:
+#  - Group dev/test updates (chatty), keep security & runtime separate (auditable)
+#  - Weekly cadence to limit PR noise on a solo-dev project
+#  - Versioning rebase: auto
+
+version: 2
+updates:
+
+  # ── Frontend (Next.js + React) ────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "frontend"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      next:
+        patterns:
+          - "next"
+          - "@next/*"
+      radix:
+        patterns:
+          - "@radix-ui/*"
+      types:
+        patterns:
+          - "@types/*"
+      eslint:
+        patterns:
+          - "eslint*"
+          - "@eslint/*"
+      tailwind:
+        patterns:
+          - "tailwind*"
+          - "@tailwindcss/*"
+
+  # ── Backend (Hono + Bun) ──────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:30"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "backend"
+    commit-message:
+      prefix: "chore(deps,backend)"
+      include: "scope"
+    groups:
+      hono:
+        patterns:
+          - "hono"
+          - "@hono/*"
+      types:
+        patterns:
+          - "@types/*"
+
+  # ── Engine (Python — Decepticon + bjhunt_engine) ──────────
+  - package-ecosystem: "pip"
+    directory: "/engine"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "engine"
+    commit-message:
+      prefix: "chore(deps,engine)"
+      include: "scope"
+    groups:
+      langchain:
+        patterns:
+          - "langchain*"
+          - "langgraph*"
+      openhands:
+        patterns:
+          - "openhands*"
+      pydantic:
+        patterns:
+          - "pydantic*"
+
+  # ── GitHub Actions ────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"
+
+  # ── Docker base images ────────────────────────────────────
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(docker)"
+
+  - package-ecosystem: "docker"
+    directory: "/engine/containers"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+      time: "06:30"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(docker)"

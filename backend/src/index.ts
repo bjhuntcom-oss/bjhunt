@@ -15,6 +15,7 @@ import { corsMiddleware } from "./middleware/cors.js";
 import { csrfMiddleware } from "./middleware/csrf.js";
 import { resolveAuth } from "./middleware/auth.js";
 import { requestId } from "./middleware/request-id.js";
+import { isAppError } from "./lib/errors.js";
 
 import { healthRoutes } from "./routes/health.js";
 import { authRoutes } from "./routes/auth.js";
@@ -25,6 +26,8 @@ import { adminUserRoutes } from "./routes/admin/users.js";
 import { adminSettingsRoutes } from "./routes/admin/settings.js";
 import { gatewayRoutes, ollamaRoutes } from "./routes/admin/gateway.js";
 import { agentRoutes } from "./routes/admin/agents.js";
+import { adminLogsRoutes } from "./routes/admin/logs.js";
+import { adminMonitoringRoutes } from "./routes/admin/monitoring.js";
 import { notificationRoutes } from "./routes/notifications.js";
 import { publicApiRoutes } from "./routes/public-api.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
@@ -68,6 +71,8 @@ app.route("/api/engagements", engagementRoutes);
 app.route("/api/findings", findingsRoutes);
 app.route("/api/chat", chatRoutes);
 app.route("/api/keys", apiKeyRoutes);
+// Spec-compliant alias per docs/architecture/05-BACKEND-API.md §API Keys
+app.route("/api/api-keys", apiKeyRoutes);
 app.route("/api/notifications", notificationRoutes);
 app.route("/api/dashboard", dashboardRoutes);
 app.route("/api/billing", billingRoutes);
@@ -85,22 +90,51 @@ app.route("/api/admin/settings", adminSettingsRoutes);
 app.route("/api/admin/gateway", gatewayRoutes);
 app.route("/api/admin/ollama", ollamaRoutes);
 app.route("/api/admin/agents", agentRoutes);
+app.route("/api/admin/logs", adminLogsRoutes);
+app.route("/api/admin/monitoring", adminMonitoringRoutes);
 
 // ── 404 fallback ─────────────────────────────────────────────────────────
 
 app.notFound((c) => c.json({ error: "Not found" }, 404));
 
 // ── Global error handler ─────────────────────────────────────────────────
+// Per docs/architecture/05-BACKEND-API.md §Error Handling.
+// Throwing an AppError subclass from a route handler short-circuits to the
+// standardised JSON envelope: { error: { code, message, details? } }.
 
 app.onError((err, c) => {
-  console.error(`[ERROR] ${c.req.method} ${c.req.path}:`, err);
+  // Structured logging — request ID is set by the requestId middleware.
+  const reqId = c.get("requestId") as string | undefined;
+  console.error(
+    JSON.stringify({
+      level: "error",
+      reqId,
+      method: c.req.method,
+      path: c.req.path,
+      message: err.message,
+      name: err.name,
+    }),
+  );
 
+  if (isAppError(err)) {
+    return c.json(err.toJSON(), err.statusCode as 400 | 401 | 403 | 404 | 409 | 429 | 500 | 501 | 502 | 503);
+  }
+
+  // Legacy fallback for raw Error / Zod errors not yet wrapped in AppError.
   if (err.message.includes("validation")) {
-    return c.json({ error: "Validation error", details: err.message }, 400);
+    return c.json(
+      { error: { code: "VALIDATION_ERROR", message: "Invalid input", details: err.message } },
+      400,
+    );
   }
 
   return c.json(
-    { error: config.isProduction ? "Internal server error" : err.message },
+    {
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: config.isProduction ? "Internal server error" : err.message,
+      },
+    },
     500,
   );
 });

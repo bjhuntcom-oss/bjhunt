@@ -1,0 +1,41 @@
+# BJHUNT Code Owners
+# Sync with branch protection: require code owner review before merge.
+# See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+*                                       @bjhuntcom-oss
+
+# Frontend
+/app/                                   @bjhuntcom-oss
+/components/                            @bjhuntcom-oss
+/lib/                                   @bjhuntcom-oss
+/i18n/                                  @bjhuntcom-oss
+/messages/                              @bjhuntcom-oss
+/public/                                @bjhuntcom-oss
+
+# Backend (auth/billing/admin — extra-careful)
+/backend/                               @bjhuntcom-oss
+/backend/src/auth/                      @bjhuntcom-oss
+/backend/src/routes/billing.ts          @bjhuntcom-oss
+/backend/src/routes/admin/              @bjhuntcom-oss
+/backend/src/db/                        @bjhuntcom-oss
+
+# Engine — upstream Decepticon (avoid editing, prefer subclass in bjhunt_engine/)
+/engine/decepticon/                     @bjhuntcom-oss
+/engine/bjhunt_engine/                  @bjhuntcom-oss
+/engine/config/litellm.yaml             @bjhuntcom-oss
+
+# Infrastructure & deploy
+/docker-compose.yml                     @bjhuntcom-oss
+/ops/                                   @bjhuntcom-oss
+/.github/workflows/                     @bjhuntcom-oss
+/.github/CODEOWNERS                     @bjhuntcom-oss
+/.github/dependabot.yml                 @bjhuntcom-oss
+
+# Security policy
+/SECURITY.md                            @bjhuntcom-oss
+/.gitleaksignore                        @bjhuntcom-oss
+
+# Architecture docs
+/docs/architecture/                     @bjhuntcom-oss
+/CLAUDE.md                              @bjhuntcom-oss

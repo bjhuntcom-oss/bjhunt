@@ -1,13 +1,61 @@
+{
+    email admin@bjhunt.com
+    acme_ca https://acme-v02.api.letsencrypt.org/directory
+}
+
 api.bjhunt.com, chat.bjhunt.com {
-    # CORS is handled entirely by the Hono backend (cors middleware).
-    # Caddy only adds security headers and proxies without buffering.
+    # Streaming routes — ZERO buffering, no compression
+    @streaming path /stream/*
+    handle @streaming {
+        reverse_proxy backend:3001 {
+            flush_interval -1
+            transport http {
+                compression off
+                read_timeout 0
+                write_timeout 0
+            }
+        }
+    }
+
+    # Chat SSE prep + stream (also under /api/chat/stream/*)
+    @chat_stream path /api/chat/stream/*
+    handle @chat_stream {
+        reverse_proxy backend:3001 {
+            flush_interval -1
+            transport http {
+                compression off
+                read_timeout 0
+                write_timeout 0
+            }
+        }
+    }
+
+    # Health checks (no rate limit, fast path)
+    handle /api/health/* {
+        reverse_proxy backend:3001
+    }
+
+    # All other API routes
+    handle /* {
+        reverse_proxy backend:3001
+    }
+
     header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
         -Server
     }
 
-    reverse_proxy backend:3001 {
-        flush_interval -1
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
     }
 }
 

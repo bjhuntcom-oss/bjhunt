@@ -65,12 +65,15 @@ healthRoutes.get("/ready", async (c) => {
   }, allHealthy ? 200 : 503);
 });
 
-// Version
+// Version — exposes the deployed git commit for `deploy-vps.yml` post-deploy verification.
+// GIT_COMMIT is injected at build time via Dockerfile ARG (or container env on VPS).
 healthRoutes.get("/version", (c) =>
   c.json({
     name: "bjhunt-backend",
     version: process.env.npm_package_version || "0.1.0",
+    commit: process.env.GIT_COMMIT || "unknown",
     runtime: "bun",
     engine: "BJHUNT ALPHA 1.0",
+    builtAt: process.env.BUILD_TIMESTAMP || null,
   }),
 );

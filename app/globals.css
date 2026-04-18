@@ -3,6 +3,7 @@
 @import "@fontsource/jetbrains-mono/700.css";
 
 @import "tailwindcss";
+@import "./design-tokens.css";
 
 /* ── RESET GLOBAL : zéro border-radius partout ─────── */
 *, *::before, *::after {

@@ -19,9 +19,17 @@ export const authRoutes = new Hono<{ Variables: AppVariables }>();
 
 // ── Schemas ──────────────────────────────────────────────────────────────
 
+// Per docs/architecture/14-SECURITY.md §1 Authentication:
+// "Min 10 chars, complexité requise" — at least 1 lowercase, 1 uppercase, 1 digit.
 const registerSchema = z.object({
   email: z.string().email().max(255).toLowerCase(),
-  password: z.string().min(8).max(128),
+  password: z
+    .string()
+    .min(10, "Password must be at least 10 characters")
+    .max(128)
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/\d/, "Password must contain at least one digit"),
   displayName: z.string().min(1).max(100).optional(),
   orgName: z.string().min(1).max(100).optional(),
 });

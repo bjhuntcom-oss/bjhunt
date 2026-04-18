@@ -59,6 +59,17 @@ dev = [
     "basedpyright>=1.37.0",
 ]
 
+# Optional extras — install with `uv sync --extra openhands`.
+# Per docs/architecture/03-OPENHANDS-INTEGRATION.md Phase 2, these power the
+# multi-tenant infrastructure layer (workspace lifecycle + secret registry +
+# security analyzer + event log) while LangGraph stays the agent orchestrator.
+[project.optional-dependencies]
+openhands = [
+    "openhands-sdk>=1.6.0",
+    "openhands-tools>=1.6.0",
+    "openhands-workspace>=1.6.0",
+]
+
 [project.scripts]
 decepticon = "decepticon.__main__:main"
 decepticon-kg-health = "decepticon.tools.research.health:main"
@@ -72,7 +83,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["decepticon"]
+packages = ["decepticon", "bjhunt_engine"]
 
 [tool.ruff]
 line-length = 100

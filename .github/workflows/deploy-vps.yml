@@ -1,4 +1,4 @@
-name: Deploy BJHUNT VPS
+name: Deploy to VPS
 
 on:
   push:
@@ -8,44 +8,74 @@ on:
       - 'engine/**'
       - 'ops/**'
       - 'docker-compose.yml'
+      - '.github/workflows/deploy-vps.yml'
 
   workflow_dispatch:
 
 concurrency:
-  group: deploy-vps
+  group: deploy-production
   cancel-in-progress: false
 
 jobs:
   deploy:
-    name: Deploy to VPS
+    name: Deploy
     runs-on: ubuntu-latest
     environment: production
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup SSH
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H 82.25.117.79 >> ~/.ssh/known_hosts 2>/dev/null
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 82.25.117.79
+          port: 443
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -euo pipefail
 
-      - name: Deploy
-        run: |
-          ssh -o StrictHostKeyChecking=no -o BatchMode=yes root@82.25.117.79 'set -e
             cd /opt/bjhunt/app
-            git pull origin main
-            docker compose up -d --build backend
-            docker compose restart langgraph
-            sleep 5
-            curl -sf http://localhost:3001/api/health/live > /dev/null && echo "Backend healthy" || echo "Backend not ready"
-            echo "Deploy complete"
-          '
 
-      - name: Verify production
+            # Pull les changements (force-sync sur origin/main, pas de merge)
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Rebuilder les images modifiees (no-cache pour eviter cache poisoning)
+            # Inject git commit + build time as build args (consumed by Dockerfile ARG → ENV)
+            export GIT_COMMIT=$(git rev-parse --short HEAD)
+            export BUILD_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            docker compose build --no-cache \
+              --build-arg GIT_COMMIT=$GIT_COMMIT \
+              --build-arg BUILD_TIMESTAMP=$BUILD_TIMESTAMP \
+              backend langgraph
+
+            # Rolling restart (zero downtime)
+            docker compose up -d --no-deps --remove-orphans backend
+            sleep 5
+            docker compose up -d --no-deps --remove-orphans langgraph
+
+            # Health check loop (30 essais x 2s = 60s max)
+            for i in {1..30}; do
+              if curl -sf http://localhost:3001/api/health/ready > /dev/null; then
+                echo "Backend healthy at attempt $i"
+                break
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "Backend FAILED to become healthy after 30 attempts"
+                docker compose logs --tail=100 backend
+                exit 1
+              fi
+              echo "Waiting for backend... ($i/30)"
+              sleep 2
+            done
+
+            # Cleanup orphan images
+            docker image prune -f
+
+            echo "Deploy complete: $(git rev-parse --short HEAD)"
+
+      - name: Verify deployment
         run: |
-          sleep 5
-          curl -sf https://api.bjhunt.com/api/health/live && echo " OK"
-          curl -sf https://api.bjhunt.com/api/health/version
+          sleep 10
+          STATUS=$(curl -sf https://api.bjhunt.com/api/health/version | jq -r '.commit')
+          echo "Deployed commit: $STATUS"
