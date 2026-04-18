@@ -6,7 +6,9 @@ import type { AppVariables } from "../../types.js";
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { sql } from "../../db/client.js";
+// Admin routes are cross-org by definition — use the BYPASSRLS pool.
+// Per docs/architecture/10-MULTI-TENANCY.md §131-148.
+import { adminSql as sql } from "../../db/client.js";
 import { requireAuth, requireAdmin } from "../../middleware/auth.js";
 import { rateLimit } from "../../middleware/rate-limit.js";
 import { config } from "../../config.js";

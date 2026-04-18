@@ -6,7 +6,10 @@ import type { AppVariables } from "../types.js";
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { sql } from "../db/client.js";
+// Auth routes operate BEFORE the tenant context is established (login by
+// email, session/token lookups, password reset). They need cross-org access
+// by definition. Use the BYPASSRLS pool — per docs/architecture/10 §131-148.
+import { adminSql as sql } from "../db/client.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { createSession, deleteSession } from "../auth/session.js";
 import { config } from "../config.js";
