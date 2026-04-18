@@ -89,6 +89,7 @@ function processBlock(block: string, state: TransformState, emit: EmitFn): void 
   }
 
   const raw = dataLines.join("\n").trim();
+  console.log(`[xform-block] event=${eventType} rawLen=${raw.length} rawPreview=${raw.slice(0, 80).replace(/\n/g, '\\n')}`);
   if (!raw || raw === "[DONE]") return;
 
   let parsed: any;
