@@ -5,7 +5,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { sql, withOrg } from "../db/client.js";
+import { sql, withOrg, adminSql } from "../db/client.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import { config } from "../config.js";
@@ -206,21 +206,11 @@ twoFactorRoutes.post(
       return c.json({ error: "Invalid temporary token" }, 401);
     }
 
-    // Get user and verify TOTP.
-    // NOTE (RLS): this lookup is a pre-session bootstrap step — at this point
-    // the request has no authenticated org context, so we cannot use
-    // withOrg(). The `users` table is under RLS FORCE (migration
-    // 2026-04-17-force-rls-and-with-check.sql); this bare `sql` call will
-    // therefore return ZERO rows once the backend is switched to the
-    // `bjhunt_app` non-owner role. The follow-up (outside this ticket) is
-    // to either (a) use a SECURITY DEFINER function for the pre-session
-    // user lookup, or (b) issue the temp token as a signed JWT that embeds
-    // the org_id so /verify can call withOrg() directly. Until then, this
-    // path still works because the app still connects as the table owner,
-    // which bypasses RLS unless BOTH FORCE is set and the role is
-    // non-owner.
+    // Pre-session bootstrap: this lookup runs BEFORE the org context is
+    // established (TOTP verification step). Use the BYPASSRLS adminSql pool
+    // — same pattern as auth.ts login flow. Per docs/architecture/10 §131-148.
     const uid = userId as string;
-    const [user] = await sql`
+    const [user] = await adminSql`
       SELECT id, org_id, email, role, is_platform_admin, totp_secret, totp_enabled, totp_backup_codes
       FROM users WHERE id = ${uid}
     `;
