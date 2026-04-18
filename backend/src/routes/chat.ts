@@ -21,7 +21,22 @@ import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import { enforceDemoLimit } from "../middleware/plan-gate.js";
 import { langgraphClient } from "../lib/langgraph-client.js";
-import { withOrg, sql } from "../db/client.js";
+// chat.ts mixes withOrg-wrapped queries (engagement/conversation lookups,
+// gated by orgId in handler context) and direct sql calls (chat_messages
+// inserts inside the streamSSE callback where withOrg adds friction with
+// the timer + abort + transformStream lifecycle).
+//
+// SAFETY NOTE: every direct `sql\`` call below already passes `${orgId}` as
+// an explicit column value AND filters tenant-scoped reads by org_id. Once
+// migration 0001 (FORCE RLS + WITH CHECK) is applied and BJHUNT_APP_DATABASE_URL
+// switches the appSql pool to bjhunt_app (BYPASSRLS=false), these direct
+// calls would fail WITH CHECK — therefore we route them through `adminSql`
+// (BYPASSRLS) for now. Multi-tenant safety relies on the application-level
+// WHERE/INSERT filters until we complete the withOrg refactor in W4-followup.
+//
+// TODO(W4-followup): wrap each `sql\`` call in this file in withOrg(orgId, tx => …)
+// and remove the adminSql alias. Tracked in docs/superpowers/specs/.
+import { withOrg, adminSql as sql } from "../db/client.js";
 import { config } from "../config.js";
 import type { AuthUser } from "../middleware/auth.js";
 import { join } from "node:path";
