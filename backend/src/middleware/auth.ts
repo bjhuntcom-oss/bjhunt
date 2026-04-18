@@ -5,7 +5,10 @@
 import type { Context, MiddlewareHandler } from "hono";
 import { getSession } from "../auth/session.js";
 import { validateApiKey } from "../auth/api-keys.js";
-import { sql } from "../db/client.js";
+// Auth resolution (session + API key + getUserById) runs BEFORE the tenant
+// context is established — the request hasn't been told which org it belongs
+// to yet. Use the admin pool (BYPASSRLS) so the lookup isn't blocked by RLS.
+import { adminSql as sql } from "../db/client.js";
 
 export interface AuthUser {
   id: string;

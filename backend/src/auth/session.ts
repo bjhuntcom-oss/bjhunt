@@ -3,7 +3,11 @@
  */
 
 import { nanoid } from "nanoid";
-import { sql } from "../db/client.js";
+// Sessions are looked up BEFORE the tenant context is established (the
+// session row is what tells us which org the request belongs to). Use the
+// admin pool (BYPASSRLS) so the lookup isn't filtered to zero rows by RLS
+// when `app.current_org_id` hasn't been set yet.
+import { adminSql as sql } from "../db/client.js";
 import { config } from "../config.js";
 
 export interface Session {

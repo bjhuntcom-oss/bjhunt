@@ -6,7 +6,10 @@
  */
 
 import { nanoid } from "nanoid";
-import { sql } from "../db/client.js";
+// API key validation runs in resolveAuth — BEFORE the tenant context is set
+// (the api_keys row is what tells us which org). All functions here gate on
+// org_id via explicit WHERE clauses, so the BYPASSRLS pool is the right tool.
+import { adminSql as sql } from "../db/client.js";
 import { config } from "../config.js";
 
 export interface ApiKey {
