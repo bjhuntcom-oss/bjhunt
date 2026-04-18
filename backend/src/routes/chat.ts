@@ -370,8 +370,10 @@ chatRoutes.get("/stream/:runId", async (c) => {
       }
 
       try {
+        console.log(`[chat-stream ${runId}] recovery: creating fresh thread…`);
         const fresh = await langgraphClient.createThread();
         threadId = fresh.threadId;
+        console.log(`[chat-stream ${runId}] recovery: new thread=${threadId}, retrying streamRun…`);
         // Persist the new thread on the engagement so subsequent runs reuse it.
         await sql`
           UPDATE engagements SET langgraph_thread_id = ${threadId}
@@ -383,7 +385,9 @@ chatRoutes.get("/stream/:runId", async (c) => {
           { content: pending.message, user_id: userId, org_id: orgId },
           abort.signal,
         );
+        console.log(`[chat-stream ${runId}] recovery: retry resolved`);
       } catch (retryErr: any) {
+        console.log(`[chat-stream ${runId}] recovery: retry threw:`, retryErr?.message);
         await markRunFailed(retryErr.message || "LangGraph connection failed (after thread recreation)");
         await stream.writeSSE({
           event: "error",
@@ -438,12 +442,19 @@ chatRoutes.get("/stream/:runId", async (c) => {
     const transformState = createTransformState();
 
     const reader = upstream.getReader();
+    let chunkCount = 0;
     try {
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          console.log(`[chat-stream ${runId}] upstream done, chunks=${chunkCount}, fullResponse=${transformState.fullResponse?.length || 0}b`);
+          break;
+        }
         if (streamFailed) break;
-
+        chunkCount++;
+        if (chunkCount <= 3) {
+          console.log(`[chat-stream ${runId}] chunk#${chunkCount} bytes=${value?.byteLength}`);
+        }
         armTimeout();
         processChunk(value, transformState, emit);
       }
