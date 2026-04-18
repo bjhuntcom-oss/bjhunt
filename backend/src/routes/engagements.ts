@@ -118,6 +118,93 @@ engagementRoutes.get("/:id/opplan", async (c) => {
   return c.json({ objectives });
 });
 
+// ── Append an objective to engagement OPPLAN ────────────────────────────
+// Backs the CVE "Create Exploit Objective" CTA and the audits/[id]/graph
+// "Generate OPPLAN" button (DOC-07 dead handlers).
+//
+// Body schema mirrors the Decepticon Pydantic `Objective` model, but every
+// field except `title` is optional — the backend fills sane defaults so the
+// frontend can post a minimal CVE-derived blob.
+const appendObjectiveSchema = z.object({
+  title: z.string().min(1).max(500),
+  description: z.string().max(5000).optional(),
+  phase: z
+    .enum(["recon", "exploit", "post_exploit", "exfiltration", "report"])
+    .default("exploit"),
+  priority: z.number().int().min(1).max(5).default(3),
+  mitre: z.array(z.string().max(20)).max(20).optional(),
+  opsec: z.enum(["low", "medium", "high", "very_high", "burn_after_use"]).default("medium"),
+  c2_tier: z.enum(["t0", "t1", "t2"]).default("t1"),
+  acceptance_criteria: z.string().max(2000).optional(),
+  parent_id: z.string().uuid().optional(),
+  source: z
+    .object({
+      kind: z.enum(["cve", "finding", "graph_chain", "manual"]),
+      ref: z.string().max(200),
+    })
+    .optional(),
+});
+
+engagementRoutes.post(
+  "/:id/objectives",
+  zValidator("json", appendObjectiveSchema),
+  async (c) => {
+    const orgId = c.get("orgId") as string;
+    const user = c.get("user") as AuthUser;
+    const id = c.req.param("id");
+    const body = c.req.valid("json");
+
+    const [engagement] = await withOrg(orgId, (tx) =>
+      tx`SELECT id, name, status, opplan FROM engagements WHERE id = ${id}`,
+    );
+    if (!engagement) return c.json({ error: "Engagement not found" }, 404);
+
+    const objective = {
+      id: crypto.randomUUID(),
+      title: body.title,
+      description: body.description ?? null,
+      phase: body.phase,
+      priority: body.priority,
+      status: "draft" as const,
+      mitre: body.mitre ?? [],
+      opsec: body.opsec,
+      opsec_notes: null,
+      c2_tier: body.c2_tier,
+      concessions: [] as string[],
+      blocked_by: [] as string[],
+      acceptance_criteria: body.acceptance_criteria ?? null,
+      parent_id: body.parent_id ?? null,
+      owner: user.id,
+      source: body.source ?? null,
+      created_at: new Date().toISOString(),
+      created_by: user.id,
+    };
+
+    const current = (engagement.opplan as Record<string, unknown> | null) ?? {};
+    const objectives = Array.isArray(current.objectives)
+      ? [...(current.objectives as unknown[])]
+      : [];
+    objectives.push(objective);
+    const nextOpplan = { ...current, objectives, updated_at: new Date().toISOString() };
+
+    await withOrg(orgId, (tx) =>
+      tx`UPDATE engagements
+         SET opplan = ${JSON.stringify(nextOpplan)}::jsonb,
+             updated_at = now()
+         WHERE id = ${id}`,
+    );
+
+    await withOrg(orgId, (tx) =>
+      tx`INSERT INTO audit_logs (org_id, user_id, action, resource, details)
+         VALUES (${orgId}, ${user.id}, 'engagement.objective.create',
+                 ${"engagement:" + id},
+                 ${JSON.stringify({ objectiveId: objective.id, source: body.source ?? null, phase: objective.phase })})`,
+    ).catch(() => {});
+
+    return c.json({ objective }, 201);
+  },
+);
+
 /**
  * Generate default OPPLAN objectives based on engagement status and target type.
  * These serve as a template until the agent produces a real OPPLAN.
