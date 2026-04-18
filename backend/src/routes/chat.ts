@@ -319,11 +319,9 @@ chatRoutes.get("/stream/:runId", async (c) => {
   return streamSSE(c, async (stream) => {
     const abort = new AbortController();
     stream.onAbort(() => {
-      console.log(`[chat-stream ${runId}] client aborted`);
       abort.abort();
       markRunFailed("Client disconnected").catch(() => {});
     });
-    console.log(`[chat-stream ${runId}] callback start, agent=${agentId} thread=${pending.threadId}`);
 
     // Arm the keepalive BEFORE we await langgraphClient.streamRun. Cold
     // LiteLLM + Ollama can take 10–20s to emit a first token; without bytes
@@ -342,16 +340,13 @@ chatRoutes.get("/stream/:runId", async (c) => {
     let upstream: ReadableStream<Uint8Array>;
     let threadId = pending.threadId;
     try {
-      console.log(`[chat-stream ${runId}] calling streamRun…`);
       upstream = await langgraphClient.streamRun(
         threadId,
         agentId,
         { content: pending.message, user_id: userId, org_id: orgId },
         abort.signal,
       );
-      console.log(`[chat-stream ${runId}] streamRun resolved`);
     } catch (err: any) {
-      console.log(`[chat-stream ${runId}] streamRun threw:`, err?.message);
       clearInterval(earlyKeepalive);
       // LangGraph dev profile uses an in-memory runtime — every restart wipes
       // its thread store, but the engagement row in postgres still references
@@ -370,10 +365,8 @@ chatRoutes.get("/stream/:runId", async (c) => {
       }
 
       try {
-        console.log(`[chat-stream ${runId}] recovery: creating fresh thread…`);
         const fresh = await langgraphClient.createThread();
         threadId = fresh.threadId;
-        console.log(`[chat-stream ${runId}] recovery: new thread=${threadId}, retrying streamRun…`);
         // Persist the new thread on the engagement so subsequent runs reuse it.
         await sql`
           UPDATE engagements SET langgraph_thread_id = ${threadId}
@@ -385,9 +378,7 @@ chatRoutes.get("/stream/:runId", async (c) => {
           { content: pending.message, user_id: userId, org_id: orgId },
           abort.signal,
         );
-        console.log(`[chat-stream ${runId}] recovery: retry resolved`);
       } catch (retryErr: any) {
-        console.log(`[chat-stream ${runId}] recovery: retry threw:`, retryErr?.message);
         await markRunFailed(retryErr.message || "LangGraph connection failed (after thread recreation)");
         await stream.writeSSE({
           event: "error",
@@ -442,24 +433,12 @@ chatRoutes.get("/stream/:runId", async (c) => {
     const transformState = createTransformState();
 
     const reader = upstream.getReader();
-    let chunkCount = 0;
     try {
       while (true) {
         const { done, value } = await reader.read();
-        if (done) {
-          console.log(`[chat-stream ${runId}] upstream done, chunks=${chunkCount}, fullResponse=${transformState.fullResponse?.length || 0}b`);
-          break;
-        }
+        if (done) break;
         if (streamFailed) break;
-        chunkCount++;
-        if (chunkCount <= 3) {
-          const dec = new TextDecoder().decode(value).slice(0, 400);
-          const preview = dec.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
-          // Also dump the last 30 bytes hex to see EOF separator
-          const tail = value.slice(Math.max(0, value.byteLength - 30));
-          const hex = Array.from(tail).map((b) => b.toString(16).padStart(2, "0")).join(" ");
-          console.log(`[chat-stream ${runId}] chunk#${chunkCount} bytes=${value?.byteLength} preview=${preview} tailHex=${hex}`);
-        }
+
         armTimeout();
         processChunk(value, transformState, emit);
       }
