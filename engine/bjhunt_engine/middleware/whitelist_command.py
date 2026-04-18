@@ -24,6 +24,20 @@ logger = logging.getLogger(__name__)
 
 
 def validate_command(_command: str) -> bool:
-    """Placeholder — returns True until W5 brings the real whitelist enforcer."""
-    logger.debug("bjhunt_engine.whitelist_command not yet active — pass-through")
-    return True
+    """
+    NOT YET IMPLEMENTED — raises immediately to prevent silent false-pass.
+
+    Per DOC-03 audit (2026-04-18): a placeholder returning ``True`` would
+    create a dangerous "false sense of security" — callers might assume the
+    whitelist is active and skip their own validation.
+
+    The real whitelist lands in W5. Until then, callers should NOT import
+    `bjhunt_engine.middleware.whitelist_command` from any code path that
+    actually needs validation. The upstream `decepticon.middleware.SafeCommand`
+    (blacklist-based) remains the only enforcer in the chain.
+    """
+    raise NotImplementedError(
+        "bjhunt_engine.middleware.whitelist_command is a W5 deliverable and "
+        "is not yet implemented. Use decepticon.middleware.SafeCommand for now "
+        "and do NOT rely on this stub for any command validation."
+    )

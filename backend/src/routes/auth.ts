@@ -25,15 +25,20 @@ export const authRoutes = new Hono<{ Variables: AppVariables }>();
 
 // Per docs/architecture/14-SECURITY.md §1 Authentication:
 // "Min 10 chars, complexité requise" — at least 1 lowercase, 1 uppercase, 1 digit.
+//
+// Shared schema applied identically to register / reset-password / change-password
+// so the policy can never be bypassed via the reset flow (DOC-09 audit P0).
+const passwordSchema = z
+  .string()
+  .min(10, "Password must be at least 10 characters")
+  .max(128)
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/\d/, "Password must contain at least one digit");
+
 const registerSchema = z.object({
   email: z.string().email().max(255).toLowerCase(),
-  password: z
-    .string()
-    .min(10, "Password must be at least 10 characters")
-    .max(128)
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/\d/, "Password must contain at least one digit"),
+  password: passwordSchema,
   displayName: z.string().min(1).max(100).optional(),
   orgName: z.string().min(1).max(100).optional(),
 });
@@ -340,7 +345,8 @@ authRoutes.post(
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1),
-  newPassword: z.string().min(8).max(128),
+  // Same password policy as register/change — never bypass via reset (DOC-09 P0).
+  newPassword: passwordSchema,
 });
 
 authRoutes.post(
@@ -385,7 +391,7 @@ authRoutes.post(
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
-  newPassword: z.string().min(8).max(128),
+  newPassword: passwordSchema,
 });
 
 authRoutes.post(

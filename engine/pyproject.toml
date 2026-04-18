@@ -64,10 +64,15 @@ dev = [
 # multi-tenant infrastructure layer (workspace lifecycle + secret registry +
 # security analyzer + event log) while LangGraph stays the agent orchestrator.
 [project.optional-dependencies]
+# Pin major; pin floor at 1.17.0 (the version of the local reference clone in
+# engine/external/openhands-sdk/). agent-server is included for Phase 3
+# (per docs/architecture/03-OPENHANDS-INTEGRATION.md) — install with
+# `uv sync --extra openhands` to pull all four packages from PyPI.
 openhands = [
-    "openhands-sdk>=1.6.0",
-    "openhands-tools>=1.6.0",
-    "openhands-workspace>=1.6.0",
+    "openhands-sdk>=1.17.0,<2.0.0",
+    "openhands-tools>=1.17.0,<2.0.0",
+    "openhands-workspace>=1.17.0,<2.0.0",
+    "openhands-agent-server>=1.17.0,<2.0.0",
 ]
 
 [project.scripts]

@@ -94,15 +94,15 @@ twoFactorRoutes.post(
       return c.json({ error: "Invalid verification code" }, 400);
     }
 
-    // Generate backup codes
-    const backupCodes = generateBackupCodes();
+    // Generate backup codes — plaintext returned ONCE, hashes persisted.
+    const { codes: backupCodes, hashes: backupHashes } = generateBackupCodes();
 
-    // Enable 2FA
+    // Enable 2FA — store ONLY the SHA-256 hashes (DOC-09 P1 audit fix).
     await withOrg(user.orgId, (tx) =>
       tx`
         UPDATE users
         SET totp_enabled = true,
-            totp_backup_codes = ${backupCodes}
+            totp_backup_codes = ${backupHashes}
         WHERE id = ${user.id}
       `,
     );
@@ -116,8 +116,8 @@ twoFactorRoutes.post(
 
     return c.json({
       enabled: true,
-      backupCodes,
-      message: "Two-factor authentication has been enabled. Save your backup codes securely.",
+      backupCodes, // shown ONCE to the user — never recoverable
+      message: "Two-factor authentication has been enabled. Save your backup codes securely — they will not be displayed again.",
     });
   },
 );
