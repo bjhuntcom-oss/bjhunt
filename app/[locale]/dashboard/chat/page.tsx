@@ -28,6 +28,8 @@ interface Engagement {
   target: string;
   status: string;
   createdAt: string;
+  /** Upstream langgraph agent identifier — optional because the backend may omit it on older rows. */
+  agentGraph?: string;
 }
 
 /** Sidebar conversation item (loaded from /api/chat/conversations) */
@@ -773,9 +775,12 @@ export default function ChatPage() {
           tokensSoFarRef.current += approxTokens;
           setTokenCount((prev) => prev + approxTokens);
           if (parsed.agent) setActiveAgent(parsed.agent);
+          const tokAgent = parsed.agent as string | undefined;
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === assistantId ? { ...m, content: m.content + parsed.token } : m
+              m.id === assistantId
+                ? { ...m, content: m.content + parsed.token, agent: tokAgent ?? m.agent }
+                : m
             )
           );
           setThinking((prev) => prev.active ? { ...prev, active: false } : prev);
@@ -920,9 +925,12 @@ export default function ChatPage() {
               tokensSoFarRef.current += approxTokens;
               setTokenCount((prev) => prev + approxTokens);
               if (metadata?.langgraph_node) setActiveAgent(metadata.langgraph_node);
+              const agentFromNode = metadata?.langgraph_node as string | undefined;
               setMessages((prev) =>
                 prev.map((m) =>
-                  m.id === assistantId ? { ...m, content: nextContent } : m
+                  m.id === assistantId
+                    ? { ...m, content: nextContent, agent: agentFromNode ?? m.agent }
+                    : m
                 )
               );
               setThinking((prev) => (prev.active ? { ...prev, active: false } : prev));

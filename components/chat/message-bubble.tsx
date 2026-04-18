@@ -6,6 +6,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import { Copy, Check, Play } from "lucide-react";
 import { MessageActions } from "./message-actions";
+import { AgentTransition } from "@/components/ui/agent-transition";
 import { cn } from "@/lib/utils";
 
 export interface ChatMessage {
@@ -13,6 +14,8 @@ export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
   provider?: string;
+  /** Upstream agent id ("recon", "exploit", ...) — drives the AgentTransition pill. */
+  agent?: string;
   files?: UploadedFile[];
   sources?: WebSource[];
   isStreaming?: boolean;
@@ -155,18 +158,19 @@ export function MessageBubble({ message, onRegenerate, onEdit, onFeedback, onFor
 
   return (
     <div className={cn("group flex flex-col gap-1.5", isUser ? "items-end" : "items-start")}>
-      {/* Role label */}
-      <div className={cn(
-        "text-[8px] uppercase tracking-[0.2em]",
-        isUser ? "text-[var(--text-subtle)]" : "text-[var(--text-muted)]"
-      )}>
-        {isUser ? "Vous" : (
-          <div className="flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 " style={{ backgroundColor: providerColor(message.provider) }} />
-            <span className="text-[8px] uppercase tracking-[0.2em] text-[var(--text-muted)]">BJHUNT AI</span>
-          </div>
-        )}
-      </div>
+      {/* Role label — user name or agent pill */}
+      {isUser ? (
+        <div className="text-[8px] uppercase tracking-[0.2em] text-[var(--bjhunt-text-subtle)]">
+          Vous
+        </div>
+      ) : message.agent ? (
+        <AgentTransition agentId={message.agent} variant="pill" />
+      ) : (
+        <div className="flex items-center gap-1.5 text-[8px] uppercase tracking-[0.2em] text-[var(--bjhunt-text-muted)]">
+          <div className="w-1.5 h-1.5" style={{ backgroundColor: providerColor(message.provider) }} />
+          <span>BJHUNT AI</span>
+        </div>
+      )}
 
       {/* Fichiers uploadés */}
       {message.files && message.files.length > 0 && (
