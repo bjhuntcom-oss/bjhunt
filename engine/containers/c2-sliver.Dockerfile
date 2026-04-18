@@ -3,7 +3,7 @@
 # Starts by default with: docker compose up -d
 #
 # Pin digest for reproducible builds (same base as sandbox).
-FROM kalilinux/kali-rolling@sha256:a3849f99f9f187122de4822341c49e55d250a771f2dbc5cfd56a146017e0e6ae
+FROM kalilinux/kali-rolling@sha256:21ece2ebc720eb6250fae92e57ef0c2d56dc6c449c0d0628cd29b3722e4a122c
 
 # Fix SSL: the pinned image may have expired CA certs, so bootstrap
 # ca-certificates over HTTP first, then switch back to HTTPS.
