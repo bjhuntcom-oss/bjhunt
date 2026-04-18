@@ -53,7 +53,10 @@ app.use("*", secureHeaders({
   xFrameOptions: "DENY",
   referrerPolicy: "strict-origin-when-cross-origin",
   crossOriginOpenerPolicy: "same-origin",
-  crossOriginResourcePolicy: "same-origin",
+  // same-site (NOT same-origin) so the chat UI on www.bjhunt.com can fetch
+  // SSE streams from chat.bjhunt.com — they are different origins but the
+  // same eTLD+1 (bjhunt.com), which is what same-site means.
+  crossOriginResourcePolicy: "same-site",
 }));
 app.use("*", csrfMiddleware);
 app.use("*", resolveAuth);
