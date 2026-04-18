@@ -245,18 +245,20 @@ export default function CookieConsentBanner() {
                   </button>
                 ) : (
                   <>
+                    {/* CNIL guidance (mise à jour 2026) : "Refuser" doit être aussi facile, */}
+                    {/* visible et rapide qu'"Accepter". Styles identiques, ordre Refuser→Accepter. */}
+                    {/* Cf. https://www.cnil.fr/fr/cookies-et-traceurs (recommandations 2026). */}
                     <button
                       onClick={handleRejectAll}
-                      className="flex items-center justify-center gap-2 px-4 py-2.5 border border-white/20 text-[10px] font-bold tracking-wider uppercase hover:bg-white/5 transition-colors"
+                      className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-black text-[10px] font-bold tracking-wider uppercase hover:bg-white/90 transition-colors"
                     >
                       Refuser tout
                     </button>
                     <button
                       onClick={handleAcceptAll}
-                      className="flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-black text-[10px] font-bold tracking-wider uppercase hover:bg-white/90 transition-colors"
+                      className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-black text-[10px] font-bold tracking-wider uppercase hover:bg-white/90 transition-colors"
                     >
                       Tout accepter
-                      <ChevronRight className="w-3 h-3" />
                     </button>
                   </>
                 )}

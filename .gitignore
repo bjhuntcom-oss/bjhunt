@@ -64,3 +64,6 @@ venv/
 .docker/
 .playwright-mcp/
 .playwright-cli/
+
+# OpenHands SDK clone (reference only — install via pyproject [openhands] extra)
+engine/external/

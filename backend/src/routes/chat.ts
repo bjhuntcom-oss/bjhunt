@@ -895,6 +895,49 @@ chatRoutes.post("/stream", enforceDemoLimit(), zValidator("json", sendMessageSch
   });
 });
 
+// ── Message feedback (thumbs up / down) ─────────────────────────────────
+// Persists the rating into chat_messages.metadata.feedback. Avoids a new
+// table — feedback is pure user signal, no joins needed for now.
+const feedbackSchema = z.object({
+  rating: z.enum(["up", "down"]),
+  comment: z.string().max(2000).optional(),
+});
+
+chatRoutes.post(
+  "/messages/:id/feedback",
+  zValidator("json", feedbackSchema),
+  async (c) => {
+    const orgId = c.get("orgId") as string;
+    const user = c.get("user") as AuthUser;
+    const messageId = c.req.param("id");
+    if (!validateUUID(messageId)) return c.json({ error: "Invalid ID format" }, 400);
+
+    const { rating, comment } = c.req.valid("json");
+    const feedback = {
+      rating,
+      comment: comment ? sanitizeContent(comment) : undefined,
+      user_id: user.id,
+      at: new Date().toISOString(),
+    };
+
+    const result = await withOrg(orgId, (tx) =>
+      tx`UPDATE chat_messages
+         SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('feedback', ${JSON.stringify(feedback)}::jsonb)
+         WHERE id = ${messageId} AND role = 'assistant'
+         RETURNING id`,
+    );
+    if (result.length === 0) return c.json({ error: "Message not found" }, 404);
+
+    await sql`
+      INSERT INTO audit_logs (org_id, user_id, action, resource, details)
+      VALUES (${orgId}, ${user.id}, 'chat.feedback', ${"chat_message:" + messageId},
+              ${JSON.stringify({ rating })})
+    `.catch(() => {});
+
+    return c.json({ ok: true });
+  },
+);
+
 // ── Get conversation history from DB ─────────────────────────────────────
 
 chatRoutes.get("/history/:engagementId", async (c) => {

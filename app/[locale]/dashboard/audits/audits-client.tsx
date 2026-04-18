@@ -69,9 +69,11 @@ const DURATION_OPTIONS = [
   { value: 28800, label: '8 hours' },
 ]
 
+// IMPORTANT: every `value` MUST exactly match a key in `engine/langgraph.json`
+// (verified 2026-04-18). Sending a non-registered name returns LangGraph 404.
 const AGENT_OPTIONS = [
-  { value: 'bjhunt', label: 'BJHUNT Orchestrator', description: 'Full autonomous scan — coordinates all agents' },
-  { value: 'decepticon', label: 'Decepticon', description: 'Core orchestrator — 9 sub-agents coordination' },
+  { value: 'bjhunt', label: 'BJHUNT Orchestrator', description: 'Full autonomous scan — coordinates all 9 specialist sub-agents' },
+  { value: 'soundwave', label: 'Soundwave (Planner)', description: 'Engagement planning — RoE, CONOPS, deconfliction, OPPLAN' },
   { value: 'recon', label: 'Recon', description: 'OSINT, subdomain enum, port scanning, service detection' },
   { value: 'exploit', label: 'Exploit', description: 'SQLi, SSTI, Kerberoasting, credential attacks' },
   { value: 'postexploit', label: 'PostExploit', description: 'Privilege escalation, lateral movement, C2' },
@@ -80,13 +82,13 @@ const AGENT_OPTIONS = [
   { value: 'contract_auditor', label: 'Contract Auditor', description: 'Solidity/EVM: reentrancy, flash loans, Slither' },
   { value: 'cloud_hunter', label: 'Cloud Hunter', description: 'AWS IAM privesc, S3 takeover, K8s RBAC' },
   { value: 'ad_operator', label: 'AD Operator', description: 'BloodHound, Kerberoast, ADCS, DCSync' },
-  { value: 'vulnresearch', label: 'VulnResearch', description: 'Vulnerability research pipeline coordinator' },
-  { value: 'scanner', label: 'Scanner', description: 'Automated vulnerability scanning agent' },
-  { value: 'detector', label: 'Detector', description: 'Vulnerability detection agent' },
-  { value: 'verifier', label: 'Verifier', description: 'Vulnerability verification agent' },
-  { value: 'patcher', label: 'Patcher', description: 'Patch generation agent' },
-  { value: 'exploiter', label: 'Exploiter', description: 'Exploit generation agent' },
-  { value: 'defender', label: 'Defender', description: 'Defensive agent — attack, defense, verify cycle' },
+  { value: 'vulnresearch', label: 'VulnResearch', description: 'Vulnerability research pipeline (Scanner→Detector→Verifier→Patcher→Exploiter)' },
+  { value: 'scanner', label: 'Scanner', description: 'Phase 1 — sweep codebase for candidate weaknesses' },
+  { value: 'detector', label: 'Detector', description: 'Phase 2 — promote candidates to vulnerabilities' },
+  { value: 'verifier', label: 'Verifier', description: 'Phase 3 — craft PoCs (zero false positive)' },
+  { value: 'patcher', label: 'Patcher', description: 'Phase 4 — generate minimal patches' },
+  { value: 'exploiter', label: 'Exploiter', description: 'Phase 5 — chain primitives into weaponized attack paths' },
+  { value: 'defender', label: 'Defender', description: 'Vaccine loop — attack → defense → verify' },
 ]
 
 const STEP_ICONS = [Target, Shield, Cpu, FileText]

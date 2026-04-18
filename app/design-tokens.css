@@ -40,10 +40,10 @@
   --bjhunt-severity-high-bg:     rgba(249, 115, 22, 0.12);
   --bjhunt-severity-medium:      #EAB308;
   --bjhunt-severity-medium-bg:   rgba(234, 179, 8, 0.12);
-  --bjhunt-severity-low:         #3B82F6;
-  --bjhunt-severity-low-bg:      rgba(59, 130, 246, 0.12);
-  --bjhunt-severity-info:        #6B7280;
-  --bjhunt-severity-info-bg:     rgba(107, 114, 128, 0.12);
+  --bjhunt-severity-low:         #22C55E;          /* green per doc 17 spec */
+  --bjhunt-severity-low-bg:      rgba(34, 197, 94, 0.12);
+  --bjhunt-severity-info:        #6366F1;          /* indigo per doc 17 spec */
+  --bjhunt-severity-info-bg:     rgba(99, 102, 241, 0.12);
 
   /* ── Status ────────────────────────────────────────── */
   --bjhunt-status-success:     #10B981;

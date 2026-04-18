@@ -7,33 +7,36 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SectionLabel } from "@/components/ui/section-label";
 
+// Source of truth: backend/src/plans.ts (mirrored here for marketing display).
+// Aligned with /pricing page so we never advertise prices/limits the platform
+// cannot honor (Code de la consommation L121-1, Directive 2019/2161 Omnibus).
 const PLANS = [
   {
     name: "Free",
-    price: "0€",
+    price: "$0",
     period: "/mois",
     badge: null,
-    features: ["5 scans/mois", "Rapport basique", "API limitée", "Support communauté"],
+    features: ["Démo chat (5 min)", "3 agents IA", "Sans API", "Support communauté"],
     cta: "Démarrer",
     href: "/beta",
     variant: "secondary" as const,
   },
   {
     name: "Pro",
-    price: "49€",
+    price: "$200",
     period: "/mois",
     badge: "Populaire",
-    features: ["Scans illimités", "Rapport détaillé", "API complète", "Support prioritaire"],
+    features: ["5 scans / mois", "10 agents IA", "Vaccine loop + OPPLAN", "Exports JSON / PDF"],
     cta: "Essayer Pro",
     href: "/beta",
     variant: "primary" as const,
   },
   {
     name: "Enterprise",
-    price: "Sur devis",
-    period: "",
+    price: "$2,000",
+    period: "/mois",
     badge: null,
-    features: ["Tout Pro", "SLA garanti", "Déploiement on-premise", "Support dédié"],
+    features: ["20 scans / mois", "17 agents IA", "API v1 + webhooks", "SSO + SLA dédié"],
     cta: "Contacter",
     href: "/contact",
     variant: "secondary" as const,

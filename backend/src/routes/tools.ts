@@ -21,8 +21,35 @@ toolRoutes.use("*", requireFeature("toolPlayground"));
 
 // ── Schema ──────────────────────────────────────────────────────────────
 
+// Tool ids mirror engine/decepticon/tools/ categories (49+ available).
+// Per docs/architecture/04-DECEPTICON-ENGINE.md §Tool inventory.
+// Frontend playground gradually exposes them (TOOL_CATALOG below).
 const executeSchema = z.object({
-  tool: z.enum(["bash", "kg_query", "cve_lookup", "jwt_parse", "iam_audit", "network_scan"]),
+  tool: z.enum([
+    // Execution
+    "bash",
+    // Knowledge graph
+    "kg_query", "kg_neighbors", "kg_stats", "kg_ingest_nmap", "kg_ingest_nuclei",
+    // CVE intelligence
+    "cve_lookup", "cve_by_package",
+    // Web/auth utilities
+    "jwt_parse", "oauth_callback_analyze", "cookie_value_analyze",
+    // Cloud
+    "iam_audit", "k8s_audit", "tfstate_audit", "metadata_endpoints",
+    // AD
+    "kerberos_classify", "adcs_audit", "dcsync_check", "bh_ingest",
+    // Contracts
+    "solidity_scan", "slither_ingest", "foundry_reentrancy",
+    // Reversing
+    "bin_identify", "bin_strings", "bin_packer", "bin_rop", "bin_symbols_report",
+    // Recon
+    "subfinder", "httpx", "nuclei", "masscan", "ffuf", "testssl",
+    // References / search
+    "payload_search", "cve_poc_lookup", "h1_search", "oneliner_search",
+    "killchain_lookup", "methodology_lookup",
+    // Network scan (mock for playground)
+    "network_scan",
+  ]),
   input: z.record(z.unknown()),
   engagementId: z.string().uuid().optional(),
 });
