@@ -323,6 +323,18 @@ chatRoutes.get("/stream/:runId", async (c) => {
       markRunFailed("Client disconnected").catch(() => {});
     });
 
+    // Arm the keepalive BEFORE we await langgraphClient.streamRun. Cold
+    // LiteLLM + Ollama can take 10–20s to emit a first token; without bytes
+    // flowing in that window Caddy gives up with a 502 (HTTP/1.x transport
+    // connection broken: unexpected EOF) and the browser sees a CORS error
+    // because Caddy's 502 has no body. A `: ping\n\n` SSE comment line is
+    // valid noise that browsers + EventSource silently drop.
+    const earlyKeepalive = setInterval(() => {
+      stream.write(": ping\n\n").catch(() => {});
+    }, 5_000);
+    // Initial flush so Caddy sees byte-1 immediately.
+    await stream.write(": connected\n\n").catch(() => {});
+
     let upstream: ReadableStream<Uint8Array>;
     let threadId = pending.threadId;
     try {
@@ -333,6 +345,7 @@ chatRoutes.get("/stream/:runId", async (c) => {
         abort.signal,
       );
     } catch (err: any) {
+      clearInterval(earlyKeepalive);
       // LangGraph dev profile uses an in-memory runtime — every restart wipes
       // its thread store, but the engagement row in postgres still references
       // the old thread_id. The first stream after a restart fails with a 404
@@ -375,6 +388,9 @@ chatRoutes.get("/stream/:runId", async (c) => {
       }
     }
 
+    // Upstream is now connected — drop the early ping interval and switch to
+    // the regular heartbeat cadence.
+    clearInterval(earlyKeepalive);
     const heartbeatTimer = setInterval(() => {
       stream.write(": heartbeat\n\n").catch(() => {});
     }, HEARTBEAT_INTERVAL_MS);
