@@ -453,8 +453,12 @@ chatRoutes.get("/stream/:runId", async (c) => {
         if (streamFailed) break;
         chunkCount++;
         if (chunkCount <= 3) {
-          const preview = new TextDecoder().decode(value).slice(0, 400).replace(/\n/g, "\\n");
-          console.log(`[chat-stream ${runId}] chunk#${chunkCount} bytes=${value?.byteLength} preview=${preview}`);
+          const dec = new TextDecoder().decode(value).slice(0, 400);
+          const preview = dec.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
+          // Also dump the last 30 bytes hex to see EOF separator
+          const tail = value.slice(Math.max(0, value.byteLength - 30));
+          const hex = Array.from(tail).map((b) => b.toString(16).padStart(2, "0")).join(" ");
+          console.log(`[chat-stream ${runId}] chunk#${chunkCount} bytes=${value?.byteLength} preview=${preview} tailHex=${hex}`);
         }
         armTimeout();
         processChunk(value, transformState, emit);

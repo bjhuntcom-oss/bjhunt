@@ -61,11 +61,15 @@ export function processChunk(
   state: TransformState,
   emit: EmitFn,
 ): void {
-  state.sseBuffer += decoder.decode(chunk, { stream: true });
-  const blocks = state.sseBuffer.split("\n\n");
-  state.sseBuffer = blocks.pop() ?? "";
+  // Normalise CRLF → LF first; LangGraph's HTTP layer can emit either depending
+  // on transport. Then split on one or more blank lines (SSE event boundary).
+  state.sseBuffer += decoder.decode(chunk, { stream: true }).replace(/\r\n/g, "\n");
+  // Split keeps the trailing remainder (which may be a partial event) for the
+  // next call. We require at least one blank line — `\n\n` — between events.
+  const parts = state.sseBuffer.split(/\n\n+/);
+  state.sseBuffer = parts.pop() ?? "";
 
-  for (const block of blocks) {
+  for (const block of parts) {
     if (!block.trim()) continue;
     processBlock(block, state, emit);
   }
