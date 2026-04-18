@@ -369,7 +369,12 @@ function generateDefaultObjectives(
 
 // ── Create engagement ────────────────────────────────────────────────────
 
-engagementRoutes.post("/", requirePlan("pro", "enterprise"), enforceScanQuota(), zValidator("json", createSchema), async (c) => {
+// Plan gating is delegated to enforceScanQuota — it reads canCreateEngagements
+// + scansPerMonth from PLAN_LIMITS, which is the same source of truth used by
+// the dashboard usage panel. Free users get a single demo engagement so the
+// 5-min chat demo promised on /pricing actually works (capped further by
+// enforceDemoLimit on /api/chat/prepare).
+engagementRoutes.post("/", enforceScanQuota(), zValidator("json", createSchema), async (c) => {
   const orgId = c.get("orgId") as string;
   const user = c.get("user") as AuthUser;
   const body = c.req.valid("json");

@@ -122,8 +122,8 @@ export default async function DashboardPage({
   ]);
 
   // Parse billing data
-  type BillingPlan = { plan: string; displayName: string; orgName: string; limits: { engagements: number; tokensPerMonth: number; agents: number } };
-  type BillingUsage = { plan: string; limits: { engagements: number; tokensPerMonth: number; agents: number }; usage: { engagements: number; tokensUsed: number; findings: number }; percentages: { engagements: number; tokens: number } };
+  type BillingPlan = { plan: string; displayName: string; orgName: string; limits: { engagements: number; tokensPerMonth: number; agents: string[] } };
+  type BillingUsage = { plan: string; limits: { engagements: number; tokensPerMonth: number; agents: string[] }; usage: { engagements: number; tokensUsed: number; findings: number }; percentages: { engagements: number; tokens: number } };
 
   let billingPlan: BillingPlan | null = null;
   let billingUsage: BillingUsage | null = null;
@@ -384,7 +384,7 @@ export default async function DashboardPage({
             <p className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-[0.2em] mb-2">Abonnement</p>
             <div className="text-xl font-black">{planDisplayName}</div>
             <div className="text-[10px] text-[var(--text-muted)] mt-1 font-mono">
-              {billingPlan?.limits.agents ?? 3} agents disponibles
+              {billingPlan?.limits.agents?.length ?? 3} agents disponibles
             </div>
 
             {/* Engagements usage */}

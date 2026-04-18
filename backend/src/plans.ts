@@ -37,7 +37,9 @@ export interface PlanLimits {
 
 export const PLAN_LIMITS: Record<string, PlanLimits> = {
   free: {
-    scansPerMonth: 0,
+    // 1 demo engagement so users can actually try the chat (the 5-min cap
+    // is enforced separately by enforceDemoLimit() on /api/chat/prepare).
+    scansPerMonth: 1,
     agents: ["bjhunt", "recon", "analyst"],
     chatUnlimited: false,
     findingsExport: false,
@@ -47,7 +49,7 @@ export const PLAN_LIMITS: Record<string, PlanLimits> = {
     webhookIntegrations: false,
     customAgentConfig: false,
     demoMinutes: 5,
-    canCreateEngagements: false,
+    canCreateEngagements: true,
     price: 0,
     priceDisplay: "Gratuit",
     // Feature flags
