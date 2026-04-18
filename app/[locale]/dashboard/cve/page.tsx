@@ -346,7 +346,7 @@ export default function CveIntelligencePage() {
                 <Link
                   href={`/dashboard/chat?seed=${encodeURIComponent(
                     `Create an exploitation objective for ${cve.cveId} ` +
-                    `(${cve.severity ?? 'unknown severity'}, CVSS ${cve.cvssScore ?? 'n/a'}). ` +
+                    `(${cve.severity ?? 'unknown severity'}, CVSS ${cve.cvss ?? 'n/a'}). ` +
                     `Describe the attack chain and propose verification steps.`
                   )}`}
                   className="flex items-center gap-1.5 text-[8px] font-mono uppercase tracking-widest text-[var(--success)] hover:text-white px-2 py-1.5 border border-[var(--success)]/30 hover:border-[var(--success)] transition-colors"

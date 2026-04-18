@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { X, Cookie, Shield, BarChart3, Target, Settings, Check } from 'lucide-react'
 import { getConsent, setConsent, CookieConsent as CookieConsentType, defaultConsent } from '@/lib/cookies'
-import { initTracking } from '@/lib/tracking'
+import { initTracking, shutdownTracking } from '@/lib/tracking'
 
 type ConsentKey = keyof Omit<CookieConsentType, 'timestamp'>
 
