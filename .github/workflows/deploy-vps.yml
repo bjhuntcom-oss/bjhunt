@@ -28,7 +28,10 @@ jobs:
         uses: appleboy/ssh-action@v1
         with:
           host: 82.25.117.79
-          port: 443
+          # sshd actually listens on :22 (verified 2026-04-18 via ss -tlnp).
+          # docs/architecture/13-VPS-CONFIG.md mentions :443 (sslh-multiplexed) but
+          # sslh is NOT installed yet — it's a planned future change.
+          port: 22
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
