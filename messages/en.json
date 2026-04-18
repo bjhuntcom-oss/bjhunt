@@ -1223,5 +1223,15 @@
         "description": "Remember your choices and personalise your experience."
       }
     }
+  },
+  "components": {
+    "findingCard": {
+      "verified": "VERIFIED",
+      "verifiedTooltip": "Confirmed exploitable by the Verifier agent",
+      "cvss": "CVSS",
+      "agent": "Agent",
+      "viewEvidence": "View Evidence",
+      "viewRecommendation": "View Recommendation"
+    }
   }
 }

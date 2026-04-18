@@ -13,6 +13,7 @@ import {
   Network,
   Loader2,
 } from "lucide-react";
+import { SeverityBadge, type Severity } from "@/components/ui/severity-badge";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -264,44 +265,29 @@ export default function FindingsPage() {
         </p>
       </div>
 
-      {/* Stats bar */}
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <StatBadge
-          label="TOTAL"
-          count={stats.total}
-          color="var(--text-muted)"
-          bg="var(--bg-card)"
-        />
-        <StatBadge
-          label="CRITICAL"
-          count={stats.critical}
-          color="var(--severity-critical)"
-          bg="var(--severity-critical-bg)"
-        />
-        <StatBadge
-          label="HIGH"
-          count={stats.high}
-          color="var(--severity-high)"
-          bg="var(--severity-high-bg)"
-        />
-        <StatBadge
-          label="MEDIUM"
-          count={stats.medium}
-          color="var(--severity-medium)"
-          bg="var(--severity-medium-bg)"
-        />
-        <StatBadge
-          label="LOW"
-          count={stats.low}
-          color="var(--severity-low)"
-          bg="var(--severity-low-bg)"
-        />
-        <StatBadge
-          label="INFO"
-          count={stats.info}
-          color="var(--severity-info)"
-          bg="var(--severity-info-bg)"
-        />
+      {/* Stats bar — SeverityBadge (outline variant) with live counts */}
+      <div className="flex items-center gap-2 mb-6 flex-wrap">
+        <div
+          className="flex items-center gap-2 px-3 py-1.5 border border-[var(--bjhunt-border-strong)] bg-[var(--bjhunt-bg-secondary)]"
+        >
+          <span className="text-[9px] font-mono uppercase tracking-[0.24em] text-[var(--bjhunt-text-subtle)]">
+            Total
+          </span>
+          <span className="text-[13px] font-mono font-semibold text-[var(--bjhunt-text)] tabular-nums">
+            {stats.total}
+          </span>
+        </div>
+        {(['critical', 'high', 'medium', 'low', 'info'] as Severity[]).map((sev) => (
+          <SeverityBadge
+            key={sev}
+            severity={sev}
+            variant={sev === 'critical' && stats.critical > 0 ? 'solid' : 'outline'}
+            size="md"
+            pulse={sev === 'critical' && stats.critical > 0}
+          >
+            {sev} · {stats[sev]}
+          </SeverityBadge>
+        ))}
       </div>
 
       {/* Export bar */}
@@ -778,36 +764,3 @@ export default function FindingsPage() {
   );
 }
 
-// ── StatBadge ───────────────────────────────────────────────────────────
-
-function StatBadge({
-  label,
-  count,
-  color,
-  bg,
-}: {
-  label: string;
-  count: number;
-  color: string;
-  bg: string;
-}) {
-  return (
-    <div
-      className="flex items-center gap-2 px-2.5 py-1.5 border"
-      style={{ borderColor: color, background: bg }}
-    >
-      <span
-        className="text-[8px] font-mono uppercase tracking-widest"
-        style={{ color }}
-      >
-        {label}
-      </span>
-      <span
-        className="text-[11px] font-mono font-bold"
-        style={{ color }}
-      >
-        {count}
-      </span>
-    </div>
-  );
-}

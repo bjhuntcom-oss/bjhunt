@@ -2,7 +2,7 @@ import { headers } from 'next/headers'
 import { redirect, notFound } from 'next/navigation'
 import { Link } from '@/i18n/routing'
 import { serverBackendFetch } from '@/lib/backend-client'
-import { ChevronLeft, FileText, Bug, Clock, Download } from 'lucide-react'
+import { ChevronLeft, FileText, Bug, Clock, Download, Eye } from 'lucide-react'
 
 interface Engagement {
   id: string
@@ -92,6 +92,31 @@ export default async function AuditReportPage({
           </p>
         )}
       </header>
+
+      {/* Standalone online viewer — complements the download formats below */}
+      <Link
+        href={`/dashboard/audits/${id}/report/view`}
+        className="mb-6 flex items-center justify-between gap-4 px-6 py-5 border border-[var(--bjhunt-brand-primary)] bg-[var(--bjhunt-brand-primary-soft)] hover:bg-[var(--bjhunt-brand-primary)]/20 transition-colors group"
+      >
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="w-10 h-10 border border-[var(--bjhunt-brand-primary)] flex items-center justify-center flex-shrink-0">
+            <Eye className="w-5 h-5 text-[var(--bjhunt-brand-primary)]" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-sm font-bold tracking-wide text-white">View online</h2>
+            <p className="text-[9px] uppercase tracking-[0.2em] text-[var(--bjhunt-text-muted)] mt-0.5 font-mono">
+              Interactive report · grouped by severity · print-ready
+            </p>
+          </div>
+        </div>
+        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[var(--bjhunt-brand-primary)] group-hover:translate-x-1 transition-transform">
+          Open →
+        </span>
+      </Link>
+
+      <p className="text-[9px] uppercase tracking-[0.24em] text-[var(--bjhunt-text-subtle)] font-mono mb-3">
+        Or download as file
+      </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[var(--border)]">
         {REPORT_FORMATS.map((fmt) => {

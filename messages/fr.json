@@ -1223,5 +1223,15 @@
         "description": "Permettent de mémoriser vos choix et personnaliser votre expérience."
       }
     }
+  },
+  "components": {
+    "findingCard": {
+      "verified": "VÉRIFIÉ",
+      "verifiedTooltip": "Exploitabilité confirmée par l'agent Verifier",
+      "cvss": "CVSS",
+      "agent": "Agent",
+      "viewEvidence": "Voir la preuve",
+      "viewRecommendation": "Voir la remédiation"
+    }
   }
 }

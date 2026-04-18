@@ -9,7 +9,36 @@
  *
  * Source of truth for the 17 agents: `engine/langgraph.json` and
  * `docs/architecture/04-DECEPTICON-ENGINE.md`.
+ *
+ * Schema (W8 upgrade, 2026-04-18):
+ *   - `icon` is a `LucideIcon` component (not a name string) so callers can
+ *     render `<meta.icon />` directly.
+ *   - `color` is a hex string (e.g. "#38BDF8") so `hexToRgb()` can derive
+ *     rgba() alpha surfaces for per-agent theming.
+ *   - `role` uses Capitalized labels (e.g. "Orchestrator") because it renders
+ *     directly in the agent banner UI.
  */
+import {
+  Workflow,
+  ClipboardList,
+  ScanSearch,
+  Zap,
+  Crosshair,
+  Microscope,
+  Cpu,
+  FileCheck2,
+  Cloud,
+  Network,
+  GitBranch,
+  Radar,
+  AlertTriangle,
+  CheckCircle2,
+  Wrench,
+  Swords,
+  ShieldCheck,
+  Bot,
+  type LucideIcon,
+} from 'lucide-react'
 
 export type AgentId =
   | 'decepticon'
@@ -30,178 +59,76 @@ export type AgentId =
   | 'exploiter'
   | 'defender'
 
-export type AgentRole = 'orchestrator' | 'planning' | 'offensive' | 'analysis' | 'pipeline' | 'defensive'
+export type AgentRole =
+  | 'Orchestrator'
+  | 'Planning'
+  | 'Offensive'
+  | 'Analysis'
+  | 'Pipeline'
+  | 'Defensive'
 
 export interface AgentMeta {
-  /** User-facing short label (chat header, badges) */
+  id: AgentId
   label: string
-  /** One-line role description (tooltips, agent picker) */
-  description: string
-  /** Functional role (used for grouping in UI) */
   role: AgentRole
-  /** Tailwind color class name suffix (e.g. "indigo", "emerald") */
   color: string
-  /** Lucide icon name (matches lucide-react) */
-  icon: string
+  icon: LucideIcon
+  description: string
 }
 
-/**
- * Mapping table. Order matches the kill-chain (planning → offensive → analysis → defensive).
- */
-export const AGENT_META: Readonly<Record<AgentId, AgentMeta>> = Object.freeze({
+const REGISTRY: Record<AgentId, AgentMeta> = {
   // The internal id 'decepticon' is the upstream graph name in
   // engine/langgraph.json (PurpleAILAB Apache-2.0 fork). User-facing label
   // is "BJHUNT ALPHA 1.0" — the public brand for our orchestration layer.
-  decepticon: {
-    label: 'BJHUNT ALPHA 1.0',
-    description: 'Coordinates the full engagement and delegates to all specialist agents.',
-    role: 'orchestrator',
-    color: 'indigo',
-    icon: 'Workflow',
-  },
-  soundwave: {
-    label: 'Planner',
-    description: 'Builds the engagement plan: RoE, CONOPS, deconfliction, OPPLAN.',
-    role: 'planning',
-    color: 'sky',
-    icon: 'ClipboardList',
-  },
-  recon: {
-    label: 'Reconnaissance',
-    description: 'OSINT, subdomain enumeration, port scanning, service detection.',
-    role: 'offensive',
-    color: 'cyan',
-    icon: 'ScanSearch',
-  },
-  exploit: {
-    label: 'Exploit',
-    description: 'Active exploitation: SQLi, SSTI, Kerberoasting, credential abuse.',
-    role: 'offensive',
-    color: 'orange',
-    icon: 'Zap',
-  },
-  postexploit: {
-    label: 'Post-Exploitation',
-    description: 'Privilege escalation, lateral movement, C2 establishment.',
-    role: 'offensive',
-    color: 'red',
-    icon: 'Crosshair',
-  },
-  analyst: {
-    label: 'Analyst',
-    description: 'Code review, static analysis, CVE sweeps, fuzzing harness.',
-    role: 'analysis',
-    color: 'violet',
-    icon: 'Microscope',
-  },
-  reverser: {
-    label: 'Reverser',
-    description: 'Binary triage (ELF, PE, firmware), ROP gadgets, Ghidra scripting.',
-    role: 'analysis',
-    color: 'fuchsia',
-    icon: 'Cpu',
-  },
-  contract_auditor: {
-    label: 'Contract Auditor',
-    description: 'Solidity / EVM audit: reentrancy, flash loans, Slither integration.',
-    role: 'analysis',
-    color: 'amber',
-    icon: 'FileCheck2',
-  },
-  cloud_hunter: {
-    label: 'Cloud Hunter',
-    description: 'Cloud privesc on AWS / Azure / GCP / Kubernetes.',
-    role: 'offensive',
-    color: 'blue',
-    icon: 'Cloud',
-  },
-  ad_operator: {
-    label: 'AD Operator',
-    description: 'Active Directory: BloodHound, Kerberoast, ADCS ESC1-15, DCSync.',
-    role: 'offensive',
-    color: 'rose',
-    icon: 'Network',
-  },
-  vulnresearch: {
-    label: 'Vuln Research Pipeline',
-    description: 'Coordinates Scanner → Detector → Verifier → Patcher → Exploiter.',
-    role: 'pipeline',
-    color: 'teal',
-    icon: 'GitBranch',
-  },
-  scanner: {
-    label: 'Scanner',
-    description: 'Phase 1 — Sweep codebase for candidate weaknesses.',
-    role: 'pipeline',
-    color: 'emerald',
-    icon: 'Radar',
-  },
-  detector: {
-    label: 'Detector',
-    description: 'Phase 2 — Promote candidates to vulnerabilities by reading nearby code.',
-    role: 'pipeline',
-    color: 'lime',
-    icon: 'AlertTriangle',
-  },
-  verifier: {
-    label: 'Verifier',
-    description: 'Phase 3 — Craft PoCs and confirm vulnerabilities (zero false positive).',
-    role: 'pipeline',
-    color: 'yellow',
-    icon: 'CheckCircle2',
-  },
-  patcher: {
-    label: 'Patcher',
-    description: 'Phase 4 — Generate minimal diffs and verify the patch.',
-    role: 'pipeline',
-    color: 'green',
-    icon: 'Wrench',
-  },
-  exploiter: {
-    label: 'Exploiter',
-    description: 'Phase 5 — Chain primitives into weaponized attack paths.',
-    role: 'pipeline',
-    color: 'pink',
-    icon: 'Swords',
-  },
-  defender: {
-    label: 'Defender',
-    description: 'Vaccine loop: applies defensive actions, then re-tests them.',
-    role: 'defensive',
-    color: 'slate',
-    icon: 'ShieldCheck',
-  },
-})
-
-const DEFAULT_META: AgentMeta = {
-  label: 'Agent',
-  description: 'Specialist BJHUNT agent.',
-  role: 'orchestrator',
-  color: 'gray',
-  icon: 'Bot',
+  decepticon:       { id: 'decepticon',       label: 'BJHUNT ALPHA 1.0',       role: 'Orchestrator', color: '#E4E4E7', icon: Workflow,      description: 'Coordinates the full engagement and delegates to all specialist agents.' },
+  soundwave:        { id: 'soundwave',        label: 'Planner',                role: 'Planning',     color: '#38BDF8', icon: ClipboardList, description: 'Builds the engagement plan: RoE, CONOPS, deconfliction, OPPLAN.' },
+  recon:            { id: 'recon',            label: 'Reconnaissance',         role: 'Offensive',    color: '#22D3EE', icon: ScanSearch,    description: 'OSINT, subdomain enumeration, port scanning, service detection.' },
+  exploit:          { id: 'exploit',          label: 'Exploit',                role: 'Offensive',    color: '#FB923C', icon: Zap,           description: 'Active exploitation: SQLi, SSTI, Kerberoasting, credential abuse.' },
+  postexploit:      { id: 'postexploit',      label: 'Post-Exploitation',      role: 'Offensive',    color: '#F87171', icon: Crosshair,     description: 'Privilege escalation, lateral movement, C2 establishment.' },
+  analyst:          { id: 'analyst',          label: 'Analyst',                role: 'Analysis',     color: '#A78BFA', icon: Microscope,    description: 'Code review, static analysis, CVE sweeps, fuzzing harness.' },
+  reverser:         { id: 'reverser',         label: 'Reverser',               role: 'Analysis',     color: '#E879F9', icon: Cpu,           description: 'Binary triage (ELF, PE, firmware), ROP gadgets, Ghidra scripting.' },
+  contract_auditor: { id: 'contract_auditor', label: 'Contract Auditor',       role: 'Analysis',     color: '#FBBF24', icon: FileCheck2,    description: 'Solidity / EVM audit: reentrancy, flash loans, Slither integration.' },
+  cloud_hunter:     { id: 'cloud_hunter',     label: 'Cloud Hunter',           role: 'Offensive',    color: '#60A5FA', icon: Cloud,         description: 'Cloud privesc on AWS / Azure / GCP / Kubernetes.' },
+  ad_operator:      { id: 'ad_operator',      label: 'AD Operator',            role: 'Offensive',    color: '#F472B6', icon: Network,       description: 'Active Directory: BloodHound, Kerberoast, ADCS ESC1-15, DCSync.' },
+  vulnresearch:     { id: 'vulnresearch',     label: 'Vuln Research Pipeline', role: 'Pipeline',     color: '#2DD4BF', icon: GitBranch,     description: 'Coordinates Scanner → Detector → Verifier → Patcher → Exploiter.' },
+  scanner:          { id: 'scanner',          label: 'Scanner',                role: 'Pipeline',     color: '#34D399', icon: Radar,         description: 'Phase 1 — Sweep codebase for candidate weaknesses.' },
+  detector:         { id: 'detector',         label: 'Detector',               role: 'Pipeline',     color: '#A3E635', icon: AlertTriangle, description: 'Phase 2 — Promote candidates to vulnerabilities by reading nearby code.' },
+  verifier:         { id: 'verifier',         label: 'Verifier',               role: 'Pipeline',     color: '#FACC15', icon: CheckCircle2,  description: 'Phase 3 — Craft PoCs and confirm vulnerabilities (zero false positive).' },
+  patcher:          { id: 'patcher',          label: 'Patcher',                role: 'Pipeline',     color: '#4ADE80', icon: Wrench,        description: 'Phase 4 — Generate minimal diffs and verify the patch.' },
+  exploiter:        { id: 'exploiter',        label: 'Exploiter',              role: 'Pipeline',     color: '#F472B6', icon: Swords,        description: 'Phase 5 — Chain primitives into weaponized attack paths.' },
+  defender:         { id: 'defender',         label: 'Defender',               role: 'Defensive',    color: '#22C55E', icon: ShieldCheck,   description: 'Vaccine loop: applies defensive actions, then re-tests them.' },
 }
 
-/**
- * Resolve an upstream agent identifier to a display label.
- * Unknown ids fall back to a humanised version of the input string.
- */
-export function agentLabel(id: string | null | undefined): string {
-  if (!id) return DEFAULT_META.label
-  const meta = AGENT_META[id as AgentId]
-  if (meta) return meta.label
-  return id
-    .split(/[_-]/)
-    .map((part) => (part.length > 0 ? part[0].toUpperCase() + part.slice(1) : part))
-    .join(' ')
+const FALLBACK: AgentMeta = {
+  id: 'decepticon',
+  label: 'Unknown Agent',
+  role: 'Orchestrator',
+  color: '#A1A1AA',
+  icon: Bot,
+  description: '',
 }
 
 /** Full meta or a sensible default for unknown agents. */
-export function agentMeta(id: string | null | undefined): AgentMeta {
-  if (!id) return DEFAULT_META
-  return AGENT_META[id as AgentId] ?? { ...DEFAULT_META, label: agentLabel(id) }
+export function agentMeta(id: AgentId | string | null | undefined): AgentMeta {
+  if (!id) return FALLBACK
+  return REGISTRY[id as AgentId] ?? { ...FALLBACK, label: String(id) }
 }
 
-/** All known agent ids (use to render an agent picker exhaustively). */
-export const AGENT_IDS: ReadonlyArray<AgentId> = Object.freeze(
-  Object.keys(AGENT_META) as AgentId[],
-)
+/** Resolve an upstream agent identifier to a display label. */
+export function agentLabel(id: AgentId | string | null | undefined): string {
+  return agentMeta(id).label
+}
+
+/** All 17 known agents, in kill-chain order. */
+export function allAgents(): AgentMeta[] {
+  return Object.values(REGISTRY)
+}
+
+/** Hex color → "r,g,b" string for rgba() composition. */
+export function hexToRgb(hex: string): string {
+  const h = hex.replace('#', '')
+  const r = parseInt(h.slice(0, 2), 16)
+  const g = parseInt(h.slice(2, 4), 16)
+  const b = parseInt(h.slice(4, 6), 16)
+  return `${r},${g},${b}`
+}

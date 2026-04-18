@@ -131,7 +131,7 @@ export function DashboardShell({ user, locale, children }: DashboardShellProps) 
             }`;
             return (
               <Link key={href} href={`/${locale}${href}`} title={collapsed ? label : undefined} className={navClass}>
-                {active && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-white" />}
+                {active && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[var(--bjhunt-brand-primary)]" />}
                 <Icon className="w-3.5 h-3.5 flex-shrink-0" />
                 {!collapsed && (
                   <>
@@ -165,7 +165,7 @@ export function DashboardShell({ user, locale, children }: DashboardShellProps) 
                     : "text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-card)]/50"
                 }`}
               >
-                {active && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-white" />}
+                {active && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[var(--bjhunt-brand-primary)]" />}
                 <Icon className="w-3.5 h-3.5 flex-shrink-0" />
                 {!collapsed && (
                   <>
@@ -201,7 +201,7 @@ export function DashboardShell({ user, locale, children }: DashboardShellProps) 
                         : "text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-card)]/50"
                     }`}
                   >
-                    {active && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-white" />}
+                    {active && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[var(--bjhunt-brand-primary)]" />}
                     <Icon className="w-3.5 h-3.5 flex-shrink-0" />
                     {!collapsed && <span className="truncate">{label}</span>}
                   </Link>

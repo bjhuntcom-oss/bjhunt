@@ -6,13 +6,16 @@ import { ChevronLeft } from 'lucide-react'
 import { ReportExportBar } from '@/components/dashboard/report-export-bar'
 import { VaccineMonitor } from '@/components/dashboard/vaccine-monitor'
 import { DefenseBriefPanel } from '@/components/dashboard/defense-brief-panel'
+import { FindingCard } from '@/components/ui/finding-card'
+import { type Severity } from '@/components/ui/severity-badge'
+import { type AgentId } from '@/lib/agent-labels'
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: 'var(--text-muted)',
-  running: 'var(--warning)',
-  completed: 'var(--success)',
-  failed: 'var(--danger)',
-  cancelled: 'var(--text-subtle)',
+  draft: 'var(--bjhunt-text-muted)',
+  running: 'var(--bjhunt-status-warning)',
+  completed: 'var(--bjhunt-status-success)',
+  failed: 'var(--bjhunt-status-danger)',
+  cancelled: 'var(--bjhunt-text-subtle)',
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -23,12 +26,10 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Annulé',
 }
 
-const SEVERITY_COLORS: Record<string, string> = {
-  critical: 'var(--danger)',
-  high: '#f97316',
-  medium: 'var(--warning)',
-  low: '#60a5fa',
-  info: 'var(--text-muted)',
+const SEVERITY_ORDER: Severity[] = ['critical', 'high', 'medium', 'low', 'info']
+
+function clampSeverity(s: string): Severity {
+  return (SEVERITY_ORDER as string[]).includes(s) ? (s as Severity) : 'info'
 }
 
 export default async function AuditRunDetailPage({
@@ -132,16 +133,16 @@ export default async function AuditRunDetailPage({
 
       {/* Scan results */}
       <div>
-        <h2 className="text-[11px] font-mono font-bold uppercase tracking-widest text-[var(--text-muted)] mb-3">
+        <h2 className="text-[11px] font-mono font-bold uppercase tracking-widest text-[var(--bjhunt-text-muted)] mb-4">
           Résultats ({results.length})
         </h2>
 
         {results.length === 0 ? (
-          <div className="border border-[var(--border)] px-4 py-8 text-center text-[11px] font-mono text-[var(--text-muted)]">
+          <div className="border border-[var(--bjhunt-border)] px-4 py-10 text-center text-[11px] font-mono text-[var(--bjhunt-text-muted)] uppercase tracking-[0.2em]">
             Aucun résultat de scan pour cet audit.
           </div>
         ) : (
-          <div className="border border-[var(--border)] divide-y divide-[var(--border)]">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             {results.map((r: {
               id: string
               severity: string
@@ -150,45 +151,23 @@ export default async function AuditRunDetailPage({
               description: string | null
               cve: string | null
               cvssScore: number | null
+              mitreTechnique?: string | null
+              agent?: string | null
+              verified?: boolean
               remediation: string | null
               createdAt: string
             }) => (
-              <div key={r.id} className="px-4 py-4">
-                <div className="flex items-start gap-3">
-                  <div
-                    className="w-1.5 h-1.5 mt-1.5 flex-shrink-0 rounded-full"
-                    style={{ background: SEVERITY_COLORS[r.severity] ?? 'var(--text-muted)' }}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-[12px] font-mono font-bold text-white">{r.title}</span>
-                      <span
-                        className="text-[8px] font-mono uppercase tracking-widest px-1.5 py-0.5 border flex-shrink-0"
-                        style={{ borderColor: SEVERITY_COLORS[r.severity], color: SEVERITY_COLORS[r.severity] }}
-                      >
-                        {r.severity}
-                      </span>
-                      <span className="text-[8px] font-mono uppercase tracking-widest px-1.5 py-0.5 border border-[var(--border)] text-[var(--text-muted)] flex-shrink-0">
-                        {r.category}
-                      </span>
-                      {r.cve && (
-                        <span className="text-[8px] font-mono text-[var(--text-subtle)]">{r.cve}</span>
-                      )}
-                      {r.cvssScore != null && (
-                        <span className="text-[8px] font-mono text-[var(--text-subtle)]">CVSS {r.cvssScore}</span>
-                      )}
-                    </div>
-                    {r.description && (
-                      <p className="text-[11px] text-[var(--text-muted)] font-mono mb-2">{r.description}</p>
-                    )}
-                    {r.remediation && (
-                      <p className="text-[10px] text-[var(--text-subtle)] font-mono border-l-2 border-[var(--border)] pl-2">
-                        {r.remediation}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <FindingCard
+                key={r.id}
+                severity={clampSeverity(r.severity)}
+                title={r.title}
+                cve={r.cve}
+                cvss={r.cvssScore ?? undefined}
+                mitre={r.mitreTechnique ?? null}
+                agent={(r.agent ?? null) as AgentId | null}
+                verified={r.verified}
+                description={r.description ?? r.remediation ?? ''}
+              />
             ))}
           </div>
         )}

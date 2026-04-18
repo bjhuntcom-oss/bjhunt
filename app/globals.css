@@ -5,28 +5,29 @@
 @import "tailwindcss";
 @import "./design-tokens.css";
 
-/* ── RESET GLOBAL : zéro border-radius partout ─────── */
-*, *::before, *::after {
-  border-radius: 0 !important;
-}
+/* ── RESET GLOBAL : rely on component tokens for radius (W8) ────
+   The prior `* { border-radius: 0 !important }` override was retired:
+   atomic components (FindingCard, SeverityBadge, TerminalBlock, …) now
+   choose their radius via `var(--bjhunt-radius-*)`. Pages that want the
+   dev-tool square aesthetic opt in locally via `radius-xs` / 0. */
 
 /* ── A11y: focus-visible outlines (WCAG 2.4.7) ─────── */
 *:focus { outline: none; }
 *:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--bjhunt-brand-primary);
   outline-offset: 2px;
 }
 button:focus-visible,
 a:focus-visible,
 [role="button"]:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--bjhunt-brand-primary);
   outline-offset: 2px;
 }
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: 1px solid var(--accent);
+  outline: 1px solid var(--bjhunt-brand-primary);
   outline-offset: -1px;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -44,67 +45,77 @@ select:focus-visible {
 ::-webkit-scrollbar-thumb { background: #2a2a2a; }
 ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
 
-/* ── TOKENS ────────────────────────────────────────── */
+/* ── LEGACY TOKENS (aliased to --bjhunt-* for W8 migration) ─────
+   Old pages still reference `--bg`, `--bg-card`, `--text-muted`, … —
+   we retain those names but re-point them at the new design tokens so
+   a page-by-page migration is unnecessary. Every non-atomic page that
+   consumed these will inherit the new palette automatically. */
 :root {
-  --bg:           #0a0a0a;
-  --bg-card:      #111111;
-  --bg-input:     #0d0d0d;
-  --border:       #1a1a1a;
-  --border-strong:#2a2a2a;
-  --text:         #ffffff;
-  --text-muted:   #666666;
-  --text-subtle:  #4a4a4a;
-  --success:      #00cc8a;
-  --danger:       #ff4444;
-  --warning:      #ff9900;
+  --bg:            var(--bjhunt-bg);
+  --bg-card:       var(--bjhunt-bg-secondary);
+  --bg-input:      var(--bjhunt-bg-tertiary);
+  --border:        var(--bjhunt-border);
+  --border-strong: var(--bjhunt-border-strong);
+  --text:          var(--bjhunt-text);
+  --text-muted:    var(--bjhunt-text-muted);
+  --text-subtle:   var(--bjhunt-text-subtle);
+  --success:       var(--bjhunt-status-success);
+  --danger:        var(--bjhunt-status-danger);
+  --warning:       var(--bjhunt-status-warning);
 
-  /* Compat avec les composants existants */
-  --background:   #0a0a0a;
-  --foreground:   #ffffff;
-  --surface:      #111111;
-  --surface-2:    #111111;
-  --surface-3:    #1a1a1a;
-  --surface-4:    #2a2a2a;
-  --border-2:     #2a2a2a;
-  --border-3:     #3a3a3a;
-  --ring:         rgba(255,255,255,0.2);
-  --text-primary: #ffffff;
-  --text-secondary: #888888;
-  --text-tertiary: #555555;
-  --accent:       #ffffff;
-  --accent-foreground: #0a0a0a;
-  --severity-critical:    #ff4444;
-  --severity-critical-bg: rgba(255,68,68,0.1);
-  --severity-high:        #ff9900;
-  --severity-high-bg:     rgba(255,153,0,0.1);
-  --severity-medium:      #ff9900;
-  --severity-medium-bg:   rgba(255,153,0,0.1);
-  --severity-low:         #00cc8a;
-  --severity-low-bg:      rgba(0,204,138,0.1);
-  --severity-info:        #555555;
-  --severity-info-bg:     rgba(85,85,85,0.1);
-  --success-dim:          rgba(0,204,138,0.1);
-  --danger-dim:           rgba(255,68,68,0.1);
-  --warning-dim:          rgba(255,153,0,0.1);
-  --sidebar-width:        220px;
+  /* Compat layer used by shadcn/ui primitives and older components */
+  --background:     var(--bjhunt-bg);
+  --foreground:     var(--bjhunt-text);
+  --surface:        var(--bjhunt-bg-secondary);
+  --surface-2:      var(--bjhunt-bg-secondary);
+  --surface-3:      var(--bjhunt-bg-tertiary);
+  --surface-4:      var(--bjhunt-bg-elevated);
+  --border-2:       var(--bjhunt-border-strong);
+  --border-3:       #52525B;
+  --ring:           var(--bjhunt-brand-primary-soft);
+  --text-primary:   var(--bjhunt-text);
+  --text-secondary: var(--bjhunt-text-muted);
+  --text-tertiary:  var(--bjhunt-text-subtle);
+  --accent:             var(--bjhunt-brand-primary);
+  --accent-foreground:  var(--bjhunt-brand-primary-fg);
+
+  --severity-critical:    var(--bjhunt-severity-critical);
+  --severity-critical-bg: var(--bjhunt-severity-critical-bg);
+  --severity-high:        var(--bjhunt-severity-high);
+  --severity-high-bg:     var(--bjhunt-severity-high-bg);
+  --severity-medium:      var(--bjhunt-severity-medium);
+  --severity-medium-bg:   var(--bjhunt-severity-medium-bg);
+  --severity-low:         var(--bjhunt-severity-low);
+  --severity-low-bg:      var(--bjhunt-severity-low-bg);
+  --severity-info:        var(--bjhunt-severity-info);
+  --severity-info-bg:     var(--bjhunt-severity-info-bg);
+
+  --success-dim:   rgba(16, 185, 129, 0.12);
+  --danger-dim:    rgba(239, 68, 68, 0.12);
+  --warning-dim:   rgba(245, 158, 11, 0.12);
+
+  --sidebar-width:           220px;
   --sidebar-collapsed-width: 56px;
+
+  /* Radii now follow the design-tokens scale. Pages that need the
+     square dev-tool look should opt in locally (radius-xs or 0). */
   --radius-none: 0px;
-  --radius-sm:   0px;
-  --radius-md:   0px;
-  --radius-lg:   0px;
+  --radius-sm:   var(--bjhunt-radius-sm);
+  --radius-md:   var(--bjhunt-radius-md);
+  --radius-lg:   var(--bjhunt-radius-lg);
 }
 
 @theme inline {
-  --color-black: #0a0a0a;
-  --color-white: #ffffff;
-  --font-sans:  var(--font-inter), system-ui, sans-serif;
-  --font-mono:  "JetBrains Mono", "Fira Code", monospace;
+  --color-black: var(--bjhunt-bg);
+  --color-white: var(--bjhunt-text);
+  --font-sans:   var(--bjhunt-font-sans);
+  --font-mono:   var(--bjhunt-font-mono);
 }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-inter, system-ui, sans-serif);
+  background: var(--bjhunt-bg);
+  color: var(--bjhunt-text);
+  font-family: var(--bjhunt-font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
