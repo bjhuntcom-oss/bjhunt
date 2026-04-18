@@ -106,6 +106,7 @@ function processBlock(block: string, state: TransformState, emit: EmitFn): void 
   ) {
     const msgChunk = Array.isArray(parsed) ? parsed[0] : parsed;
     const metadata = Array.isArray(parsed) ? parsed[1] : {};
+    console.log(`[xform] event=${eventType} type=${msgChunk?.type} contentType=${typeof msgChunk?.content} contentPreview=${typeof msgChunk?.content === 'string' ? msgChunk.content.slice(0, 30) : '?'}`);
     if (!msgChunk) return;
 
     if (msgChunk.type === "AIMessageChunk" || msgChunk.type === "ai") {
