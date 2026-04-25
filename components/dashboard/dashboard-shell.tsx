@@ -263,8 +263,76 @@ export function DashboardShell({ user, locale, children }: DashboardShellProps) 
 
       {/* Main */}
       <main className="flex-1 overflow-y-auto min-w-0">
+        {/* DASH-P2: breadcrumbs derived from pathname segments. Hidden on
+            /dashboard (root) and on /dashboard/chat (chat owns its own
+            top bar). Each segment links back to its accumulated path so
+            the user can step up the tree without using the browser back
+            button. */}
+        <Breadcrumbs pathname={pathname} locale={locale} />
         {children}
       </main>
     </div>
+  );
+}
+
+const SEGMENT_LABELS: Record<string, string> = {
+  dashboard: "Dashboard",
+  audits: "Audits",
+  ad: "Active Directory",
+  cloud: "Cloud",
+  web: "Web",
+  findings: "Findings",
+  cve: "CVE",
+  chat: "Chat",
+  reports: "Reports",
+  skills: "Skills",
+  guide: "Guide",
+  billing: "Billing",
+  security: "Security",
+  settings: "Settings",
+  "api-keys": "API Keys",
+  notifications: "Notifications",
+  admin: "Admin",
+  users: "Users",
+  agents: "Agents",
+  gateway: "Gateway",
+  logs: "Logs",
+  monitoring: "Monitoring",
+  tools: "Tools",
+};
+
+function Breadcrumbs({ pathname, locale }: { pathname: string; locale: string }) {
+  const stripped = pathname.replace(/^\/(fr|en)/, "");
+  const segments = stripped.split("/").filter(Boolean);
+  // Hide on the dashboard root + chat (chat has its own header chrome)
+  if (segments.length <= 1 || (segments.length === 2 && segments[1] === "chat")) {
+    return null;
+  }
+  const crumbs = segments.map((seg, idx) => {
+    const href = `/${locale}/${segments.slice(0, idx + 1).join("/")}`;
+    const label =
+      SEGMENT_LABELS[seg] ??
+      // UUID-ish segments collapse to "…"
+      (/^[0-9a-f-]{8,}$/i.test(seg) ? "…" : seg);
+    return { href, label, isLast: idx === segments.length - 1 };
+  });
+  return (
+    <nav
+      aria-label="Breadcrumb"
+      className="flex items-center gap-1.5 px-6 pt-4 text-[10px] font-mono text-[var(--text-muted)] uppercase tracking-widest"
+    >
+      {crumbs.map((c, i) => (
+        <span key={c.href} className="flex items-center gap-1.5">
+          {c.isLast ? (
+            <span className="text-white">{c.label}</span>
+          ) : (
+            <Link href={c.href} className="hover:text-white transition-colors">
+              {c.label}
+            </Link>
+          )}
+          {i < crumbs.length - 1 && <span className="text-[var(--text-subtle)]">/</span>}
+        </span>
+      ))}
+    </nav>
   );
 }
