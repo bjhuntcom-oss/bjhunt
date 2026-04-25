@@ -154,6 +154,25 @@ async function reapZombieAgentRuns() {
   `.catch((err: Error) =>
     console.error("[chat] reapZombieAgentRuns failed:", err.message),
   );
+
+  // Engagements stuck in 'running' for >1h are also reaped to 'failed'
+  // (migration 0008 added 'failed' to the CHECK constraint). Conservative
+  // 1h window vs 10min for runs because a legitimate scan can take that
+  // long; the agent_run reaper above is the fast feedback loop.
+  await sql`
+    UPDATE engagements
+       SET status = 'failed',
+           completed_at = COALESCE(completed_at, now())
+     WHERE status = 'running'
+       AND started_at < now() - interval '1 hour'
+       AND NOT EXISTS (
+         SELECT 1 FROM agent_runs ar
+          WHERE ar.engagement_id = engagements.id
+            AND ar.status = 'running'
+       )
+  `.catch((err: Error) =>
+    console.error("[chat] reapZombieEngagements failed:", err.message),
+  );
 }
 reapZombieAgentRuns();
 setInterval(reapZombieAgentRuns, 5 * 60_000);

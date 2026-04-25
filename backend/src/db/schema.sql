@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS engagements (
     target          TEXT NOT NULL,  -- target scope (domain, IP range, etc.)
     status          TEXT NOT NULL DEFAULT 'draft' CHECK (status IN (
                         'draft', 'planning', 'approved', 'running',
-                        'paused', 'completed', 'cancelled'
+                        'paused', 'completed', 'cancelled', 'failed'
                     )),
     agent_graph     TEXT NOT NULL DEFAULT 'bjhunt', -- langgraph graph name
     langgraph_thread_id TEXT,       -- LangGraph thread ID for resumption
