@@ -603,12 +603,17 @@ export default function ChatPage() {
     try {
       abortRef.current = new AbortController();
 
-      // Include conversationId so backend reuses existing conversation,
-      // and attachmentIds so uploaded files get linked.
+      // CHAT-P1-2: when a conversation has just been loaded with an
+      // engagement-specific agent (e.g. "recon"), React state for
+      // selectedAgent may not yet reflect the load. Prefer the active
+      // engagement's agentGraph if it disagrees with the picker — the
+      // engagement's wired agent is the source of truth at send time.
+      const resolvedAgent =
+        (activeEngagement?.agentGraph as string | undefined) || selectedAgent;
       const requestBody: Record<string, unknown> = {
         message: text,
         engagementId: engId || "",
-        agentGraph: selectedAgent,
+        agentGraph: resolvedAgent,
       };
       if (activeConversationId) {
         requestBody.conversationId = activeConversationId;

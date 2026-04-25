@@ -50,21 +50,46 @@ export const langgraphClient = {
 
   /**
    * Create a run (agent invocation) on a thread.
+   *
+   * ENG-P2-1: retry on transient failures with exponential backoff
+   * (250ms, 500ms, 1s — caps at 3 attempts). LangGraph in dev mode is
+   * known to be flaky during cold start; the audit flagged that
+   * createRun was fire-and-forget with no recovery. A full BullMQ
+   * queue is the proper solution but this thin retry covers the
+   * 90%-case (transient 502/503 from LangGraph reload, network blip).
    */
   async createRun(
     threadId: string,
     assistantId: string,
     input: Record<string, unknown>,
   ): Promise<RunStatus> {
-    const res = await request(`/threads/${threadId}/runs`, {
-      method: "POST",
-      body: JSON.stringify({
-        assistant_id: assistantId,
-        input: { messages: [{ role: "user", content: String(input.content || JSON.stringify(input)) }] },
-      }),
+    const body = JSON.stringify({
+      assistant_id: assistantId,
+      input: { messages: [{ role: "user", content: String(input.content || JSON.stringify(input)) }] },
     });
-    const data = (await res.json()) as { run_id: string; status: string };
-    return { runId: data.run_id, status: data.status };
+
+    let lastErr: unknown;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await request(`/threads/${threadId}/runs`, {
+          method: "POST",
+          body,
+        });
+        const data = (await res.json()) as { run_id: string; status: string };
+        return { runId: data.run_id, status: data.status };
+      } catch (err) {
+        lastErr = err;
+        if (attempt === 3) break;
+        const delay = 250 * 2 ** (attempt - 1);
+        console.warn(
+          `[langgraph] createRun attempt ${attempt}/3 failed, retrying in ${delay}ms: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+    throw lastErr instanceof Error
+      ? lastErr
+      : new Error(`createRun failed after 3 attempts: ${String(lastErr)}`);
   },
 
   /**

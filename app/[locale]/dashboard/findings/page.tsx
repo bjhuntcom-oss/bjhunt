@@ -792,6 +792,31 @@ export default function FindingsPage() {
                 >
                   Prev
                 </button>
+                {/* DASH-P2: Go-to-page input for large finding sets. */}
+                <span className="text-[9px] font-mono text-[var(--text-subtle)]">
+                  Page
+                </span>
+                <input
+                  type="number"
+                  min={1}
+                  max={Math.max(1, Math.ceil(total / limit))}
+                  value={Math.floor(offset / limit) + 1}
+                  onChange={(e) => {
+                    const n = Math.max(
+                      1,
+                      Math.min(
+                        Math.ceil(total / limit) || 1,
+                        Number.parseInt(e.target.value, 10) || 1,
+                      ),
+                    );
+                    setOffset((n - 1) * limit);
+                  }}
+                  aria-label="Go to page"
+                  className="w-12 text-center text-[9px] font-mono bg-transparent border border-[var(--border)] px-1 py-1 text-white focus:outline-none focus:border-white/40"
+                />
+                <span className="text-[9px] font-mono text-[var(--text-subtle)]">
+                  / {Math.max(1, Math.ceil(total / limit))}
+                </span>
                 <button
                   disabled={offset + limit >= total}
                   onClick={() => setOffset(offset + limit)}
