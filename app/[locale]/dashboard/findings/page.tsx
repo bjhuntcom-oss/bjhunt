@@ -104,6 +104,7 @@ export default function FindingsPage() {
   // Selection for batch export
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   // Filters
   const [severityFilter, setSeverityFilter] = useState("");
@@ -139,6 +140,7 @@ export default function FindingsPage() {
   const handleExport = useCallback(async () => {
     if (selectedIds.size === 0) return;
     setExporting(true);
+    setExportError(null);
     try {
       const res = await browserBackendFetch("/api/findings/export", {
         method: "POST",
@@ -152,9 +154,17 @@ export default function FindingsPage() {
         a.download = `findings-export-${new Date().toISOString().slice(0, 10)}.csv`;
         a.click();
         URL.revokeObjectURL(url);
+      } else {
+        const detail = await res.text().catch(() => "");
+        setExportError(
+          res.status === 403
+            ? "Export requires a higher plan."
+            : `Export failed (HTTP ${res.status})${detail ? `: ${detail.slice(0, 200)}` : ""}`,
+        );
       }
-    } catch {
-      // silent
+    } catch (err) {
+      console.error("[findings] export failed", err);
+      setExportError(err instanceof Error ? err.message : "Export failed — network error.");
     } finally {
       setExporting(false);
     }
@@ -289,6 +299,24 @@ export default function FindingsPage() {
           </SeverityBadge>
         ))}
       </div>
+
+      {/* Export error banner */}
+      {exportError && (
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-3 mb-4 px-3 py-2 border border-red-500/40 bg-red-500/10 text-[10px] font-mono text-red-300"
+        >
+          <span>{exportError}</span>
+          <button
+            type="button"
+            onClick={() => setExportError(null)}
+            className="text-red-200 hover:text-white"
+            aria-label="Dismiss error"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Export bar */}
       {selectedIds.size > 0 && (

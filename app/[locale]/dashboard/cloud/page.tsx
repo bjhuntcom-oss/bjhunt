@@ -137,6 +137,8 @@ export default function CloudAssessmentPage() {
     k8sScanSecrets: false,
   });
   const [result, setResult] = useState<AssessmentResult | null>(null);
+  const [pollError, setPollError] = useState<string | null>(null);
+  const [launchError, setLaunchError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
 
@@ -221,7 +223,8 @@ export default function CloudAssessmentPage() {
           findings: [],
         });
 
-        // Start polling findings
+        // Start polling findings — surface failures
+        let consecutiveFailures = 0;
         const interval = setInterval(async () => {
           try {
             const findingsRes = await browserBackendFetch(`/api/engagements/${engagement.id}/findings`);
@@ -230,6 +233,8 @@ export default function CloudAssessmentPage() {
               setResult((prev) =>
                 prev ? { ...prev, findings: findings || [] } : prev
               );
+            } else if (findingsRes.status >= 500) {
+              throw new Error(`Findings poll: HTTP ${findingsRes.status}`);
             }
 
             const engRes = await browserBackendFetch(`/api/engagements/${engagement.id}`);
@@ -243,14 +248,21 @@ export default function CloudAssessmentPage() {
                 setPollInterval(null);
               }
             }
-          } catch {
-            // polling is best-effort
+            consecutiveFailures = 0;
+            setPollError(null);
+          } catch (err) {
+            consecutiveFailures += 1;
+            console.error("[cloud-scan] poll failure", err);
+            if (consecutiveFailures >= 3) {
+              setPollError("Connection to scan poller lost — results may be stale. Refresh the page if this persists.");
+            }
           }
         }, 5000);
 
         setPollInterval(interval);
-      } catch {
-        // error handled by UI
+      } catch (err) {
+        console.error("[cloud-scan] launch failed", err);
+        setLaunchError(err instanceof Error ? err.message : "Failed to launch cloud scan. Please retry.");
       }
     });
   };
@@ -279,6 +291,26 @@ export default function CloudAssessmentPage() {
           CloudHunter agent — AWS IAM privesc, S3 takeover, K8s RBAC, Terraform secrets
         </p>
       </div>
+
+      {(launchError || pollError) && (
+        <div
+          role="alert"
+          className="mb-4 border border-red-500/40 bg-red-500/10 px-3 py-2 text-[10px] font-mono text-red-300 flex items-center justify-between gap-3"
+        >
+          <span>{launchError ?? pollError}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setLaunchError(null);
+              setPollError(null);
+            }}
+            className="text-red-200 hover:text-white"
+            aria-label="Dismiss error"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Provider selector */}
       <div className="mb-6">

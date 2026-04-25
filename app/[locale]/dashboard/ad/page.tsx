@@ -163,6 +163,8 @@ export default function ADAssessmentPage() {
   const [specificOUs, setSpecificOUs] = useState("");
 
   const [result, setResult] = useState<AssessmentResult | null>(null);
+  const [pollError, setPollError] = useState<string | null>(null);
+  const [launchError, setLaunchError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
 
@@ -278,17 +280,19 @@ export default function ADAssessmentPage() {
           chains: [],
         });
 
-        // Poll for findings
+        // Poll for findings — surface failures so user knows to refresh
+        let consecutiveFailures = 0;
         const interval = setInterval(async () => {
           try {
             const findingsRes = await browserBackendFetch(`/api/engagements/${engagement.id}/findings`);
             if (findingsRes.ok) {
               const { findings } = await findingsRes.json();
-              // Build attack chains from findings
               const chains = buildAttackChains(findings || []);
               setResult((prev) =>
                 prev ? { ...prev, findings: findings || [], chains } : prev
               );
+            } else if (findingsRes.status >= 500) {
+              throw new Error(`Findings poll: HTTP ${findingsRes.status}`);
             }
 
             const engRes = await browserBackendFetch(`/api/engagements/${engagement.id}`);
@@ -302,14 +306,21 @@ export default function ADAssessmentPage() {
                 setPollInterval(null);
               }
             }
-          } catch {
-            // polling is best-effort
+            consecutiveFailures = 0;
+            setPollError(null);
+          } catch (err) {
+            consecutiveFailures += 1;
+            console.error("[ad-scan] poll failure", err);
+            if (consecutiveFailures >= 3) {
+              setPollError("Connection to scan poller lost — results may be stale. Refresh the page if this persists.");
+            }
           }
         }, 5000);
 
         setPollInterval(interval);
-      } catch {
-        // error handled by UI
+      } catch (err) {
+        console.error("[ad-scan] launch failed", err);
+        setLaunchError(err instanceof Error ? err.message : "Failed to launch AD scan. Please retry.");
       }
     });
   };
@@ -376,6 +387,26 @@ export default function ADAssessmentPage() {
           AD Operator agent — BloodHound, Kerberoast, ADCS abuse, DCSync, golden ticket
         </p>
       </div>
+
+      {(launchError || pollError) && (
+        <div
+          role="alert"
+          className="mb-4 border border-red-500/40 bg-red-500/10 px-3 py-2 text-[10px] font-mono text-red-300 flex items-center justify-between gap-3"
+        >
+          <span>{launchError ?? pollError}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setLaunchError(null);
+              setPollError(null);
+            }}
+            className="text-red-200 hover:text-white"
+            aria-label="Dismiss error"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Section 1: BloodHound Upload */}
       <div className="border border-[var(--border)] mb-6">

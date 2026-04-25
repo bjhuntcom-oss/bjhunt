@@ -5,12 +5,15 @@ import type { AppVariables } from "../types.js";
 
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth.js";
+import { rateLimit } from "../middleware/rate-limit.js";
 import { withOrg } from "../db/client.js";
+import { config } from "../config.js";
 import type { AuthUser } from "../middleware/auth.js";
 
 export const notificationRoutes = new Hono<{ Variables: AppVariables }>();
 
 notificationRoutes.use("*", requireAuth);
+notificationRoutes.use("*", rateLimit(config.rateLimit.api));
 
 // List notifications for current user
 notificationRoutes.get("/", async (c) => {
