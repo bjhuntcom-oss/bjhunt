@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useTransition, useCallback } from 'react'
+import { useState, useTransition, useCallback, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { browserBackendFetch } from '@/lib/backend-client'
 import { Plus, X, ChevronRight, ChevronLeft, Loader2, Check, Target, Shield, Cpu, FileText } from 'lucide-react'
@@ -594,6 +595,26 @@ export function AuditsClient({
   // confirmation matches the design system + works on mobile (where some
   // PWA configurations suppress confirm()).
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null)
+
+  // DASH-P2: auto-refresh while at least one audit is in flight, so users
+  // see status transitions without clicking Refresh. Server component
+  // re-fetch via router.refresh() every 15s; cleared when no run is
+  // running anymore. Cheap because the SSR data fetch is a single SQL
+  // query. Pause when the tab isn't visible.
+  const router = useRouter()
+  useEffect(() => {
+    const hasRunning = runs.some((r) =>
+      ['running', 'pending', 'queued', 'planning', 'approved'].includes(
+        (r as { status?: string }).status ?? '',
+      ),
+    )
+    if (!hasRunning) return
+    const tick = () => {
+      if (document.visibilityState === 'visible') router.refresh()
+    }
+    const interval = setInterval(tick, 15000)
+    return () => clearInterval(interval)
+  }, [runs, router])
   const [isPending, startTransition] = useTransition()
 
   const handleCreated = (run: AuditRun) => {
