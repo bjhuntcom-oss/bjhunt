@@ -14,7 +14,13 @@ export const reportRoutes = new Hono<{ Variables: AppVariables }>();
 
 reportRoutes.use("*", requireAuth);
 reportRoutes.use("*", rateLimit(config.rateLimit.api));
-reportRoutes.use("*", requireFeature("exportMarkdown"));
+
+// ENG-P1-4: gate per format. Previously a single `exportMarkdown` gate
+// blocked CSV too, so the Free tier got NO reports despite the "4 formats"
+// promise. Now executive/hackerone/timeline use exportMarkdown; CSV uses
+// its own exportCsv feature flag (already declared in plans.ts).
+const requireMarkdown = requireFeature("exportMarkdown");
+const requireCsv = requireFeature("exportCsv");
 
 /** Validate UUID format to prevent malformed IDs from reaching SQL. */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -22,9 +28,11 @@ function validateUUID(id: string): boolean { return UUID_RE.test(id); }
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
-function severityOrder(s: string): number {
-  const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
-  return order[s] ?? 5;
+type Severity = "critical" | "high" | "medium" | "low" | "info";
+const severityKeys: Severity[] = ["critical", "high", "medium", "low", "info"];
+
+function normalizeSeverity(value: unknown): Severity {
+  return severityKeys.includes(value as Severity) ? (value as Severity) : "info";
 }
 
 function escapeCSV(value: string | null | undefined): string {
@@ -48,7 +56,7 @@ function formatDate(iso: string): string {
 
 // ── GET /api/reports/:engagementId/executive ────────────────────────────
 
-reportRoutes.get("/:engagementId/executive", async (c) => {
+reportRoutes.get("/:engagementId/executive", requireMarkdown, async (c) => {
   const orgId = c.get("orgId") as string;
   const engagementId = c.req.param("engagementId");
 
@@ -76,10 +84,10 @@ reportRoutes.get("/:engagementId/executive", async (c) => {
   );
 
   // Severity distribution
-  const dist: Record<string, number> = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+  const dist: Record<Severity, number> = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
   for (const f of findings) {
-    const sev = (f.severity as string) || "info";
-    dist[sev] = (dist[sev] || 0) + 1;
+    const sev = normalizeSeverity(f.severity);
+    dist[sev] += 1;
   }
 
   const now = formatDate(new Date().toISOString());
@@ -100,7 +108,7 @@ reportRoutes.get("/:engagementId/executive", async (c) => {
   md += `## Severity Distribution\n\n`;
   md += `| Severity | Count |\n`;
   md += `|----------|-------|\n`;
-  for (const sev of ["critical", "high", "medium", "low", "info"]) {
+  for (const sev of severityKeys) {
     md += `| ${sev.charAt(0).toUpperCase() + sev.slice(1)} | ${dist[sev]} |\n`;
   }
   md += `| **Total** | **${findings.length}** |\n\n`;
@@ -148,7 +156,7 @@ reportRoutes.get("/:engagementId/executive", async (c) => {
 
 // ── GET /api/reports/:engagementId/hackerone ─────────────────────────────
 
-reportRoutes.get("/:engagementId/hackerone", async (c) => {
+reportRoutes.get("/:engagementId/hackerone", requireMarkdown, async (c) => {
   const orgId = c.get("orgId") as string;
   const engagementId = c.req.param("engagementId");
 
@@ -187,6 +195,7 @@ reportRoutes.get("/:engagementId/hackerone", async (c) => {
 
   for (let i = 0; i < findings.length; i++) {
     const f = findings[i];
+    if (!f) continue;
 
     md += `## ${i + 1}. ${f.title}\n\n`;
     md += `**Severity:** ${(f.severity as string).toUpperCase()}`;
@@ -246,7 +255,7 @@ reportRoutes.get("/:engagementId/hackerone", async (c) => {
 
 // ── GET /api/reports/:engagementId/timeline ──────────────────────────────
 
-reportRoutes.get("/:engagementId/timeline", async (c) => {
+reportRoutes.get("/:engagementId/timeline", requireMarkdown, async (c) => {
   const orgId = c.get("orgId") as string;
   const engagementId = c.req.param("engagementId");
 
@@ -327,7 +336,7 @@ reportRoutes.get("/:engagementId/timeline", async (c) => {
 
 // ── GET /api/reports/:engagementId/csv ───────────────────────────────────
 
-reportRoutes.get("/:engagementId/csv", async (c) => {
+reportRoutes.get("/:engagementId/csv", requireCsv, async (c) => {
   const orgId = c.get("orgId") as string;
   const engagementId = c.req.param("engagementId");
 

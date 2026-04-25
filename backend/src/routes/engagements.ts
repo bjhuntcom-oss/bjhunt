@@ -443,6 +443,18 @@ engagementRoutes.post("/", enforceScanQuota(), zValidator("json", createSchema),
 
 // ── Update engagement ────────────────────────────────────────────────────
 
+// ENG-P1-2: state machine for engagement.status. Allowed transitions only.
+// Terminal states (completed, failed, cancelled) cannot move back to a
+// running/draft state — that would orphan agent_runs that already finished.
+const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
+  draft:     ["approved", "running", "cancelled"],
+  approved:  ["running", "draft", "cancelled"],
+  running:   ["completed", "failed", "cancelled"],
+  completed: [],
+  failed:    [],
+  cancelled: [],
+};
+
 engagementRoutes.patch("/:id", zValidator("json", updateSchema), async (c) => {
   const orgId = c.get("orgId") as string;
   const user = c.get("user") as AuthUser;
@@ -455,7 +467,28 @@ engagementRoutes.patch("/:id", zValidator("json", updateSchema), async (c) => {
   if (body.name !== undefined) values.name = body.name;
   if (body.description !== undefined) values.description = body.description;
   if (body.target !== undefined) values.target = body.target;
-  if (body.status !== undefined) values.status = body.status;
+  if (body.status !== undefined) {
+    // Validate the transition against the current status.
+    const [current] = await withOrg(orgId, (tx) =>
+      tx`SELECT status FROM engagements WHERE id = ${id}`,
+    );
+    if (!current) return c.json({ error: "Engagement not found" }, 404);
+    const from = current.status as string;
+    const to = body.status as string;
+    if (from !== to) {
+      const allowed = ALLOWED_STATUS_TRANSITIONS[from] ?? [];
+      if (!allowed.includes(to)) {
+        return c.json(
+          {
+            error: `Status transition ${from} → ${to} is not allowed`,
+            allowedTransitions: allowed,
+          },
+          422,
+        );
+      }
+    }
+    values.status = body.status;
+  }
   if (body.agentGraph !== undefined) values.agentGraph = body.agentGraph;
   if (body.roe !== undefined) values.roe = JSON.stringify(body.roe);
   if (body.opplan !== undefined) values.opplan = JSON.stringify(body.opplan);

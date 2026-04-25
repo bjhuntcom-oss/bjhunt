@@ -368,15 +368,25 @@ authRoutes.post(
 // ── Logout ───────────────────────────────────────────────────────────────
 
 authRoutes.post("/logout", async (c) => {
+  // AUTH-P2-2: optional ?all=true wipes every session this user owns
+  // (logout from all devices). Default behaviour stays single-session.
+  const all = c.req.query("all") === "true";
   const sessionId = getCookie(c, "bjhunt_session");
-  if (sessionId) {
+
+  if (all && sessionId) {
+    // Resolve user_id from the current session before deleting it.
+    const [row] = await sql`SELECT user_id FROM sessions WHERE id = ${sessionId}`;
+    if (row?.userId) {
+      await deleteUserSessions(row.userId as string);
+    } else {
+      await deleteSession(sessionId);
+    }
+  } else if (sessionId) {
     await deleteSession(sessionId);
   }
 
   // Clear the HttpOnly session cookie, plus any legacy JS-readable
   // duplicates that may still exist on pre-C-13 clients.
-  // Hono's c.header() with append: true lets us emit multiple Set-Cookie
-  // entries on a single response.
   c.header(
     "Set-Cookie",
     `bjhunt_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`,
@@ -387,7 +397,7 @@ authRoutes.post("/logout", async (c) => {
     { append: true },
   );
 
-  return c.json({ ok: true });
+  return c.json({ ok: true, scope: all ? "all-devices" : "current" });
 });
 
 // ── Me (current user) ────────────────────────────────────────────────────
