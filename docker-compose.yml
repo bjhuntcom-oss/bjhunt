@@ -312,12 +312,15 @@ services:
     mem_limit: 64m
     cpus: 0.1
     pids_limit: 32
-    read_only: true
+    # read_only:true was attempted but the tecnativa entrypoint writes
+    # haproxy.cfg from a template at startup, and tmpfs over the whole
+    # /usr/local/etc/haproxy dir hides the template file. Container is
+    # already heavily restricted (64MB RAM, 32 pids, isolated network,
+    # only INFO/CONTAINERS/EXEC/POST endpoints).
+    security_opt:
+      - "no-new-privileges:true"
     tmpfs:
       - /run
-      # tecnativa/docker-socket-proxy entrypoint writes haproxy.cfg here
-      # at startup; tmpfs makes it RW without compromising rootfs RO.
-      - /usr/local/etc/haproxy
     restart: unless-stopped
 
   # ── Caddy (Reverse Proxy) ─────────────────────────────────────────
