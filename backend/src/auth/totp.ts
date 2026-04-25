@@ -86,8 +86,13 @@ export function generateBackupCodes(): { codes: string[]; hashes: string[] } {
   const codes: string[] = [];
   const hashes: string[] = [];
   for (let i = 0; i < 10; i++) {
-    const raw = nanoid(8).toLowerCase().replace(/[^a-z0-9]/g, "x");
-    const code = `${raw.slice(0, 4)}-${raw.slice(4, 8)}`;
+    // AUTH-P2-4: bump from nanoid(8) (~47 bits) to nanoid(12) (~71 bits).
+    // Replacing `[^a-z0-9]` with 'x' costs entropy — by drawing from a
+    // 36-char alphabet we keep 12*log2(36) ≈ 62 bits even after the
+    // forced-to-lowercase coercion, well above the 50-bit floor for a
+    // single-use offline secret.
+    const raw = nanoid(12).toLowerCase().replace(/[^a-z0-9]/g, "x");
+    const code = `${raw.slice(0, 4)}-${raw.slice(4, 8)}-${raw.slice(8, 12)}`;
     codes.push(code);
     hashes.push(hashBackupCode(code));
   }

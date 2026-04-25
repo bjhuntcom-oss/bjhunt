@@ -60,9 +60,26 @@ services:
       - ./backend/src/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     ports:
       - "127.0.0.1:5432:5432"
-    mem_limit: 1g
-    cpus: 0.5
-    pids_limit: 128
+    # VPS-P1-4: tune for the 32 GB / 8 vCPU host. Defaults
+    # (shared_buffers=128MB, work_mem=4MB, effective_cache_size=4GB) leave
+    # 95% of the host RAM unused. With mem_limit=2g we let Postgres use
+    # ~50% of its cap for shared_buffers and tell the planner the kernel
+    # cache is generous (effective_cache_size doesn't actually allocate).
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=512MB"
+      - "-c"
+      - "effective_cache_size=4GB"
+      - "-c"
+      - "work_mem=16MB"
+      - "-c"
+      - "maintenance_work_mem=128MB"
+      - "-c"
+      - "max_connections=200"
+    mem_limit: 2g
+    cpus: 1.0
+    pids_limit: 256
     networks:
       - bjhunt-mgmt
     restart: unless-stopped

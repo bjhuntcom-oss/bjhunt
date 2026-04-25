@@ -14,7 +14,7 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { withOrg, sql } from "../db/client.js";
 import { validateApiKey } from "../auth/api-keys.js";
-import { rateLimit } from "../middleware/rate-limit.js";
+import { rateLimit, rateLimitPerApiKey } from "../middleware/rate-limit.js";
 import { langgraphClient } from "../lib/langgraph-client.js";
 import { config } from "../config.js";
 import { getPlanLimits } from "../plans.js";
@@ -58,9 +58,16 @@ publicApiRoutes.use("*", async (c, next) => {
 
   (c as any).set("orgId", result.orgId);
   (c as any).set("userId", result.userId);
+  (c as any).set("apiKeyId", result.id);
   (c as any).set("plan", plan);
   await next();
 });
+
+// ENG-P1-6: per-key cap (60 req/min). Layered AFTER auth so the key id
+// is already in the context. The org-wide rateLimit() above stays in
+// place — the two are AND-gated so a single key cannot saturate the
+// org limit either.
+publicApiRoutes.use("*", rateLimitPerApiKey({ window: 60, max: 60 }));
 
 // ── Schemas ─────────────────────────────────────────────────────────────
 

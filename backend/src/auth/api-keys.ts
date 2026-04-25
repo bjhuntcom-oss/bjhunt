@@ -57,7 +57,7 @@ export async function createApiKey(
 
 export async function validateApiKey(
   plaintext: string,
-): Promise<{ orgId: string; userId: string } | null> {
+): Promise<{ id: string; orgId: string; userId: string } | null> {
   const keyHash = await sha256(plaintext);
 
   const [key] = await sql`
@@ -65,11 +65,15 @@ export async function validateApiKey(
     SET last_used_at = now()
     WHERE key_hash = ${keyHash}
       AND (expires_at IS NULL OR expires_at > now())
-    RETURNING org_id, user_id
+    RETURNING id, org_id, user_id
   `;
 
   if (!key) return null;
-  return { orgId: key.orgId as string, userId: key.userId as string };
+  return {
+    id: key.id as string,
+    orgId: key.orgId as string,
+    userId: key.userId as string,
+  };
 }
 
 export async function revokeApiKey(keyId: string, orgId: string): Promise<boolean> {
