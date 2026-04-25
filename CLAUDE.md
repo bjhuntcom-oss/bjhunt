@@ -107,11 +107,8 @@
   - Phase E rename `engine/decepticon/` folder + skills/decepticon/ — 5-7j (casse `ops/scripts/sync-upstream-decepticon.sh`)
 
 ### Références docs vivantes
-- [`docs/AUDIT-2026-04-17.md`](docs/AUDIT-2026-04-17.md) — rapport consolidé post-audit (22 Critical, 78 High, roadmap P0/P1/P2)
-- [`docs/audit-2026-04-17/partial/`](docs/audit-2026-04-17/partial/) — 6 rapports spécialisés
-- [`docs/audit-2026-04-17/verification/rls-withOrg-audit.md`](docs/audit-2026-04-17/verification/rls-withOrg-audit.md) — détail RLS + queries à migrer
-- [`docs/CHAT-DEBUG-PROMPT.md`](docs/CHAT-DEBUG-PROMPT.md) — historique des 15 fix tentatives chat (obsolète mais utile pour contexte)
-- [`docs/superpowers/specs/`](docs/superpowers/specs/) — specs par vague
+- [`docs/AUDIT-2026-04-25.md`](docs/AUDIT-2026-04-25.md) — **audit consolidé courant** (5 critiques + 8 hautes + roadmap P0/P1/P2). Remplace tous les anciens rapports.
+- [`docs/architecture/`](docs/architecture/) — 21 docs design vivants (architecture, streaming, multi-tenancy, schéma DB, etc.)
 
 ---
 
@@ -371,7 +368,7 @@ Le handler `case "messages"` dans `page.tsx` gère à la fois **delta** (OpenAI/
 10. SECURITY.md + CODEOWNERS + Dependabot config.
 11. Docker hardening : `cap_drop: ALL`, `no-new-privileges: true`, non-root users, `read_only` rootfs où possible.
 12. Migrer LangGraph `dev` → `up` (Postgres-backed) — évite in-memory + concurrent limits.
-13. Appliquer migration RLS (`0001_force_rls_and_with_check.sql`) après avoir migré `backend/src/routes/auth.ts` + `chat.ts` + `admin/*` pour qu'ils utilisent `withOrg()`. Voir `docs/audit-2026-04-17/verification/rls-withOrg-audit.md`.
+13. Appliquer migration RLS (`0001_force_rls_and_with_check.sql`) après avoir migré `backend/src/routes/auth.ts` + `chat.ts` + `admin/*` pour qu'ils utilisent `withOrg()`. Détail des 28 queries chat à migrer dans `docs/AUDIT-2026-04-25.md` §C-2.
 14. Caddy hardening : rate-limit edge, `tls min=1.3`, HSTS `preload`, headers sécurité.
 15. CI/CD : CodeQL + Semgrep SAST, SBOM cosign + SLSA, deploy via image registry (pas `git pull` sur VPS).
 16. Migrer `/api/beta` + `/api/contact` de rate-limit in-memory → Redis.
@@ -401,9 +398,5 @@ Le handler `case "messages"` dans `page.tsx` gère à la fois **delta** (OpenAI/
 ## Ce que je DOIS lire AVANT de toucher au code
 
 1. Ce fichier (CLAUDE.md) en entier.
-2. [`docs/AUDIT-2026-04-17.md`](docs/AUDIT-2026-04-17.md) — rapport consolidé.
-3. Si je touche le chat : [`docs/audit-2026-04-17/partial/agent-1-chat-frontend.md`](docs/audit-2026-04-17/partial/agent-1-chat-frontend.md) et [`docs/audit-2026-04-17/partial/agent-2-chat-backend.md`](docs/audit-2026-04-17/partial/agent-2-chat-backend.md).
-4. Si je touche la sécurité : [`docs/audit-2026-04-17/partial/agent-3-backend-api.md`](docs/audit-2026-04-17/partial/agent-3-backend-api.md) + [`agent-4-frontend.md`](docs/audit-2026-04-17/partial/agent-4-frontend.md).
-5. Si je touche l'engine : [`docs/audit-2026-04-17/partial/agent-5-engine-decepticon.md`](docs/audit-2026-04-17/partial/agent-5-engine-decepticon.md).
-6. Si je touche l'infra : [`docs/audit-2026-04-17/partial/agent-6-infra-security.md`](docs/audit-2026-04-17/partial/agent-6-infra-security.md).
-7. Specs des vagues : `docs/superpowers/specs/`.
+2. [`docs/AUDIT-2026-04-25.md`](docs/AUDIT-2026-04-25.md) — audit consolidé courant (état réel, drift VPS, RLS, punch list P0/P1/P2).
+3. [`docs/architecture/`](docs/architecture/) — design docs par domaine (chat → 02-STREAMING, sécurité → 14-SECURITY, engine → 04-DECEPTICON-ENGINE, etc.).

@@ -29,6 +29,10 @@ test-results/
 *.swp
 *.swo
 
+# Claude Code runtime state
+.claude/
+AGENTS.md
+
 # OS
 .DS_Store
 Thumbs.db
