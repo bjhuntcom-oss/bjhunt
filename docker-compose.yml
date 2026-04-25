@@ -315,6 +315,9 @@ services:
     read_only: true
     tmpfs:
       - /run
+      # tecnativa/docker-socket-proxy entrypoint writes haproxy.cfg here
+      # at startup; tmpfs makes it RW without compromising rootfs RO.
+      - /usr/local/etc/haproxy
     restart: unless-stopped
 
   # ── Caddy (Reverse Proxy) ─────────────────────────────────────────
