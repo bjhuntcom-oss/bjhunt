@@ -113,13 +113,50 @@ const STALE_STREAM_TTL_MS = 3 * 60 * 1000; // 3 minutes
 
 setInterval(() => {
   const now = Date.now();
+  const stale: string[] = [];
   for (const [runId, entry] of pendingStreams) {
     if (now - entry.createdAt > STALE_STREAM_TTL_MS) {
       pendingStreams.delete(runId);
-      console.warn(`[chat] Cleaned up stale pending stream: runId=${runId}`);
+      stale.push(runId);
     }
   }
+  // CHAT-P0-2: also flip the orphaned agent_run rows to `failed` so they
+  // don't sit in `running` forever (skewing dashboards and quota counts)
+  // when /prepare succeeds but the client never opens the SSE stream.
+  if (stale.length > 0) {
+    sql`
+      UPDATE agent_runs
+         SET status = 'failed',
+             completed_at = now(),
+             error = 'Client never connected to SSE stream within 3 min',
+             duration_ms = EXTRACT(EPOCH FROM (now() - started_at))::INTEGER * 1000
+       WHERE id = ANY(${stale}::uuid[])
+         AND status = 'running'
+    `.catch((err: Error) =>
+      console.error("[chat] Failed to mark stale agent_runs as failed:", err.message),
+    );
+    console.warn(`[chat] Cleaned up ${stale.length} stale pending stream(s)`);
+  }
 }, 60_000);
+
+// CHAT-P0-2: also sweep DB-level zombies — agent_runs left in `running`
+// state with no client connection (e.g. backend crashed mid-stream, server
+// restart). Runs once at boot, then every 5 min.
+async function reapZombieAgentRuns() {
+  await sql`
+    UPDATE agent_runs
+       SET status = 'failed',
+           completed_at = now(),
+           error = 'Run abandoned: no completion within 10 min',
+           duration_ms = EXTRACT(EPOCH FROM (now() - started_at))::INTEGER * 1000
+     WHERE status = 'running'
+       AND started_at < now() - interval '10 minutes'
+  `.catch((err: Error) =>
+    console.error("[chat] reapZombieAgentRuns failed:", err.message),
+  );
+}
+reapZombieAgentRuns();
+setInterval(reapZombieAgentRuns, 5 * 60_000);
 
 // ── POST /prepare — fast REST call that starts LangGraph and returns a ticket ──
 

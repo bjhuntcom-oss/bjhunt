@@ -87,7 +87,14 @@ function processBlock(block: string, state: TransformState, emit: EmitFn): void 
   let eventType = "";
   const dataLines: string[] = [];
   for (const line of block.split("\n")) {
-    if (line.startsWith("event: ")) eventType = line.slice(7).trim();
+    if (line.startsWith("event: ")) {
+      // Strip control chars on the upstream event name. LangGraph
+      // *should* never emit one, but a malformed/malicious upstream
+      // would otherwise let an `event: "token\nfoo: bar"` line slip
+      // through the switch + open an injection vector against the
+      // typed emit() (CHAT-P0-3).
+      eventType = line.slice(7).replace(/[\x00-\x1f\x7f]/g, "").trim();
+    }
     else if (line.startsWith("data: ")) dataLines.push(line.slice(6));
     else if (dataLines.length > 0 && line.trim()) dataLines.push(line);
   }

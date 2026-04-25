@@ -583,6 +583,11 @@ export default function ChatPage() {
     };
     setMessages((prev) => [...prev, assistantMsg]);
 
+    // Capture identity BEFORE any async work so catch/finally can verify
+    // we are still the active request (CHAT-P0-1).
+    const currentRequestId = ++requestIdRef.current;
+    const isCurrent = () => requestIdRef.current === currentRequestId;
+
     try {
       abortRef.current = new AbortController();
 
@@ -612,8 +617,6 @@ export default function ChatPage() {
       }
 
       // ── Phase 1: Prepare (fast REST call via Vercel proxy) ─────────
-      const currentRequestId = ++requestIdRef.current;
-
       const prepareRes = await fetch(`/api/proxy/chat/prepare`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -648,15 +651,13 @@ export default function ChatPage() {
         while (true) {
           const { done, value } = await reader.read();
           if (done) {
-            // Process any remaining data in the buffer
-            if (buffer.trim()) {
-              processStreamEvent(buffer, assistantId);
+            if (buffer.trim() && isCurrent()) {
+              processStreamEvent(buffer, assistantId, currentRequestId);
             }
             break;
           }
 
-          // Race condition guard: drop events if user switched conversations
-          if (requestIdRef.current !== currentRequestId) break;
+          if (!isCurrent()) break;
 
           buffer += decoder.decode(value, { stream: true });
           const { blocks, remainder } = splitSSEBlocks(buffer);
@@ -664,13 +665,16 @@ export default function ChatPage() {
 
           for (const block of blocks) {
             if (!block.trim()) continue;
-            processStreamEvent(block, assistantId);
+            if (!isCurrent()) break;
+            processStreamEvent(block, assistantId, currentRequestId);
           }
         }
       }
     } catch (err: any) {
-      if (err.name === "AbortError") {
-        // User clicked Stop — mark message as done without showing an error
+      if (!isCurrent()) {
+        // A newer request has taken over — silently bail. Don't write the
+        // stale stream's error into the new assistant message.
+      } else if (err.name === "AbortError") {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId ? { ...m, isStreaming: false } : m
@@ -688,63 +692,74 @@ export default function ChatPage() {
         );
       }
     } finally {
-      setIsStreaming(false);
-      setThinking((prev) => ({ ...prev, active: false }));
-      setStreamSpeed(0);
-      setActiveAgent(null);
-      abortRef.current = null;
-      if (speedIntervalRef.current) {
-        clearInterval(speedIntervalRef.current);
-        speedIntervalRef.current = null;
-      }
-
-      // Mark the assistant message as no longer streaming
-      const finalContent = lastAiContentRef.current;
-      lastAiContentRef.current = "";
-
-      setMessages((prev) =>
-        prev.map((m) => {
-          if (m.id !== assistantId) return m;
-          const resolvedContent = m.content || finalContent;
-          // If content is empty after stream ends and no explicit error, show unavailable notice
-          if (!resolvedContent && !streamError) {
-            return { ...m, content: "", isStreaming: false, emptyResponse: true };
-          }
-          return { ...m, content: resolvedContent, isStreaming: false };
-        })
-      );
-
-      // Fix 9: Auto-name the engagement after the first assistant response
-      if (!hasAutoNamedRef.current && engId && (finalContent || text)) {
-        hasAutoNamedRef.current = true;
-        // Use first 40 chars of user message as the title
-        const autoTitle = truncate(text, 40);
-        // Fire-and-forget PATCH to rename
-        browserBackendFetch(`/api/engagements/${engId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: autoTitle }),
-        }).catch(() => {});
-        // Update local engagement list
-        setEngagements((prev) =>
-          prev.map((e) => (e.id === engId ? { ...e, name: autoTitle } : e))
-        );
-        if (activeEngagement?.id === engId) {
-          setActiveEngagement((prev) => prev ? { ...prev, name: autoTitle } : prev);
+      // Skip cleanup entirely if a newer request has taken over — the new
+      // run owns isStreaming, abortRef, lastAiContentRef etc. (CHAT-P0-1).
+      if (!isCurrent()) {
+        // Local interval was already replaced by the new run's setInterval,
+        // but we may still hold a stale reference for cleanup safety.
+        // Nothing to do — the new run's lifecycle owns the shared refs now.
+      } else {
+        setIsStreaming(false);
+        setThinking((prev) => ({ ...prev, active: false }));
+        setStreamSpeed(0);
+        setActiveAgent(null);
+        abortRef.current = null;
+        if (speedIntervalRef.current) {
+          clearInterval(speedIntervalRef.current);
+          speedIntervalRef.current = null;
         }
-      }
 
-      // Refresh sidebar conversations list (new conversation may have been created)
-      loadSidebarConversations();
+        const finalContent = lastAiContentRef.current;
+        lastAiContentRef.current = "";
+
+        setMessages((prev) =>
+          prev.map((m) => {
+            if (m.id !== assistantId) return m;
+            const resolvedContent = m.content || finalContent;
+            if (!resolvedContent && !streamError) {
+              return { ...m, content: "", isStreaming: false, emptyResponse: true };
+            }
+            return { ...m, content: resolvedContent, isStreaming: false };
+          })
+        );
+
+        // Fix 9: Auto-name the engagement after the first assistant response
+        if (!hasAutoNamedRef.current && engId && (finalContent || text)) {
+          hasAutoNamedRef.current = true;
+          const autoTitle = truncate(text, 40);
+          browserBackendFetch(`/api/engagements/${engId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: autoTitle }),
+          }).catch(() => {});
+          setEngagements((prev) =>
+            prev.map((e) => (e.id === engId ? { ...e, name: autoTitle } : e))
+          );
+          if (activeEngagement?.id === engId) {
+            setActiveEngagement((prev) => prev ? { ...prev, name: autoTitle } : prev);
+          }
+        }
+
+        loadSidebarConversations();
+      }
     }
   }
 
-  function processStreamEvent(block: string, assistantId: string) {
+  function processStreamEvent(block: string, assistantId: string, requestId?: number) {
+    // Identity guard — refuse to mutate refs/messages if the request that
+    // owns this block has been superseded (CHAT-P0-1).
+    if (requestId !== undefined && requestIdRef.current !== requestId) return;
+
     let event = "message";
     let dataLines: string[] = [];
 
     for (const line of block.split("\n")) {
-      if (line.startsWith("event: ")) event = line.slice(7).trim();
+      if (line.startsWith("event: ")) {
+        // Strip control chars in case the upstream framing has been
+        // tampered with — backend sanitises but defense-in-depth at the
+        // parser layer prevents SSE event-type confusion (CHAT-P0-3).
+        event = line.slice(7).replace(/[\r\n -]/g, "").trim();
+      }
       else if (line.startsWith("data: ")) dataLines.push(line.slice(6));
       else if (line.startsWith(":")) continue; // SSE comment (heartbeat)
       else if (dataLines.length > 0 && line.trim()) dataLines.push(line); // continuation
