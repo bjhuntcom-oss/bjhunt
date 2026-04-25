@@ -107,7 +107,7 @@ export default function ContactPage() {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                placeholder="John Doe"
+                placeholder={t("namePlaceholder")}
                 required
               />
             </div>
@@ -118,7 +118,7 @@ export default function ContactPage() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="email@example.com"
+                placeholder={t("emailPlaceholder")}
                 required
               />
             </div>
