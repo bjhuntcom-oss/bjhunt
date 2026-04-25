@@ -19,6 +19,38 @@ export const engagementRoutes = new Hono<{ Variables: AppVariables }>();
 engagementRoutes.use("*", requireAuth);
 engagementRoutes.use("*", rateLimit(config.rateLimit.api));
 
+// ── RoE/scope check (ENG-P0-2) ───────────────────────────────────────────
+// Minimal scope validator: refuses launch if `target` matches any pattern
+// in `outOfScope`. Patterns may use `*` as a glob wildcard. Exact matches
+// and case-insensitive comparisons are sufficient for the immediate ATO/RoE
+// risk; CIDR/IP-range parsing is a TODO for the full validator.
+function patternToRegex(pattern: string): RegExp {
+  const escaped = pattern
+    .trim()
+    .toLowerCase()
+    .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*/g, ".*");
+  return new RegExp(`^${escaped}$`);
+}
+
+function isTargetOutOfScope(target: string, outOfScopeStr: string | undefined | null): string | null {
+  if (!outOfScopeStr) return null;
+  const t = target.trim().toLowerCase();
+  if (!t) return null;
+  const patterns = outOfScopeStr
+    .split(/[\n,;]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  for (const p of patterns) {
+    try {
+      if (patternToRegex(p).test(t)) return p;
+    } catch {
+      // bad regex — skip the entry
+    }
+  }
+  return null;
+}
+
 // ── Schemas ──────────────────────────────────────────────────────────────
 
 const createSchema = z.object({
@@ -475,6 +507,22 @@ engagementRoutes.post("/:id/launch", requirePlan("pro", "enterprise"), enforceSc
     return c.json({ error: `Cannot launch from status: ${engagement.status}` }, 400);
   }
 
+  // ENG-P0-2: enforce out-of-scope. Refuse to launch if the target matches
+  // any user-declared out-of-scope pattern. Stops trivial RoE violations.
+  const cfg = (engagement.config ?? {}) as Record<string, unknown>;
+  const oos = typeof cfg.outOfScope === "string" ? cfg.outOfScope : null;
+  const matched = isTargetOutOfScope(engagement.target as string, oos);
+  if (matched) {
+    return c.json(
+      {
+        error: "Target is out of scope per the engagement's RoE",
+        target: engagement.target,
+        matchedPattern: matched,
+      },
+      422,
+    );
+  }
+
   // Create a LangGraph thread and start the agent
   const thread = await langgraphClient.createThread();
 
@@ -807,7 +855,8 @@ engagementRoutes.post("/:id/graph/ingest", requirePlan("pro", "enterprise"), asy
                VALUES (${orgId}, ${id},
                        ${"Service: " + service + " on " + addr + ":" + port + "/" + protocol},
                        'info',
-                       ${JSON.stringify({ source: "nmap", ip: addr, port: Number(port), protocol, service })})`,
+                       ${JSON.stringify({ source: "nmap", ip: addr, port: Number(port), protocol, service })})
+               ON CONFLICT DO NOTHING`,
           );
           nodesAdded++;
           edgesAdded++; // host -> service edge
@@ -832,7 +881,8 @@ engagementRoutes.post("/:id/graph/ingest", requirePlan("pro", "enterprise"), asy
                        ${templateId + " — " + matched},
                        ${typeof desc === "string" ? desc.slice(0, 2000) : String(desc).slice(0, 2000)},
                        ${validSev},
-                       ${JSON.stringify({ source: "nuclei", templateId, matched, raw: entry.info })})`,
+                       ${JSON.stringify({ source: "nuclei", templateId, matched, raw: entry.info })})
+               ON CONFLICT DO NOTHING`,
           );
           nodesAdded++;
           edgesAdded++;
@@ -863,7 +913,8 @@ engagementRoutes.post("/:id/graph/ingest", requirePlan("pro", "enterprise"), asy
                        ${ruleId + (location ? " @ " + location : "")},
                        ${typeof msg === "string" ? msg.slice(0, 2000) : ""},
                        ${severity},
-                       ${JSON.stringify({ source: "sarif", ruleId, location, level })})`,
+                       ${JSON.stringify({ source: "sarif", ruleId, location, level })})
+               ON CONFLICT DO NOTHING`,
           );
           nodesAdded++;
           edgesAdded++;
@@ -884,7 +935,8 @@ engagementRoutes.post("/:id/graph/ingest", requirePlan("pro", "enterprise"), asy
                VALUES (${orgId}, ${id},
                        ${"BloodHound: " + name},
                        'info',
-                       ${JSON.stringify({ source: "bloodhound", type, name })})`,
+                       ${JSON.stringify({ source: "bloodhound", type, name })})
+               ON CONFLICT DO NOTHING`,
           );
           nodesAdded++;
         }
@@ -909,7 +961,8 @@ engagementRoutes.post("/:id/graph/ingest", requirePlan("pro", "enterprise"), asy
                        ${"TLS: " + fid},
                        ${typeof finding === "string" ? finding.slice(0, 2000) : ""},
                        ${validSev},
-                       ${JSON.stringify({ source: "testssl", id: fid })})`,
+                       ${JSON.stringify({ source: "testssl", id: fid })})
+               ON CONFLICT DO NOTHING`,
           );
           nodesAdded++;
         }

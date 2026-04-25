@@ -65,7 +65,7 @@ export function verifyTOTP(secret: string, token: string): boolean {
  * Hash a backup code with SHA-256 (no salt — backup codes are random 8-char
  * nanoid pieces, not user-chosen secrets, so no rainbow-table risk).
  */
-function hashBackupCode(code: string): string {
+export function hashBackupCode(code: string): string {
   const hasher = new Bun.CryptoHasher("sha256");
   hasher.update(code.trim().toLowerCase());
   return hasher.digest("hex");

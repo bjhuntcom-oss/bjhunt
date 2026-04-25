@@ -12,7 +12,7 @@ import { zValidator } from "@hono/zod-validator";
 import { adminSql as sql } from "../db/client.js";
 import { checkLockout, recordFailure, clearFailures, LOCKOUT_LIMITS } from "../auth/lockout.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
-import { createSession, deleteSession } from "../auth/session.js";
+import { createSession, deleteSession, deleteUserSessions } from "../auth/session.js";
 import { config } from "../config.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import type { AuthUser } from "../middleware/auth.js";
@@ -23,14 +23,14 @@ export const authRoutes = new Hono<{ Variables: AppVariables }>();
 
 // ── Schemas ──────────────────────────────────────────────────────────────
 
-// Per docs/architecture/14-SECURITY.md §1 Authentication:
-// "Min 10 chars, complexité requise" — at least 1 lowercase, 1 uppercase, 1 digit.
+// Frontend copy and security policy both require a 14-character passphrase
+// with at least 1 lowercase, 1 uppercase, and 1 digit.
 //
 // Shared schema applied identically to register / reset-password / change-password
 // so the policy can never be bypassed via the reset flow (DOC-09 audit P0).
 const passwordSchema = z
   .string()
-  .min(10, "Password must be at least 10 characters")
+  .min(14, "Password must be at least 14 characters")
   .max(128)
   .regex(/[a-z]/, "Password must contain at least one lowercase letter")
   .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
@@ -60,7 +60,10 @@ authRoutes.post(
     // Check if email already exists
     const [existing] = await sql`SELECT id FROM users WHERE email = ${email}`;
     if (existing) {
-      return c.json({ error: "Email already registered" }, 409);
+      return c.json(
+        { error: { code: "EMAIL_ALREADY_IN_USE", message: "Email already registered" } },
+        409,
+      );
     }
 
     const passwordHash = await hashPassword(password);
@@ -368,7 +371,10 @@ authRoutes.post(
     `;
 
     if (!resetToken) {
-      return c.json({ error: "Invalid or expired reset token" }, 400);
+      return c.json(
+        { error: { code: "INVALID_RESET_TOKEN", message: "Invalid or expired reset token" } },
+        400,
+      );
     }
 
     const newHash = await hashPassword(newPassword);
@@ -414,6 +420,25 @@ authRoutes.post(
 
     const newHash = await hashPassword(newPassword);
     await sql`UPDATE users SET password_hash = ${newHash} WHERE id = ${user.id}`;
+
+    // AUTH-P1-2: invalidate every other session this user owns. We cannot
+    // know which session row is "the current request" cheaply (the cookie
+    // value is the session id, parse it to keep this request authenticated).
+    const cookieHeader = c.req.header("cookie") ?? "";
+    const currentSessionId = cookieHeader.match(/bjhunt_session=([^;]+)/)?.[1] ?? null;
+    if (currentSessionId) {
+      await sql`
+        DELETE FROM sessions
+         WHERE user_id = ${user.id}
+           AND id <> ${currentSessionId}
+      `.catch((err: Error) =>
+        console.error("[auth] failed to revoke peer sessions on password change", err.message),
+      );
+    } else {
+      // No identifiable current session — safest is to wipe everything
+      // and force re-login. Should never hit on authenticated path.
+      await deleteUserSessions(user.id);
+    }
 
     await sql`
       INSERT INTO audit_logs (org_id, user_id, action)

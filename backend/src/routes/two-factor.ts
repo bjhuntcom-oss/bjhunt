@@ -5,7 +5,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { sql, withOrg, adminSql } from "../db/client.js";
+import { withOrg, adminSql } from "../db/client.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import { config } from "../config.js";
@@ -14,6 +14,7 @@ import {
   verifyTOTP,
   generateBackupCodes,
   verifyBackupCode,
+  hashBackupCode,
 } from "../auth/totp.js";
 import { createSession } from "../auth/session.js";
 import type { AppVariables } from "../types.js";
@@ -190,10 +191,10 @@ twoFactorRoutes.post(
       return c.json({ error: "Invalid temporary token" }, 401);
     }
 
-    const [hash, userId, expiryStr] = parts;
-    const expiry = parseInt(expiryStr!, 10);
+    const [hash, userId, expiryStr] = parts as [string, string, string];
+    const expiry = Number.parseInt(expiryStr, 10);
 
-    if (isNaN(expiry) || Date.now() > expiry) {
+    if (Number.isNaN(expiry) || Date.now() > expiry) {
       return c.json({ error: "Temporary token has expired" }, 401);
     }
 
@@ -215,7 +216,7 @@ twoFactorRoutes.post(
       FROM users WHERE id = ${uid}
     `;
 
-    if (!user || !user.totpEnabled || !user.totpSecret) {
+    if (!user?.totpEnabled || !user.totpSecret) {
       return c.json({ error: "Invalid temporary token" }, 401);
     }
 
@@ -224,13 +225,23 @@ twoFactorRoutes.post(
     // Try TOTP code first, then backup code
     let totpValid = verifyTOTP(user.totpSecret as string, code);
     if (!totpValid && user.totpBackupCodes) {
-      const remaining = verifyBackupCode(user.totpBackupCodes as string[], code);
-      if (remaining !== null) {
+      // AUTH-P1-3: atomic verify+remove in a single SQL statement so two
+      // concurrent verify requests with the same code cannot both succeed.
+      // Previous implementation read codes, removed one in JS, wrote back —
+      // a textbook lost-update race that effectively gave a single code two
+      // authentications.
+      const candidateHash = hashBackupCode(code);
+      const removed = await withOrg(userOrgId, (tx) =>
+        tx`
+          UPDATE users
+             SET totp_backup_codes = array_remove(totp_backup_codes, ${candidateHash})
+           WHERE id = ${uid}
+             AND ${candidateHash} = ANY(totp_backup_codes)
+          RETURNING id
+        `,
+      );
+      if (removed.length === 1) {
         totpValid = true;
-        // Consume the backup code — now that we know the orgId, use withOrg.
-        await withOrg(userOrgId, (tx) =>
-          tx`UPDATE users SET totp_backup_codes = ${remaining as string[]} WHERE id = ${uid}`,
-        );
       }
     }
 
