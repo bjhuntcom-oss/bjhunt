@@ -234,6 +234,13 @@ services:
     ports:
       - "127.0.0.1:2024:2024"
     env_file: .env
+    # VPS-P0-3 — Docker access via tecnativa/docker-socket-proxy
+    # (see service `docker-proxy` below). LangGraph no longer mounts the
+    # raw socket; instead it talks to a hardened proxy on the management
+    # network that exposes only CONTAINERS + EXEC + POST endpoints.
+    # An RCE inside LangGraph can now docker-exec into bjhunt-sandbox
+    # but NOT create new privileged containers, mount host paths,
+    # change the daemon config, etc. — the previous escape-to-host path.
     environment:
       - BJHUNT_LLM__PROXY_URL=http://litellm:4000
       - BJHUNT_LLM__PROXY_API_KEY=${LITELLM_MASTER_KEY}
@@ -242,20 +249,10 @@ services:
       - BJHUNT_NEO4J_USER=neo4j
       - BJHUNT_NEO4J_PASSWORD=${NEO4J_PASSWORD}
       - BJHUNT_API_SECRET=${BJHUNT_API_SECRET}
-    volumes:
-      # VPS-P0-3 — Docker socket exposed to LangGraph (read-only).
-      # An RCE inside the LangGraph runtime → host root. Two mitigation
-      # paths, neither yet shipped:
-      #   (a) docker-socket-proxy in front (linuxserver/socket-proxy or
-      #       tecnativa/docker-socket-proxy) limiting the API surface to
-      #       containers list/exec on bjhunt-sandbox only.
-      #   (b) replace docker exec with a thin gRPC service running on
-      #       the host that performs whitelisted commands.
-      # Tracked at docs/AUDIT-2026-04-25.md §VPS-P0-3. Path (a) is the
-      # recommended next move (~2h to implement, requires a PR upstream
-      # to PurpleAILAB/Decepticon for the engine side of the change).
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - DOCKER_HOST=tcp://docker-proxy:2375
     depends_on:
+      docker-proxy:
+        condition: service_started
       litellm:
         condition: service_healthy
       sandbox:
@@ -274,6 +271,51 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+
+  # ── Docker Socket Proxy (VPS-P0-3) ────────────────────────────────
+  # Hardened proxy in front of /var/run/docker.sock so LangGraph can
+  # docker-exec into bjhunt-sandbox without holding the keys to the
+  # host. Permissions matrix: allow CONTAINERS list/inspect + EXEC +
+  # POST writes (needed for `docker exec` and `docker cp`). Everything
+  # else (IMAGES, NETWORKS, VOLUMES, BUILD, SYSTEM, AUTH, etc.) stays
+  # forbidden — a compromised LangGraph cannot create new containers,
+  # mount host paths, or pull images.
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    container_name: bjhunt-docker-proxy
+    environment:
+      CONTAINERS: 1
+      EXEC: 1
+      POST: 1
+      INFO: 1     # docker version handshake
+      AUTH: 0
+      BUILD: 0
+      COMMIT: 0
+      CONFIGS: 0
+      DISTRIBUTION: 0
+      EVENTS: 0
+      IMAGES: 0
+      NETWORKS: 0
+      NODES: 0
+      PLUGINS: 0
+      SECRETS: 0
+      SERVICES: 0
+      SESSION: 0
+      SWARM: 0
+      SYSTEM: 0
+      TASKS: 0
+      VOLUMES: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - bjhunt-mgmt
+    mem_limit: 64m
+    cpus: 0.1
+    pids_limit: 32
+    read_only: true
+    tmpfs:
+      - /run
+    restart: unless-stopped
 
   # ── Caddy (Reverse Proxy) ─────────────────────────────────────────
   caddy:
