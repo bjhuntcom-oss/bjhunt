@@ -30,7 +30,10 @@ findingsRoutes.get("/stats", async (c) => {
     `,
   );
 
-  const stats: Record<string, number> = {
+  type Severity = "critical" | "high" | "medium" | "low" | "info";
+  type FindingStats = Record<Severity, number> & { total: number };
+  const severityKeys = new Set<Severity>(["critical", "high", "medium", "low", "info"]);
+  const stats: FindingStats = {
     critical: 0,
     high: 0,
     medium: 0,
@@ -40,8 +43,12 @@ findingsRoutes.get("/stats", async (c) => {
   };
 
   for (const row of rows) {
-    stats[row.severity as string] = row.count as number;
-    stats.total += row.count as number;
+    const severity = row.severity as Severity;
+    const count = Number(row.count ?? 0);
+    if (severityKeys.has(severity)) {
+      stats[severity] = count;
+    }
+    stats.total += count;
   }
 
   return c.json({ stats });
@@ -178,7 +185,10 @@ findingsRoutes.get("/:id", async (c) => {
 // ── Update finding remediation status ──────────────────────────────────
 
 const updateFindingSchema = z.object({
-  status: z.enum(["open", "remediated", "verified", "false_positive", "accepted"]).optional(),
+  // ENG-P2-2: align with DB CHECK constraint on findings.status which is
+  // `confirmed` not `verified`. Previous schema 500'd at the DB layer when
+  // a client sent status:"verified" through the API.
+  status: z.enum(["open", "confirmed", "remediated", "false_positive", "accepted"]).optional(),
   remediationStatus: z.enum(["pending", "applied", "verified"]).optional(),
 });
 

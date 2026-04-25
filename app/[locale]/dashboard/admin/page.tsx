@@ -14,8 +14,16 @@ export default async function AdminRootPage({
   const meResponse = await serverBackendFetch('/api/auth/me', {}, cookieHeader)
   if (!meResponse.ok) redirect(`/${locale}/login`)
 
-  const { user } = (await meResponse.json()) as { user: { role: string } }
-  if (user.role !== 'platform_admin') redirect(`/${locale}/dashboard`)
+  // DASH-P0-3: deny by default if either signal is missing/false. Other
+  // admin sub-pages already use isPlatformAdmin; checking both keeps the
+  // gate consistent if they ever drift (e.g. role string mutates while
+  // is_platform_admin column lags during a migration).
+  const { user } = (await meResponse.json()) as {
+    user?: { role?: string; isPlatformAdmin?: boolean }
+  }
+  const isAdmin =
+    user?.role === 'platform_admin' && user?.isPlatformAdmin === true
+  if (!isAdmin) redirect(`/${locale}/dashboard`)
 
   redirect(`/${locale}/dashboard/admin/users`)
 }

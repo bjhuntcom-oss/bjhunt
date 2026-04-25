@@ -347,9 +347,12 @@ reportRoutes.get("/:engagementId/csv", requireCsv, async (c) => {
   );
   if (!engagement) return c.json({ error: "Engagement not found" }, 404);
 
+  // ENG-P2-4: findings table has no agent_name column (only agent_runs
+  // does). Previous SELECT raised SQLSTATE 42703 in prod. Drop the column
+  // and the CSV header keeps a placeholder for backward compatibility.
   const findings = await withOrg(orgId, (tx) =>
     tx`
-      SELECT id, title, severity, cvss_score, cve_ids, agent_name, description, remediation, created_at
+      SELECT id, title, severity, cvss_score, cve_ids, description, remediation, created_at
       FROM findings
       WHERE engagement_id = ${engagementId}
       ORDER BY
@@ -375,7 +378,7 @@ reportRoutes.get("/:engagementId/csv", requireCsv, async (c) => {
       escapeCSV(f.severity as string),
       f.cvssScore != null ? String(f.cvssScore) : "",
       escapeCSV(cves),
-      escapeCSV((f.agentName as string) || ""),
+      "", // Agent column reserved — not stored per-finding (ENG-P2-4)
       escapeCSV(f.description as string),
       escapeCSV(f.remediation as string),
       f.createdAt ? formatDate(f.createdAt as string) : "",
