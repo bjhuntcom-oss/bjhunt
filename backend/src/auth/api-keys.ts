@@ -37,7 +37,11 @@ export async function createApiKey(
 ): Promise<{ key: ApiKey; plaintext: string }> {
   const plaintext = `${config.auth.apiKeyPrefix}${nanoid(40)}`;
   const keyHash = await sha256(plaintext);
-  const keyPrefix = plaintext.slice(0, 12);
+  // ENG-P2-6: keep the prefix short (4-char "bjk_" + 6 random = 10) so a
+  // leaked listing of prefixes doesn't materially help correlate keys
+  // across systems. 6 random chars from nanoid alphabet ≈ 2^36 — visually
+  // distinct enough for the operator UI without exposing entropy.
+  const keyPrefix = plaintext.slice(0, 10);
   const expiresAt = expiresInDays
     ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000)
     : null;

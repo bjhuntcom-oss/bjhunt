@@ -192,6 +192,30 @@ export function loginNotificationEmail(
   };
 }
 
+export function passwordChangedEmail(
+  name: string,
+  ip: string,
+  time: string,
+): { subject: string; html: string } {
+  const displayName = name || "Operator";
+  return {
+    subject: "BJHUNT — Password Changed",
+    html: layout(
+      "Your BJHUNT account password was changed.",
+      `${heading("Password Changed")}
+      ${paragraph("Hello " + escapeHtml(displayName) + ",")}
+      ${paragraph("Your account password was just changed.")}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #222222;">
+        ${metaRow("IP Address", escapeHtml(ip))}
+        ${metaRow("Time (UTC)", escapeHtml(time))}
+      </table>
+      ${paragraph("If this was you, no action is needed — every other active session has already been signed out for safety.")}
+      ${paragraph("If you did NOT change your password, your account may be compromised. Reset your password immediately and contact support.")}
+      ${button("RESET PASSWORD", config.email.appUrl + "/forgot-password")}`,
+    ),
+  };
+}
+
 export function engagementCompleteEmail(
   name: string,
   engagementName: string,

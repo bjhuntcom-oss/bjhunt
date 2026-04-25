@@ -8,21 +8,18 @@ import { config } from "../config.js";
 
 const STATE_CHANGING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
-// Auth endpoints that don't need CSRF (public or cookie-setting)
-const CSRF_EXEMPT = new Set([
-  "/api/auth/login",
-  "/api/auth/register",
-  "/api/auth/logout",
-  "/api/auth/forgot-password",
-  "/api/auth/reset-password",
-]);
+const CSRF_EXEMPT = new Set(["/api/security/csp-report"]);
+
+function isAllowedOrigin(origin: string): boolean {
+  if (config.cors.origins.includes(origin)) return true;
+  return origin.endsWith(".bjhunt.com") && origin.startsWith("https://");
+}
 
 export const csrfMiddleware: MiddlewareHandler = async (c, next) => {
   if (!STATE_CHANGING.has(c.req.method)) {
     return next();
   }
 
-  // Auth endpoints are CSRF-exempt (they set/clear cookies)
   if (CSRF_EXEMPT.has(c.req.path)) {
     return next();
   }
@@ -35,14 +32,18 @@ export const csrfMiddleware: MiddlewareHandler = async (c, next) => {
 
   const origin = c.req.header("origin");
 
-  // No origin = server-side call (Next.js server actions), allow if authenticated
+  // AUTH-P2-1: require Origin on every state-changing browser-cookie request.
+  // Previously a missing Origin + presence of bjhunt_session cookie was
+  // accepted as "must be a server-side call" — that opened a CSRF gap if
+  // an attacker could plant a session cookie via fixation. Browsers send
+  // Origin on every cross-site POST per the Fetch spec, and our Next.js
+  // server actions set it explicitly via originOverride in
+  // lib/backend-client.ts:serverBackendFetch.
   if (!origin) {
-    const hasCookie = c.req.header("cookie")?.includes("bjhunt_session");
-    if (hasCookie) return next();
     return c.json({ error: "Missing Origin header" }, 403);
   }
 
-  if (!config.cors.origins.includes(origin)) {
+  if (!isAllowedOrigin(origin)) {
     return c.json({ error: "Invalid Origin" }, 403);
   }
 

@@ -49,7 +49,17 @@ export function enforceScanQuota(): MiddlewareHandler {
     const plan = (c.get("plan" as never) as string) || await getOrgPlan(orgId);
     const limits = getPlanLimits(plan);
 
+    // ENG-P2-5: trace quota refusals so an operator/audit can see who hit
+    // limits and how often. user.id may not be set on every code path
+    // (e.g. token-only requests); audit_logs.user_id allows NULL.
+    const userId = (c.get("user") as any)?.id ?? null;
+
     if (!limits.canCreateEngagements) {
+      await sql`
+        INSERT INTO audit_logs (org_id, user_id, action, details)
+        VALUES (${orgId}, ${userId}, 'quota.scan.plan_restricted',
+                ${JSON.stringify({ plan, reason: "free_plan_no_engagements" })})
+      `.catch(() => {});
       return c.json({
         error: "plan_restricted",
         message: "Le plan gratuit ne permet pas de créer des scans. Passez au plan Pro.",
@@ -64,6 +74,11 @@ export function enforceScanQuota(): MiddlewareHandler {
     const used = (usage as any)?.total ?? 0;
 
     if (used >= limits.scansPerMonth) {
+      await sql`
+        INSERT INTO audit_logs (org_id, user_id, action, details)
+        VALUES (${orgId}, ${userId}, 'quota.scan.exceeded',
+                ${JSON.stringify({ plan, used, limit: limits.scansPerMonth })})
+      `.catch(() => {});
       return c.json({
         error: "quota_exceeded",
         message: `Quota de scans atteint (${used}/${limits.scansPerMonth}). Passez au plan supérieur.`,
@@ -118,7 +133,7 @@ export function requireFeature(featureKey: string): MiddlewareHandler {
     if (isAdmin(c)) return next();
     const orgId = c.get("orgId") as string;
     const plan = await getOrgPlan(orgId);
-    const limits = getPlanLimits(plan) as Record<string, unknown>;
+    const limits = getPlanLimits(plan) as unknown as Record<string, unknown>;
 
     if (!limits[featureKey]) {
       return c.json({

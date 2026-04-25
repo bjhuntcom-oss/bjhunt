@@ -17,7 +17,7 @@ import { config } from "../config.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import type { AuthUser } from "../middleware/auth.js";
 import { sendEmail } from "../lib/email.js";
-import { welcomeEmail, passwordResetEmail, loginNotificationEmail, verifyEmailEmail } from "../lib/email-templates.js";
+import { welcomeEmail, passwordResetEmail, loginNotificationEmail, verifyEmailEmail, passwordChangedEmail } from "../lib/email-templates.js";
 
 // AUTH-P1-1: helper — issue a single-use email-verification token, persist
 // its SHA-256 hash, return the plaintext token for the email link.
@@ -561,10 +561,23 @@ authRoutes.post(
     const [dbUser] = await sql`
       SELECT password_hash FROM users WHERE id = ${user.id}
     `;
-    if (!dbUser) return c.json({ error: "User not found" }, 404);
+    if (!dbUser) return c.json({ error: { code: "USER_NOT_FOUND" } }, 404);
 
     const valid = await verifyPassword(dbUser.passwordHash as string, currentPassword);
-    if (!valid) return c.json({ error: "Current password is incorrect" }, 401);
+    if (!valid) {
+      // DASH-P1-2: structured error code so the frontend can map to a
+      // localised message instead of falling through to the generic
+      // "change failed" branch.
+      return c.json(
+        {
+          error: {
+            code: "INVALID_CURRENT_PASSWORD",
+            message: "Current password is incorrect",
+          },
+        },
+        401,
+      );
+    }
 
     const newHash = await hashPassword(newPassword);
     await sql`UPDATE users SET password_hash = ${newHash} WHERE id = ${user.id}`;
@@ -588,10 +601,30 @@ authRoutes.post(
       await deleteUserSessions(user.id);
     }
 
+    const ipAddr =
+      c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     await sql`
-      INSERT INTO audit_logs (org_id, user_id, action)
-      VALUES (${user.orgId}, ${user.id}, 'user.change_password')
+      INSERT INTO audit_logs (org_id, user_id, action, ip_address)
+      VALUES (${user.orgId}, ${user.id}, 'user.change_password', ${ipAddr})
     `;
+
+    // AUTH-P2-5: notify the account owner via email so an attacker who
+    // briefly hijacks a session and rotates the password can't operate
+    // silently. Fire-and-forget — failure to send must not roll back the
+    // change itself.
+    try {
+      const [u] = await sql`SELECT email, display_name FROM users WHERE id = ${user.id}`;
+      if (u?.email) {
+        const tpl = passwordChangedEmail(
+          (u.displayName as string) || (u.email as string).split("@")[0]!,
+          ipAddr,
+          new Date().toISOString(),
+        );
+        sendEmail({ to: u.email as string, subject: tpl.subject, html: tpl.html }).catch(() => {});
+      }
+    } catch (err) {
+      console.error("[auth] password-changed email failed", err);
+    }
 
     return c.json({ ok: true });
   },

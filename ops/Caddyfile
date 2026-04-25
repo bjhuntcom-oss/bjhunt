@@ -46,6 +46,16 @@ api.bjhunt.com, chat.bjhunt.com {
         X-Frame-Options "DENY"
         Referrer-Policy "strict-origin-when-cross-origin"
         Permissions-Policy "geolocation=(), microphone=(), camera=()"
+
+        # VPS-P1-6: API edge serves JSON only — no scripts, no styles, no
+        # images. CSP locked to `default-src 'none'` + `connect-src 'self'`
+        # (so the JSON parser inside the browser fetch is allowed) and
+        # `frame-ancestors 'none'` to belt-and-braces XFO=DENY. report-uri
+        # collects violations at the backend's CSP-report endpoint.
+        Content-Security-Policy "default-src 'none'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; report-uri /api/security/csp-report"
+        Cross-Origin-Opener-Policy "same-origin"
+        Cross-Origin-Resource-Policy "same-site"
+        Reporting-Endpoints "default=\"/api/security/csp-report\""
         -Server
     }
 

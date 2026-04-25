@@ -31,16 +31,36 @@ export function ChangePasswordForm({ locale }: ChangePasswordFormProps) {
       })
 
       if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: 'CHANGE_PASSWORD_FAILED' }))
-        const code = body.error ?? 'CHANGE_PASSWORD_FAILED'
+        const body = await res.json().catch(() => null)
+        // Backend can return `error: "string"` (legacy) or `error: { code }`
+        // (new structured envelope). Cover both shapes.
+        const code =
+          (typeof body?.error === 'string' ? body.error : body?.error?.code) ??
+          'CHANGE_PASSWORD_FAILED'
         if (code === 'INVALID_CURRENT_PASSWORD') {
           setError(isFr ? 'Mot de passe actuel incorrect.' : 'Current password is incorrect.')
-        } else if (code === 'PASSWORD_TOO_SHORT') {
-          setError(isFr ? 'Utilisez au moins 14 caracteres.' : 'Use at least 14 characters.')
+        } else if (code === 'PASSWORD_TOO_SHORT' || res.status === 400) {
+          setError(
+            isFr
+              ? 'Utilisez au moins 14 caracteres avec majuscule, minuscule et chiffre.'
+              : 'Use at least 14 characters with upper, lower and digit.',
+          )
         } else if (code === 'PASSWORD_TOO_WEAK') {
           setError(isFr ? 'Choisissez un mot de passe plus unique.' : 'Choose a more unique password.')
+        } else if (res.status === 401) {
+          setError(isFr ? 'Mot de passe actuel incorrect.' : 'Current password is incorrect.')
+        } else if (res.status === 429) {
+          setError(
+            isFr
+              ? 'Trop de tentatives. Reessayez dans quelques minutes.'
+              : 'Too many attempts. Try again in a few minutes.',
+          )
         } else {
-          setError(isFr ? 'Echec du changement.' : 'Change failed.')
+          setError(
+            isFr
+              ? `Echec du changement (HTTP ${res.status}).`
+              : `Change failed (HTTP ${res.status}).`,
+          )
         }
         return
       }
