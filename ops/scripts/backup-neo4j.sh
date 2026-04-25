@@ -19,7 +19,11 @@
 
 set -euo pipefail
 
-: "${B2_BUCKET:?B2_BUCKET env var required}"
+# B2 is optional — local-only backup if unset.
+B2_BUCKET="${B2_BUCKET:-}"
+# Volume name varies by compose project. Default matches the prod stack
+# under /opt/bjhunt/app (project name = "app").
+NEO4J_VOLUME="${NEO4J_VOLUME:-app_neo4j_data}"
 
 BACKUP_DIR=/var/backups/bjhunt/neo4j
 TIMESTAMP=$(date -u +%Y%m%dT%H%M%SZ)
@@ -35,7 +39,7 @@ docker stop bjhunt-neo4j
 
 # Dump via neo4j-admin run inside a one-shot container with the data volume
 docker run --rm \
-    -v bjhunt-v2_neo4j_data:/data \
+    -v "$NEO4J_VOLUME":/data \
     -v "$BACKUP_DIR":/backup \
     neo4j:5.24-community \
     neo4j-admin database dump neo4j --to-path=/backup --overwrite-destination=true
@@ -50,11 +54,14 @@ docker start bjhunt-neo4j
 SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
 echo "[$TIMESTAMP] Local dump complete: $BACKUP_FILE ($SIZE)"
 
-# Upload to B2
-echo "[$TIMESTAMP] Uploading to B2 bucket $B2_BUCKET..."
-rclone copy "$BACKUP_FILE" "b2-bjhunt:$B2_BUCKET/neo4j/" --b2-hard-delete
-
-echo "[$TIMESTAMP] Upload complete"
+# Upload to B2 (idempotent) — skipped if B2 not configured.
+if [ -n "$B2_BUCKET" ] && command -v rclone >/dev/null 2>&1; then
+    echo "[$TIMESTAMP] Uploading to B2 bucket $B2_BUCKET..."
+    rclone copy "$BACKUP_FILE" "b2-bjhunt:$B2_BUCKET/neo4j/" --b2-hard-delete
+    echo "[$TIMESTAMP] Upload complete"
+else
+    echo "[$TIMESTAMP] B2 upload skipped (B2_BUCKET unset or rclone missing)"
+fi
 
 find "$BACKUP_DIR" -type f -name "bjhunt-neo4j-*.tar.gz" -mtime +$LOCAL_RETENTION_DAYS -delete
 

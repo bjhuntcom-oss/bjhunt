@@ -24,7 +24,9 @@
 set -euo pipefail
 
 : "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD env var required}"
-: "${B2_BUCKET:?B2_BUCKET env var required}"
+# B2_BUCKET is optional — when unset, the backup is kept local only.
+# Set it once rclone is configured for off-site retention.
+B2_BUCKET="${B2_BUCKET:-}"
 
 BACKUP_DIR=/var/backups/bjhunt/postgres
 TIMESTAMP=$(date -u +%Y%m%dT%H%M%SZ)
@@ -43,11 +45,15 @@ docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" bjhunt-postgres \
 SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
 echo "[$TIMESTAMP] Local dump complete: $BACKUP_FILE ($SIZE)"
 
-# Upload to B2 (idempotent)
-echo "[$TIMESTAMP] Uploading to B2 bucket $B2_BUCKET..."
-rclone copy "$BACKUP_FILE" "b2-bjhunt:$B2_BUCKET/postgres/" --b2-hard-delete
-
-echo "[$TIMESTAMP] Upload complete"
+# Upload to B2 (idempotent) — skipped silently when B2_BUCKET is empty so
+# operators can run local-only backups before configuring rclone.
+if [ -n "$B2_BUCKET" ] && command -v rclone >/dev/null 2>&1; then
+    echo "[$TIMESTAMP] Uploading to B2 bucket $B2_BUCKET..."
+    rclone copy "$BACKUP_FILE" "b2-bjhunt:$B2_BUCKET/postgres/" --b2-hard-delete
+    echo "[$TIMESTAMP] Upload complete"
+else
+    echo "[$TIMESTAMP] B2 upload skipped (B2_BUCKET unset or rclone missing)"
+fi
 
 # Cleanup local backups older than retention
 find "$BACKUP_DIR" -type f -name "bjhunt-pg-*.dump" -mtime +$LOCAL_RETENTION_DAYS -delete
