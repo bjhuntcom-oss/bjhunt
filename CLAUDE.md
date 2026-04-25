@@ -261,11 +261,18 @@ Le FAI de l'utilisateur **bloque TOUS les ports sauf 80 et 443**. **NOTE** : con
 
 ### Structure fichiers VPS
 ```
-/opt/bjhunt/app/       ← clone de ce repo (bjhuntcom-oss/bjhunt)
-/opt/bjhunt/app/.env   ← secrets prod (⚠️ mode 644 world-readable — F6-7 à fix W3)
-/srv/bjhunt/           ← données persistantes (postgres, runtimes, uploads)
+/opt/bjhunt/app/                          ← clone de ce repo
+/opt/bjhunt/app/.env                      ← secrets prod (mode 600 root:root — fixé 2026-04-25)
+/var/lib/docker/volumes/app_postgres_data ← données Postgres
+/var/lib/docker/volumes/app_neo4j_data    ← données Neo4j
+/var/lib/docker/volumes/app_redis_data    ← données Redis
+/var/lib/docker/volumes/app_workspace_data ← workspace sandbox
+/var/backups/bjhunt/postgres              ← dumps quotidiens 02:00
+/var/backups/bjhunt/neo4j                 ← dumps quotidiens 02:30
+/var/lib/bjhunt-health                    ← state health-check
+/etc/cron.d/bjhunt-backups                ← crons backups + health-check
 ```
-**Note** : contrairement à l'ancienne doc, `/opt/bjhunt/stack/` n'existe PAS — tout vit sous `/opt/bjhunt/app/`.
+**Note** : contrairement à l'ancienne doc, `/srv/bjhunt/` est VIDE — toutes les données prod vivent dans les volumes Docker `/var/lib/docker/volumes/app_*`. Si quelqu'un fait `docker volume prune` sans précaution, **TOUTES les données utilisateur sont perdues** (mitigation : crons de backup quotidiens depuis 2026-04-25 vers `/var/backups/bjhunt/`). `/opt/bjhunt/stack/` n'existe pas non plus — tout vit sous `/opt/bjhunt/app/`.
 
 ---
 
