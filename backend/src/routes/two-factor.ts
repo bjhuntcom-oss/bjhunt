@@ -5,6 +5,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
+import { Redis } from "ioredis";
 import { withOrg, adminSql } from "../db/client.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
@@ -17,6 +18,17 @@ import {
   hashBackupCode,
 } from "../auth/totp.js";
 import { createSession } from "../auth/session.js";
+
+// AUTH-P1-4: lazy Redis singleton scoped to this module — tempToken
+// replay protection lives here only.
+let _redis: Redis | null = null;
+function getRedis(): Redis {
+  if (!_redis) {
+    _redis = new Redis(config.redis.url, { maxRetriesPerRequest: 1, lazyConnect: true });
+  }
+  return _redis;
+}
+const TEMP_TOKEN_MAX_ATTEMPTS = 3;
 import type { AppVariables } from "../types.js";
 import type { AuthUser } from "../middleware/auth.js";
 
@@ -207,6 +219,36 @@ twoFactorRoutes.post(
       return c.json({ error: "Invalid temporary token" }, 401);
     }
 
+    // AUTH-P1-4: per-tempToken replay/brute-force guard. Cap each
+    // tempToken at TEMP_TOKEN_MAX_ATTEMPTS verify attempts and refuse
+    // any reuse after a successful verify (we delete the key below on
+    // success). Falls open if Redis is unavailable so legitimate users
+    // don't get locked out by an infra blip — generic auth rate-limit
+    // upstream still applies.
+    const tokenKey = `2fa-token:${hash}`;
+    try {
+      const r = getRedis();
+      const used = await r.get(tokenKey);
+      if (used === "consumed") {
+        return c.json({ error: "Temporary token already used" }, 401);
+      }
+      const attempts = await r.incr(tokenKey);
+      if (attempts === 1) {
+        // Pin TTL to the original token expiry so the counter doesn't
+        // outlive the token itself.
+        const ttl = Math.max(60, Math.floor((expiry - Date.now()) / 1000));
+        await r.expire(tokenKey, ttl);
+      }
+      if (attempts > TEMP_TOKEN_MAX_ATTEMPTS) {
+        return c.json(
+          { error: "Too many verification attempts. Please log in again." },
+          429,
+        );
+      }
+    } catch {
+      // Redis down → continue. Better availability than a hard fail here.
+    }
+
     // Pre-session bootstrap: this lookup runs BEFORE the org context is
     // established (TOTP verification step). Use the BYPASSRLS adminSql pool
     // — same pattern as auth.ts login flow. Per docs/architecture/10 §131-148.
@@ -253,6 +295,15 @@ twoFactorRoutes.post(
         `,
       );
       return c.json({ error: "Invalid verification code" }, 401);
+    }
+
+    // AUTH-P1-4: mark the tempToken as consumed so it cannot replay.
+    try {
+      const r = getRedis();
+      const ttl = Math.max(60, Math.floor((expiry - Date.now()) / 1000));
+      await r.set(tokenKey, "consumed", "EX", ttl);
+    } catch {
+      // best-effort; the cookie below still authenticates
     }
 
     // Create the real session

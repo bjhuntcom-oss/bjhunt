@@ -13,11 +13,21 @@ export function UserActionsPanel({ userId, isBlocked }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmBlock, setConfirmBlock] = useState(false)
   const [revokeResult, setRevokeResult] = useState<number | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
+  // DASH-P1-3: 2-step confirmation on block/unblock to mirror the
+  // delete pattern. Auto-resets after 6s if the admin didn't confirm.
+  useEffect(() => {
+    if (!confirmBlock) return
+    const t = setTimeout(() => setConfirmBlock(false), 6000)
+    return () => clearTimeout(t)
+  }, [confirmBlock])
+
   const handleToggleBlock = async () => {
     setActionError(null)
+    setConfirmBlock(false)
     // Toggle role to 'viewer' (blocked) or 'member' (active)
     const res = await browserBackendFetch(`/api/admin/users/${userId}`, {
       method: 'PATCH',
@@ -66,17 +76,35 @@ export function UserActionsPanel({ userId, isBlocked }: Props) {
           Révoquer sessions
         </button>
       )}
-      <button
-        onClick={handleToggleBlock}
-        disabled={isPending}
-        className={`text-[9px] font-mono uppercase tracking-widest transition-colors disabled:opacity-50 ${
-          isBlocked
-            ? 'text-[var(--success)] hover:text-white'
-            : 'text-[var(--warning)] hover:text-[var(--danger)]'
-        }`}
-      >
-        {isBlocked ? 'Débloquer' : 'Bloquer'}
-      </button>
+      {confirmBlock ? (
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handleToggleBlock}
+            disabled={isPending}
+            className="text-[9px] font-mono text-[var(--warning)] uppercase tracking-widest disabled:opacity-50"
+          >
+            {isBlocked ? 'Confirmer débloquer' : 'Confirmer bloquer'}
+          </button>
+          <button
+            onClick={() => setConfirmBlock(false)}
+            className="text-[9px] font-mono text-[var(--text-muted)] hover:text-white uppercase tracking-widest transition-colors"
+          >
+            Annuler
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setConfirmBlock(true)}
+          disabled={isPending}
+          className={`text-[9px] font-mono uppercase tracking-widest transition-colors disabled:opacity-50 ${
+            isBlocked
+              ? 'text-[var(--success)] hover:text-white'
+              : 'text-[var(--warning)] hover:text-[var(--danger)]'
+          }`}
+        >
+          {isBlocked ? 'Débloquer' : 'Bloquer'}
+        </button>
+      )}
       {confirmDelete ? (
         <div className="flex items-center gap-1.5">
           <button
