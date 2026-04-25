@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useTransition, useRef } from "react";
+import { useParams } from "next/navigation";
 import { browserBackendFetch } from "@/lib/backend-client";
 import { PlanGate } from "@/components/dashboard/plan-gate";
 import { usePlan } from "@/lib/use-plan";
@@ -148,6 +149,8 @@ const DEFAULT_TECHNIQUES: ADTechnique[] = [
 
 export default function ADAssessmentPage() {
   const { plan } = usePlan();
+  const params = useParams();
+  const isFr = ((params?.locale as string) || "fr") === "fr";
   const [techniques, setTechniques] = useState<ADTechnique[]>(DEFAULT_TECHNIQUES);
   const [bloodhound, setBloodhound] = useState<BloodhoundSummary | null>(null);
   const [bhUploading, setBhUploading] = useState(false);
@@ -721,7 +724,9 @@ export default function ADAssessmentPage() {
             ) : (
               <Database className="w-3 h-3" />
             )}
-            {result?.status === "running" ? "Running..." : "Start AD Scan"}
+            {result?.status === "running"
+              ? isFr ? "Scan en cours..." : "Running..."
+              : isFr ? "Lancer le scan AD" : "Start AD Scan"}
           </button>
         </div>
       </div>

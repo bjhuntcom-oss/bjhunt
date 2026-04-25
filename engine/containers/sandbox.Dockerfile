@@ -22,6 +22,10 @@ RUN echo "APT::Sandbox::User \"root\";" > /etc/apt/apt.conf.d/10sandbox && \
         python3 \
         python3-pip \
         tmux \
+        # libcap2-bin: provides capsh for capability introspection
+        # (VPS-P1-7). Lets ops/agents print the container's actual
+        # capability set without `nsenter` from the host.
+        libcap2-bin \
         # ── Recon ──
         nmap \
         dnsutils \

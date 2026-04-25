@@ -202,12 +202,15 @@ export default function PricingPage() {
               featured: false,
             },
             {
+              // ENG-P0-3: Stripe checkout n'est pas encore livré (W10).
+              // CTA renommé "Demander un accès" pour ne pas promettre un
+              // self-checkout instantané qu'on ne peut pas honorer.
               name: "Pro",
               price: "$200/mois",
               sub: "5 scans -- 10 agents -- Chat illimite",
               badge: "Populaire",
               icon: "approved",
-              cta: "Souscrire",
+              cta: "Demander un accès",
               href: "/contact",
               featured: true,
             },
@@ -317,7 +320,7 @@ export default function PricingPage() {
         <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[var(--border)]">
           {[
             { name: "Free",       cta: "Essai gratuit",   href: "/login",   featured: false },
-            { name: "Pro",        cta: "Souscrire",       href: "/contact", featured: true  },
+            { name: "Pro",        cta: "Demander un accès", href: "/contact", featured: true  },
             { name: "Enterprise", cta: "Contactez-nous",  href: "/contact", featured: false },
           ].map((plan) => (
             <div key={plan.name} className="p-6 flex items-center justify-center">

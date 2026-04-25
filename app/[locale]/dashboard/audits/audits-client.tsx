@@ -590,6 +590,10 @@ export function AuditsClient({
   const [runs, setRuns] = useState(initialRuns)
   const [total, setTotal] = useState(initialTotal)
   const [showWizard, setShowWizard] = useState(false)
+  // DASH-P2: replace browser-native confirm() with a styled modal so the
+  // confirmation matches the design system + works on mobile (where some
+  // PWA configurations suppress confirm()).
+  const [cancelTargetId, setCancelTargetId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const handleCreated = (run: AuditRun) => {
@@ -599,7 +603,14 @@ export function AuditsClient({
   }
 
   const handleCancel = (id: string) => {
-    if (!confirm('Annuler cet audit ?')) return
+    // Open the modal; actual API call happens in confirmCancel below.
+    setCancelTargetId(id)
+  }
+
+  const confirmCancel = () => {
+    const id = cancelTargetId
+    if (!id) return
+    setCancelTargetId(null)
     startTransition(async () => {
       const res = await browserBackendFetch(`/api/engagements/${id}`, {
         method: 'PATCH',
@@ -615,6 +626,48 @@ export function AuditsClient({
 
   return (
     <div>
+      {cancelTargetId && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cancel-audit-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setCancelTargetId(null)}
+        >
+          <div
+            className="border border-[var(--border)] bg-[var(--bg-card)] p-6 max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3
+              id="cancel-audit-title"
+              className="text-[12px] font-mono font-bold uppercase tracking-widest text-white mb-2"
+            >
+              Annuler cet audit ?
+            </h3>
+            <p className="text-[10px] font-mono text-[var(--text-muted)] mb-5 leading-relaxed">
+              L&apos;audit passera en statut <span className="text-white">cancelled</span>. Les findings déjà collectés sont conservés.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setCancelTargetId(null)}
+                className="px-3 py-1.5 text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-white border border-[var(--border)] transition-colors"
+              >
+                Retour
+              </button>
+              <button
+                type="button"
+                onClick={confirmCancel}
+                disabled={isPending}
+                className="px-3 py-1.5 text-[9px] font-mono uppercase tracking-widest text-white bg-[var(--danger)] hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                Confirmer l&apos;annulation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-4">
         <span className="text-[11px] font-mono text-[var(--text-muted)]">
           {total} audit{total !== 1 ? 's' : ''}

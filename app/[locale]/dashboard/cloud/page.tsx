@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useTransition } from "react";
+import { useParams } from "next/navigation";
 import { browserBackendFetch } from "@/lib/backend-client";
 import { PlanGate } from "@/components/dashboard/plan-gate";
 import { usePlan } from "@/lib/use-plan";
@@ -119,6 +120,8 @@ const PROVIDERS: {
 
 export default function CloudAssessmentPage() {
   const { plan } = usePlan();
+  const params = useParams();
+  const isFr = ((params?.locale as string) || "fr") === "fr";
   const [selectedProvider, setSelectedProvider] = useState<CloudProvider | null>(null);
   const [config, setConfig] = useState<CloudConfig>({
     provider: "aws",
@@ -634,7 +637,9 @@ export default function CloudAssessmentPage() {
               ) : (
                 <Shield className="w-3 h-3" />
               )}
-              {result?.status === "running" ? "Running..." : "Start Cloud Scan"}
+              {result?.status === "running"
+                ? isFr ? "Scan en cours..." : "Running..."
+                : isFr ? "Lancer le scan Cloud" : "Start Cloud Scan"}
             </button>
           </div>
         </div>
