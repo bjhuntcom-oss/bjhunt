@@ -126,6 +126,10 @@ services:
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?required}
       - LITELLM_SALT_KEY=${LITELLM_SALT_KEY:?required}
       - DATABASE_URL=postgresql://bjhunt:${POSTGRES_PASSWORD}@postgres:5432/litellm
+      # VPS-P0-1 follow-up: force Prisma to push the embedded schema on
+      # every container start so column drift (source_url etc.) self-heals
+      # rather than spamming Postgres with column-not-found errors.
+      - USE_PRISMA_MIGRATE=True
     depends_on:
       postgres:
         condition: service_healthy
