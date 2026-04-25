@@ -20,10 +20,38 @@ engagementRoutes.use("*", requireAuth);
 engagementRoutes.use("*", rateLimit(config.rateLimit.api));
 
 // ── RoE/scope check (ENG-P0-2) ───────────────────────────────────────────
-// Minimal scope validator: refuses launch if `target` matches any pattern
-// in `outOfScope`. Patterns may use `*` as a glob wildcard. Exact matches
-// and case-insensitive comparisons are sufficient for the immediate ATO/RoE
-// risk; CIDR/IP-range parsing is a TODO for the full validator.
+// Refuses launch if `target` matches any entry in `outOfScope`. Three
+// matcher modes:
+//   - CIDR (e.g. 10.0.0.0/8, 192.168.1.0/24) when entry has '/'
+//   - Exact IPv4 single host
+//   - Glob with '*' wildcard for FQDNs and partial matches
+// Case-insensitive across the board for non-IP entries.
+
+const IPV4_RE = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+const CIDR_RE = /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\/(\d{1,2})$/;
+
+function ipv4ToInt(ip: string): number | null {
+  const m = ip.match(IPV4_RE);
+  if (!m) return null;
+  const [, a, b, c, d] = m;
+  const oa = Number(a), ob = Number(b), oc = Number(c), od = Number(d);
+  if ([oa, ob, oc, od].some((n) => n < 0 || n > 255 || Number.isNaN(n))) return null;
+  return ((oa << 24) | (ob << 16) | (oc << 8) | od) >>> 0;
+}
+
+function targetMatchesCidr(target: string, cidr: string): boolean {
+  const m = cidr.match(CIDR_RE);
+  if (!m) return false;
+  const network = ipv4ToInt(m[1]!);
+  const prefix = Number(m[2]);
+  if (network === null || prefix < 0 || prefix > 32) return false;
+  const targetInt = ipv4ToInt(target);
+  if (targetInt === null) return false;
+  if (prefix === 0) return true;
+  const mask = prefix === 32 ? 0xffffffff : (~0 << (32 - prefix)) >>> 0;
+  return (targetInt & mask) === (network & mask);
+}
+
 function patternToRegex(pattern: string): RegExp {
   const escaped = pattern
     .trim()
@@ -43,9 +71,13 @@ function isTargetOutOfScope(target: string, outOfScopeStr: string | undefined | 
     .filter((s) => s.length > 0);
   for (const p of patterns) {
     try {
+      if (CIDR_RE.test(p)) {
+        if (targetMatchesCidr(t, p)) return p;
+        continue;
+      }
       if (patternToRegex(p).test(t)) return p;
     } catch {
-      // bad regex — skip the entry
+      // bad regex / invalid CIDR — skip the entry
     }
   }
   return null;
