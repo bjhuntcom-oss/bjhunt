@@ -130,6 +130,26 @@ export function passwordResetEmail(name: string, resetUrl: string): { subject: s
   };
 }
 
+export function verifyEmailEmail(
+  name: string,
+  verifyUrl: string,
+): { subject: string; html: string } {
+  const displayName = name || "Operator";
+  return {
+    subject: "BJHUNT — Verify your email",
+    html: layout(
+      "Confirm your BJHUNT account by verifying your email address.",
+      `${heading("Verify your email")}
+      ${paragraph("Hello " + escapeHtml(displayName) + ",")}
+      ${paragraph("Welcome to BJHUNT. Please click the button below to verify your email address. This link expires in 24 hours.")}
+      ${button("VERIFY EMAIL", verifyUrl)}
+      ${paragraph("Or copy this URL into your browser:")}
+      <p style="margin:0 0 16px 0;font-family:'JetBrains Mono',monospace;font-size:11px;color:#888888;word-break:break-all;line-height:1.7;">${escapeHtml(verifyUrl)}</p>
+      ${paragraph("If you did not create a BJHUNT account, ignore this email — no account will be activated.")}`
+    ),
+  };
+}
+
 export function otpEmail(name: string, code: string): { subject: string; html: string } {
   const displayName = name || "Operator";
   return {

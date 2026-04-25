@@ -17,7 +17,24 @@ import { config } from "../config.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import type { AuthUser } from "../middleware/auth.js";
 import { sendEmail } from "../lib/email.js";
-import { welcomeEmail, passwordResetEmail, loginNotificationEmail } from "../lib/email-templates.js";
+import { welcomeEmail, passwordResetEmail, loginNotificationEmail, verifyEmailEmail } from "../lib/email-templates.js";
+
+// AUTH-P1-1: helper — issue a single-use email-verification token, persist
+// its SHA-256 hash, return the plaintext token for the email link.
+async function issueEmailVerificationToken(userId: string): Promise<string> {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  const token = Buffer.from(bytes).toString("base64url");
+  const hasher = new Bun.CryptoHasher("sha256");
+  hasher.update(token);
+  const tokenHash = hasher.digest("hex");
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+  await sql`
+    INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
+    VALUES (${userId}, ${tokenHash}, ${expiresAt})
+  `;
+  return token;
+}
 
 export const authRoutes = new Hono<{ Variables: AppVariables }>();
 
@@ -86,37 +103,144 @@ authRoutes.post(
       return user!;
     });
 
-    // Create session
+    // AUTH-P1-1: do NOT create a session yet. Issue an email-verification
+    // token and require the user to click the link in the welcome email
+    // before they can log in. Closes ATO-via-typo-squatting.
     const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || null;
-    const ua = c.req.header("user-agent") || null;
-    const session = await createSession(result.id as string, ip, ua);
 
-    setSessionCookie(c, session.id, session.expiresAt);
-
-    // Audit log
     await sql`
       INSERT INTO audit_logs (org_id, user_id, action, ip_address)
       VALUES (${result.orgId}, ${result.id}, 'user.register', ${ip})
     `;
 
-    // Send welcome email (fire-and-forget)
-    const welcome = welcomeEmail(displayName || email.split("@")[0]!);
-    sendEmail({ to: email, subject: welcome.subject, html: welcome.html }).catch(() => {});
+    try {
+      const verifyToken = await issueEmailVerificationToken(result.id as string);
+      const verifyUrl = `${config.email.appUrl}/verify-email?token=${encodeURIComponent(verifyToken)}`;
+      const tpl = verifyEmailEmail(displayName || email.split("@")[0]!, verifyUrl);
+      sendEmail({ to: email, subject: tpl.subject, html: tpl.html }).catch(() => {});
+    } catch (err) {
+      console.error("[auth] failed to issue email verification token", err);
+      // Don't fail the registration — the user can request a fresh
+      // verification email later. But we MUST NOT issue a session.
+    }
 
-    // SECURITY (audit #3-21 / C-13): NEVER include session.id in the JSON
-    // body. The session is communicated exclusively via the HttpOnly
-    // bjhunt_session cookie set above by setSessionCookie(). Any JSON
-    // exposure makes it readable by JS and re-introduces the XSS-to-ATO
-    // path we closed in DEEP-AUDIT-2026-04-16.
+    return c.json(
+      {
+        user: {
+          id: result.id,
+          email: result.email,
+          orgId: result.orgId,
+          role: result.role,
+          emailVerified: false,
+        },
+        organization: { id: result.orgId },
+        message:
+          "A verification link has been sent to your email. Click it to activate your account before logging in.",
+      },
+      201,
+    );
+  },
+);
+
+// ── Email verification ───────────────────────────────────────────────────
+
+const verifyEmailSchema = z.object({
+  token: z.string().min(1).max(512),
+});
+
+authRoutes.post(
+  "/verify-email",
+  rateLimit(config.rateLimit.auth),
+  zValidator("json", verifyEmailSchema),
+  async (c) => {
+    const { token } = c.req.valid("json");
+    const hasher = new Bun.CryptoHasher("sha256");
+    hasher.update(token);
+    const tokenHash = hasher.digest("hex");
+
+    // Atomic claim — single statement so concurrent requests can't both
+    // consume the same token.
+    const [row] = await sql`
+      UPDATE email_verification_tokens
+         SET used_at = now()
+       WHERE token_hash = ${tokenHash}
+         AND used_at IS NULL
+         AND expires_at > now()
+      RETURNING user_id
+    `;
+    if (!row) {
+      return c.json(
+        { error: { code: "INVALID_TOKEN", message: "Verification link is invalid or expired." } },
+        400,
+      );
+    }
+    const userId = row.userId as string;
+
+    const [user] = await sql`
+      UPDATE users SET email_verified = true WHERE id = ${userId}
+      RETURNING id, org_id, email, role, is_platform_admin, display_name
+    `;
+    if (!user) {
+      return c.json({ error: { code: "USER_NOT_FOUND" } }, 404);
+    }
+
+    // Issue session now that the email is confirmed.
+    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || null;
+    const ua = c.req.header("user-agent") || null;
+    const session = await createSession(user.id as string, ip, ua);
+    setSessionCookie(c, session.id, session.expiresAt);
+
+    await sql`
+      INSERT INTO audit_logs (org_id, user_id, action, ip_address)
+      VALUES (${user.orgId}, ${user.id}, 'user.email_verified', ${ip})
+    `.catch(() => {});
+
+    // Welcome email — now that we know the address is reachable.
+    const welcome = welcomeEmail((user.displayName as string) || (user.email as string).split("@")[0]!);
+    sendEmail({ to: user.email as string, subject: welcome.subject, html: welcome.html }).catch(() => {});
+
     return c.json({
       user: {
-        id: result.id,
-        email: result.email,
-        orgId: result.orgId,
-        role: result.role,
+        id: user.id,
+        email: user.email,
+        orgId: user.orgId,
+        role: user.role,
+        emailVerified: true,
       },
-      organization: { id: result.orgId },
-    }, 201);
+    });
+  },
+);
+
+// Resend verification email (rate-limited).
+const resendVerifySchema = z.object({
+  email: z.string().email().max(255).toLowerCase(),
+});
+
+authRoutes.post(
+  "/resend-verification",
+  rateLimit(config.rateLimit.auth),
+  zValidator("json", resendVerifySchema),
+  async (c) => {
+    const { email } = c.req.valid("json");
+    const [user] = await sql`
+      SELECT id, email_verified, display_name FROM users WHERE email = ${email}
+    `;
+    // Constant-time-ish: always claim success so we don't leak whether the
+    // email exists.
+    if (user && !user.emailVerified) {
+      try {
+        const token = await issueEmailVerificationToken(user.id as string);
+        const verifyUrl = `${config.email.appUrl}/verify-email?token=${encodeURIComponent(token)}`;
+        const tpl = verifyEmailEmail(
+          (user.displayName as string) || email.split("@")[0]!,
+          verifyUrl,
+        );
+        sendEmail({ to: email, subject: tpl.subject, html: tpl.html }).catch(() => {});
+      } catch (err) {
+        console.error("[auth] resend-verification failed", err);
+      }
+    }
+    return c.json({ ok: true });
   },
 );
 
@@ -144,7 +268,7 @@ authRoutes.post(
     }
 
     const [user] = await sql`
-      SELECT id, org_id, email, password_hash, role, is_platform_admin
+      SELECT id, org_id, email, password_hash, role, is_platform_admin, email_verified
       FROM users WHERE email = ${email}
     `;
 
@@ -173,6 +297,20 @@ authRoutes.post(
 
     // Successful credential check — clear the lockout counter.
     await clearFailures(email, clientIp);
+
+    // AUTH-P1-1: refuse login if the email has not been verified yet.
+    if (!user.emailVerified) {
+      return c.json(
+        {
+          error: {
+            code: "EMAIL_NOT_VERIFIED",
+            message:
+              "Please verify your email before logging in. Check your inbox for the verification link.",
+          },
+        },
+        403,
+      );
+    }
 
     // ── 2FA check ─────────────────────────────────────────────────────
     // If the user has TOTP enabled, do NOT create a session yet.
