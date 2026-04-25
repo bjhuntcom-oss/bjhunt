@@ -1090,6 +1090,16 @@ export default function ChatPage() {
       // ── Ignore metadata and other LangGraph events ──────────────────
       case "metadata":
         break;
+
+      // CHAT-P1-10: catch-all for events we didn't enumerate. Without
+      // this default branch, LangGraph version bumps that introduce a
+      // new event type silently disappear into the void and we'd never
+      // know. Logged at debug-level so prod console isn't spammed.
+      default:
+        if (event && event !== "message") {
+          console.debug("[chat] unhandled SSE event type", { event });
+        }
+        break;
     }
   }
 

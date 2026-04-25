@@ -45,7 +45,16 @@ const app = new Hono<{ Variables: AppVariables }>();
 // ── Global middleware ────────────────────────────────────────────────────
 
 app.use("*", requestId);
-app.use("*", logger());
+// VPS-P2-1: skip the access logger for health probes. Caddy + container
+// healthchecks hit /api/health/{live,ready} every few seconds and used
+// to drown the prod log stream — 100% of last-50-line samples were
+// "GET /api/health/live 200". Keep the request-id middleware so
+// correlation works if a probe ever fails (status >= 400 still logs
+// because of the global error handler downstream).
+app.use("*", async (c, next) => {
+  if (c.req.path.startsWith("/api/health/")) return next();
+  return logger()(c, next);
+});
 app.use("*", corsMiddleware);
 app.use("*", secureHeaders({
   strictTransportSecurity: "max-age=31536000; includeSubDomains",

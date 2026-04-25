@@ -141,7 +141,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    mem_limit: 1g
+    # VPS-P2-5: bumped 1g→2g, audit found steady-state RAM at 56% of
+    # 1g cap (~580 MB) which is uncomfortably close to OOM-kill once
+    # MCP server polling and prisma migrate concurrently warm caches.
+    mem_limit: 2g
     cpus: 0.5
     pids_limit: 128
     networks:

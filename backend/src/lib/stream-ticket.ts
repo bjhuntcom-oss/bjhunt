@@ -25,8 +25,13 @@ export interface TicketPayload {
   exp: number;
 }
 
-/** Default TTL: 2 minutes in seconds. */
-const TICKET_TTL_S = 120;
+/** Default TTL: 5 minutes in seconds.
+ * CHAT-P1-3: previously 120s, which expired during legitimate
+ * tab-backgrounded re-foreground or slow LangGraph cold starts. The
+ * ticket is HMAC-signed + one-time-consumed at /stream/:runId so a
+ * longer window doesn't widen the attack surface materially.
+ */
+const TICKET_TTL_S = 300;
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 

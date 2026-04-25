@@ -25,6 +25,14 @@ const MAX_FAILURES = 5;
 const WINDOW_SECONDS = 15 * 60; // 15 min sliding window
 const LOCKOUT_SECONDS = 15 * 60; // 15 min lockout once tripped
 
+// AUTH-P1-5: absolute per-email cap that ignores IP. Stops a distributed
+// attacker rotating IPs to defeat the (email, ip) per-tuple cap above.
+// 30 failures across any/all IPs in 1h triggers a 1h hard lockout on the
+// email itself.
+const EMAIL_MAX_FAILURES = 30;
+const EMAIL_WINDOW_SECONDS = 60 * 60;
+const EMAIL_LOCKOUT_SECONDS = 60 * 60;
+
 let redis: Redis | null = null;
 function getRedis(): Redis {
   if (!redis) {
@@ -40,6 +48,10 @@ function key(email: string, ip: string): string {
   // Lowercase email (already done by Zod schema) and concat with IP — caps key
   // cardinality to ~ active_users × active_ips.
   return `auth:lockout:${email}:${ip}`;
+}
+
+function emailKey(email: string): string {
+  return `auth:lockout-email:${email}`;
 }
 
 export interface LockoutCheck {
@@ -59,12 +71,26 @@ export async function checkLockout(email: string, ip: string): Promise<LockoutCh
   try {
     const r = getRedis();
     const k = key(email, ip);
-    const [countStr, ttl] = await Promise.all([r.get(k), r.ttl(k)]);
+    const ek = emailKey(email);
+    const [countStr, ttl, emailCountStr, emailTtl] = await Promise.all([
+      r.get(k),
+      r.ttl(k),
+      r.get(ek),
+      r.ttl(ek),
+    ]);
     const count = countStr ? parseInt(countStr, 10) : 0;
-    const locked = count >= MAX_FAILURES;
+    const emailCount = emailCountStr ? parseInt(emailCountStr, 10) : 0;
+    const ipLocked = count >= MAX_FAILURES;
+    const emailLocked = emailCount >= EMAIL_MAX_FAILURES;
+    const locked = ipLocked || emailLocked;
+    // Pick the longer remaining wait so both windows are honoured.
+    const retry = Math.max(
+      ipLocked && ttl > 0 ? ttl : 0,
+      emailLocked && emailTtl > 0 ? emailTtl : 0,
+    );
     return {
       locked,
-      retryAfter: locked && ttl > 0 ? ttl : 0,
+      retryAfter: retry,
       failures: count,
     };
   } catch {
@@ -84,16 +110,21 @@ export async function recordFailure(
   try {
     const r = getRedis();
     const k = key(email, ip);
+    const ek = emailKey(email);
+
     const failures = await r.incr(k);
-    if (failures === 1) {
-      // First miss in window — apply window TTL.
-      await r.expire(k, WINDOW_SECONDS);
-    } else if (failures === MAX_FAILURES) {
-      // We just tripped the lockout — extend the TTL to LOCKOUT_SECONDS so the
-      // ban applies in full regardless of the window remaining.
-      await r.expire(k, LOCKOUT_SECONDS);
-    }
-    return { failures, tripped: failures === MAX_FAILURES };
+    if (failures === 1) await r.expire(k, WINDOW_SECONDS);
+    else if (failures === MAX_FAILURES) await r.expire(k, LOCKOUT_SECONDS);
+
+    // Email-only counter mirrors the (email, ip) one but with a wider
+    // window to catch IP-rotating attackers (AUTH-P1-5).
+    const emailFailures = await r.incr(ek);
+    if (emailFailures === 1) await r.expire(ek, EMAIL_WINDOW_SECONDS);
+    else if (emailFailures === EMAIL_MAX_FAILURES) await r.expire(ek, EMAIL_LOCKOUT_SECONDS);
+
+    const tripped =
+      failures === MAX_FAILURES || emailFailures === EMAIL_MAX_FAILURES;
+    return { failures, tripped };
   } catch {
     return { failures: 0, tripped: false };
   }
@@ -102,7 +133,8 @@ export async function recordFailure(
 /** Clear the counter on a successful authentication. */
 export async function clearFailures(email: string, ip: string): Promise<void> {
   try {
-    await getRedis().del(key(email, ip));
+    const r = getRedis();
+    await Promise.all([r.del(key(email, ip)), r.del(emailKey(email))]);
   } catch {
     // best-effort
   }
