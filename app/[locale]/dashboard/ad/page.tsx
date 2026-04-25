@@ -189,24 +189,63 @@ export default function ADAssessmentPage() {
     if (!file) return;
     const validTypes = [".zip", ".json"];
     const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
-    if (!validTypes.includes(ext)) return;
+    if (!validTypes.includes(ext)) {
+      setLaunchError(
+        ext === ""
+          ? "Upload a BloodHound .zip or .json file."
+          : `Unsupported file type ${ext}. Only .zip and .json are accepted.`,
+      );
+      return;
+    }
 
     setBhUploading(true);
+    setLaunchError(null);
     try {
-      // Parse a mock summary — in production this would upload to backend
-      // and the backend would parse the BloodHound data
-      const mockSummary: BloodhoundSummary = {
-        usersCount: Math.floor(Math.random() * 5000) + 200,
-        groupsCount: Math.floor(Math.random() * 500) + 50,
-        computersCount: Math.floor(Math.random() * 2000) + 100,
-        domainTrusts: Math.floor(Math.random() * 5),
-        pathsToDa: Math.floor(Math.random() * 50) + 1,
+      // DASH-P0-1: previous implementation generated Math.random() counts
+      // and presented them as real BloodHound parse results. That's now
+      // replaced by an honest client-side count of objects in JSON files
+      // (we count top-level entries by type) and a "pending backend
+      // ingest" placeholder for .zip files. Full extraction lives on the
+      // backend `/api/engagements/:id/graph/ingest` endpoint and is
+      // wired at scan-launch time, not at upload.
+      let summary: BloodhoundSummary = {
+        usersCount: 0,
+        groupsCount: 0,
+        computersCount: 0,
+        domainTrusts: 0,
+        pathsToDa: 0,
         fileName: file.name,
       };
 
-      // Simulate upload delay
-      await new Promise((r) => setTimeout(r, 1500));
-      setBloodhound(mockSummary);
+      if (ext === ".json") {
+        const text = await file.text();
+        try {
+          const json = JSON.parse(text);
+          const items: any[] = Array.isArray(json)
+            ? json
+            : Array.isArray(json.data)
+            ? json.data
+            : Array.isArray(json.users)
+            ? json.users
+            : Array.isArray(json.computers)
+            ? json.computers
+            : [];
+          for (const it of items) {
+            const t = (it?.Properties?.objecttype || it?.type || "").toLowerCase();
+            if (t === "user") summary.usersCount += 1;
+            else if (t === "group") summary.groupsCount += 1;
+            else if (t === "computer" || t === "host") summary.computersCount += 1;
+            else if (t === "domain") summary.domainTrusts += 1;
+          }
+        } catch (err) {
+          console.error("[ad] BloodHound JSON parse failed", err);
+          setLaunchError("Could not parse BloodHound JSON. Verify the file is valid.");
+          return;
+        }
+      }
+      // .zip files are kept as-is; backend will extract on ingest.
+
+      setBloodhound(summary);
     } finally {
       setBhUploading(false);
     }

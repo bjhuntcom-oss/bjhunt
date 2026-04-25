@@ -61,25 +61,37 @@ function errorToString(payload: unknown): string {
   return "";
 }
 
-function groupByDate(items: SidebarConversation[]): { label: string; items: SidebarConversation[] }[] {
+// H-5: bilingual sidebar group labels + "Untitled" fallback. Locale is
+// passed through from the page-level useParams so we don't have to thread
+// next-intl into a pure helper.
+const GROUP_LABELS = {
+  fr: { today: "Aujourd'hui", yesterday: "Hier", week: "7 derniers jours", older: "Plus ancien" },
+  en: { today: "Today", yesterday: "Yesterday", week: "Last 7 days", older: "Older" },
+} as const;
+
+function groupByDate(
+  items: SidebarConversation[],
+  locale: "fr" | "en" = "fr",
+): { label: string; items: SidebarConversation[] }[] {
+  const labels = GROUP_LABELS[locale] ?? GROUP_LABELS.en;
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startOfYesterday = new Date(startOfToday.getTime() - 86400000);
   const startOf7Days = new Date(startOfToday.getTime() - 7 * 86400000);
 
   const groups: Record<string, SidebarConversation[]> = {
-    "Aujourd'hui": [],
-    "Hier": [],
-    "7 derniers jours": [],
-    "Plus ancien": [],
+    [labels.today]: [],
+    [labels.yesterday]: [],
+    [labels.week]: [],
+    [labels.older]: [],
   };
 
   for (const item of items) {
     const d = new Date(item.updatedAt || item.createdAt);
-    if (d >= startOfToday) groups["Aujourd'hui"].push(item);
-    else if (d >= startOfYesterday) groups["Hier"].push(item);
-    else if (d >= startOf7Days) groups["7 derniers jours"].push(item);
-    else groups["Plus ancien"].push(item);
+    if (d >= startOfToday) groups[labels.today].push(item);
+    else if (d >= startOfYesterday) groups[labels.yesterday].push(item);
+    else if (d >= startOf7Days) groups[labels.week].push(item);
+    else groups[labels.older].push(item);
   }
 
   return Object.entries(groups)
@@ -102,10 +114,10 @@ function isGenericTitle(title: string): boolean {
 }
 
 /** Get display title: prefer lastMessage preview for generic titles */
-function displayTitle(conv: SidebarConversation): string {
+function displayTitle(conv: SidebarConversation, locale: "fr" | "en" = "fr"): string {
   if (isGenericTitle(conv.title)) {
     if (conv.lastMessage) return truncate(conv.lastMessage, 40);
-    return "Sans titre";
+    return locale === "fr" ? "Sans titre" : "Untitled";
   }
   return truncate(conv.title, 40);
 }
@@ -1164,8 +1176,12 @@ export default function ChatPage() {
     return items;
   }, [sidebarConversations, conversationSearch]);
 
-  // Fix 8: Date-grouped conversations for sidebar
-  const groupedConversations = useMemo(() => groupByDate(filteredSidebarConvs), [filteredSidebarConvs]);
+  // Fix 8: Date-grouped conversations for sidebar (locale-aware labels)
+  const sidebarLocale: "fr" | "en" = locale === "en" ? "en" : "fr";
+  const groupedConversations = useMemo(
+    () => groupByDate(filteredSidebarConvs, sidebarLocale),
+    [filteredSidebarConvs, sidebarLocale],
+  );
 
   // ── Render ───────────────────────────────────────────────────────────
 
@@ -1354,7 +1370,7 @@ export default function ChatPage() {
                                   ? "text-[var(--text-muted)] italic"
                                   : "text-white"
                               }`}>
-                                {displayTitle(conv)}
+                                {displayTitle(conv, sidebarLocale)}
                               </div>
                               <div className="flex items-center justify-between mt-0.5">
                                 <span className="text-[9px] text-[var(--text-subtle)]">
