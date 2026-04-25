@@ -690,8 +690,20 @@ export function AuditsClient({
       )}
 
       {runs.length === 0 ? (
-        <div className="border border-[var(--border)] px-4 py-8 text-center text-[11px] font-mono text-[var(--text-muted)]">
-          Aucun audit — creez-en un pour commencer.
+        <div className="border border-[var(--border)] px-4 py-12 text-center">
+          <p className="text-[11px] font-mono text-[var(--text-muted)] mb-4">
+            Aucun audit — créez-en un pour commencer.
+          </p>
+          {/* DASH-P2: inline CTA inside the empty state so the user
+              doesn't have to hunt for the "+ Nouvel audit" button. */}
+          <button
+            type="button"
+            onClick={() => setShowWizard(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-white text-[10px] font-mono font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
+          >
+            <Plus size={12} />
+            Nouvel audit
+          </button>
         </div>
       ) : (
         <div className="border border-[var(--border)] divide-y divide-[var(--border)]">

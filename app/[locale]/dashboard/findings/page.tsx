@@ -420,9 +420,25 @@ export default function FindingsPage() {
           <p className="text-[11px] font-mono text-[var(--text-muted)] mb-1">
             No findings yet.
           </p>
-          <p className="text-[10px] font-mono text-[var(--text-subtle)]">
+          <p className="text-[10px] font-mono text-[var(--text-subtle)] mb-4">
             Run a scan to discover vulnerabilities.
           </p>
+          {/* DASH-P2: empty state now offers a direct CTA to start a scan
+              instead of leaving the user to figure out where to go. */}
+          <div className="flex items-center justify-center gap-2">
+            <Link
+              href={`/${locale}/dashboard/chat`}
+              className="px-3 py-1.5 text-[9px] font-mono uppercase tracking-widest bg-white text-black hover:bg-white/90 transition-colors"
+            >
+              Start a scan
+            </Link>
+            <Link
+              href={`/${locale}/dashboard/audits`}
+              className="px-3 py-1.5 text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-white border border-[var(--border)] transition-colors"
+            >
+              View audits
+            </Link>
+          </div>
         </div>
       ) : (
         <>

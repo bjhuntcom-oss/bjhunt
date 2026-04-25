@@ -161,6 +161,34 @@ export default function CloudAssessmentPage() {
   const handleLaunch = () => {
     if (!selectedProvider) return;
 
+    // DASH-P2: validate JSON fields client-side so the user gets a
+    // specific error instead of a 400 with a cryptic backend message.
+    const jsonChecks: Array<{ value: string; field: string }> = [];
+    if (selectedProvider === "aws") {
+      jsonChecks.push({ value: config.awsIamPolicy, field: "AWS IAM Policy" });
+    } else if (selectedProvider === "azure") {
+      jsonChecks.push({ value: config.azureRbac, field: "Azure RBAC" });
+    } else if (selectedProvider === "gcp") {
+      jsonChecks.push({ value: config.gcpIamPolicy, field: "GCP IAM Policy" });
+    } else if (selectedProvider === "k8s") {
+      jsonChecks.push({ value: config.k8sRbac, field: "K8s RBAC" });
+      jsonChecks.push({ value: config.k8sPodSpec, field: "K8s Pod Spec" });
+    }
+    for (const { value, field } of jsonChecks) {
+      const trimmed = value.trim();
+      if (!trimmed) continue;
+      try {
+        JSON.parse(trimmed);
+      } catch (err) {
+        setLaunchError(
+          isFr
+            ? `Le champ ${field} n'est pas du JSON valide : ${err instanceof Error ? err.message : "parse error"}`
+            : `${field} is not valid JSON: ${err instanceof Error ? err.message : "parse error"}`,
+        );
+        return;
+      }
+    }
+
     startTransition(async () => {
       // Build config payload based on provider
       const providerConfig: Record<string, unknown> = { provider: selectedProvider };

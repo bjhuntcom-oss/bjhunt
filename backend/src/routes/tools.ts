@@ -128,6 +128,19 @@ toolRoutes.post("/execute", zValidator("json", executeSchema), async (c) => {
 
   const startTime = Date.now();
 
+  // H-1: explicit list of tools the backend actually executes today.
+  // Schema (executeSchema) keeps the broader 36-entry catalog as a forward
+  // contract, but we surface the gap clearly in the default branch + the
+  // GET /tools/wired endpoint below.
+  const WIRED_TOOLS = [
+    "bash",
+    "kg_query",
+    "cve_lookup",
+    "jwt_parse",
+    "iam_audit",
+    "network_scan",
+  ] as const;
+
   let result: { output: string; status: "success" | "error"; meta?: Record<string, unknown> };
 
   try {
@@ -153,17 +166,21 @@ toolRoutes.post("/execute", zValidator("json", executeSchema), async (c) => {
       default:
         // 30+ tool ids declared in executeSchema map to engine/decepticon/tools/
         // categories that are NOT yet wired into a backend handler. We return
-        // a clear "not yet wired" message instead of "Unknown tool" so the
-        // frontend can render a "Coming soon" state instead of a 500.
-        // Wiring tracked under W5 (engine integration wave).
+        // a clear "not yet wired" message + the list of implemented tools so
+        // a caller can pick a working alternative. Wiring tracked under W5
+        // (engine integration wave).
         result = {
           output:
             `Tool '${tool}' is registered in the catalog but not yet wired ` +
-            `into the backend executor (W5 deliverable). It will be available ` +
-            `once the BJHUNT engine integration layer dispatches it to the ` +
-            `corresponding decepticon.tools.* implementation.`,
+            `into the backend executor (W5 deliverable). Implemented tools ` +
+            `today: ${WIRED_TOOLS.join(", ")}.`,
           status: "error",
-          meta: { tool, wired: false, expected_in_wave: "W5" },
+          meta: {
+            tool,
+            wired: false,
+            expected_in_wave: "W5",
+            implemented_tools: WIRED_TOOLS,
+          },
         };
     }
   } catch (err: unknown) {

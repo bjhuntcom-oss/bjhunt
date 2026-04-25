@@ -290,7 +290,7 @@ export default async function DashboardPage({
             </span>
           </div>
           <Button asChild>
-            <a href={`/${locale}/dashboard/chat`}>Nouveau scan →</a>
+            <Link href="/dashboard/chat">Nouveau scan →</Link>
           </Button>
         </div>
       </div>
@@ -487,7 +487,10 @@ export default async function DashboardPage({
               Aucun scan pour le moment.
             </p>
             <Button asChild>
-              <a href={`/${locale}/dashboard/chat`}>Lancer votre premier scan →</a>
+              {/* DASH-P2: use next-intl Link for client-side nav + locale
+                  preservation instead of a raw <a> that triggers a full
+                  page reload. */}
+              <Link href="/dashboard/chat">Lancer votre premier scan →</Link>
             </Button>
           </div>
         )}
