@@ -118,7 +118,19 @@ services:
     container_name: bjhunt-litellm
     volumes:
       - ./engine/config/litellm.yaml:/app/config.yaml:ro
-    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    # VPS-P0-1 follow-up #2: prisma migrate deploy alone leaves new columns
+    # absent (source_url et al). Force a `db push` from the embedded schema
+    # *before* serving so the DB schema matches the running image on every
+    # boot. --accept-data-loss is appropriate here because LiteLLM's
+    # spend/usage tables are billing telemetry, not durable customer data,
+    # and a column drop would only happen when downgrading the image.
+    command:
+      - sh
+      - -c
+      - >-
+        prisma db push --schema=/app/litellm/proxy/schema.prisma
+        --accept-data-loss --skip-generate
+        && litellm --config /app/config.yaml --port 4000
     ports:
       - "127.0.0.1:4000:4000"
     env_file: .env
@@ -126,10 +138,6 @@ services:
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?required}
       - LITELLM_SALT_KEY=${LITELLM_SALT_KEY:?required}
       - DATABASE_URL=postgresql://bjhunt:${POSTGRES_PASSWORD}@postgres:5432/litellm
-      # VPS-P0-1 follow-up: force Prisma to push the embedded schema on
-      # every container start so column drift (source_url etc.) self-heals
-      # rather than spamming Postgres with column-not-found errors.
-      - USE_PRISMA_MIGRATE=True
     depends_on:
       postgres:
         condition: service_healthy
