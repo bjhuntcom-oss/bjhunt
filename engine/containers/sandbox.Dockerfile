@@ -46,6 +46,16 @@ RUN echo "APT::Sandbox::User \"root\";" > /etc/apt/apt.conf.d/10sandbox && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
+# VPS-P0-2 follow-up: strip file-capabilities from nmap. The Kali package
+# ships nmap with `cap_net_bind_service,cap_net_admin,cap_net_raw=eip` set
+# via setcap. Combined with `security_opt: no-new-privileges:true` on the
+# container (which ignores file caps that exceed the process bounding
+# set) and our bounding set lacking NET_ADMIN, exec fails with "Operation
+# not permitted". The container already runs as root with NET_RAW so
+# nmap inherits the right caps from the process — file caps are redundant
+# and now actively harmful.
+RUN setcap -r /usr/lib/nmap/nmap || true
+
 # Configure tmux: 50K line scrollback buffer to prevent output truncation
 RUN echo "set-option -g history-limit 50000" > /root/.tmux.conf
 
