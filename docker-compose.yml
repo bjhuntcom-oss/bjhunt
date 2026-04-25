@@ -124,9 +124,9 @@ services:
     # boot. --accept-data-loss is appropriate here because LiteLLM's
     # spend/usage tables are billing telemetry, not durable customer data,
     # and a column drop would only happen when downgrading the image.
+    # Entry point cleared so the shell can run `prisma` then `litellm`.
+    entrypoint: ["sh", "-c"]
     command:
-      - sh
-      - -c
       - >-
         prisma db push --schema=/app/litellm/proxy/schema.prisma
         --accept-data-loss --skip-generate
