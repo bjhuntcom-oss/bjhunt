@@ -112,19 +112,50 @@ services:
       retries: 3
       start_period: 5s
 
+  # ── LiteLLM init (one-shot ALTER TABLE safety net) ────────────────
+  # VPS-P0-1 follow-up: ensures columns the embedded litellm code
+  # expects exist on every boot, even if its own prisma migrate flow
+  # thinks the schema is "in sync" when it isn't. Idempotent (IF NOT
+  # EXISTS). Container exits 0 once ALTERs apply; litellm depends on
+  # service_completed_successfully.
+  litellm-init:
+    image: postgres:17-alpine
+    container_name: bjhunt-litellm-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?required}
+    networks:
+      - bjhunt-mgmt
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        psql -h postgres -U bjhunt -d litellm <<'SQL'
+        DO $$$$ BEGIN
+          IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'LiteLLM_MCPServerTable') THEN
+            ALTER TABLE "LiteLLM_MCPServerTable" ADD COLUMN IF NOT EXISTS source_url      TEXT;
+            ALTER TABLE "LiteLLM_MCPServerTable" ADD COLUMN IF NOT EXISTS approval_status TEXT NOT NULL DEFAULT 'approved';
+            ALTER TABLE "LiteLLM_MCPServerTable" ADD COLUMN IF NOT EXISTS submitted_by    TEXT;
+            ALTER TABLE "LiteLLM_MCPServerTable" ADD COLUMN IF NOT EXISTS submitted_at    TIMESTAMP(3);
+            ALTER TABLE "LiteLLM_MCPServerTable" ADD COLUMN IF NOT EXISTS reviewed_at     TIMESTAMP(3);
+            ALTER TABLE "LiteLLM_MCPServerTable" ADD COLUMN IF NOT EXISTS review_notes    TEXT;
+          END IF;
+        END $$$$;
+        SQL
+    restart: "no"
+
   # ── LiteLLM Proxy ──────────────────────────────────────────────────
   litellm:
     image: ghcr.io/berriai/litellm:main-v1.82.3-stable.patch.2
     container_name: bjhunt-litellm
     volumes:
       - ./engine/config/litellm.yaml:/app/config.yaml:ro
-    # VPS-P0-1 follow-up #2: prisma migrate deploy alone leaves new columns
-    # absent (source_url et al). Force a `db push` from the embedded schema
-    # *before* serving so the DB schema matches the running image on every
-    # boot. --accept-data-loss is appropriate here because LiteLLM's
-    # spend/usage tables are billing telemetry, not durable customer data,
-    # and a column drop would only happen when downgrading the image.
-    # Entry point cleared so the shell can run `prisma` then `litellm`.
+    # VPS-P0-1 follow-up: prisma db push alone wasn't reliably adding new
+    # columns (the embedded migrations table thinks the schema is in
+    # sync even when the table is missing source_url et al). The
+    # litellm-init service below runs a psql ALTER … IF NOT EXISTS
+    # safety-net before this container starts.
     entrypoint: ["sh", "-c"]
     command:
       - >-
@@ -141,6 +172,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      litellm-init:
+        condition: service_completed_successfully
     # VPS-P2-5: bumped 1g→2g, audit found steady-state RAM at 56% of
     # 1g cap (~580 MB) which is uncomfortably close to OOM-kill once
     # MCP server polling and prisma migrate concurrently warm caches.
