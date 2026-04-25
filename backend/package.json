@@ -12,15 +12,17 @@
     "db:migrate": "bun run src/db/migrate.ts"
   },
   "dependencies": {
-    "hono": "^4.7.0",
     "@hono/zod-validator": "^0.5.0",
-    "postgres": "^3.4.5",
-    "ioredis": "^5.4.2",
-    "zod": "^3.24.0",
     "argon2": "^0.41.0",
+    "fflate": "^0.8.2",
+    "hono": "^4.7.0",
+    "ioredis": "^5.4.2",
     "nanoid": "^5.1.0",
+    "otpauth": "^9.3.0",
+    "postgres": "^3.4.5",
     "resend": "^4.0.0",
-    "otpauth": "^9.3.0"
+    "stripe": "^22.1.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.13",

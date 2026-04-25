@@ -847,8 +847,61 @@ engagementRoutes.post("/:id/graph/ingest", requirePlan("pro", "enterprise"), asy
     return c.json({ error: "No file uploaded" }, 400);
   }
 
-  const content = await file.text();
+  // ENG-P1-5: BloodHound + similar tools ship as zips of N JSON files
+  // (computers.json, users.json, groups.json, gpos.json, etc). Read as
+  // bytes first; if it's a zip we extract on the fly via fflate (pure
+  // JS, no native deps), otherwise we decode the bytes as UTF-8 text.
+  // file_uploads is also written so the operator has a forensic record
+  // of what came in.
   const fileName = file.name.toLowerCase();
+  const buf = await file.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  const isZip =
+    fileName.endsWith(".zip") ||
+    (bytes.length >= 4 &&
+      bytes[0] === 0x50 &&
+      bytes[1] === 0x4b &&
+      (bytes[2] === 0x03 || bytes[2] === 0x05 || bytes[2] === 0x07) &&
+      (bytes[3] === 0x04 || bytes[3] === 0x06 || bytes[3] === 0x08));
+
+  let bloodhoundFiles: Array<{ name: string; text: string }> | null = null;
+  let content: string;
+  if (isZip) {
+    try {
+      const { unzipSync } = await import("fflate");
+      const entries = unzipSync(bytes);
+      bloodhoundFiles = [];
+      for (const [name, data] of Object.entries(entries)) {
+        if (!name.toLowerCase().endsWith(".json")) continue;
+        // Skip large files (>50 MB extracted) to avoid OOM
+        if (data.length > 50 * 1024 * 1024) continue;
+        bloodhoundFiles.push({
+          name,
+          text: new TextDecoder("utf-8", { fatal: false }).decode(data),
+        });
+      }
+      // Pick one representative content for legacy text-based detectors
+      // below (nmap XML / nuclei JSONL / sarif fall-throughs). Picks the
+      // first non-empty entry.
+      content = bloodhoundFiles[0]?.text ?? "";
+    } catch (err) {
+      return c.json(
+        { error: "invalid_zip", message: String(err) },
+        400,
+      );
+    }
+  } else {
+    content = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+  }
+
+  // Track the upload so we have a paper trail (ENG-P1-5).
+  await withOrg(orgId, (tx) =>
+    tx`
+      INSERT INTO file_uploads (org_id, user_id, conversation_id, filename, mimetype, size_bytes, storage_path)
+      VALUES (${orgId}, ${user.id}, NULL, ${file.name}, ${file.type || "application/octet-stream"}, ${bytes.length}, ${"engagement:" + id})
+    `,
+  ).catch((err: Error) => console.error("[engagements] file_uploads write failed", err.message));
+
   let nodesAdded = 0;
   let edgesAdded = 0;
 
@@ -953,28 +1006,68 @@ engagementRoutes.post("/:id/graph/ingest", requirePlan("pro", "enterprise"), asy
           edgesAdded++;
         }
       }
-    } else if (fileName.includes("bloodhound") || fileName.endsWith(".zip")) {
-      // ── BloodHound JSON (simplified — accepts single JSON files) ──
-      try {
-        const bh = JSON.parse(content);
-        const data = bh.data || bh.computers || bh.users || bh.groups || [];
+    } else if (fileName.includes("bloodhound") || isZip) {
+      // ── BloodHound JSON / ZIP (ENG-P1-5) ──
+      // Iterate over every .json entry (when zip) OR the single text
+      // content (when raw .json). For each entry the data array can be
+      // at the top level or under .data / .computers / .users / etc.
+      const sources = bloodhoundFiles ?? [{ name: file.name, text: content }];
+      for (const src of sources) {
+        let bh: unknown;
+        try {
+          bh = JSON.parse(src.text);
+        } catch {
+          continue; // tolerate non-JSON entries inside the zip
+        }
+        const root = bh as Record<string, unknown>;
+        const data =
+          (root.data as unknown[] | undefined) ??
+          (root.computers as unknown[] | undefined) ??
+          (root.users as unknown[] | undefined) ??
+          (root.groups as unknown[] | undefined) ??
+          (root.gpos as unknown[] | undefined) ??
+          (root.ous as unknown[] | undefined) ??
+          (root.domains as unknown[] | undefined) ??
+          [];
         const items = Array.isArray(data) ? data : [];
-        for (const item of items.slice(0, 500)) {
-          const name = item.Properties?.name || item.name || item.ObjectIdentifier || "unknown";
-          const type = item.Properties?.objecttype || item.type || "host";
+        // Cap at 2000 items per JSON entry to bound memory/IO; bigger
+        // datasets should stream into Neo4j via the engine pipeline.
+        for (const item of items.slice(0, 2000)) {
+          const obj = item as Record<string, unknown> & {
+            Properties?: { name?: string; objecttype?: string; domain?: string };
+          };
+          const name =
+            obj.Properties?.name ||
+            (obj.name as string | undefined) ||
+            (obj.ObjectIdentifier as string | undefined) ||
+            "unknown";
+          const objType =
+            (obj.Properties?.objecttype as string | undefined) ||
+            (obj.type as string | undefined) ||
+            (src.name.includes("computer")
+              ? "computer"
+              : src.name.includes("user")
+              ? "user"
+              : src.name.includes("group")
+              ? "group"
+              : "object");
 
           await withOrg(orgId, (tx) =>
             tx`INSERT INTO findings (org_id, engagement_id, title, severity, evidence)
                VALUES (${orgId}, ${id},
                        ${"BloodHound: " + name},
                        'info',
-                       ${JSON.stringify({ source: "bloodhound", type, name })})
+                       ${JSON.stringify({
+                         source: "bloodhound",
+                         type: objType,
+                         name,
+                         entry: src.name,
+                         domain: obj.Properties?.domain,
+                       })})
                ON CONFLICT DO NOTHING`,
           );
           nodesAdded++;
         }
-      } catch {
-        return c.json({ error: "Invalid BloodHound JSON format" }, 400);
       }
     } else if (fileName.includes("testssl") || content.includes('"severity"') && content.includes('"id"')) {
       // ── testssl JSON ──

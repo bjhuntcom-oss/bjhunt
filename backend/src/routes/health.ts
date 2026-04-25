@@ -65,6 +65,73 @@ healthRoutes.get("/ready", async (c) => {
   }, allHealthy ? 200 : 503);
 });
 
+// Prometheus metrics (VPS-P2-7) — Open metrics format. Minimal counters
+// exposed without pulling in prom-client; can be expanded later via the
+// observability roadmap. The container's healthcheck uses /api/health/live
+// which doesn't increment this counter (filtered upstream by the logger
+// middleware to keep noise down).
+const startedAt = Date.now();
+let totalRequests = 0;
+
+healthRoutes.use("*", async (c, next) => {
+  totalRequests += 1;
+  return next();
+});
+
+healthRoutes.get("/metrics", async (c) => {
+  // Pull a few cheap DB metrics so Grafana has something to render
+  // out-of-the-box before per-domain dashboards land.
+  let usersCount = 0;
+  let engagementsRunning = 0;
+  let findingsTotal = 0;
+  let agentRunsRunning = 0;
+  try {
+    const results = await Promise.all([
+      sql`SELECT count(*)::int AS n FROM users`,
+      sql`SELECT count(*)::int AS n FROM engagements WHERE status = 'running'`,
+      sql`SELECT count(*)::int AS n FROM findings`,
+      sql`SELECT count(*)::int AS n FROM agent_runs WHERE status = 'running'`,
+    ]);
+    usersCount = (results[0]?.[0] as { n?: number } | undefined)?.n ?? 0;
+    engagementsRunning = (results[1]?.[0] as { n?: number } | undefined)?.n ?? 0;
+    findingsTotal = (results[2]?.[0] as { n?: number } | undefined)?.n ?? 0;
+    agentRunsRunning = (results[3]?.[0] as { n?: number } | undefined)?.n ?? 0;
+  } catch {
+    // best-effort
+  }
+
+  const memUsage = process.memoryUsage();
+  const lines = [
+    "# HELP bjhunt_uptime_seconds Process uptime in seconds",
+    "# TYPE bjhunt_uptime_seconds gauge",
+    `bjhunt_uptime_seconds ${Math.floor((Date.now() - startedAt) / 1000)}`,
+    "# HELP bjhunt_requests_total Total HTTP requests served",
+    "# TYPE bjhunt_requests_total counter",
+    `bjhunt_requests_total ${totalRequests}`,
+    "# HELP bjhunt_memory_rss_bytes Resident set size in bytes",
+    "# TYPE bjhunt_memory_rss_bytes gauge",
+    `bjhunt_memory_rss_bytes ${memUsage.rss}`,
+    "# HELP bjhunt_memory_heap_used_bytes Heap used bytes",
+    "# TYPE bjhunt_memory_heap_used_bytes gauge",
+    `bjhunt_memory_heap_used_bytes ${memUsage.heapUsed}`,
+    "# HELP bjhunt_users_total Number of registered users",
+    "# TYPE bjhunt_users_total gauge",
+    `bjhunt_users_total ${usersCount}`,
+    "# HELP bjhunt_engagements_running Number of engagements currently running",
+    "# TYPE bjhunt_engagements_running gauge",
+    `bjhunt_engagements_running ${engagementsRunning}`,
+    "# HELP bjhunt_findings_total Total findings recorded across all engagements",
+    "# TYPE bjhunt_findings_total gauge",
+    `bjhunt_findings_total ${findingsTotal}`,
+    "# HELP bjhunt_agent_runs_running Number of agent_runs currently running",
+    "# TYPE bjhunt_agent_runs_running gauge",
+    `bjhunt_agent_runs_running ${agentRunsRunning}`,
+    "",
+  ];
+  c.header("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
+  return c.body(lines.join("\n"));
+});
+
 // Version — exposes the deployed git commit for `deploy-vps.yml` post-deploy verification.
 // GIT_COMMIT is injected at build time via Dockerfile ARG (or container env on VPS).
 healthRoutes.get("/version", (c) =>
