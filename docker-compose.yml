@@ -148,6 +148,10 @@ services:
       - bjhunt-sandbox-net
       - bjhunt-mgmt
     restart: unless-stopped
+    # VPS-P2-3: cap memory so a Neo4j leak cannot OOM the host. Heap is
+    # already capped at 2G + pagecache 1G; 4g leaves headroom for native
+    # memory and APOC procedures while keeping the container bounded.
+    mem_limit: 4g
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
       interval: 15s

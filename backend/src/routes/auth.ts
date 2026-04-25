@@ -466,6 +466,23 @@ authRoutes.post(
     // Always return success to prevent email enumeration
     const [user] = await sql`SELECT id FROM users WHERE email = ${email}`;
     if (user) {
+      // AUTH-P2-3: cap reset emails to 3 per user per hour. The route-level
+      // rateLimit() is global per IP and lets a distributed attacker spam
+      // a single user's mailbox with reset links. Counting unused tokens
+      // issued in the last hour is an idempotent test that needs no extra
+      // table.
+      const recentRows = (await sql`
+        SELECT count(*)::int AS count FROM password_reset_tokens
+         WHERE user_id = ${user.id}
+           AND created_at >= now() - interval '1 hour'
+      `) as Array<{ count: number }>;
+      const recentCount = recentRows[0]?.count ?? 0;
+      if (recentCount >= 3) {
+        // Silently swallow — keep the response shape constant so we don't
+        // leak whether the email exists OR whether the cap was hit.
+        return c.json({ ok: true, message: "If that email exists, a reset link has been sent." });
+      }
+
       const { nanoid } = await import("nanoid");
       const token = nanoid(48);
       const hasher = new Bun.CryptoHasher("sha256");

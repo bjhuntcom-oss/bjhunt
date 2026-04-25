@@ -88,6 +88,22 @@ export function enforceScanQuota(): MiddlewareHandler {
       }, 429);
     }
 
+    // ENG-P1-1: increment quota_usage 'scans' counter for the current
+    // billing period. Idempotent upsert; the engagement INSERT downstream
+    // will be the actual quota event. Using ON CONFLICT keeps the row
+    // count to one per (org, month, metric).
+    const periodStart = new Date();
+    periodStart.setUTCDate(1);
+    periodStart.setUTCHours(0, 0, 0, 0);
+    await sql`
+      INSERT INTO quota_usage (org_id, period_start, metric, used, quota_limit)
+      VALUES (${orgId}, ${periodStart}, 'scans', 1, ${limits.scansPerMonth})
+      ON CONFLICT (org_id, period_start, metric)
+      DO UPDATE SET used = quota_usage.used + 1, last_increment_at = now()
+    `.catch((err: Error) =>
+      console.error("[quota] failed to increment scans counter", err.message),
+    );
+
     await next();
   };
 }
