@@ -12,7 +12,10 @@
 
 set -uo pipefail
 
-: "${ALERT_EMAIL:?ALERT_EMAIL env var required}"
+# ALERT_EMAIL is optional — if unset, sustained failures are logged via
+# `logger` (journal/syslog) instead of mailed. Useful before sendmail is
+# configured on the host.
+ALERT_EMAIL="${ALERT_EMAIL:-}"
 
 STATE_DIR=/var/lib/bjhunt-health
 mkdir -p "$STATE_DIR"
@@ -56,8 +59,14 @@ $(printf '  - %s\n' "${FAILURES[@]}")
 
 Check 'docker compose ps' and 'journalctl -u docker' on VPS 82.25.117.79.
 "
-    echo "$BODY" | mail -s "[BJHUNT ALERT] Health check failure ($TIMESTAMP)" "$ALERT_EMAIL"
-    logger -t bjhunt-health -p user.err "Alert sent: ${#FAILURES[@]} sustained failures"
+    if [ -n "$ALERT_EMAIL" ] && command -v mail >/dev/null 2>&1; then
+        echo "$BODY" | mail -s "[BJHUNT ALERT] Health check failure ($TIMESTAMP)" "$ALERT_EMAIL"
+        logger -t bjhunt-health -p user.err "Alert sent (email): ${#FAILURES[@]} sustained failures"
+    else
+        # Fallback — still log so /var/log/syslog and the cron log show it.
+        logger -t bjhunt-health -p user.err "Sustained failures (no email): ${FAILURES[*]}"
+        printf '%s\n' "$BODY" >&2
+    fi
 fi
 
 exit 0
