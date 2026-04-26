@@ -1552,28 +1552,50 @@ export default function ChatPage() {
 
       {/* ── Main chat area ──────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar */}
+        {/* Top bar — W8 hairline, glass, JetBrains Mono breadcrumb */}
         <div
-          className="flex items-center justify-between px-4 py-2"
+          className="flex items-center justify-between px-5 py-3"
           style={{
-            background: "rgba(10, 10, 10, 0.7)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+            background: "linear-gradient(180deg, rgba(255,255,255,0.012), rgba(255,255,255,0.003))",
+            backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
+            borderBottom: "1px solid var(--bjhunt-border)",
           }}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => setShowSidebar(!showSidebar)}
-              className="p-1 text-[var(--text-muted)] hover:text-white transition-colors"
+              className="p-1 transition-colors"
+              style={{ color: "var(--bjhunt-text-muted)" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--bjhunt-text)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--bjhunt-text-muted)"; }}
             >
               {showSidebar ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
             </button>
-            <div className="flex items-center gap-2" title={AGENTS.find((a) => a.id === selectedAgent)?.description || "Default orchestrator"}>
-              <span className="text-[11px] text-white font-mono uppercase">
+            <div
+              className="flex items-baseline gap-3"
+              title={AGENTS.find((a) => a.id === selectedAgent)?.description || "Default orchestrator"}
+              style={{
+                fontFamily: "var(--bjhunt-font-mono)",
+                letterSpacing: "0.24em",
+                textTransform: "uppercase",
+              }}
+            >
+              <span style={{ fontSize: 10, color: "var(--bjhunt-text-subtle)" }}>Agent</span>
+              <span style={{ fontSize: 10, color: "var(--bjhunt-text-disabled)" }}>/</span>
+              <span style={{ fontSize: 11, color: "var(--bjhunt-text)", fontWeight: 400 }}>
                 {AGENTS.find((a) => a.id === selectedAgent)?.name || "BJHUNT"}
               </span>
-              <span className="hidden sm:inline text-[9px] text-[var(--text-subtle)] font-mono max-w-[200px] truncate">
+              <span
+                className="hidden sm:inline truncate"
+                style={{
+                  fontSize: 9,
+                  color: "var(--bjhunt-text-subtle)",
+                  letterSpacing: "0.18em",
+                  maxWidth: 240,
+                  textTransform: "none",
+                }}
+              >
                 {AGENTS.find((a) => a.id === selectedAgent)?.description || "agent"}
               </span>
             </div>
@@ -1657,47 +1679,104 @@ export default function ChatPage() {
           )}
 
           {messages.length === 0 && !loadingHistory && (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <div className="text-[24px] font-mono text-white mb-2">BJHUNT ALPHA 1.0</div>
-              <p className="text-[11px] text-[var(--text-muted)] max-w-[420px] leading-relaxed mb-8">
-                Describe your target, choose an agent, and start scanning. Or just ask a question.
+            <div className="flex flex-col items-center justify-center h-full text-center px-6 py-16">
+              <p
+                className="mb-8"
+                style={{
+                  fontFamily: "var(--bjhunt-font-mono)",
+                  fontSize: 10,
+                  color: "var(--bjhunt-text-subtle)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.32em",
+                  fontWeight: 400,
+                }}
+              >
+                BJHUNT ALPHA · Conversation
+              </p>
+              <h1
+                style={{
+                  fontSize: "clamp(48px, 7vw, 80px)",
+                  fontWeight: 200,
+                  letterSpacing: "-0.04em",
+                  lineHeight: 0.95,
+                  margin: 0,
+                  color: "var(--bjhunt-text)",
+                  maxWidth: 820,
+                }}
+              >
+                Where would you like{" "}
+                <em
+                  style={{
+                    fontStyle: "normal",
+                    color: "var(--bjhunt-text-muted)",
+                    fontWeight: 200,
+                  }}
+                >
+                  to begin?
+                </em>
+              </h1>
+              <p
+                className="mt-8 mb-12"
+                style={{
+                  color: "var(--bjhunt-text-muted)",
+                  fontSize: 15,
+                  lineHeight: 1.6,
+                  maxWidth: 540,
+                  fontWeight: 300,
+                }}
+              >
+                Describe a target, pick a specialist, or ask anything. Seventeen agents stand by — Recon, Exploit, Cloud Hunter, AD Operator and more.
               </p>
 
-              {/* Suggested prompts — Fix 9: auto-send on click */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-[520px] w-full">
+              {/* Suggested prompts — glass cards aligned to W8 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-px max-w-[640px] w-full" style={{ background: "var(--bjhunt-border)" }}>
                 {[
-                  { icon: <Globe className="w-4 h-4" />, text: "Scan my web application for vulnerabilities" },
-                  { icon: <Cloud className="w-4 h-4" />, text: "Audit my AWS infrastructure" },
-                  { icon: <Code className="w-4 h-4" />, text: "Analyze this code for security issues" },
-                  { icon: <Database className="w-4 h-4" />, text: "Find attack paths in my Active Directory" },
+                  { icon: <Globe className="w-4 h-4" />, eyebrow: "Web", text: "Scan my web application for vulnerabilities" },
+                  { icon: <Cloud className="w-4 h-4" />, eyebrow: "Cloud", text: "Audit my AWS infrastructure" },
+                  { icon: <Code className="w-4 h-4" />, eyebrow: "Source", text: "Analyze this code for security issues" },
+                  { icon: <Database className="w-4 h-4" />, eyebrow: "Active Directory", text: "Find attack paths in my Active Directory" },
                 ].map((suggestion) => (
                   <button
                     key={suggestion.text}
                     onClick={() => handleSend(suggestion.text)}
-                    className="flex items-center gap-3 px-4 py-3 text-left transition-all duration-300 group"
+                    className="flex flex-col gap-3 px-5 py-5 text-left transition-all group"
                     style={{
-                      background: "rgba(255, 255, 255, 0.03)",
-                      backdropFilter: "blur(8px)",
-                      WebkitBackdropFilter: "blur(8px)",
-                      border: "1px solid rgba(255, 255, 255, 0.06)",
+                      background: "linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.003))",
+                      backdropFilter: "blur(24px)",
+                      WebkitBackdropFilter: "blur(24px)",
                     }}
                     onMouseEnter={(e) => {
                       const el = e.currentTarget as HTMLElement;
-                      el.style.background = "rgba(255, 255, 255, 0.06)";
-                      el.style.borderColor = "rgba(255, 255, 255, 0.1)";
-                      el.style.transform = "translateY(-2px)";
+                      el.style.background = "linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.008))";
                     }}
                     onMouseLeave={(e) => {
                       const el = e.currentTarget as HTMLElement;
-                      el.style.background = "rgba(255, 255, 255, 0.03)";
-                      el.style.borderColor = "rgba(255, 255, 255, 0.06)";
-                      el.style.transform = "translateY(0)";
+                      el.style.background = "linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.003))";
                     }}
                   >
-                    <span className="text-[var(--text-muted)] group-hover:text-white transition-colors duration-200 flex-shrink-0">
-                      {suggestion.icon}
+                    <span
+                      className="flex items-center gap-2 transition-colors"
+                      style={{
+                        fontFamily: "var(--bjhunt-font-mono)",
+                        fontSize: 9,
+                        color: "var(--bjhunt-text-subtle)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.28em",
+                      }}
+                    >
+                      <span style={{ color: "var(--bjhunt-text-muted)" }}>{suggestion.icon}</span>
+                      <span>{suggestion.eyebrow}</span>
                     </span>
-                    <span className="text-[10px] text-[var(--text-muted)] group-hover:text-white transition-colors duration-200 leading-tight">
+                    <span
+                      className="transition-colors"
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 300,
+                        color: "var(--bjhunt-text)",
+                        letterSpacing: "-0.005em",
+                        lineHeight: 1.5,
+                      }}
+                    >
                       {suggestion.text}
                     </span>
                   </button>

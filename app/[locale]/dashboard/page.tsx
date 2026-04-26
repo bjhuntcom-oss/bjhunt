@@ -202,21 +202,63 @@ export default async function DashboardPage({
   const maxSeverity = Math.max(...severityBars.map((s) => s.count), 1);
 
   return (
-    <div className="p-6 md:p-8 max-w-6xl">
-      {/* Admin overview — only shown for platform_admin */}
+    <div className="px-8 py-12 md:px-16 md:py-20 max-w-[1400px] mx-auto">
+      {/* Admin overview — only shown for platform_admin. W8 glass surfaces. */}
       {isAdmin && (
-        <div className="mb-8">
-          {/* Stat cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border)] mb-6">
+        <div className="mb-20">
+          <div
+            className="mb-6"
+            style={{
+              fontFamily: "var(--bjhunt-font-mono)",
+              fontSize: 10,
+              color: "var(--bjhunt-text-subtle)",
+              textTransform: "uppercase",
+              letterSpacing: "0.32em",
+            }}
+          >
+            Platform · Overview
+          </div>
+          {/* Stat cards — glass surface, hairline grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-8" style={{ background: "var(--bjhunt-border)" }}>
             {[
               { label: 'Utilisateurs',     value: adminCounts.users ?? 0 },
               { label: 'Scans ce mois',    value: adminCounts.totalScans ?? 0 },
               { label: 'Findings',         value: adminCounts.auditLogs24h ?? 0 },
               { label: 'Revenue',          value: `$${adminCounts.totalRevenue ?? 0}` },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-[var(--bg-card)] p-6">
-                <div className="text-3xl font-black font-mono text-white">{value}</div>
-                <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-[0.15em] mt-1">{label}</div>
+              <div
+                key={label}
+                className="p-7"
+                style={{
+                  background: "linear-gradient(180deg, rgba(255,255,255,0.012), rgba(255,255,255,0.003))",
+                  backdropFilter: "blur(24px)",
+                  WebkitBackdropFilter: "blur(24px)",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 36,
+                    fontWeight: 200,
+                    letterSpacing: "-0.02em",
+                    color: "var(--bjhunt-text)",
+                    fontVariantNumeric: "tabular-nums",
+                    lineHeight: 1,
+                  }}
+                >
+                  {value}
+                </div>
+                <div
+                  className="mt-3"
+                  style={{
+                    fontFamily: "var(--bjhunt-font-mono)",
+                    fontSize: 9,
+                    color: "var(--bjhunt-text-subtle)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.24em",
+                  }}
+                >
+                  {label}
+                </div>
               </div>
             ))}
           </div>
@@ -264,48 +306,185 @@ export default async function DashboardPage({
         </div>
       )}
 
-      {/* Header row */}
-      <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+      {/* Hero — W8 pattern: eyebrow + h1 weight 200 + lede + meta panel */}
+      <header className="mb-20 grid lg:grid-cols-[1fr_360px] gap-16 items-end">
         <div>
-          <h1 className="text-2xl font-black tracking-tight">Bonjour, {name}</h1>
-          <p className="text-[11px] text-[var(--text-muted)] mt-1 font-mono">Tableau de bord BJHUNT</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className={`flex items-center gap-2 border px-3 py-1.5 ${
-            healthStatus === 'operational'
-              ? 'border-[var(--success)]/30'
-              : healthStatus === 'degraded'
-                ? 'border-[var(--warning)]/30'
-                : 'border-[var(--danger)]/30'
-          }`}>
-            <div className="status-dot" />
-            <span className={`text-[9px] font-mono uppercase tracking-widest ${
-              healthStatus === 'operational'
-                ? 'text-[var(--success)]'
-                : healthStatus === 'degraded'
-                  ? 'text-[var(--warning)]'
-                  : 'text-[var(--danger)]'
-            }`}>
-              IA {healthStatus === 'operational' ? "Operationnelle" : healthStatus === 'degraded' ? "Degradee" : "Hors ligne"}
-            </span>
+          <p
+            className="mb-8"
+            style={{
+              fontFamily: "var(--bjhunt-font-mono)",
+              fontSize: 10,
+              color: "var(--bjhunt-text-subtle)",
+              textTransform: "uppercase",
+              letterSpacing: "0.32em",
+              fontWeight: 400,
+            }}
+          >
+            Dashboard · BJHUNT ALPHA 1.0
+          </p>
+          <h1
+            style={{
+              fontSize: "clamp(56px, 8vw, 96px)",
+              fontWeight: 200,
+              letterSpacing: "-0.04em",
+              lineHeight: 0.95,
+              margin: 0,
+              color: "var(--bjhunt-text)",
+            }}
+          >
+            Bonjour,{" "}
+            <em
+              style={{
+                fontStyle: "normal",
+                color: "var(--bjhunt-text-muted)",
+                fontWeight: 200,
+              }}
+            >
+              {name}.
+            </em>
+          </h1>
+          <p
+            className="mt-8"
+            style={{
+              color: "var(--bjhunt-text-muted)",
+              fontSize: 17,
+              lineHeight: 1.6,
+              maxWidth: 640,
+              fontWeight: 300,
+              margin: "32px 0 0",
+            }}
+          >
+            Vue d'ensemble de vos engagements offensifs. Lancez un scan, suivez les findings, exportez les rapports — la chaîne d'agents s'occupe du reste.
+          </p>
+          <div className="mt-10 flex items-center gap-4 flex-wrap">
+            <Button asChild>
+              <Link href="/dashboard/chat">Nouveau scan →</Link>
+            </Button>
+            <Link
+              href="/dashboard/audits"
+              className="transition-colors"
+              style={{
+                fontFamily: "var(--bjhunt-font-mono)",
+                fontSize: 10,
+                letterSpacing: "0.24em",
+                textTransform: "uppercase",
+                color: "var(--bjhunt-text-muted)",
+                padding: "10px 16px",
+                border: "1px solid var(--bjhunt-border-strong)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
+              Voir les scans →
+            </Link>
           </div>
-          <Button asChild>
-            <Link href="/dashboard/chat">Nouveau scan →</Link>
-          </Button>
         </div>
-      </div>
+        {/* Meta panel — glass surface mirrors W8 hero-meta */}
+        <div
+          className="flex flex-col gap-4 px-7 py-6"
+          style={{
+            border: "1px solid var(--bjhunt-border)",
+            background: "linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.003))",
+            backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
+          }}
+        >
+          {[
+            { lbl: "Status", val: (
+              <span style={{
+                color:
+                  healthStatus === "operational" ? "var(--bjhunt-severity-low)"
+                  : healthStatus === "degraded" ? "var(--bjhunt-severity-medium)"
+                  : "var(--bjhunt-severity-critical)"
+              }}>
+                {healthStatus === "operational" ? "● Operational" : healthStatus === "degraded" ? "● Degraded" : "● Offline"}
+              </span>
+            ) },
+            { lbl: "Plan", val: planDisplayName },
+            { lbl: "Latency", val: latencyMs > 0 ? `${latencyMs}ms` : "—" },
+            { lbl: "Scans", val: String(totalScans) },
+            { lbl: "Tokens", val: `${(tokensUsed / 1_000_000).toFixed(1)}M / ${(tokensLimit / 1_000_000).toFixed(0)}M` },
+            { lbl: "Engine", val: "GLM-5.1" },
+          ].map((row, idx, arr) => (
+            <div
+              key={row.lbl}
+              className="flex justify-between items-baseline"
+              style={{
+                fontFamily: "var(--bjhunt-font-mono)",
+                fontSize: 10,
+                letterSpacing: "0.15em",
+                paddingBottom: idx === arr.length - 1 ? 0 : 14,
+                borderBottom: idx === arr.length - 1 ? "none" : "1px solid var(--bjhunt-border)",
+              }}
+            >
+              <span style={{
+                color: "var(--bjhunt-text-subtle)",
+                textTransform: "uppercase",
+                letterSpacing: "0.24em",
+                fontSize: 9,
+              }}>{row.lbl}</span>
+              <span style={{ color: "var(--bjhunt-text)", fontVariantNumeric: "tabular-nums" }}>
+                {row.val}
+              </span>
+            </div>
+          ))}
+        </div>
+      </header>
 
-      {/* Métriques clés */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border)] mb-6">
+      {/* Métriques clés — KPI glass cards (W8) */}
+      <p
+        className="mb-5"
+        style={{
+          fontFamily: "var(--bjhunt-font-mono)",
+          fontSize: 10,
+          color: "var(--bjhunt-text-subtle)",
+          textTransform: "uppercase",
+          letterSpacing: "0.32em",
+        }}
+      >
+        Métriques · Ce mois
+      </p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-12" style={{ background: "var(--bjhunt-border)" }}>
         {[
-          { label: "Scans ce mois",      value: String(totalScans),                                  color: "text-white" },
-          { label: "Critiques detectes", value: String(severity.critical),                           color: severity.critical > 0 ? "text-[var(--danger)]" : "text-[var(--success)]" },
-          { label: "Haute severite",     value: String(severity.high),                               color: severity.high > 0 ? "text-[var(--warning)]" : "text-[var(--success)]" },
-          { label: "Temps moyen",        value: latencyMs > 0 ? `${(latencyMs / 1000).toFixed(1)}s` : "—", color: "text-white" },
+          { label: "Scans ce mois",      value: String(totalScans),                                  color: "var(--bjhunt-text)" },
+          { label: "Critiques detectes", value: String(severity.critical),                           color: severity.critical > 0 ? "var(--bjhunt-severity-critical)" : "var(--bjhunt-severity-low)" },
+          { label: "Haute severite",     value: String(severity.high),                               color: severity.high > 0 ? "var(--bjhunt-severity-high)" : "var(--bjhunt-severity-low)" },
+          { label: "Temps moyen",        value: latencyMs > 0 ? `${(latencyMs / 1000).toFixed(1)}s` : "—", color: "var(--bjhunt-text)" },
         ].map(({ label, value, color }) => (
-          <div key={label} className="bg-[var(--bg-card)] p-6">
-            <div className={`text-3xl font-black font-mono ${color}`}>{value}</div>
-            <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-[0.15em] mt-1">{label}</div>
+          <div
+            key={label}
+            className="p-7"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.012), rgba(255,255,255,0.003))",
+              backdropFilter: "blur(24px)",
+              WebkitBackdropFilter: "blur(24px)",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 36,
+                fontWeight: 200,
+                letterSpacing: "-0.02em",
+                color,
+                fontVariantNumeric: "tabular-nums",
+                lineHeight: 1,
+              }}
+            >
+              {value}
+            </div>
+            <div
+              className="mt-3"
+              style={{
+                fontFamily: "var(--bjhunt-font-mono)",
+                fontSize: 9,
+                color: "var(--bjhunt-text-subtle)",
+                textTransform: "uppercase",
+                letterSpacing: "0.24em",
+              }}
+            >
+              {label}
+            </div>
           </div>
         ))}
       </div>
