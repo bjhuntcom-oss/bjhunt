@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { Eyebrow, H1, H2, H3, Body, Code } from '@/components/ui/typography'
 
 export const metadata: Metadata = {
   title: 'Accessibility Statement — BJHUNT',
@@ -16,183 +17,174 @@ const LAST_REVIEWED = '2026-04-18'
  * conformance level, known limitations, feedback channel, and enforcement
  * route. Reference standard: EN 301 549 v3.x → WCAG 2.1 AA minimum (we target
  * 2.2 AA where reasonable).
- *
- * Sources:
- *   https://eur-lex.europa.eu/eli/dir/2019/882/oj
- *   https://www.etsi.org/deliver/etsi_en/301500_301599/301549/
- *   https://www.w3.org/WAI/WCAG22/Understanding/
  */
 export default function AccessibilityStatementPage() {
   return (
-    <main className="min-h-screen bg-[var(--bjhunt-bg,#0a0a0a)] text-[var(--bjhunt-text,#fff)]">
-      <article className="max-w-3xl mx-auto px-6 md:px-12 py-20 prose prose-invert">
+    <main className="min-h-screen bg-[var(--bjhunt-bg)] text-[var(--bjhunt-text)]">
+      <article className="max-w-2xl mx-auto px-6 md:px-8 py-16 md:py-24">
         <header className="mb-12">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--bjhunt-text-muted,#888)]">
-            Accessibility
-          </p>
-          <h1 className="text-4xl font-black tracking-[-0.02em] mt-2 mb-4">
-            Accessibility Statement
-          </h1>
-          <p className="text-sm text-[var(--bjhunt-text-muted,#a1a1aa)]">
+          <Eyebrow>Accessibility</Eyebrow>
+          <H1 className="mt-4 mb-3">Accessibility Statement</H1>
+          <Body className="text-[var(--bjhunt-text-muted)] leading-[1.6]">
             Last reviewed: {LAST_REVIEWED}. This statement applies to{' '}
-            <code>https://www.bjhunt.com</code> and the BJHUNT dashboard at{' '}
-            <code>https://app.bjhunt.com</code>.
-          </p>
+            <Code className="text-[var(--bjhunt-text)]">https://www.bjhunt.com</Code> and the BJHUNT dashboard at{' '}
+            <Code className="text-[var(--bjhunt-text)]">https://app.bjhunt.com</Code>.
+          </Body>
         </header>
 
-        <section>
-          <h2 className="text-2xl font-bold mt-12 mb-4">Our commitment</h2>
-          <p>
+        <Section title="Our commitment">
+          <Body className="text-[var(--bjhunt-text-secondary)] leading-[1.6]">
             BJHUNT is committed to making its platform usable by everyone, including
             people with disabilities. We aim to conform with{' '}
-            <strong>WCAG 2.2 Level AA</strong> as the reference standard
-            (incorporating the new criteria added in 2.2 over 2.1, the level
-            mandated by EN 301 549 v3.x).
-          </p>
-        </section>
+            <strong className="text-[var(--bjhunt-text)] font-semibold">WCAG 2.2 Level AA</strong>{' '}
+            as the reference standard (incorporating the new criteria added in 2.2
+            over 2.1, the level mandated by EN 301 549 v3.x).
+          </Body>
+        </Section>
 
-        <section>
-          <h2 className="text-2xl font-bold mt-12 mb-4">Conformance status</h2>
-          <p>
-            <strong>Status: partially conformant.</strong> Parts of the platform
-            do not yet fully meet WCAG 2.2 AA. We are actively addressing the
-            gaps listed below; this statement is reviewed at every release.
-          </p>
-          <h3 className="text-lg font-semibold mt-8 mb-2">Known limitations</h3>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>
-              <strong>Target size (SC 2.5.8 AA):</strong> some inline navigation
-              links in the marketing header are below the 24×24 CSS-pixel
-              minimum. Tracked, fix scheduled in our W9 design wave.
-            </li>
-            <li>
-              <strong>Accessible authentication (SC 3.3.8 AA, 3.3.9 AAA):</strong>
-              {' '}we use hCaptcha as a bot-defence layer. We provide an audio
-              alternative through hCaptcha&rsquo;s built-in challenges; we do
-              not yet offer a non-cognitive fallback.
-            </li>
-            <li>
-              <strong>Consistent help (SC 3.2.6 AA):</strong> the Contact link
-              position varies between marketing and dashboard surfaces.
-              Harmonising in W9.
-            </li>
-            <li>
-              <strong>Live regions:</strong> some streaming chat events do not
-              announce updates via <code>aria-live</code>. Improvement tracked.
-            </li>
-          </ul>
-        </section>
+        <Section title="Conformance status">
+          <Body className="text-[var(--bjhunt-text-secondary)] leading-[1.6]">
+            <strong className="text-[var(--bjhunt-text)] font-semibold">
+              Status: partially conformant.
+            </strong>{' '}
+            Parts of the platform do not yet fully meet WCAG 2.2 AA. We are
+            actively addressing the gaps listed below; this statement is reviewed
+            at every release.
+          </Body>
+          <H3 className="mt-8 mb-3 text-[var(--bjhunt-text)]">Known limitations</H3>
+          <DashList
+            items={[
+              <>
+                <strong className="text-[var(--bjhunt-text)] font-semibold">Target size (SC 2.5.8 AA):</strong>{' '}
+                some inline navigation links in the marketing header are below
+                the 24×24 CSS-pixel minimum. Tracked, fix scheduled in our W9
+                design wave.
+              </>,
+              <>
+                <strong className="text-[var(--bjhunt-text)] font-semibold">Accessible authentication (SC 3.3.8 AA, 3.3.9 AAA):</strong>{' '}
+                we use hCaptcha as a bot-defence layer. We provide an audio
+                alternative through hCaptcha&rsquo;s built-in challenges; we do
+                not yet offer a non-cognitive fallback.
+              </>,
+              <>
+                <strong className="text-[var(--bjhunt-text)] font-semibold">Consistent help (SC 3.2.6 AA):</strong>{' '}
+                the Contact link position varies between marketing and dashboard
+                surfaces. Harmonising in W9.
+              </>,
+              <>
+                <strong className="text-[var(--bjhunt-text)] font-semibold">Live regions:</strong>{' '}
+                some streaming chat events do not announce updates via{' '}
+                <Code className="text-[var(--bjhunt-text)]">aria-live</Code>. Improvement tracked.
+              </>,
+            ]}
+          />
+        </Section>
 
-        <section>
-          <h2 className="text-2xl font-bold mt-12 mb-4">
-            What we have implemented
-          </h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>Keyboard navigation across every interactive element.</li>
-            <li>
-              Visible focus outlines (2 px solid + 2 px offset) on every focusable
-              element (SC 2.4.7, 2.4.13).
-            </li>
-            <li>
-              <code>prefers-reduced-motion</code> respected globally (animations
-              shortened to 0.01ms when set).
-            </li>
-            <li>
-              Cookie banner with equally prominent &laquo;Reject all&raquo; and
-              &laquo;Accept all&raquo; buttons (CNIL guidance).
-            </li>
-            <li>
-              Semantic landmarks (<code>&lt;main&gt;</code>,{' '}
-              <code>&lt;nav&gt;</code>, <code>&lt;article&gt;</code>) on every
-              page.
-            </li>
-            <li>
-              Color contrast ratios verified at AAA on body text where possible,
-              minimum AA elsewhere.
-            </li>
-          </ul>
-        </section>
+        <Section title="What we have implemented">
+          <DashList
+            items={[
+              'Keyboard navigation across every interactive element.',
+              'Visible focus outlines (2 px solid + 2 px offset) on every focusable element (SC 2.4.7, 2.4.13).',
+              <>
+                <Code className="text-[var(--bjhunt-text)]">prefers-reduced-motion</Code>{' '}
+                respected globally (animations shortened to 0.01ms when set).
+              </>,
+              'Cookie banner with equally prominent « Reject all » and « Accept all » buttons (CNIL guidance).',
+              <>
+                Semantic landmarks (
+                <Code className="text-[var(--bjhunt-text)]">&lt;main&gt;</Code>,{' '}
+                <Code className="text-[var(--bjhunt-text)]">&lt;nav&gt;</Code>,{' '}
+                <Code className="text-[var(--bjhunt-text)]">&lt;article&gt;</Code>) on every page.
+              </>,
+              'Color contrast ratios verified at AAA on body text where possible, minimum AA elsewhere.',
+            ]}
+          />
+        </Section>
 
-        <section>
-          <h2 className="text-2xl font-bold mt-12 mb-4">Assistive technology compatibility</h2>
-          <p>
+        <Section title="Assistive technology compatibility">
+          <Body className="text-[var(--bjhunt-text-secondary)] leading-[1.6] mb-4">
             We test BJHUNT regularly on the following pairs:
-          </p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>NVDA + Firefox (Windows)</li>
-            <li>VoiceOver + Safari (macOS, iOS)</li>
-            <li>TalkBack + Chrome (Android)</li>
-          </ul>
-          <p>
+          </Body>
+          <DashList
+            items={[
+              'NVDA + Firefox (Windows)',
+              'VoiceOver + Safari (macOS, iOS)',
+              'TalkBack + Chrome (Android)',
+            ]}
+          />
+          <Body className="text-[var(--bjhunt-text-secondary)] leading-[1.6] mt-4">
             If you encounter problems with another combination, please contact us
             so we can investigate.
-          </p>
-        </section>
+          </Body>
+        </Section>
 
-        <section>
-          <h2 className="text-2xl font-bold mt-12 mb-4">Feedback &amp; contact</h2>
-          <p>
+        <Section title="Feedback & contact">
+          <Body className="text-[var(--bjhunt-text-secondary)] leading-[1.6] mb-4">
             If you find an accessibility barrier on BJHUNT, please tell us. We
-            will respond within <strong>10 working days</strong>.
-          </p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>
-              Email:{' '}
-              <a
-                href="mailto:accessibility@bjhunt.com"
-                className="text-[var(--bjhunt-brand-primary,#6366f1)] underline"
-              >
-                accessibility@bjhunt.com
-              </a>
-            </li>
-            <li>
-              Form:{' '}
-              <Link href="/contact" className="text-[var(--bjhunt-brand-primary,#6366f1)] underline">
-                /contact
-              </Link>
-            </li>
-          </ul>
-          <p>
+            will respond within{' '}
+            <strong className="text-[var(--bjhunt-text)] font-semibold">10 working days</strong>.
+          </Body>
+          <DashList
+            items={[
+              <>
+                Email:{' '}
+                <a
+                  href="mailto:accessibility@bjhunt.com"
+                  className="text-[var(--state-success)] underline underline-offset-2 hover:no-underline"
+                >
+                  accessibility@bjhunt.com
+                </a>
+              </>,
+              <>
+                Form:{' '}
+                <Link
+                  href="/contact"
+                  className="text-[var(--state-success)] underline underline-offset-2 hover:no-underline"
+                >
+                  /contact
+                </Link>
+              </>,
+            ]}
+          />
+          <Body className="text-[var(--bjhunt-text-secondary)] leading-[1.6] mt-4">
             Please include the URL of the page, a description of the issue,
             your assistive technology and browser, and an example of what you
             expected.
-          </p>
-        </section>
+          </Body>
+        </Section>
 
-        <section>
-          <h2 className="text-2xl font-bold mt-12 mb-4">Enforcement procedure</h2>
-          <p>
+        <Section title="Enforcement procedure">
+          <Body className="text-[var(--bjhunt-text-secondary)] leading-[1.6]">
             If our reply does not meet your needs, you can file a complaint
             with your national accessibility supervisory authority. In France
             this is{' '}
             <a
               href="https://www.defenseurdesdroits.fr/"
-              className="text-[var(--bjhunt-brand-primary,#6366f1)] underline"
+              className="text-[var(--state-success)] underline underline-offset-2 hover:no-underline"
               target="_blank"
               rel="noopener noreferrer"
             >
               le Défenseur des droits
             </a>
             ; for other EU member states see your national EAA enforcement body.
-          </p>
-        </section>
+          </Body>
+        </Section>
 
-        <section>
-          <h2 className="text-2xl font-bold mt-12 mb-4">Methodology</h2>
-          <p>
+        <Section title="Methodology">
+          <Body className="text-[var(--bjhunt-text-secondary)] leading-[1.6]">
             This statement is based on a self-assessment by the BJHUNT team
             using axe DevTools, Lighthouse, and manual NVDA/VoiceOver testing.
             We commission a third-party WCAG 2.2 AA audit at every major
             release.
-          </p>
-        </section>
+          </Body>
+        </Section>
 
-        <footer className="mt-16 pt-8 border-t border-white/10 text-xs text-[var(--bjhunt-text-muted,#71717a)]">
-          <p>
+        <footer className="mt-16 pt-6 border-t border-[var(--bjhunt-border)]">
+          <Body className="text-[12px] leading-[1.6] text-[var(--bjhunt-text-muted)]">
             This statement was prepared on {LAST_REVIEWED} in line with{' '}
             <a
               href="https://eur-lex.europa.eu/eli/dir/2019/882/oj"
-              className="underline"
+              className="underline underline-offset-2 hover:no-underline"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -201,16 +193,46 @@ export default function AccessibilityStatementPage() {
             and{' '}
             <a
               href="https://www.etsi.org/deliver/etsi_en/301500_301599/301549/"
-              className="underline"
+              className="underline underline-offset-2 hover:no-underline"
               target="_blank"
               rel="noopener noreferrer"
             >
               EN 301 549 v3.x
             </a>
             .
-          </p>
+          </Body>
         </footer>
       </article>
     </main>
+  )
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="mb-12 pb-12 border-b border-[var(--bjhunt-border)] last:border-b-0 last:pb-0 last:mb-0">
+      <H2 className="mb-6 text-[var(--bjhunt-text)]">{title}</H2>
+      {children}
+    </section>
+  )
+}
+
+function DashList({ items }: { items: React.ReactNode[] }) {
+  return (
+    <ul className="space-y-2 list-none p-0 m-0">
+      {items.map((item, i) => (
+        <li
+          key={i}
+          className="flex gap-3 text-[14px] leading-[1.6] text-[var(--bjhunt-text-secondary)]"
+        >
+          <span
+            aria-hidden
+            className="font-mono text-[var(--bjhunt-text-muted)] select-none flex-shrink-0"
+          >
+            —
+          </span>
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
   )
 }

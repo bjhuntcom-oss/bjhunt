@@ -152,7 +152,7 @@ function HeroSection() {
             La cybersecurite du futur.
           </motion.p>
           <motion.div variants={fadeUp} className="mt-8">
-            <Button asChild variant="secondary" size="lg">
+            <Button asChild variant="ghost" size="lg">
               <Link href="/technology/deep-dive">Explorer en detail →</Link>
             </Button>
           </motion.div>
@@ -924,7 +924,7 @@ function CTASection() {
           <Button asChild size="lg">
             <Link href="/login">Commencer gratuitement</Link>
           </Button>
-          <Button asChild variant="secondary" size="lg">
+          <Button asChild variant="ghost" size="lg">
             <Link href="/contact">Contacter l&apos;equipe →</Link>
           </Button>
         </div>

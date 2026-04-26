@@ -3,9 +3,10 @@
 import { useEffect } from "react";
 import { Link } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
-import { Home, RefreshCw } from "lucide-react";
-import { Header } from "@/components/layout/header";
-import { Footer } from "@/components/layout/footer";
+import { RefreshCw } from "lucide-react";
+import { Eyebrow, H1, Body, Code } from "@/components/ui/typography";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export default function Error({
   error,
@@ -15,92 +16,80 @@ export default function Error({
   reset: () => void;
 }) {
   const t = useTranslations("errors");
+  const isDev = process.env.NODE_ENV !== "production";
 
   useEffect(() => {
     console.error("Application error:", error);
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
-      {/* Header BJHUNT */}
-      <Header />
-      
-      {/* Spacer for fixed header */}
-      <div className="h-14" />
+    <main
+      className="min-h-screen flex items-center justify-center px-6 py-16"
+      style={{
+        backgroundColor: "var(--bjhunt-bg)",
+        color: "var(--bjhunt-text)",
+      }}
+    >
+      <Card padding="loose" className="w-full max-w-lg text-center">
+        <Eyebrow className="text-[var(--state-critical)]">
+          ERREUR / 500
+        </Eyebrow>
 
-      {/* Main content */}
-      <main className="flex-1 flex items-center justify-center px-6 py-16">
-        <div className="max-w-lg w-full text-center">
-          {/* 500 Number with gradient */}
-          <div className="relative mb-8">
-            <div 
-              className="text-[140px] md:text-[180px] font-black leading-none tracking-tighter"
-              style={{
-                background: 'linear-gradient(180deg, #ef4444 0%, #7f1d1d 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              500
-            </div>
-          </div>
+        <H1 className="mt-4 mb-4">{t("serverError.title")}</H1>
 
-          {/* Message */}
-          <h1 className="text-2xl md:text-3xl font-bold mb-4 tracking-tight text-red-400">
-            {t("serverError.title")}
-          </h1>
-          <p className="text-white/50 text-base md:text-lg mb-10 leading-relaxed">
-            {t("serverError.description")}
-          </p>
+        <Body className="text-[var(--bjhunt-text-muted)] leading-[1.6] mb-8">
+          {t("serverError.description")}
+        </Body>
 
-          {/* Action buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <button
-              onClick={reset}
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-red-500 text-white font-semibold hover:bg-red-600 transition-all"
-            >
-              <RefreshCw className="w-5 h-5" />
-              {t("serverError.tryAgain")}
-            </button>
-            <Link
-              href="/"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-white/30 text-white font-semibold hover:bg-white/10 transition-all"
-            >
-              <Home className="w-5 h-5" />
-              {t("serverError.backHome")}
-            </Link>
-          </div>
+        {isDev && error?.message && (
+          <pre
+            className="text-left mb-8 p-4 rounded-[var(--bjhunt-radius)] overflow-x-auto text-[12px] leading-[1.5]"
+            style={{
+              backgroundColor: "var(--bjhunt-bg-surface)",
+              border: "1px solid var(--bjhunt-border)",
+              fontFamily: "var(--bjhunt-font-mono)",
+              color: "var(--state-critical)",
+            }}
+          >
+            <Code className="text-[var(--state-critical)]">
+              {error.message}
+              {error.digest && `\n\ndigest: ${error.digest}`}
+              {error.stack && `\n\n${error.stack}`}
+            </Code>
+          </pre>
+        )}
 
-          {/* Status indicators */}
-          <div className="flex items-center justify-center gap-4 text-sm mb-8">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              <span className="text-white/40">{t("serverError.status.api")}</span>
-            </div>
-            <span className="text-white/20">|</span>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-              <span className="text-white/40">{t("serverError.status.app")}</span>
-            </div>
-          </div>
-
-          {/* Support link */}
-          <div className="border-t border-white/10 pt-8">
-            <p className="text-sm text-white/40">
-              {t("serverError.support")}{" "}
-              <a 
-                href="mailto:support@bjhunt.com" 
-                className="text-white/60 hover:text-white underline transition-colors"
-              >
-                support@bjhunt.com
-              </a>
-            </p>
-          </div>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button
+            variant="state"
+            state="success"
+            size="lg"
+            onClick={reset}
+            className="gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            {t("serverError.tryAgain")}
+          </Button>
+          <Button asChild variant="ghost" size="lg">
+            <Link href="/">{t("serverError.backHome")}</Link>
+          </Button>
         </div>
-      </main>
 
-      {/* Footer BJHUNT */}
-      <Footer />
-    </div>
+        <div
+          className="mt-10 pt-6 text-[13px]"
+          style={{ borderTop: "1px solid var(--bjhunt-border)" }}
+        >
+          <Body className="text-[var(--bjhunt-text-muted)]">
+            {t("serverError.support")}{" "}
+            <a
+              href="mailto:support@bjhunt.com"
+              className="text-[var(--state-success)] underline underline-offset-2 hover:no-underline"
+            >
+              support@bjhunt.com
+            </a>
+          </Body>
+        </div>
+      </Card>
+    </main>
   );
 }
