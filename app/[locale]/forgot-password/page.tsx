@@ -7,6 +7,28 @@ import { useParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { browserBackendFetch } from '@/lib/backend-client'
 
+const FIELD_STYLE: React.CSSProperties = {
+  width: '100%',
+  background: 'transparent',
+  border: 'none',
+  borderBottom: '1px solid var(--bjhunt-border)',
+  color: 'var(--bjhunt-text)',
+  padding: '12px 2px',
+  fontSize: 14,
+  fontWeight: 300,
+  outline: 'none',
+}
+
+const LABEL_STYLE: React.CSSProperties = {
+  display: 'block',
+  marginBottom: 8,
+  fontFamily: 'var(--bjhunt-font-mono)',
+  fontSize: 9,
+  letterSpacing: '0.28em',
+  textTransform: 'uppercase',
+  color: 'var(--bjhunt-text-subtle)',
+}
+
 export default function ForgotPasswordPage() {
   const params = useParams<{ locale: string }>()
   const locale = params.locale
@@ -31,63 +53,95 @@ export default function ForgotPasswordPage() {
       }
       setSent(true)
     } catch {
-      setError(
-        isFr
-          ? "Impossible d'envoyer le lien. Reessayez."
-          : 'Unable to send reset link. Try again.'
-      )
+      setError(isFr ? "Impossible d'envoyer le lien. Réessayez." : 'Unable to send reset link. Try again.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative">
-      <div className="bg-grid absolute inset-0 pointer-events-none" />
-
-      <div className="relative z-10 w-full max-w-sm">
-        <div className="flex justify-center mb-10">
-          <Link href="/" className="flex items-center gap-2.5">
+    <div className="relative flex min-h-screen items-center justify-center px-6">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(99,102,241,0.06), transparent 55%)',
+        }}
+      />
+      <div className="relative z-10 w-full max-w-[420px]">
+        <div className="mb-12 flex justify-center">
+          <Link href="/" className="flex items-center gap-2.5" aria-label="BJHUNT">
             <LogoSymbol size={22} />
             <LogoWordmark />
           </Link>
         </div>
 
-        <div className="border border-[var(--border)] bg-[var(--bg-card)] p-8">
-          <h1 className="text-xl font-black mb-1 tracking-tight">
-            {isFr ? 'Mot de passe oublie' : 'Forgot password'}
+        <div
+          className="px-9 py-10"
+          style={{
+            border: '1px solid var(--bjhunt-border)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.003))',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+          }}
+        >
+          <p
+            className="m-0 mb-5 font-mono uppercase"
+            style={{ fontSize: 10, letterSpacing: '0.32em', color: 'var(--bjhunt-text-subtle)' }}
+          >
+            Reset
+          </p>
+          <h1 className="m-0 mb-3" style={{ fontSize: 32, fontWeight: 200, letterSpacing: '-0.02em' }}>
+            {isFr ? 'Mot de passe oublié.' : 'Forgot password.'}
           </h1>
-          <p className="text-[11px] text-[var(--text-muted)] mb-8">
+          <p
+            className="m-0 mb-9"
+            style={{ fontSize: 13, fontWeight: 300, lineHeight: 1.55, color: 'var(--bjhunt-text-muted)' }}
+          >
             {isFr
-              ? 'Entrez votre email pour recevoir un lien de reinitialisation.'
+              ? 'Entrez votre email pour recevoir un lien de réinitialisation.'
               : 'Enter your email to receive a reset link.'}
           </p>
 
           {sent ? (
-            <div className="border border-[var(--success)]/25 bg-[var(--success)]/10 px-4 py-3 text-sm text-[var(--success)]">
+            <div
+              className="px-4 py-3 text-[12px]"
+              style={{
+                border: '1px solid rgba(48,209,88,0.30)',
+                background: 'rgba(48,209,88,0.06)',
+                color: '#7CE8A0',
+                fontWeight: 300,
+              }}
+            >
               {isFr
-                ? 'Si un compte existe avec cet email, un lien de reinitialisation a ete envoye.'
+                ? "Si un compte existe avec cet email, un lien de réinitialisation a été envoyé."
                 : 'If an account exists with this email, a reset link has been sent.'}
             </div>
           ) : (
-            <form onSubmit={submit} className="flex flex-col gap-4">
+            <form onSubmit={submit} className="flex flex-col gap-7">
               <div>
-                <label className="text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)] block mb-2">
-                  Email
-                </label>
+                <label style={LABEL_STYLE}>Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
-                  className="w-full border border-[var(--border)] bg-transparent px-4 py-3 text-sm text-white outline-none transition-colors focus:border-white/40"
                   placeholder="you@company.com"
+                  style={FIELD_STYLE}
                 />
               </div>
 
               {error && (
-                <div className="border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                <div
+                  className="px-4 py-3 text-[12px]"
+                  style={{
+                    border: '1px solid rgba(255,69,58,0.30)',
+                    background: 'rgba(255,69,58,0.06)',
+                    color: '#FF8A82',
+                  }}
+                >
                   {error}
                 </div>
               )}
@@ -95,25 +149,29 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex w-full items-center justify-center gap-2 bg-white px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition-colors hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60 mt-2"
+                className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 font-mono uppercase disabled:cursor-not-allowed disabled:opacity-50"
+                style={{
+                  fontSize: 11,
+                  letterSpacing: '0.22em',
+                  color: 'var(--bjhunt-text)',
+                  border: '1px solid var(--bjhunt-border-strong)',
+                  background: 'rgba(255,255,255,0.03)',
+                }}
               >
-                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {loading
-                  ? isFr ? 'Envoi...' : 'Sending...'
-                  : isFr ? 'Envoyer le lien' : 'Send reset link'}
+                {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {loading ? (isFr ? 'Envoi…' : 'Sending…') : isFr ? 'Envoyer le lien →' : 'Send reset link →'}
               </button>
             </form>
           )}
 
-          <div className="mt-6 pt-6 border-t border-[var(--border)] text-center">
-            <span className="text-[10px] text-[var(--text-muted)]">
-              <Link
-                href="/login"
-                className="text-white hover:underline underline-offset-2"
-              >
-                {isFr ? 'Retour a la connexion' : 'Back to sign in'}
-              </Link>
-            </span>
+          <div className="mt-9 pt-7 text-center" style={{ borderTop: '1px solid var(--bjhunt-border)' }}>
+            <Link
+              href="/login"
+              className="font-mono uppercase transition-colors hover:text-white"
+              style={{ fontSize: 9, letterSpacing: '0.22em', color: 'var(--bjhunt-text-subtle)' }}
+            >
+              {isFr ? '← Retour à la connexion' : '← Back to sign in'}
+            </Link>
           </div>
         </div>
       </div>

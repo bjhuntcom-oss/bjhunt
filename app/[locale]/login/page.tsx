@@ -22,6 +22,31 @@ function normalizeRedirectTarget(value: string | null, locale: string) {
   }
 }
 
+// W8 minimal field — bottom-border style on transparent bg.
+const FIELD_STYLE: React.CSSProperties = {
+  width: '100%',
+  background: 'transparent',
+  border: 'none',
+  borderBottom: '1px solid var(--bjhunt-border)',
+  color: 'var(--bjhunt-text)',
+  padding: '12px 2px',
+  fontSize: 14,
+  fontWeight: 300,
+  outline: 'none',
+  fontFamily: 'var(--bjhunt-font-sans)',
+}
+
+const LABEL_STYLE: React.CSSProperties = {
+  display: 'block',
+  marginBottom: 8,
+  fontFamily: 'var(--bjhunt-font-mono)',
+  fontSize: 9,
+  letterSpacing: '0.28em',
+  textTransform: 'uppercase',
+  color: 'var(--bjhunt-text-subtle)',
+  fontWeight: 400,
+}
+
 export default function LoginPage() {
   const params = useParams<{ locale: string }>()
   const searchParams = useSearchParams()
@@ -59,8 +84,6 @@ export default function LoginPage() {
         }
       } else {
         await registerAction(email, password, displayName)
-        // AUTH-P1-1: registration no longer issues a session; user must
-        // verify their email first. Show an info state instead of redirect.
         setInfo(
           isFr
             ? 'Compte créé. Un lien de vérification vient d’être envoyé à votre email — cliquez dessus pour activer votre compte.'
@@ -118,46 +141,69 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative">
-      {/* Grille background */}
-      <div className="bg-grid absolute inset-0 pointer-events-none" />
+    <div className="relative flex min-h-screen items-center justify-center px-6">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(99,102,241,0.07), transparent 55%),'
+            + 'radial-gradient(ellipse 40% 40% at 50% 100%, rgba(100,210,255,0.03), transparent 55%)',
+        }}
+      />
 
-      <div className="relative z-10 w-full max-w-sm">
-        {/* Logo */}
-        <div className="flex justify-center mb-10">
-          <Link href="/" className="flex items-center gap-2.5">
+      <div className="relative z-10 w-full max-w-[420px]">
+        <div className="mb-12 flex justify-center">
+          <Link href="/" className="flex items-center gap-2.5" aria-label="BJHUNT">
             <LogoSymbol size={22} />
             <LogoWordmark />
           </Link>
         </div>
 
-        {/* Carte */}
-        <div className="border border-[var(--border)] bg-[var(--bg-card)] p-8">
-          <h1 className="text-xl font-black mb-1 tracking-tight">
+        <div
+          className="px-9 py-10"
+          style={{
+            border: '1px solid var(--bjhunt-border)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.003))',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+          }}
+        >
+          <p
+            className="m-0 mb-5 font-mono uppercase"
+            style={{ fontSize: 10, letterSpacing: '0.32em', color: 'var(--bjhunt-text-subtle)' }}
+          >
+            {isTwoFactor ? '2FA' : mode === 'login' ? 'Sign in' : 'Create account'}
+          </p>
+          <h1
+            className="m-0 mb-3"
+            style={{ fontSize: 36, fontWeight: 200, letterSpacing: '-0.02em', lineHeight: 1.0 }}
+          >
             {isTwoFactor
-              ? isFr ? 'Verification 2FA' : 'Two-factor check'
+              ? isFr ? 'Vérification.' : 'Verify.'
               : mode === 'login'
-              ? isFr ? 'Connexion' : 'Sign in'
-              : isFr ? 'Créer un compte' : 'Create account'}
+              ? isFr ? 'Bienvenue.' : 'Welcome back.'
+              : isFr ? 'Créer un compte.' : 'Create account.'}
           </h1>
-          <p className="text-[11px] text-[var(--text-muted)] mb-8">
+          <p
+            className="m-0 mb-9"
+            style={{ fontSize: 13, fontWeight: 300, lineHeight: 1.55, color: 'var(--bjhunt-text-muted)' }}
+          >
             {isTwoFactor
-              ? isFr ? 'Entrez le code de votre application.' : 'Enter the code from your authenticator app.'
-              : isFr ? 'Accédez à votre espace BJHUNT' : 'Access your BJHUNT workspace'}
+              ? isFr ? 'Entrez le code de votre application authentificateur.' : 'Enter the code from your authenticator app.'
+              : isFr ? 'Accédez à votre espace BJHUNT.' : 'Access your BJHUNT workspace.'}
           </p>
 
-          <form onSubmit={submit} className="flex flex-col gap-4">
+          <form onSubmit={submit} className="flex flex-col gap-7">
             {mode === 'register' && !isTwoFactor && (
               <div>
-                <label className="text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)] block mb-2">
-                  {isFr ? 'Nom affiché' : 'Display name'}
-                </label>
+                <label style={LABEL_STYLE}>{isFr ? 'Nom affiché' : 'Display name'}</label>
                 <input
                   value={displayName}
-                  onChange={(event) => setDisplayName(event.target.value)}
+                  onChange={(e) => setDisplayName(e.target.value)}
                   required
-                  className="w-full border border-[var(--border)] bg-transparent px-4 py-3 text-sm text-white outline-none transition-colors focus:border-white/40"
                   placeholder="Alice Martin"
+                  style={FIELD_STYLE}
                 />
               </div>
             )}
@@ -165,37 +211,32 @@ export default function LoginPage() {
             {!isTwoFactor && (
               <>
                 <div>
-                  <label className="text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)] block mb-2">
-                    Email
-                  </label>
+                  <label style={LABEL_STYLE}>Email</label>
                   <input
                     type="email"
                     value={email}
-                    onChange={(event) => setEmail(event.target.value)}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                     autoComplete="email"
-                    className="w-full border border-[var(--border)] bg-transparent px-4 py-3 text-sm text-white outline-none transition-colors focus:border-white/40"
                     placeholder="you@company.com"
+                    style={FIELD_STYLE}
                   />
                 </div>
-
                 <div>
-                  <label className="text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)] block mb-2">
-                    {isFr ? 'Mot de passe' : 'Password'}
-                  </label>
+                  <label style={LABEL_STYLE}>{isFr ? 'Mot de passe' : 'Password'}</label>
                   <input
                     type="password"
                     value={password}
-                    onChange={(event) => setPassword(event.target.value)}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={mode === 'register' ? 14 : 1}
                     autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                    className="w-full border border-[var(--border)] bg-transparent px-4 py-3 text-sm text-white outline-none transition-colors focus:border-white/40"
                     placeholder={
                       mode === 'register'
                         ? isFr ? '14 caractères minimum' : '14 characters minimum'
-                        : isFr ? 'Votre mot de passe' : 'Your password'
+                        : '••••••••••••'
                     }
+                    style={FIELD_STYLE}
                   />
                 </div>
               </>
@@ -203,43 +244,58 @@ export default function LoginPage() {
 
             {isTwoFactor && (
               <div>
-                <label className="text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)] block mb-2">
-                  {isFr ? 'Code 2FA' : '2FA code'}
-                </label>
+                <label style={LABEL_STYLE}>{isFr ? 'Code 2FA' : '2FA code'}</label>
                 <input
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]{6}"
                   maxLength={6}
                   value={twoFactorCode}
-                  onChange={(event) => setTwoFactorCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   required
                   autoComplete="one-time-code"
-                  className="w-full border border-[var(--border)] bg-transparent px-4 py-3 text-sm text-white outline-none transition-colors focus:border-white/40"
                   placeholder="123456"
+                  style={{ ...FIELD_STYLE, fontFamily: 'var(--bjhunt-font-mono)', letterSpacing: '0.4em', fontSize: 18 }}
                 />
               </div>
             )}
 
             {mode === 'login' && !isTwoFactor && (
-              <div className="text-right -mt-2">
+              <div className="-mt-3 text-right">
                 <Link
                   href="/forgot-password"
-                  className="text-[10px] text-[var(--text-muted)] hover:text-white transition-colors"
+                  className="font-mono uppercase transition-colors hover:text-white"
+                  style={{ fontSize: 9, letterSpacing: '0.22em', color: 'var(--bjhunt-text-subtle)' }}
                 >
-                  {isFr ? 'Mot de passe oublie ?' : 'Forgot password?'}
+                  {isFr ? 'Mot de passe oublié ?' : 'Forgot password?'}
                 </Link>
               </div>
             )}
 
             {error && (
-              <div className="border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+              <div
+                className="px-4 py-3 text-[12px]"
+                style={{
+                  border: '1px solid rgba(255,69,58,0.30)',
+                  background: 'rgba(255,69,58,0.06)',
+                  color: '#FF8A82',
+                  fontWeight: 300,
+                }}
+              >
                 {error}
               </div>
             )}
 
             {info && (
-              <div className="border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+              <div
+                className="px-4 py-3 text-[12px]"
+                style={{
+                  border: '1px solid rgba(48,209,88,0.30)',
+                  background: 'rgba(48,209,88,0.06)',
+                  color: '#7CE8A0',
+                  fontWeight: 300,
+                }}
+              >
                 {info}
               </div>
             )}
@@ -247,22 +303,33 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex w-full items-center justify-center gap-2 bg-white px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition-colors hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60 mt-2"
+              className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 font-mono uppercase transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50"
+              style={{
+                fontSize: 11,
+                letterSpacing: '0.22em',
+                color: 'var(--bjhunt-text)',
+                border: '1px solid var(--bjhunt-border-strong)',
+                background: 'rgba(255,255,255,0.03)',
+                marginTop: 8,
+              }}
             >
-              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               {loading
                 ? isTwoFactor
-                  ? isFr ? 'Verification...' : 'Verifying...'
-                  : isFr ? 'Connexion...' : 'Signing in...'
+                  ? isFr ? 'Vérification…' : 'Verifying…'
+                  : isFr ? 'Connexion…' : 'Signing in…'
                 : isTwoFactor
-                  ? isFr ? 'Verifier' : 'Verify'
+                  ? isFr ? 'Vérifier' : 'Verify'
                   : mode === 'login'
-                  ? isFr ? 'Se connecter' : 'Sign in'
-                  : isFr ? 'Créer et démarrer' : 'Create and launch'}
+                  ? isFr ? 'Se connecter →' : 'Sign in →'
+                  : isFr ? 'Créer et démarrer →' : 'Create and launch →'}
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-[var(--border)] text-center">
+          <div
+            className="mt-9 pt-7 text-center"
+            style={{ borderTop: '1px solid var(--bjhunt-border)' }}
+          >
             {isTwoFactor ? (
               <button
                 type="button"
@@ -271,12 +338,13 @@ export default function LoginPage() {
                   setTwoFactorCode('')
                   setError('')
                 }}
-                className="text-[10px] text-[var(--text-muted)] hover:text-white transition-colors"
+                className="font-mono uppercase transition-colors hover:text-white"
+                style={{ fontSize: 9, letterSpacing: '0.22em', color: 'var(--bjhunt-text-subtle)' }}
               >
-                {isFr ? 'Retour a la connexion' : 'Back to sign in'}
+                {isFr ? '← Retour à la connexion' : '← Back to sign in'}
               </button>
             ) : mode === 'login' ? (
-              <span className="text-[10px] text-[var(--text-muted)]">
+              <span style={{ fontSize: 11, color: 'var(--bjhunt-text-muted)', fontWeight: 300 }}>
                 {isFr ? 'Première connexion ? ' : 'First time here? '}
                 <button
                   type="button"
@@ -284,13 +352,14 @@ export default function LoginPage() {
                     setMode('register')
                     setError('')
                   }}
-                  className="text-white hover:underline underline-offset-2"
+                  className="hover:underline"
+                  style={{ color: 'var(--bjhunt-text)', fontWeight: 400 }}
                 >
                   {isFr ? 'Créer un compte' : 'Create an account'}
                 </button>
               </span>
             ) : (
-              <span className="text-[10px] text-[var(--text-muted)]">
+              <span style={{ fontSize: 11, color: 'var(--bjhunt-text-muted)', fontWeight: 300 }}>
                 {isFr ? 'Déjà inscrit ? ' : 'Already registered? '}
                 <button
                   type="button"
@@ -298,7 +367,8 @@ export default function LoginPage() {
                     setMode('login')
                     setError('')
                   }}
-                  className="text-white hover:underline underline-offset-2"
+                  className="hover:underline"
+                  style={{ color: 'var(--bjhunt-text)', fontWeight: 400 }}
                 >
                   {isFr ? 'Se connecter' : 'Sign in'}
                 </button>
@@ -306,6 +376,13 @@ export default function LoginPage() {
             )}
           </div>
         </div>
+
+        <p
+          className="mt-8 text-center font-mono uppercase"
+          style={{ fontSize: 9, letterSpacing: '0.32em', color: 'var(--bjhunt-text-disabled)' }}
+        >
+          BJHUNT · Secured by design
+        </p>
       </div>
     </div>
   )

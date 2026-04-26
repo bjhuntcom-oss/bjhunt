@@ -7,6 +7,28 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { browserBackendFetch } from '@/lib/backend-client'
 
+const FIELD_STYLE: React.CSSProperties = {
+  width: '100%',
+  background: 'transparent',
+  border: 'none',
+  borderBottom: '1px solid var(--bjhunt-border)',
+  color: 'var(--bjhunt-text)',
+  padding: '12px 2px',
+  fontSize: 14,
+  fontWeight: 300,
+  outline: 'none',
+}
+
+const LABEL_STYLE: React.CSSProperties = {
+  display: 'block',
+  marginBottom: 8,
+  fontFamily: 'var(--bjhunt-font-mono)',
+  fontSize: 9,
+  letterSpacing: '0.28em',
+  textTransform: 'uppercase',
+  color: 'var(--bjhunt-text-subtle)',
+}
+
 export default function ResetPasswordPage() {
   const params = useParams<{ locale: string }>()
   const searchParams = useSearchParams()
@@ -28,14 +50,12 @@ export default function ResetPasswordPage() {
       setError(isFr ? 'Les mots de passe ne correspondent pas.' : 'Passwords do not match.')
       return
     }
-
     if (!token) {
-      setError(isFr ? 'Lien de reinitialisation invalide.' : 'Invalid reset link.')
+      setError(isFr ? 'Lien de réinitialisation invalide.' : 'Invalid reset link.')
       return
     }
 
     setLoading(true)
-
     try {
       const res = await browserBackendFetch('/api/auth/reset-password', {
         method: 'POST',
@@ -46,73 +66,98 @@ export default function ResetPasswordPage() {
         const body = await res.json().catch(() => ({ error: 'RESET_FAILED' }))
         const code = body.error ?? 'RESET_FAILED'
         if (code === 'INVALID_RESET_TOKEN' || code === 'RESET_TOKEN_ALREADY_USED' || code === 'RESET_TOKEN_EXPIRED') {
-          setError(
-            isFr
-              ? 'Ce lien est invalide ou a expire. Demandez un nouveau lien.'
-              : 'This link is invalid or expired. Request a new link.'
-          )
+          setError(isFr ? 'Ce lien est invalide ou a expiré. Demandez un nouveau lien.' : 'This link is invalid or expired. Request a new link.')
         } else if (code === 'PASSWORD_TOO_SHORT') {
-          setError(isFr ? 'Utilisez au moins 14 caracteres.' : 'Use at least 14 characters.')
+          setError(isFr ? 'Utilisez au moins 14 caractères.' : 'Use at least 14 characters.')
         } else if (code === 'PASSWORD_TOO_WEAK') {
-          setError(
-            isFr
-              ? 'Choisissez un mot de passe plus unique.'
-              : 'Choose a more unique password.'
-          )
+          setError(isFr ? 'Choisissez un mot de passe plus unique.' : 'Choose a more unique password.')
         } else {
-          setError(isFr ? 'Echec de la reinitialisation.' : 'Reset failed.')
+          setError(isFr ? 'Échec de la réinitialisation.' : 'Reset failed.')
         }
         return
       }
-
       setSuccess(true)
     } catch {
-      setError(isFr ? 'Erreur reseau. Reessayez.' : 'Network error. Try again.')
+      setError(isFr ? 'Erreur réseau. Réessayez.' : 'Network error. Try again.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative">
-      <div className="bg-grid absolute inset-0 pointer-events-none" />
-
-      <div className="relative z-10 w-full max-w-sm">
-        <div className="flex justify-center mb-10">
-          <Link href="/" className="flex items-center gap-2.5">
+    <div className="relative flex min-h-screen items-center justify-center px-6">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(99,102,241,0.06), transparent 55%)',
+        }}
+      />
+      <div className="relative z-10 w-full max-w-[420px]">
+        <div className="mb-12 flex justify-center">
+          <Link href="/" className="flex items-center gap-2.5" aria-label="BJHUNT">
             <LogoSymbol size={22} />
             <LogoWordmark />
           </Link>
         </div>
 
-        <div className="border border-[var(--border)] bg-[var(--bg-card)] p-8">
-          <h1 className="text-xl font-black mb-1 tracking-tight">
-            {isFr ? 'Nouveau mot de passe' : 'New password'}
+        <div
+          className="px-9 py-10"
+          style={{
+            border: '1px solid var(--bjhunt-border)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.003))',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+          }}
+        >
+          <p
+            className="m-0 mb-5 font-mono uppercase"
+            style={{ fontSize: 10, letterSpacing: '0.32em', color: 'var(--bjhunt-text-subtle)' }}
+          >
+            New password
+          </p>
+          <h1 className="m-0 mb-3" style={{ fontSize: 32, fontWeight: 200, letterSpacing: '-0.02em' }}>
+            {isFr ? 'Nouveau mot de passe.' : 'New password.'}
           </h1>
-          <p className="text-[11px] text-[var(--text-muted)] mb-8">
+          <p
+            className="m-0 mb-9"
+            style={{ fontSize: 13, fontWeight: 300, lineHeight: 1.55, color: 'var(--bjhunt-text-muted)' }}
+          >
             {isFr ? 'Choisissez votre nouveau mot de passe.' : 'Choose your new password.'}
           </p>
 
           {success ? (
-            <div>
-              <div className="border border-[var(--success)]/25 bg-[var(--success)]/10 px-4 py-3 text-sm text-[var(--success)] mb-4">
-                {isFr
-                  ? 'Mot de passe reinitialise avec succes.'
-                  : 'Password reset successfully.'}
+            <div className="flex flex-col gap-6">
+              <div
+                className="px-4 py-3 text-[12px]"
+                style={{
+                  border: '1px solid rgba(48,209,88,0.30)',
+                  background: 'rgba(48,209,88,0.06)',
+                  color: '#7CE8A0',
+                  fontWeight: 300,
+                }}
+              >
+                {isFr ? 'Mot de passe réinitialisé avec succès.' : 'Password reset successfully.'}
               </div>
               <Link
                 href="/login"
-                className="inline-flex w-full items-center justify-center bg-white px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition-colors hover:bg-white/90"
+                className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 font-mono uppercase"
+                style={{
+                  fontSize: 11,
+                  letterSpacing: '0.22em',
+                  color: 'var(--bjhunt-text)',
+                  border: '1px solid var(--bjhunt-border-strong)',
+                  background: 'rgba(255,255,255,0.03)',
+                }}
               >
-                {isFr ? 'Se connecter' : 'Sign in'}
+                {isFr ? 'Se connecter →' : 'Sign in →'}
               </Link>
             </div>
           ) : (
-            <form onSubmit={submit} className="flex flex-col gap-4">
+            <form onSubmit={submit} className="flex flex-col gap-7">
               <div>
-                <label className="text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)] block mb-2">
-                  {isFr ? 'Nouveau mot de passe' : 'New password'}
-                </label>
+                <label style={LABEL_STYLE}>{isFr ? 'Nouveau mot de passe' : 'New password'}</label>
                 <input
                   type="password"
                   value={newPassword}
@@ -120,15 +165,12 @@ export default function ResetPasswordPage() {
                   required
                   minLength={14}
                   autoComplete="new-password"
-                  className="w-full border border-[var(--border)] bg-transparent px-4 py-3 text-sm text-white outline-none transition-colors focus:border-white/40"
-                  placeholder={isFr ? '14 caracteres minimum' : '14 characters minimum'}
+                  placeholder={isFr ? '14 caractères minimum' : '14 characters minimum'}
+                  style={FIELD_STYLE}
                 />
               </div>
-
               <div>
-                <label className="text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)] block mb-2">
-                  {isFr ? 'Confirmer' : 'Confirm'}
-                </label>
+                <label style={LABEL_STYLE}>{isFr ? 'Confirmer' : 'Confirm'}</label>
                 <input
                   type="password"
                   value={confirmPassword}
@@ -136,13 +178,20 @@ export default function ResetPasswordPage() {
                   required
                   minLength={14}
                   autoComplete="new-password"
-                  className="w-full border border-[var(--border)] bg-transparent px-4 py-3 text-sm text-white outline-none transition-colors focus:border-white/40"
                   placeholder={isFr ? 'Retapez le mot de passe' : 'Re-enter password'}
+                  style={FIELD_STYLE}
                 />
               </div>
 
               {error && (
-                <div className="border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                <div
+                  className="px-4 py-3 text-[12px]"
+                  style={{
+                    border: '1px solid rgba(255,69,58,0.30)',
+                    background: 'rgba(255,69,58,0.06)',
+                    color: '#FF8A82',
+                  }}
+                >
                   {error}
                 </div>
               )}
@@ -150,25 +199,29 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex w-full items-center justify-center gap-2 bg-white px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition-colors hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60 mt-2"
+                className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 font-mono uppercase disabled:cursor-not-allowed disabled:opacity-50"
+                style={{
+                  fontSize: 11,
+                  letterSpacing: '0.22em',
+                  color: 'var(--bjhunt-text)',
+                  border: '1px solid var(--bjhunt-border-strong)',
+                  background: 'rgba(255,255,255,0.03)',
+                }}
               >
-                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {loading
-                  ? isFr ? 'Reinitialisation...' : 'Resetting...'
-                  : isFr ? 'Reinitialiser' : 'Reset password'}
+                {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {loading ? (isFr ? 'Réinitialisation…' : 'Resetting…') : isFr ? 'Réinitialiser →' : 'Reset password →'}
               </button>
             </form>
           )}
 
-          <div className="mt-6 pt-6 border-t border-[var(--border)] text-center">
-            <span className="text-[10px] text-[var(--text-muted)]">
-              <Link
-                href="/login"
-                className="text-white hover:underline underline-offset-2"
-              >
-                {isFr ? 'Retour a la connexion' : 'Back to sign in'}
-              </Link>
-            </span>
+          <div className="mt-9 pt-7 text-center" style={{ borderTop: '1px solid var(--bjhunt-border)' }}>
+            <Link
+              href="/login"
+              className="font-mono uppercase transition-colors hover:text-white"
+              style={{ fontSize: 9, letterSpacing: '0.22em', color: 'var(--bjhunt-text-subtle)' }}
+            >
+              {isFr ? '← Retour à la connexion' : '← Back to sign in'}
+            </Link>
           </div>
         </div>
       </div>

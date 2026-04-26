@@ -18,7 +18,9 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
-  weight: ["400", "600", "800"],
+  // W8 design system requires Inter 200 (display) and 300 (lede/body).
+  // Keep 400/600 for UI/labels; 800 retired in favor of 200 ultralight headings.
+  weight: ["200", "300", "400", "600"],
 });
 
 export function generateStaticParams() {
