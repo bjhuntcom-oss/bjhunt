@@ -59,7 +59,7 @@ Write to `report/executive-summary.md` using the template below. Use plain busin
 
 **Prepared for**: [Client Name]
 **Engagement Period**: [Start Date] – [End Date]
-**Conducted by**: Decepticon Autonomous Red Team
+**Conducted by**: BJHUNT AI Autonomous Red Team
 **Classification**: CONFIDENTIAL
 
 ---
@@ -373,10 +373,10 @@ Reference specific FIND-IDs inline where findings were exploited.]
 
 | Role | Agent / Operator |
 |------|-----------------|
-| Red Team Orchestrator | Decepticon |
-| Recon Agent | Decepticon Recon |
-| Exploit Agent | Decepticon Exploit |
-| Post-Exploit Agent | Decepticon PostExploit |
+| Red Team Orchestrator | BJHUNT AI |
+| Recon Agent | BJHUNT AI Recon |
+| Exploit Agent | BJHUNT AI Exploit |
+| Post-Exploit Agent | BJHUNT AI PostExploit |
 
 ### C. Glossary
 

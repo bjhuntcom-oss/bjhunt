@@ -5,7 +5,7 @@ description: External knowledge integration — HackerOne reports, PayloadsAllTh
 
 # External References Skill
 
-Decepticon ships with a curated catalogue of high-signal third-party
+BJHUNT AI ships with a curated catalogue of high-signal third-party
 resources. You can either query the metadata directly or fetch the
 full repo into the sandbox for grep-level access.
 
@@ -79,4 +79,4 @@ steal good ideas about:
 - How other projects handle memory / state / observability
 
 Don't reinvent wheels — if one of them solved a problem elegantly,
-borrow the pattern into Decepticon's next iteration.
+borrow the pattern into BJHUNT AI's next iteration.

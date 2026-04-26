@@ -1,6 +1,6 @@
 ---
 name: workflow
-description: "Top-level orchestration skill — execution order and dependencies across all Decepticon skills."
+description: "Top-level orchestration skill — execution order and dependencies across all BJHUNT AI skills."
 allowed-tools: Read
 metadata:
   subdomain: orchestration
@@ -11,7 +11,7 @@ metadata:
 
 # Engagement Workflow Orchestrator
 
-This skill defines the execution order, dependencies, and handoff criteria between all Decepticon skills. It is the single source of truth for "what happens when" during an engagement.
+This skill defines the execution order, dependencies, and handoff criteria between all BJHUNT AI skills. It is the single source of truth for "what happens when" during an engagement.
 
 ## Skill Dependency Graph
 
@@ -268,7 +268,7 @@ To determine "what's next", check for these artifacts:
 | **Recon** | `/recon` | `/skills/recon/`, `/skills/shared/` | `passive-recon`, `osint`, `cloud-recon`, `active-recon`, `web-recon`, `reporting` + shared |
 | **Exploit** | `/exploit` | `/skills/exploit/`, `/skills/shared/` | `web`, `ad` + shared (`defense-evasion`, `opsec`, `workflow`) |
 | **PostExploit** | `/postexploit` | `/skills/post-exploit/`, `/skills/shared/` | `credential-access`, `privilege-escalation`, `lateral-movement`, `c2`, `c2-sliver` + shared |
-| **Decepticon** | `/decepticon` | `/skills/decepticon/`, `/skills/shared/` | `orchestration`, `engagement-lifecycle`, `kill-chain-analysis` + shared |
+| **BJHUNT AI** | `/decepticon` | `/skills/decepticon/`, `/skills/shared/` | `orchestration`, `engagement-lifecycle`, `kill-chain-analysis` + shared |
 
 Cross-cutting (via `/skills/shared/`): `opsec` (Recon + Exploit + PostExploit), `defense-evasion` (Exploit + PostExploit), `workflow` (all)
 
@@ -280,5 +280,5 @@ Cross-cutting (via `/skills/shared/`): `opsec` (Recon + Exploit + PostExploit), 
 | Reconnaissance | Recon | `/skills/recon/` | `passive-recon`, `osint`, `cloud-recon`, `active-recon`, `web-recon`, `reporting` | TA0043 |
 | Exploitation | Exploit | `/skills/exploit/` | `web`, `ad` | TA0001, TA0002 |
 | Post-Exploitation | PostExploit | `/skills/post-exploit/` | `credential-access`, `privilege-escalation`, `lateral-movement`, `c2`, `c2-sliver` | TA0006, TA0004, TA0008, TA0011 |
-| Orchestration | Decepticon | `/skills/decepticon/` | `orchestration`, `engagement-lifecycle`, `kill-chain-analysis` | — |
-| Cross-cutting | Recon/Exploit/PostExploit/Decepticon | `/skills/shared/` | `opsec`, `defense-evasion`, `workflow` | TA0005 |
+| Orchestration | BJHUNT AI | `/skills/decepticon/` | `orchestration`, `engagement-lifecycle`, `kill-chain-analysis` | — |
+| Cross-cutting | Recon/Exploit/PostExploit/BJHUNT AI | `/skills/shared/` | `opsec`, `defense-evasion`, `workflow` | TA0005 |
