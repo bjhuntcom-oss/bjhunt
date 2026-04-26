@@ -1,22 +1,45 @@
-// components/ui/badge.tsx
+/**
+ * Badge — small chip aligned to refonte 2026 spec §7 + tri-state palette.
+ *
+ * Variants:
+ *   - default              — neutral (border + bg-surface + muted text)
+ *   - success/warning/critical — colored text + matching state tint
+ *   - critical/high        — alias to `critical` (legacy)
+ *   - medium               — alias to `warning`
+ *   - low/info             — alias to `success` / `default`
+ */
 import { cn } from "@/lib/utils";
 import { type VariantProps, cva } from "class-variance-authority";
 
 const badgeVariants = cva(
-  "inline-flex items-center border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.15em]",
+  cn(
+    "inline-flex items-center px-2 py-0.5 border",
+    "text-[10px] font-semibold uppercase tracking-[0.18em] font-mono",
+    "rounded-[var(--bjhunt-radius-sm)]"
+  ),
   {
     variants: {
       variant: {
-        default:   "border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--text-muted)]",
-        success:   "border-[var(--success)]/30 bg-[var(--success)]/10 text-[var(--success)]",
-        danger:    "border-[var(--danger)]/30 bg-[var(--danger)]/10 text-[var(--danger)]",
-        warning:   "border-[var(--warning)]/30 bg-[var(--warning)]/10 text-[var(--warning)]",
-        // Compat sévérités existantes
-        critical:  "border-[var(--danger)]/30 bg-[var(--danger)]/10 text-[var(--danger)]",
-        high:      "border-[var(--warning)]/30 bg-[var(--warning)]/10 text-[var(--warning)]",
-        medium:    "border-[var(--warning)]/30 bg-[var(--warning)]/10 text-[var(--warning)]",
-        low:       "border-[var(--success)]/30 bg-[var(--success)]/10 text-[var(--success)]",
-        info:      "border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--text-muted)]",
+        default:
+          "border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-surface)] text-[var(--bjhunt-text-muted)]",
+        success:
+          "border-[var(--state-success)] bg-[var(--state-success-tint)] text-[var(--state-success)]",
+        warning:
+          "border-[var(--state-warning)] bg-[var(--state-warning-tint)] text-[var(--state-warning)]",
+        critical:
+          "border-[var(--state-critical)] bg-[var(--state-critical-tint)] text-[var(--state-critical)]",
+        // Legacy severity aliases
+        high:
+          "border-[var(--state-critical)] bg-[var(--state-critical-tint)] text-[var(--state-critical)]",
+        medium:
+          "border-[var(--state-warning)] bg-[var(--state-warning-tint)] text-[var(--state-warning)]",
+        low:
+          "border-[var(--state-success)] bg-[var(--state-success-tint)] text-[var(--state-success)]",
+        info:
+          "border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-surface)] text-[var(--bjhunt-text-muted)]",
+        // Legacy "danger" alias
+        danger:
+          "border-[var(--state-critical)] bg-[var(--state-critical-tint)] text-[var(--state-critical)]",
       },
     },
     defaultVariants: { variant: "default" },

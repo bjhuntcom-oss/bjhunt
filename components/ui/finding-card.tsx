@@ -69,10 +69,10 @@ export function FindingCard({
   const interactive = typeof onClick === 'function'
 
   const accent = `var(--bjhunt-severity-${severity})`
-  const pad = compact ? 12 : 20
+  const pad = compact ? 16 : 24
 
   const wrap: CSSProperties = {
-    backgroundColor: 'var(--bjhunt-bg-secondary)',
+    backgroundColor: 'var(--bjhunt-bg-surface)',
     borderRadius: 'var(--bjhunt-radius-md)',
     borderLeft: `4px solid ${accent}`,
     border: '1px solid var(--bjhunt-border)',
@@ -81,12 +81,8 @@ export function FindingCard({
     display: 'flex',
     flexDirection: 'column',
     gap: compact ? 8 : 12,
-    boxShadow: justArrived
-      ? `0 0 0 1px ${accent}, 0 4px 20px rgba(0,0,0,0.35)`
-      : '0 2px 8px rgba(0,0,0,0.25)',
-    animation: `finding-enter var(--bjhunt-duration-slow) var(--bjhunt-easing-out)`,
     cursor: interactive ? 'pointer' : 'default',
-    transition: `box-shadow var(--bjhunt-duration-base) var(--bjhunt-easing-out), border-color var(--bjhunt-duration-base) var(--bjhunt-easing-out)`,
+    transition: `border-color var(--bjhunt-duration-base) var(--bjhunt-ease-out)`,
   }
 
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -163,8 +159,8 @@ export function FindingCard({
               padding: '2px 6px',
               fontSize: 'var(--bjhunt-text-xs)',
               fontFamily: 'var(--bjhunt-font-mono)',
-              color: 'var(--bjhunt-status-success)',
-              border: '1px solid var(--bjhunt-status-success)',
+              color: 'var(--state-success)',
+              border: '1px solid var(--state-success)',
               borderRadius: 'var(--bjhunt-radius-sm)',
               letterSpacing: '0.05em',
               textTransform: 'uppercase',
@@ -192,7 +188,7 @@ export function FindingCard({
         >
           {cvss != null && (
             <span>
-              <span style={{ color: 'var(--bjhunt-text-subtle)' }}>{t('cvss')}</span>{' '}
+              <span style={{ color: 'var(--bjhunt-text-muted)' }}>{t('cvss')}</span>{' '}
               <span style={{ color: 'var(--bjhunt-text)', fontWeight: 600 }}>
                 {cvss.toFixed(1)}
               </span>
@@ -219,8 +215,8 @@ export function FindingCard({
           )}
           {meta && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <Bot style={{ width: 11, height: 11, color: `var(--bjhunt-text-subtle)` }} />
-              <span style={{ color: 'var(--bjhunt-text-subtle)' }}>{t('agent')}</span>{' '}
+              <Bot style={{ width: 11, height: 11, color: `var(--bjhunt-text-muted)` }} />
+              <span style={{ color: 'var(--bjhunt-text-muted)' }}>{t('agent')}</span>{' '}
               <span style={{ color: 'var(--bjhunt-text)' }}>{meta.label}</span>
             </span>
           )}
@@ -326,7 +322,7 @@ function ActionButton({
         cursor: 'pointer',
         textTransform: 'uppercase',
         letterSpacing: '0.04em',
-        transition: `color var(--bjhunt-duration-fast) var(--bjhunt-easing-out), border-color var(--bjhunt-duration-fast) var(--bjhunt-easing-out), background-color var(--bjhunt-duration-fast) var(--bjhunt-easing-out)`,
+        transition: `color var(--bjhunt-duration-fast) var(--bjhunt-ease-out), border-color var(--bjhunt-duration-fast) var(--bjhunt-ease-out), background-color var(--bjhunt-duration-fast) var(--bjhunt-ease-out)`,
       }}
       className="hover:text-[var(--bjhunt-text)] hover:border-[var(--bjhunt-border-strong)] hover:bg-white/[0.02]"
     >

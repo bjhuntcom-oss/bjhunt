@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { LogoSymbol, LogoWordmark } from "@/components/ui/logo";
 import { useState } from "react";
-import { Home, ArrowRight } from "lucide-react";
+import { Home, ArrowRight, ArrowUpRight } from "lucide-react";
 import "./globals.css";
 
 const content = {
@@ -154,9 +154,7 @@ export default function GlobalNotFound() {
                 className="hidden md:flex h-full px-5 items-center gap-2 bg-white text-black text-[10px] font-medium tracking-widest uppercase hover:bg-white/90 transition-colors"
               >
                 <span>Contact</span>
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="square" d="M7 17L17 7M17 7H7M17 7V17" />
-                </svg>
+                <ArrowUpRight className="w-4 h-4" />
               </Link>
             </div>
             <div className="h-px bg-white/40" />
@@ -260,9 +258,7 @@ export default function GlobalNotFound() {
                     className="inline-flex items-center gap-2 px-4 py-2 bg-white text-black text-[10px] font-medium tracking-wider uppercase hover:bg-white/90"
                   >
                     <span>contact@bjhunt.com</span>
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="square" d="M7 17L17 7M17 7H7M17 7V17" />
-                    </svg>
+                    <ArrowUpRight className="w-4 h-4" />
                   </a>
                   <a
                     href="mailto:partner@bjhunt.com"

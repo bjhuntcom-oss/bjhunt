@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { headers } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
@@ -11,16 +11,21 @@ import { LayoutShell } from "@/components/layout/layout-shell";
 import { Preloader } from "@/components/ui/preloader";
 import { Inter } from "next/font/google";
 
-// W8 design system requires editorial weights 200/300 for display headings
-// + body, plus 400/500/600 for UI text and emphasis. `display: swap` keeps
-// first paint unblocked. The `--font-inter` CSS variable is consumed by
-// `app/design-tokens.css` (--bjhunt-font-sans).
+// Refonte 2026 design system — Inter for body/UI (400/500/600).
+// Display + H1/H2 use system-ui per spec §2 (instant render, OS authority).
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
-  weight: ["200", "300", "400", "500", "600"],
+  weight: ["400", "500", "600"],
 });
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#050507',
+};
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -35,6 +40,16 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     verification: {
       google: "-SQV-2j7dZdQx7H0PWb4ou0B8pnUaVYQ-6iXvphf_nQ",
     },
+    // Refonte 2026: SVG-only icon set. PNG apple-touch-icon + og-image are
+    // TODO — see public/manifest.webmanifest. Generate with sharp/scripts.
+    icons: {
+      icon: [
+        { url: "/favicon.svg", type: "image/svg+xml" },
+        { url: "/icon.svg", type: "image/svg+xml", sizes: "32x32" },
+      ],
+      apple: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    },
+    manifest: "/manifest.webmanifest",
     title: {
       default: t('title'),
       template: "%s | BJHUNT",

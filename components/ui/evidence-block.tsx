@@ -130,7 +130,7 @@ export function EvidenceBlock({
           fontSize: 10,
           letterSpacing: '0.2em',
           textTransform: 'uppercase',
-          color: 'var(--bjhunt-text-subtle)',
+          color: 'var(--bjhunt-text-muted)',
         }}
       >
         <span
@@ -350,7 +350,7 @@ function Act({
         appearance: 'none',
         background: 'transparent',
         border: '1px solid transparent',
-        color: active ? 'var(--bjhunt-severity-low, #30D158)' : 'var(--bjhunt-text-subtle)',
+        color: active ? 'var(--state-success)' : 'var(--bjhunt-text-muted)',
         fontFamily: 'var(--bjhunt-font-mono)',
         fontSize: 9,
         letterSpacing: '0.2em',
@@ -360,18 +360,18 @@ function Act({
         display: 'inline-flex',
         alignItems: 'center',
         gap: 6,
-        transition: 'color var(--bjhunt-duration-fast,180ms), background var(--bjhunt-duration-fast,180ms)',
+        transition: 'color var(--bjhunt-duration-fast), background var(--bjhunt-duration-fast)',
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.color = active
-          ? 'var(--bjhunt-severity-low, #30D158)'
+          ? 'var(--state-success)'
           : 'var(--bjhunt-text)'
         e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.color = active
-          ? 'var(--bjhunt-severity-low, #30D158)'
-          : 'var(--bjhunt-text-subtle)'
+          ? 'var(--state-success)'
+          : 'var(--bjhunt-text-muted)'
         e.currentTarget.style.background = 'transparent'
       }}
     >
@@ -380,13 +380,14 @@ function Act({
   )
 }
 
+/** Kind→state mapping (refonte 2026 only allows tri-state colors). */
 const KIND_ACCENT: Record<EvidenceKind, { color: string; rgb: string }> = {
-  request:    { color: '#64D2FF', rgb: '100,210,255' },
-  response:   { color: '#C792EA', rgb: '199,146,234' },
-  payload:    { color: '#FF453A', rgb: '255,69,58' },
-  code:       { color: '#6366F1', rgb: '99,102,241' },
-  terminal:   { color: '#30D158', rgb: '48,209,88' },
-  diff:       { color: '#82AAFF', rgb: '130,170,255' },
-  ioc:        { color: '#FF9F0A', rgb: '255,159,10' },
-  screenshot: { color: '#A78BFA', rgb: '167,139,250' },
+  request:    { color: 'var(--bjhunt-text-muted)', rgb: '139,148,158' },
+  response:   { color: 'var(--bjhunt-text-muted)', rgb: '139,148,158' },
+  payload:    { color: 'var(--state-critical)',    rgb: '251,86,91' },
+  code:       { color: 'var(--bjhunt-text)',       rgb: '242,242,242' },
+  terminal:   { color: 'var(--state-success)',     rgb: '0,217,146' },
+  diff:       { color: 'var(--bjhunt-text-muted)', rgb: '139,148,158' },
+  ioc:        { color: 'var(--state-warning)',     rgb: '255,186,0' },
+  screenshot: { color: 'var(--bjhunt-text-muted)', rgb: '139,148,158' },
 }

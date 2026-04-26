@@ -1,13 +1,15 @@
 /**
  * SeverityBadge — five severity tiers × three visual variants × three sizes.
  *
- * Variants (per docs/architecture/17-DESIGN-SYSTEM.md §Severity):
- *   - solid    default emphasis; pulses on critical when `pulse` is true
- *   - outline  filter pills + dashboard tiles where color coexists with dense chrome
- *   - minimal  dot + label for tables and dense lists
+ * Refonte 2026: severity now maps to the tri-state palette
+ * (critical/high → critical, medium → warning, low → success, info → muted).
+ * Colors are surfaced as CSS variables via `--bjhunt-severity-*` so palette
+ * tweaks land without touching this file.
  *
- * Colors are surfaced as CSS variables (--bjhunt-severity-*) in design-tokens.css
- * so palette tweaks in W8 land without touching this file.
+ * Variants:
+ *   - solid    — filled chip; pulses on critical when `pulse` is true
+ *   - outline  — tinted bg + state-color border (filter pills, dashboard tiles)
+ *   - minimal  — dot + label (tables, dense lists)
  */
 'use client'
 
@@ -40,20 +42,13 @@ const LABELS: Record<Severity, string> = {
   info: 'Info',
 }
 
-const COLOR_RGB: Record<Severity, string> = {
-  critical: '255,69,58',
-  high: '255,159,10',
-  medium: '255,214,10',
-  low: '48,209,88',
-  info: '100,210,255',
-}
-
-const INTENSITY: Record<Severity, number> = {
-  critical: 1,
-  high: 0.78,
-  medium: 0.58,
-  low: 0.4,
-  info: 0.3,
+/** Map each severity to a tri-state CSS variable used for color/tint. */
+const STATE_VAR: Record<Severity, { color: string; tint: string }> = {
+  critical: { color: 'var(--state-critical)', tint: 'var(--state-critical-tint)' },
+  high:     { color: 'var(--state-critical)', tint: 'var(--state-critical-tint)' },
+  medium:   { color: 'var(--state-warning)',  tint: 'var(--state-warning-tint)'  },
+  low:      { color: 'var(--state-success)',  tint: 'var(--state-success-tint)'  },
+  info:     { color: 'var(--bjhunt-text-muted)', tint: 'rgba(139,148,158,0.12)' },
 }
 
 const SIZE: Record<SeveritySize, { padY: number; padX: number; font: number; gap: number; tracking: string; dot: number }> = {
@@ -72,10 +67,8 @@ export function SeverityBadge({
   className,
   title,
 }: SeverityBadgeProps) {
-  const rgb = COLOR_RGB[severity]
-  const intensity = INTENSITY[severity]
+  const { color, tint } = STATE_VAR[severity]
   const s = SIZE[size]
-  const color = `var(--bjhunt-severity-${severity}, rgb(${rgb}))`
 
   const base: CSSProperties = {
     display: 'inline-flex',
@@ -89,7 +82,8 @@ export function SeverityBadge({
     gap: s.gap,
     padding: `${s.padY}px ${s.padX}px`,
     verticalAlign: 'middle',
-    transition: 'box-shadow var(--bjhunt-duration-fast, 180ms) var(--bjhunt-easing-out, ease), border-color var(--bjhunt-duration-fast, 180ms) var(--bjhunt-easing-out, ease)',
+    borderRadius: 'var(--bjhunt-radius-sm)',
+    transition: 'border-color var(--bjhunt-duration-fast) var(--bjhunt-ease-out)',
   }
 
   let variantStyle: CSSProperties = {}
@@ -98,16 +92,15 @@ export function SeverityBadge({
   if (variant === 'solid') {
     variantStyle = {
       backgroundColor: color,
-      color: '#07070B',
+      color: 'var(--bjhunt-bg)',
       fontWeight: 600,
-      boxShadow: `0 0 0 1px rgba(${rgb},0.4), 0 0 ${16 * intensity}px rgba(${rgb},${0.35 * intensity})`,
-      animation: pulse && severity === 'critical' ? 'sev-pulse 2.4s var(--bjhunt-easing-out, ease) infinite' : undefined,
+      animation: pulse && severity === 'critical' ? 'pulse-dot 1.5s ease-in-out infinite' : undefined,
     }
   } else if (variant === 'outline') {
     variantStyle = {
-      backgroundColor: `rgba(${rgb},0.06)`,
+      backgroundColor: tint,
       color,
-      border: `1px solid rgba(${rgb},0.28)`,
+      border: `1px solid ${color}`,
     }
   } else {
     // minimal
@@ -124,7 +117,7 @@ export function SeverityBadge({
           width: s.dot,
           height: s.dot,
           backgroundColor: color,
-          boxShadow: `0 0 ${8 * intensity}px rgba(${rgb},0.6)`,
+          borderRadius: '9999px',
           flexShrink: 0,
           display: 'inline-block',
         }}
@@ -139,32 +132,24 @@ export function SeverityBadge({
     marginLeft: 4,
     borderLeft:
       variant === 'solid'
-        ? '1px solid rgba(7,7,11,0.18)'
-        : '1px solid rgba(255,255,255,0.1)',
-    color: variant === 'solid' ? 'rgba(7,7,11,0.7)' : 'var(--bjhunt-text-muted)',
+        ? '1px solid rgba(0,0,0,0.18)'
+        : '1px solid var(--bjhunt-border)',
+    color: variant === 'solid' ? 'rgba(0,0,0,0.7)' : 'var(--bjhunt-text-muted)',
     letterSpacing: '0.1em',
     fontVariantNumeric: 'tabular-nums',
   }
 
   return (
-    <>
-      {/* keyframes injected once at module level via a <style> sibling is awkward —
-          define here so the component is fully self-contained. */}
-      <style>{`@keyframes sev-pulse {
-        0%, 100% { box-shadow: 0 0 0 1px rgba(${rgb},0.4), 0 0 16px rgba(${rgb},0.35), 0 0 0 0 rgba(${rgb},0.5); }
-        50% { box-shadow: 0 0 0 1px rgba(${rgb},0.5), 0 0 24px rgba(${rgb},0.55), 0 0 0 6px rgba(${rgb},0); }
-      }`}</style>
-      <span
-        role="status"
-        aria-label={`Severity ${LABELS[severity]}${cvss != null ? ` · CVSS ${cvss.toFixed(1)}` : ''}`}
-        title={title}
-        style={{ ...base, ...variantStyle }}
-        className={cn('bjhunt-sev-badge', className)}
-      >
-        {innerDot}
-        <span>{children ?? LABELS[severity]}</span>
-        {cvss != null && <span style={dividerStyle}>{cvss.toFixed(1)}</span>}
-      </span>
-    </>
+    <span
+      role="status"
+      aria-label={`Severity ${LABELS[severity]}${cvss != null ? ` · CVSS ${cvss.toFixed(1)}` : ''}`}
+      title={title}
+      style={{ ...base, ...variantStyle }}
+      className={cn('bjhunt-sev-badge', className)}
+    >
+      {innerDot}
+      <span>{children ?? LABELS[severity]}</span>
+      {cvss != null && <span style={dividerStyle}>{cvss.toFixed(1)}</span>}
+    </span>
   )
 }

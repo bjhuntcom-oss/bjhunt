@@ -26,7 +26,7 @@ export interface Phase {
 
 export interface ProgressBarPhasesProps {
   phases: Phase[]
-  /** Accent color for complete/active states. Default brand primary. */
+  /** Accent color for complete/active phases. Default = primary text (white). */
   accent?: string
   /** Show the step number 01/02/… above each label. */
   numbered?: boolean
@@ -42,7 +42,7 @@ const KEYFRAMES = `
 
 export function ProgressBarPhases({
   phases,
-  accent = 'var(--bjhunt-brand-primary, #6366F1)',
+  accent = 'var(--bjhunt-text)',
   numbered = true,
   className,
 }: ProgressBarPhasesProps) {
@@ -89,10 +89,10 @@ function PhaseCell({
       : 0
 
   const color = isError
-    ? 'var(--bjhunt-severity-critical, #FF453A)'
+    ? 'var(--state-critical)'
     : isActive || isComplete
     ? 'var(--bjhunt-phase-accent)'
-    : 'var(--bjhunt-text-disabled, #3F3F46)'
+    : 'var(--bjhunt-text-disabled)'
 
   return (
     <div
@@ -104,7 +104,7 @@ function PhaseCell({
       style={{
         position: 'relative',
         background: 'rgba(255,255,255,0.02)',
-        borderTop: '1px solid var(--bjhunt-border, rgba(255,255,255,0.06))',
+        borderTop: '1px solid var(--bjhunt-border)',
         padding: '18px 18px 16px',
         display: 'flex',
         flexDirection: 'column',
@@ -124,7 +124,7 @@ function PhaseCell({
           width: `${progress * 100}%`,
           background: color,
           boxShadow: isActive ? `0 0 12px ${color}` : undefined,
-          transition: 'width var(--bjhunt-duration-base, 360ms) var(--bjhunt-easing-out, ease)',
+          transition: 'width var(--bjhunt-duration-base) var(--bjhunt-ease-out, ease)',
         }}
       />
       {isActive && (
@@ -180,7 +180,7 @@ function PhaseCell({
             isActive || isComplete
               ? 'var(--bjhunt-text)'
               : isError
-              ? 'var(--bjhunt-severity-critical, #FF453A)'
+              ? 'var(--state-critical)'
               : 'var(--bjhunt-text-muted)',
         }}
       >
@@ -192,7 +192,7 @@ function PhaseCell({
           style={{
             fontFamily: 'var(--bjhunt-font-mono)',
             fontSize: 10,
-            color: 'var(--bjhunt-text-subtle)',
+            color: 'var(--bjhunt-text-muted)',
             fontVariantNumeric: 'tabular-nums',
             letterSpacing: '0.08em',
           }}
@@ -207,9 +207,9 @@ function PhaseCell({
 function StateDot({ state }: { state: PhaseState }) {
   const color =
     state === 'error'
-      ? 'var(--bjhunt-severity-critical, #FF453A)'
+      ? 'var(--state-critical)'
       : state === 'complete'
-      ? 'var(--bjhunt-severity-low, #30D158)'
+      ? 'var(--state-success)'
       : state === 'active'
       ? 'var(--bjhunt-phase-accent)'
       : 'var(--bjhunt-text-disabled)'
