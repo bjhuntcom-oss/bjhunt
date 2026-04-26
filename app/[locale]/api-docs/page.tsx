@@ -320,7 +320,7 @@ export default async function ApiDocsPage({
                     <ArrowRight className="h-3.5 w-3.5 ml-2" />
                   </Link>
                 </Button>
-                <Button variant="secondary" asChild>
+                <Button variant="ghost" asChild>
                   <Link href={`/${locale}/contact`}>
                     {isFr ? "Contacter les ventes" : 'Contact sales'}
                   </Link>

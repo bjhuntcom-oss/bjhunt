@@ -630,7 +630,7 @@ export default async function DashboardPage({
             )}
           </div>
           {planSlug === 'free' && (
-            <Button asChild variant="secondary">
+            <Button asChild variant="ghost">
               <Link href="/pricing">Passer a Pro →</Link>
             </Button>
           )}
