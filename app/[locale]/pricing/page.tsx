@@ -3,14 +3,9 @@
 
 import { motion } from "framer-motion";
 import { Link } from "@/i18n/routing";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { SectionLabel } from "@/components/ui/section-label";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { Fragment, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { ScanRadarSVG } from "@/components/animations/scan-radar";
-import { PriceBarsSVG } from "@/components/animations/price-bars";
 
 // ── Feature matrix data ──────────────────────────────────────────────────
 
@@ -32,17 +27,17 @@ const FEATURE_GROUPS: FeatureGroup[] = [
   {
     category: "Chat & Agents",
     rows: [
-      { feature: "Chat AI",              free: "5 min",    pro: "Illimite",  enterprise: "Illimite" },
-      { feature: "Selection d'agents",   free: "3 agents", pro: "10 agents", enterprise: "17 agents" },
-      { feature: "Streaming temps reel", free: "check",    pro: "check",     enterprise: "check" },
+      { feature: "Chat AI",              free: "5 min",    pro: "Illimité",  enterprise: "Illimité" },
+      { feature: "Sélection d'agents",   free: "3 agents", pro: "10 agents", enterprise: "17 agents" },
+      { feature: "Streaming temps réel", free: "check",    pro: "check",     enterprise: "check" },
     ],
   },
   {
     category: "Scans",
     rows: [
-      { feature: "Scans par mois",  free: "--",    pro: "5",     enterprise: "20" },
-      { feature: "OPPLAN Tracker",   free: "--",    pro: "check", enterprise: "check" },
-      { feature: "Vaccine Loop",     free: "--",    pro: "check", enterprise: "check" },
+      { feature: "Scans par mois", free: "--",    pro: "5",     enterprise: "20" },
+      { feature: "OPPLAN Tracker", free: "--",    pro: "check", enterprise: "check" },
+      { feature: "Vaccine Loop",   free: "--",    pro: "check", enterprise: "check" },
     ],
   },
   {
@@ -88,223 +83,310 @@ const FEATURE_GROUPS: FeatureGroup[] = [
   },
 ];
 
-// ── FAQ ──────────────────────────────────────────────────────────────────
-
 const FAQS = [
   {
     q: "Comment fonctionne le plan Free ?",
-    a: "Le plan Free offre une session demo de 5 minutes pour decouvrir l'interface BJHUNT avec 3 agents de base. Aucun scan, aucune API -- juste un apercu du chat IA.",
+    a: "Le plan Free offre une session démo de 5 minutes pour découvrir l'interface BJHUNT avec 3 agents de base. Aucun scan, aucune API — juste un aperçu du chat IA.",
   },
   {
-    q: "Quelle difference entre Pro et Enterprise pour l'API ?",
-    a: "Le plan Pro permet de creer des cles API pour l'authentification dashboard. Seul le plan Enterprise donne acces a l'API REST v1 programmatique pour l'integration CI/CD et l'automatisation.",
+    q: "Quelle différence entre Pro et Enterprise pour l'API ?",
+    a: "Le plan Pro permet de créer des clés API pour l'authentification dashboard. Seul le plan Enterprise donne accès à l'API REST v1 programmatique pour l'intégration CI/CD.",
   },
   {
-    q: "Puis-je passer a Pro a tout moment ?",
-    a: "Oui, la migration est instantanee. Vos donnees et historiques sont conserves.",
+    q: "Puis-je passer à Pro à tout moment ?",
+    a: "Oui, la migration est instantanée. Vos données et historiques sont conservés.",
   },
   {
     q: "Comment fonctionne Enterprise ?",
-    a: "Enterprise inclut 20 scans/mois, les 17 agents IA, l'acces API v1 complet, les webhooks, la configuration custom des agents, le format HackerOne, le resume executif, et un support dedie avec Slack prive.",
+    a: "Enterprise inclut 20 scans/mois, les 17 agents IA, l'accès API v1 complet, les webhooks, la configuration custom des agents, le format HackerOne, le résumé exécutif, et un support dédié avec Slack privé.",
   },
 ];
-
-// ── Animations ──────────────────────────────────────────────────────────
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
 };
 
-// ── Cell renderer ───────────────────────────────────────────────────────
-
 function CellContent({ value }: { value: CellValue }) {
   if (value === "check") {
-    return <span className="text-[var(--success)]">&#10003;</span>;
+    return <span style={{ color: "#30D158" }}>✓</span>;
   }
   if (value === "--") {
-    return <span className="text-[var(--text-subtle)]">&mdash;</span>;
+    return <span style={{ color: "var(--bjhunt-text-disabled)" }}>—</span>;
   }
-  return <span className="text-white">{value}</span>;
+  return <span style={{ color: "var(--bjhunt-text)" }}>{value}</span>;
 }
-
-// ── FAQ item ────────────────────────────────────────────────────────────
 
 function FAQItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
 
   return (
     <Collapsible.Root open={open} onOpenChange={setOpen}>
-      <Collapsible.Trigger className="flex items-center justify-between w-full py-4 text-left border-b border-[var(--border)] group">
-        <span className="text-sm font-medium text-white group-hover:text-white/80">{q}</span>
+      <Collapsible.Trigger
+        className="group flex w-full items-center justify-between py-5 text-left"
+        style={{ borderBottom: "1px solid var(--bjhunt-border)" }}
+      >
+        <span style={{ fontSize: 15, fontWeight: 300, color: "var(--bjhunt-text)" }}>{q}</span>
         <ChevronDown
-          className={`w-4 h-4 text-[var(--text-muted)] transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+          style={{ color: "var(--bjhunt-text-subtle)" }}
         />
       </Collapsible.Trigger>
-      <Collapsible.Content className="overflow-hidden py-3">
-        <p className="text-sm text-[var(--text-muted)] leading-relaxed">{a}</p>
+      <Collapsible.Content className="overflow-hidden py-4">
+        <p
+          className="m-0 max-w-2xl"
+          style={{ fontSize: 14, fontWeight: 300, lineHeight: 1.65, color: "var(--bjhunt-text-muted)" }}
+        >
+          {a}
+        </p>
       </Collapsible.Content>
     </Collapsible.Root>
   );
 }
 
-// ── Crown icon ──────────────────────────────────────────────────────────
-
-function CrownIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M2 17L4 8L8 12L12 4L16 12L20 8L22 17H2Z" fill="#FFD700" stroke="#FFD700" strokeWidth="1.5" strokeLinejoin="round"/>
-      <rect x="2" y="17" width="20" height="3" rx="1" fill="#FFD700"/>
-      <circle cx="5" cy="20" r="1" fill="#0a0a0a"/>
-      <circle cx="12" cy="20" r="1" fill="#0a0a0a"/>
-      <circle cx="19" cy="20" r="1" fill="#0a0a0a"/>
-    </svg>
-  );
-}
-
-// ── Page ────────────────────────────────────────────────────────────────
+const PLANS = [
+  {
+    idx: "P0",
+    name: "Free",
+    price: "Gratuit",
+    sub: "Démo 5 min · 3 agents",
+    badge: null,
+    cta: "Essai gratuit",
+    href: "/login" as const,
+    featured: false,
+    accent: "99,102,241",
+  },
+  {
+    idx: "P1",
+    name: "Pro",
+    price: "$200/mois",
+    sub: "5 scans · 10 agents · Chat illimité",
+    badge: "Populaire",
+    cta: "Demander un accès",
+    href: "/contact" as const,
+    featured: true,
+    accent: "99,102,241",
+  },
+  {
+    idx: "P2",
+    name: "Enterprise",
+    price: "$2,000/mois",
+    sub: "20 scans · 17 agents · API v1",
+    badge: "Entreprise",
+    cta: "Contactez-nous",
+    href: "/contact" as const,
+    featured: false,
+    accent: "100,210,255",
+  },
+];
 
 export default function PricingPage() {
   return (
-    <div className="pt-14">
+    <div className="relative pt-14">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 60% 40% at 80% 0%, rgba(99,102,241,0.06), transparent 55%)",
+        }}
+      />
+
       {/* Hero */}
       <motion.section
-        className="border-b border-[var(--border)] grid lg:grid-cols-2"
+        className="relative z-10 px-8 py-24 md:px-12 lg:px-16"
+        style={{ borderBottom: "1px solid var(--bjhunt-border)" }}
         initial="hidden"
         animate="visible"
         variants={fadeUp}
       >
-        <div className="py-20 px-8 md:px-12">
-          <SectionLabel>Tarifs</SectionLabel>
-          <h1 className="text-5xl md:text-6xl font-black mt-4 tracking-[-0.03em]">
-            Tarifs simples.<br />
-            <span className="text-[var(--text-muted)]">Sans surprise.</span>
-          </h1>
-        </div>
-        <div className="hidden lg:flex items-center justify-center border-l border-[var(--border)] p-12 gap-8">
-          <ScanRadarSVG className="w-32 h-32 opacity-70" />
-          <PriceBarsSVG className="w-28 h-24 opacity-70" />
-        </div>
+        <p
+          className="m-0 mb-6 font-mono uppercase"
+          style={{ fontSize: 10, letterSpacing: "0.32em", color: "var(--bjhunt-text-subtle)" }}
+        >
+          04 / Pricing
+        </p>
+        <h1
+          className="m-0 max-w-4xl"
+          style={{
+            fontSize: "clamp(48px, 8vw, 96px)",
+            fontWeight: 200,
+            letterSpacing: "-0.04em",
+            lineHeight: 0.95,
+          }}
+        >
+          Tarifs simples<em className="not-italic" style={{ color: "var(--bjhunt-text-muted)", fontWeight: 200 }}>.</em>
+          <br />
+          <em className="not-italic" style={{ color: "var(--bjhunt-text-muted)", fontWeight: 200 }}>
+            Sans surprise.
+          </em>
+        </h1>
+        <p
+          className="mt-6 max-w-xl"
+          style={{ fontSize: 17, fontWeight: 300, lineHeight: 1.6, color: "var(--bjhunt-text-muted)" }}
+        >
+          Un plan par stade : démo gratuite, équipe Pro, déploiement Enterprise. Migration instantanée entre les paliers.
+        </p>
       </motion.section>
 
       {/* Plans */}
-      <section className="border-b border-[var(--border)]">
-        <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[var(--border)]">
-          {[
-            {
-              name: "Free",
-              price: "Gratuit",
-              sub: "Demo 5 min -- 3 agents",
-              badge: null,
-              icon: null,
-              cta: "Essai gratuit",
-              href: "/login",
-              featured: false,
-            },
-            {
-              // ENG-P0-3: Stripe checkout n'est pas encore livré (W10).
-              // CTA renommé "Demander un accès" pour ne pas promettre un
-              // self-checkout instantané qu'on ne peut pas honorer.
-              name: "Pro",
-              price: "$200/mois",
-              sub: "5 scans -- 10 agents -- Chat illimite",
-              badge: "Populaire",
-              icon: "approved",
-              cta: "Demander un accès",
-              href: "/contact",
-              featured: true,
-            },
-            {
-              name: "Enterprise",
-              price: "$2,000/mois",
-              sub: "20 scans -- 17 agents -- API v1",
-              badge: "Entreprise",
-              icon: "crown",
-              cta: "Contactez-nous",
-              href: "/contact",
-              featured: false,
-            },
-          ].map((plan) => (
-            <div
+      <section className="relative z-10" style={{ borderBottom: "1px solid var(--bjhunt-border)" }}>
+        <div className="grid grid-cols-1 gap-px md:grid-cols-3" style={{ background: "var(--bjhunt-border)" }}>
+          {PLANS.map((plan) => (
+            <article
               key={plan.name}
-              className={`p-10 flex flex-col gap-6 ${plan.featured ? "bg-[var(--bg-card)]" : ""}`}
+              className="relative flex flex-col gap-7 p-10"
+              style={{
+                background: plan.featured
+                  ? `linear-gradient(180deg, rgba(${plan.accent},0.04), rgba(${plan.accent},0.01)), var(--bjhunt-bg)`
+                  : "var(--bjhunt-bg)",
+              }}
             >
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    {plan.icon === "crown" && <CrownIcon />}
-                    {plan.icon === "approved" && (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="10" stroke="#00cc8a" strokeWidth="1.5"/>
-                        <path d="M8 12L11 15L16 9" stroke="#00cc8a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    )}
-                    <p className="text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)]">{plan.name}</p>
-                  </div>
-                  <p className="text-3xl font-black font-mono">{plan.price}</p>
-                  <p className="text-[10px] text-[var(--text-muted)] mt-1">{plan.sub}</p>
-                </div>
-                {plan.badge && <Badge variant="success">{plan.badge}</Badge>}
-              </div>
-              <Button asChild variant={plan.featured ? "primary" : "secondary"}>
-                <Link href={plan.href}>{plan.cta}</Link>
-              </Button>
-            </div>
+              {plan.featured && (
+                <span
+                  aria-hidden
+                  className="absolute left-0 top-0 bottom-0 w-px"
+                  style={{ background: `rgb(${plan.accent})`, opacity: 0.7 }}
+                />
+              )}
+              <header>
+                <p
+                  className="m-0 mb-2 font-mono uppercase"
+                  style={{ fontSize: 9, letterSpacing: "0.32em", color: "var(--bjhunt-text-disabled)" }}
+                >
+                  {plan.idx} · {plan.name}
+                </p>
+                <p
+                  className="m-0"
+                  style={{
+                    fontFamily: "var(--bjhunt-font-mono)",
+                    fontSize: 36,
+                    fontWeight: 300,
+                    letterSpacing: "-0.02em",
+                    color: "var(--bjhunt-text)",
+                  }}
+                >
+                  {plan.price}
+                </p>
+                <p
+                  className="m-0 mt-2"
+                  style={{ fontSize: 12, fontWeight: 300, color: "var(--bjhunt-text-muted)" }}
+                >
+                  {plan.sub}
+                </p>
+              </header>
+              {plan.badge && (
+                <span
+                  className="inline-flex w-max font-mono uppercase"
+                  style={{
+                    fontSize: 9,
+                    letterSpacing: "0.22em",
+                    padding: "4px 10px",
+                    color: `rgb(${plan.accent})`,
+                    border: `1px solid rgba(${plan.accent},0.30)`,
+                    background: `rgba(${plan.accent},0.08)`,
+                  }}
+                >
+                  {plan.badge}
+                </span>
+              )}
+              <Link
+                href={plan.href}
+                className="mt-auto inline-flex items-center justify-center gap-2 px-5 py-3 font-mono uppercase transition-colors duration-200"
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.22em",
+                  color: plan.featured ? "var(--bjhunt-text)" : "var(--bjhunt-text-muted)",
+                  border: plan.featured
+                    ? "1px solid var(--bjhunt-border-strong)"
+                    : "1px solid var(--bjhunt-border)",
+                  background: plan.featured ? "rgba(255,255,255,0.03)" : "transparent",
+                }}
+              >
+                {plan.cta}
+                <span aria-hidden>→</span>
+              </Link>
+            </article>
           ))}
         </div>
       </section>
 
-      {/* Feature matrix table */}
-      <section className="border-b border-[var(--border)] overflow-x-auto">
-        <table className="w-full text-sm">
+      {/* Feature matrix */}
+      <section
+        className="relative z-10 overflow-x-auto"
+        style={{ borderBottom: "1px solid var(--bjhunt-border)" }}
+      >
+        <table className="w-full" style={{ fontSize: 13 }}>
           <thead>
-            <tr className="border-b border-[var(--border)]">
-              <th className="text-left px-8 py-4 text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)] font-medium w-[40%]">
-                Fonctionnalite
+            <tr style={{ borderBottom: "1px solid var(--bjhunt-border)" }}>
+              <th
+                className="px-8 py-5 text-left font-mono uppercase"
+                style={{
+                  fontSize: 9,
+                  letterSpacing: "0.32em",
+                  color: "var(--bjhunt-text-subtle)",
+                  fontWeight: 400,
+                  width: "40%",
+                }}
+              >
+                Fonctionnalité
               </th>
-              <th className="px-8 py-4 text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)] font-medium text-center">
+              <th
+                className="px-8 py-5 text-center font-mono uppercase"
+                style={{ fontSize: 9, letterSpacing: "0.32em", color: "var(--bjhunt-text-subtle)", fontWeight: 400 }}
+              >
                 Free
               </th>
-              <th className="px-8 py-4 text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)] font-medium text-center">
+              <th
+                className="px-8 py-5 text-center font-mono uppercase"
+                style={{ fontSize: 9, letterSpacing: "0.32em", color: "var(--bjhunt-text)", fontWeight: 400 }}
+              >
                 Pro
               </th>
-              <th className="px-8 py-4 text-[9px] uppercase tracking-[0.2em] font-medium text-center">
-                <span className="flex items-center justify-center gap-1.5 text-[var(--text-muted)]">
-                  <CrownIcon />
-                  Enterprise
-                </span>
+              <th
+                className="px-8 py-5 text-center font-mono uppercase"
+                style={{ fontSize: 9, letterSpacing: "0.32em", color: "var(--bjhunt-text-subtle)", fontWeight: 400 }}
+              >
+                Enterprise
               </th>
             </tr>
           </thead>
           <tbody>
             {FEATURE_GROUPS.map((group) => (
               <Fragment key={group.category}>
-                {/* Category header row */}
-                <tr className="border-b border-[var(--border)]">
+                <tr style={{ borderBottom: "1px solid var(--bjhunt-border)" }}>
                   <td
                     colSpan={4}
-                    className="px-8 py-3 text-[8px] font-mono font-bold uppercase tracking-[0.2em] text-white bg-[var(--bg-card)]"
+                    className="px-8 py-3 font-mono uppercase"
+                    style={{
+                      fontSize: 9,
+                      letterSpacing: "0.32em",
+                      color: "var(--bjhunt-text-muted)",
+                      background: "rgba(255,255,255,0.015)",
+                    }}
                   >
                     {group.category}
                   </td>
                 </tr>
-
-                {/* Feature rows */}
                 {group.rows.map((row) => (
                   <tr
                     key={row.feature}
-                    className="border-b border-[var(--border)] hover:bg-[var(--bg-card)] transition-colors"
+                    className="transition-colors hover:bg-white/[0.02]"
+                    style={{ borderBottom: "1px solid var(--bjhunt-border)" }}
                   >
-                    <td className="px-8 py-3 text-[var(--text-muted)] text-[11px]">
+                    <td
+                      className="px-8 py-3.5"
+                      style={{ fontSize: 13, fontWeight: 300, color: "var(--bjhunt-text-muted)" }}
+                    >
                       {row.feature}
                     </td>
-                    <td className="px-8 py-3 text-center text-[11px]">
+                    <td className="px-8 py-3.5 text-center" style={{ fontSize: 12, fontWeight: 300 }}>
                       <CellContent value={row.free} />
                     </td>
-                    <td className="px-8 py-3 text-center text-[11px]">
+                    <td className="px-8 py-3.5 text-center" style={{ fontSize: 12, fontWeight: 300 }}>
                       <CellContent value={row.pro} />
                     </td>
-                    <td className="px-8 py-3 text-center text-[11px]">
+                    <td className="px-8 py-3.5 text-center" style={{ fontSize: 12, fontWeight: 300 }}>
                       <CellContent value={row.enterprise} />
                     </td>
                   </tr>
@@ -316,31 +398,61 @@ export default function PricingPage() {
       </section>
 
       {/* Bottom CTA */}
-      <section className="border-b border-[var(--border)]">
-        <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[var(--border)]">
+      <section className="relative z-10" style={{ borderBottom: "1px solid var(--bjhunt-border)" }}>
+        <div
+          className="grid grid-cols-1 gap-px md:grid-cols-3"
+          style={{ background: "var(--bjhunt-border)" }}
+        >
           {[
-            { name: "Free",       cta: "Essai gratuit",   href: "/login",   featured: false },
-            { name: "Pro",        cta: "Demander un accès", href: "/contact", featured: true  },
-            { name: "Enterprise", cta: "Contactez-nous",  href: "/contact", featured: false },
+            { name: "Free",       cta: "Essai gratuit",     href: "/login"   as const, featured: false },
+            { name: "Pro",        cta: "Demander un accès", href: "/contact" as const, featured: true  },
+            { name: "Enterprise", cta: "Contactez-nous",    href: "/contact" as const, featured: false },
           ].map((plan) => (
-            <div key={plan.name} className="p-6 flex items-center justify-center">
-              <Button asChild variant={plan.featured ? "primary" : "secondary"} size="lg">
-                <Link href={plan.href}>
-                  {plan.cta}
-                </Link>
-              </Button>
+            <div
+              key={plan.name}
+              className="flex items-center justify-center p-8"
+              style={{ background: "var(--bjhunt-bg)" }}
+            >
+              <Link
+                href={plan.href}
+                className="inline-flex items-center gap-2 px-5 py-3 font-mono uppercase transition-colors duration-200"
+                style={{
+                  fontSize: 11,
+                  letterSpacing: "0.22em",
+                  color: plan.featured ? "var(--bjhunt-text)" : "var(--bjhunt-text-muted)",
+                  border: plan.featured
+                    ? "1px solid var(--bjhunt-border-strong)"
+                    : "1px solid var(--bjhunt-border)",
+                  background: plan.featured ? "rgba(255,255,255,0.03)" : "transparent",
+                }}
+              >
+                {plan.cta}
+                <span aria-hidden>→</span>
+              </Link>
             </div>
           ))}
         </div>
       </section>
 
       {/* FAQ */}
-      <section className="py-20 px-8 md:px-12 max-w-2xl">
-        <SectionLabel>FAQ</SectionLabel>
-        <h2 className="text-3xl font-black mt-4 mb-8 tracking-[-0.03em]">Questions frequentes</h2>
-        {FAQS.map((faq, i) => (
-          <FAQItem key={i} q={faq.q} a={faq.a} />
-        ))}
+      <section className="relative z-10 max-w-3xl px-8 py-24 md:px-12 lg:px-16">
+        <p
+          className="m-0 mb-6 font-mono uppercase"
+          style={{ fontSize: 10, letterSpacing: "0.32em", color: "var(--bjhunt-text-subtle)" }}
+        >
+          08 / FAQ
+        </p>
+        <h2
+          className="m-0 mb-10"
+          style={{ fontSize: "clamp(32px, 5vw, 56px)", fontWeight: 200, letterSpacing: "-0.03em", lineHeight: 1.0 }}
+        >
+          Questions fréquentes<em className="not-italic" style={{ color: "var(--bjhunt-text-muted)", fontWeight: 200 }}>.</em>
+        </h2>
+        <div style={{ borderTop: "1px solid var(--bjhunt-border)" }}>
+          {FAQS.map((faq, i) => (
+            <FAQItem key={i} q={faq.q} a={faq.a} />
+          ))}
+        </div>
       </section>
     </div>
   );
