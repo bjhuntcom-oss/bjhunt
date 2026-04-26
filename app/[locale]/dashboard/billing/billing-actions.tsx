@@ -3,11 +3,15 @@
 import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Link } from '@/i18n/routing'
+import { Button } from '@/components/ui/button'
 import { browserBackendFetch } from '@/lib/backend-client'
 
 // W10 frontend client-side actions: drives Stripe checkout + portal.
-// Both buttons fall back to a /contact link with explanatory text when
+// Both buttons fall back to an info banner with a Contact link when
 // the backend reports stripe_not_configured (env vars unset).
+//
+// Refonte 2026 (Wave B8) — refactored to use the shared <Button> primitive
+// (state-success "Upgrade", ghost "Manage") and design-token banners.
 
 interface Props {
   plan: string
@@ -24,10 +28,6 @@ export function BillingActions({ plan, locale }: Props) {
     setLoading('checkout')
     setError(null)
     try {
-      // The backend reads priceId from the request body; the actual price
-      // ids come from the STRIPE_PRICE_PRO / STRIPE_PRICE_ENTERPRISE env
-      // vars on the server side. We pass the tier as a hint and let the
-      // backend translate.
       const res = await browserBackendFetch('/api/billing/checkout', {
         method: 'POST',
         body: JSON.stringify({ priceId: priceTier }),
@@ -54,9 +54,7 @@ export function BillingActions({ plan, locale }: Props) {
     setLoading('portal')
     setError(null)
     try {
-      const res = await browserBackendFetch('/api/billing/portal', {
-        method: 'POST',
-      })
+      const res = await browserBackendFetch('/api/billing/portal', { method: 'POST' })
       if (res.status === 501) {
         setStripeOff(true)
         return
@@ -75,20 +73,38 @@ export function BillingActions({ plan, locale }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-3 mt-2">
+    <div className="flex flex-col gap-3">
       {error && (
         <div
           role="alert"
-          className="border border-red-500/40 bg-red-500/10 px-3 py-2 text-[10px] font-mono text-red-300"
+          className="px-3 py-2"
+          style={{
+            border: '1px solid var(--bjhunt-status-danger, #fb565b)',
+            background: 'var(--bjhunt-severity-critical-bg, rgba(255,69,58,0.12))',
+            color: 'var(--bjhunt-status-danger, #fb565b)',
+            fontFamily: 'var(--bjhunt-font-sans)',
+            fontSize: 13,
+            borderRadius: 'var(--bjhunt-radius, 6px)',
+          }}
         >
           {error}
         </div>
       )}
 
       {stripeOff && (
-        <div className="border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[10px] font-mono text-amber-200">
+        <div
+          className="px-3 py-2"
+          style={{
+            border: '1px solid var(--bjhunt-status-warning, #ffba00)',
+            background: 'var(--bjhunt-severity-medium-bg, rgba(255,186,0,0.12))',
+            color: 'var(--bjhunt-status-warning, #ffba00)',
+            fontFamily: 'var(--bjhunt-font-sans)',
+            fontSize: 13,
+            borderRadius: 'var(--bjhunt-radius, 6px)',
+          }}
+        >
           {isFr
-            ? "Le paiement automatique n'est pas encore actif. Contactez l'équipe pour activer Pro / Enterprise manuellement — c'est immédiat."
+            ? "Le paiement automatique n'est pas encore actif. Contactez l'equipe pour activer Pro / Enterprise manuellement — c'est immediat."
             : 'Self-service checkout is not active yet. Contact the team to activate Pro / Enterprise manually — same-day turnaround.'}
         </div>
       )}
@@ -96,39 +112,47 @@ export function BillingActions({ plan, locale }: Props) {
       <div className="flex flex-wrap gap-2">
         {plan === 'free' && (
           <>
-            <button
-              type="button"
+            <Button
+              variant="success"
+              size="md"
               onClick={() => onUpgrade('pro')}
               disabled={loading !== null}
-              className="inline-flex items-center gap-2 px-4 py-2 text-[10px] font-mono font-bold uppercase tracking-widest bg-white text-black hover:bg-white/90 transition-colors disabled:opacity-50"
             >
-              {loading === 'checkout' && <Loader2 className="h-3 w-3 animate-spin" />}
+              {loading === 'checkout' && <Loader2 className="h-3 w-3 animate-spin mr-2" />}
               {isFr ? 'Passer en Pro' : 'Upgrade to Pro'}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
               onClick={() => onUpgrade('enterprise')}
               disabled={loading !== null}
-              className="inline-flex items-center gap-2 px-4 py-2 text-[10px] font-mono font-bold uppercase tracking-widest border border-[var(--border)] text-white hover:bg-[var(--bg-card)] transition-colors disabled:opacity-50"
             >
               {isFr ? 'Demander Enterprise' : 'Request Enterprise'}
-            </button>
+            </Button>
           </>
         )}
         {plan !== 'free' && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="md"
             onClick={onPortal}
             disabled={loading !== null}
-            className="inline-flex items-center gap-2 px-4 py-2 text-[10px] font-mono font-bold uppercase tracking-widest border border-[var(--border)] text-white hover:bg-[var(--bg-card)] transition-colors disabled:opacity-50"
           >
-            {loading === 'portal' && <Loader2 className="h-3 w-3 animate-spin" />}
-            {isFr ? 'Gérer mon abonnement' : 'Manage subscription'}
-          </button>
+            {loading === 'portal' && <Loader2 className="h-3 w-3 animate-spin mr-2" />}
+            {isFr ? 'Gerer mon abonnement' : 'Manage subscription'}
+          </Button>
         )}
         <Link
           href="/pricing"
-          className="inline-flex items-center px-4 py-2 text-[10px] font-mono font-bold uppercase tracking-widest text-[var(--text-muted)] hover:text-white transition-colors"
+          className="inline-flex items-center transition-colors"
+          style={{
+            fontFamily: 'var(--bjhunt-font-sans)',
+            fontSize: 13,
+            color: 'var(--bjhunt-text-muted)',
+            padding: '0 16px',
+            height: 36,
+            lineHeight: '36px',
+          }}
         >
           {isFr ? 'Voir les plans' : 'View plans'}
         </Link>

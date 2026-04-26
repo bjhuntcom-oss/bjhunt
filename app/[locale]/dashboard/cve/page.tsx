@@ -5,6 +5,7 @@ import Link from "next/link";
 import { browserBackendFetch } from "@/lib/backend-client";
 import { PlanGate } from "@/components/dashboard/plan-gate";
 import { usePlan } from "@/lib/use-plan";
+import { PageHero, Eyebrow, StatusDot } from "@/components/ui/page-hero";
 import {
   Search,
   Shield,
@@ -33,19 +34,39 @@ interface CveResult {
 
 // ── Constants ───────────────────────────────────────────────────────────
 
-const SEVERITY_COLORS: Record<string, string> = {
-  CRITICAL: "#ff4444",
-  HIGH: "#ff6b35",
-  MEDIUM: "#ff9900",
-  LOW: "#00cc8a",
+const SEVERITY_TONE: Record<string, "critical" | "warning" | "success" | "neutral"> = {
+  CRITICAL: "critical",
+  HIGH: "critical",
+  MEDIUM: "warning",
+  LOW: "success",
 };
 
-const SEVERITY_BG: Record<string, string> = {
-  CRITICAL: "rgba(255,68,68,0.08)",
-  HIGH: "rgba(255,107,53,0.08)",
-  MEDIUM: "rgba(255,153,0,0.08)",
-  LOW: "rgba(0,204,138,0.08)",
+const TONE_COLORS = {
+  critical: "var(--bjhunt-status-danger, #fb565b)",
+  warning: "var(--bjhunt-status-warning, #ffba00)",
+  success: "var(--bjhunt-status-success, #00d992)",
+  neutral: "var(--bjhunt-text-muted, #8b949e)",
 };
+
+const TONE_BG = {
+  critical: "var(--bjhunt-severity-critical-bg, rgba(255,69,58,0.12))",
+  warning: "var(--bjhunt-severity-medium-bg, rgba(255,186,0,0.12))",
+  success: "var(--bjhunt-severity-low-bg, rgba(0,217,146,0.12))",
+  neutral: "transparent",
+};
+
+const CARD_STYLE: React.CSSProperties = {
+  background: "var(--bjhunt-bg-secondary, var(--surface, #101010))",
+  borderColor: "var(--bjhunt-border, #3d3a39)",
+  borderRadius: "var(--bjhunt-radius-md, 8px)",
+};
+
+// CVSS color: same 3-state logic but expressed via tokens
+function cvssTone(score: number): "critical" | "warning" | "success" {
+  if (score >= 7.0) return "critical";
+  if (score >= 4.0) return "warning";
+  return "success";
+}
 
 // ── Component ───────────────────────────────────────────────────────────
 
@@ -59,8 +80,6 @@ export default function CveIntelligencePage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  // ── Fetch trending CVEs on mount ────────────────────────────────────
 
   const fetchTrending = useCallback(async () => {
     try {
@@ -78,8 +97,6 @@ export default function CveIntelligencePage() {
     fetchTrending();
   }, [fetchTrending]);
 
-  // ── Search ──────────────────────────────────────────────────────────
-
   const handleSearch = async () => {
     const q = searchInput.trim();
     if (!q) return;
@@ -91,7 +108,6 @@ export default function CveIntelligencePage() {
     try {
       let url: string;
       if (searchMode === "package") {
-        // Split "package version" format
         const parts = q.split(/\s+/);
         const pkg = parts[0];
         const version = parts.slice(1).join(" ");
@@ -112,24 +128,11 @@ export default function CveIntelligencePage() {
     }
   };
 
-  // ── Copy CVE ID ─────────────────────────────────────────────────────
-
   const copyCveId = (cveId: string) => {
     navigator.clipboard.writeText(cveId);
     setCopiedId(cveId);
     setTimeout(() => setCopiedId(null), 2000);
   };
-
-  // ── CVSS color ──────────────────────────────────────────────────────
-
-  const cvssColor = (score: number): string => {
-    if (score >= 9.0) return "#ff4444";
-    if (score >= 7.0) return "#ff6b35";
-    if (score >= 4.0) return "#ff9900";
-    return "#00cc8a";
-  };
-
-  // ── EPSS bar width ─────────────────────────────────────────────────
 
   const epssWidth = (epss: number): string => `${Math.round(epss * 100)}%`;
 
@@ -137,135 +140,191 @@ export default function CveIntelligencePage() {
 
   const CveCard = ({ cve, compact = false }: { cve: CveResult; compact?: boolean }) => {
     const isExpanded = expandedId === cve.cveId;
-    const sevColor = SEVERITY_COLORS[cve.severity] || "#999";
-    const sevBg = SEVERITY_BG[cve.severity] || "transparent";
+    const sevTone = SEVERITY_TONE[cve.severity] || "neutral";
+    const sevColor = TONE_COLORS[sevTone];
+    const sevBg = TONE_BG[sevTone];
+    const cvss = cvssTone(cve.cvss);
 
     return (
-      <div className="border border-[var(--border)] bg-[var(--bg-card)]">
-        {/* Header row */}
+      <div className="border" style={CARD_STYLE}>
         <button
           onClick={() => setExpandedId(isExpanded ? null : cve.cveId)}
-          className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-[var(--bg-input)]/30 transition-colors"
+          className="w-full flex items-start gap-3 px-4 py-4 text-left transition-colors hover:bg-white/[0.02]"
         >
-          {/* Expand chevron */}
           {!compact && (
-            <div className="w-3 flex-shrink-0 mt-0.5 text-[var(--text-subtle)]">
-              {isExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-            </div>
+            <span className="shrink-0 mt-1" style={{ color: "var(--bjhunt-text-muted)" }}>
+              {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            </span>
           )}
 
-          {/* CVE ID */}
-          <div className="flex-shrink-0">
-            <span
-              className="text-[11px] font-mono font-bold"
-              style={{ color: "#00cc8a" }}
-            >
-              {cve.cveId}
-            </span>
-          </div>
+          <span
+            className="shrink-0"
+            style={{
+              fontFamily: "var(--bjhunt-font-mono)",
+              fontSize: 14,
+              fontWeight: 600,
+              color: "var(--bjhunt-text)",
+            }}
+          >
+            {cve.cveId}
+          </span>
 
-          {/* Severity badge */}
-          <div className="flex-shrink-0">
-            <span
-              className="inline-block text-[8px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5"
-              style={{
-                color: sevColor,
-                background: sevBg,
-                border: `1px solid ${sevColor}`,
-              }}
-            >
-              {cve.severity}
-            </span>
-          </div>
+          <span
+            className="shrink-0 inline-flex items-center"
+            style={{
+              fontFamily: "var(--bjhunt-font-mono)",
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: sevColor,
+              border: `1px solid ${sevColor}`,
+              background: sevBg,
+              borderRadius: "var(--bjhunt-radius-sm, 4px)",
+              padding: "2px 6px",
+            }}
+          >
+            {cve.severity}
+          </span>
 
-          {/* CVSS score */}
-          <div className="flex-shrink-0">
-            <span
-              className="text-[10px] font-mono font-bold"
-              style={{ color: cvssColor(cve.cvss) }}
-            >
-              {cve.cvss.toFixed(1)}
-            </span>
-          </div>
+          <span
+            className="shrink-0"
+            style={{
+              fontFamily: "var(--bjhunt-font-mono)",
+              fontSize: 14,
+              fontWeight: 600,
+              color: TONE_COLORS[cvss],
+            }}
+          >
+            {cve.cvss.toFixed(1)}
+          </span>
 
-          {/* Description */}
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-mono text-[var(--text-muted)] line-clamp-2 leading-relaxed">
-              {cve.description}
-            </p>
-          </div>
+          <p
+            className="flex-1 min-w-0 line-clamp-2"
+            style={{
+              fontFamily: "var(--bjhunt-font-sans)",
+              fontSize: 13,
+              lineHeight: 1.5,
+              color: "var(--bjhunt-text-muted)",
+              margin: 0,
+            }}
+          >
+            {cve.description}
+          </p>
         </button>
 
-        {/* Expanded detail */}
         {isExpanded && (
-          <div className="px-4 pb-4 border-t border-[var(--border)]">
-            <div className="pt-3 space-y-4">
-              {/* CVSS + EPSS row */}
-              <div className="flex items-start gap-6 flex-wrap">
-                {/* CVSS */}
+          <div
+            className="px-4 pb-4 border-t"
+            style={{ borderColor: "var(--bjhunt-border, #3d3a39)" }}
+          >
+            <div className="pt-4 space-y-5">
+              <div className="flex items-start gap-8 flex-wrap">
                 <div>
-                  <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                    CVSS 3.1
-                  </div>
-                  <div className="flex items-center gap-2">
+                  <Eyebrow>CVSS 3.1</Eyebrow>
+                  <div className="flex items-center gap-2 mt-1">
                     <span
-                      className="text-[16px] font-mono font-bold"
-                      style={{ color: cvssColor(cve.cvss) }}
+                      style={{
+                        fontFamily: "var(--bjhunt-font-mono)",
+                        fontSize: 24,
+                        fontWeight: 600,
+                        color: TONE_COLORS[cvss],
+                      }}
                     >
                       {cve.cvss.toFixed(1)}
                     </span>
-                    <span className="text-[9px] font-mono text-[var(--text-subtle)]">
+                    <span
+                      style={{
+                        fontFamily: "var(--bjhunt-font-mono)",
+                        fontSize: 13,
+                        color: "var(--bjhunt-text-muted)",
+                      }}
+                    >
                       {cve.cvssVector}
                     </span>
                   </div>
                 </div>
 
-                {/* EPSS */}
                 <div>
-                  <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                    EPSS Score
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[13px] font-mono font-bold text-white">
+                  <Eyebrow>EPSS Score</Eyebrow>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span
+                      style={{
+                        fontFamily: "var(--bjhunt-font-mono)",
+                        fontSize: 18,
+                        fontWeight: 600,
+                        color: "var(--bjhunt-text)",
+                      }}
+                    >
                       {(cve.epss * 100).toFixed(1)}%
                     </span>
-                    <div className="w-[80px] h-[6px] bg-[var(--bg-input)] border border-[var(--border)]">
+                    <div
+                      className="w-[100px] h-1.5"
+                      style={{
+                        background: "var(--bjhunt-bg, #050507)",
+                        border: "1px solid var(--bjhunt-border, #3d3a39)",
+                        borderRadius: "var(--bjhunt-radius-pill, 9999px)",
+                      }}
+                    >
                       <div
                         className="h-full transition-all"
                         style={{
                           width: epssWidth(cve.epss),
-                          background: cve.epss > 0.5 ? "#ff4444" : cve.epss > 0.2 ? "#ff9900" : "#00cc8a",
+                          background:
+                            cve.epss > 0.5
+                              ? TONE_COLORS.critical
+                              : cve.epss > 0.2
+                                ? TONE_COLORS.warning
+                                : TONE_COLORS.success,
+                          borderRadius: "var(--bjhunt-radius-pill, 9999px)",
                         }}
                       />
                     </div>
                   </div>
-                  <div className="text-[8px] font-mono text-[var(--text-subtle)] mt-0.5">
+                  <p
+                    className="mt-1"
+                    style={{
+                      fontFamily: "var(--bjhunt-font-sans)",
+                      fontSize: 13,
+                      color: "var(--bjhunt-text-muted)",
+                    }}
+                  >
                     Probability of exploitation in 30 days
-                  </div>
+                  </p>
                 </div>
               </div>
 
-              {/* Description */}
               <div>
-                <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                  Description
-                </div>
-                <p className="text-[11px] font-mono text-[var(--text-muted)] leading-relaxed whitespace-pre-wrap">
+                <Eyebrow>Description</Eyebrow>
+                <p
+                  className="mt-2"
+                  style={{
+                    fontFamily: "var(--bjhunt-font-sans)",
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                    color: "var(--bjhunt-text)",
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
                   {cve.description}
                 </p>
               </div>
 
-              {/* Affected products */}
               {cve.products.length > 0 && (
                 <div>
-                  <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                    Affected Products
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
+                  <Eyebrow>Affected Products</Eyebrow>
+                  <div className="mt-2 flex items-center gap-1.5 flex-wrap">
                     {cve.products.map((p) => (
                       <span
                         key={p}
-                        className="text-[9px] font-mono text-[var(--text-muted)] bg-[var(--bg-input)] border border-[var(--border)] px-1.5 py-0.5"
+                        style={{
+                          fontFamily: "var(--bjhunt-font-mono)",
+                          fontSize: 12,
+                          color: "var(--bjhunt-text)",
+                          border: "1px solid var(--bjhunt-border, #3d3a39)",
+                          borderRadius: "var(--bjhunt-radius-sm, 4px)",
+                          padding: "2px 6px",
+                        }}
                       >
                         {p}
                       </span>
@@ -274,23 +333,33 @@ export default function CveIntelligencePage() {
                 </div>
               )}
 
-              {/* References */}
               {cve.references.length > 0 && (
                 <div>
-                  <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                    References
-                  </div>
-                  <div className="flex flex-col gap-1">
+                  <Eyebrow>References</Eyebrow>
+                  <div className="mt-2 flex flex-col gap-1">
                     {cve.references.map((ref) => (
                       <a
                         key={ref.url}
                         href={ref.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-[9px] font-mono text-[var(--success)] hover:text-white transition-colors group"
+                        className="inline-flex items-center gap-1.5 transition-colors group"
+                        style={{
+                          fontFamily: "var(--bjhunt-font-sans)",
+                          fontSize: 13,
+                          color: "var(--bjhunt-status-success, #00d992)",
+                        }}
                       >
-                        <ExternalLink size={9} className="flex-shrink-0 opacity-50 group-hover:opacity-100" />
-                        <span className="text-[8px] text-[var(--text-subtle)]">[{ref.source}]</span>
+                        <ExternalLink size={11} className="opacity-60 group-hover:opacity-100" />
+                        <span
+                          style={{
+                            fontFamily: "var(--bjhunt-font-mono)",
+                            fontSize: 12,
+                            color: "var(--bjhunt-text-muted)",
+                          }}
+                        >
+                          [{ref.source}]
+                        </span>
                         <span className="truncate">{ref.url}</span>
                       </a>
                     ))}
@@ -298,13 +367,17 @@ export default function CveIntelligencePage() {
                 </div>
               )}
 
-              {/* Dates */}
-              <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-6 flex-wrap">
                 <div>
-                  <span className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)]">
-                    Published:{" "}
-                  </span>
-                  <span className="text-[9px] font-mono text-[var(--text-muted)]">
+                  <Eyebrow>Published</Eyebrow>
+                  <span
+                    className="ml-2"
+                    style={{
+                      fontFamily: "var(--bjhunt-font-mono)",
+                      fontSize: 13,
+                      color: "var(--bjhunt-text)",
+                    }}
+                  >
                     {new Date(cve.published).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "short",
@@ -313,10 +386,15 @@ export default function CveIntelligencePage() {
                   </span>
                 </div>
                 <div>
-                  <span className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)]">
-                    Modified:{" "}
-                  </span>
-                  <span className="text-[9px] font-mono text-[var(--text-muted)]">
+                  <Eyebrow>Modified</Eyebrow>
+                  <span
+                    className="ml-2"
+                    style={{
+                      fontFamily: "var(--bjhunt-font-mono)",
+                      fontSize: 13,
+                      color: "var(--bjhunt-text)",
+                    }}
+                  >
                     {new Date(cve.modified).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "short",
@@ -326,32 +404,45 @@ export default function CveIntelligencePage() {
                 </div>
               </div>
 
-              {/* Action buttons */}
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex items-center gap-2 pt-1 flex-wrap">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     copyCveId(cve.cveId);
                   }}
-                  className="flex items-center gap-1.5 text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-white px-2 py-1.5 border border-[var(--border)] transition-colors"
+                  className="inline-flex items-center gap-2 transition-colors"
+                  style={{
+                    fontFamily: "var(--bjhunt-font-sans)",
+                    fontSize: 13,
+                    color: "var(--bjhunt-text)",
+                    border: "1px solid var(--bjhunt-border, #3d3a39)",
+                    borderRadius: "var(--bjhunt-radius, 6px)",
+                    padding: "0 12px",
+                    height: 36,
+                    background: "transparent",
+                  }}
                 >
-                  <Copy size={9} />
+                  <Copy size={11} />
                   {copiedId === cve.cveId ? "Copied" : "Copy CVE ID"}
                 </button>
-                {/* Bridges the dead "Create Exploit Objective" CTA (DOC-07 audit P1)
-                    by handing the CVE off to the chat with an OPPLAN seed prompt.
-                    The full POST /api/engagements/:id/opplan/objectives endpoint
-                    lands in W8 — until then the user gets an instant, working
-                    workflow instead of a no-op button. */}
                 <Link
                   href={`/dashboard/chat?seed=${encodeURIComponent(
                     `Create an exploitation objective for ${cve.cveId} ` +
-                    `(${cve.severity ?? 'unknown severity'}, CVSS ${cve.cvss ?? 'n/a'}). ` +
-                    `Describe the attack chain and propose verification steps.`
+                      `(${cve.severity ?? "unknown severity"}, CVSS ${cve.cvss ?? "n/a"}). ` +
+                      `Describe the attack chain and propose verification steps.`
                   )}`}
-                  className="flex items-center gap-1.5 text-[8px] font-mono uppercase tracking-widest text-[var(--success)] hover:text-white px-2 py-1.5 border border-[var(--success)]/30 hover:border-[var(--success)] transition-colors"
+                  className="inline-flex items-center gap-2 transition-colors"
+                  style={{
+                    fontFamily: "var(--bjhunt-font-sans)",
+                    fontSize: 13,
+                    color: "var(--bjhunt-status-success, #00d992)",
+                    border: "1px solid var(--bjhunt-status-success, #00d992)",
+                    borderRadius: "var(--bjhunt-radius, 6px)",
+                    padding: "0 12px",
+                    height: 36,
+                  }}
                 >
-                  <Crosshair size={9} />
+                  <Crosshair size={11} />
                   Create Exploit Objective
                 </Link>
               </div>
@@ -362,204 +453,313 @@ export default function CveIntelligencePage() {
     );
   };
 
-  // ── Render ──────────────────────────────────────────────────────────
-
   return (
     <PlanGate requiredPlan="pro" currentPlan={plan} featureName="CVE Intelligence">
-    <div className="p-6 md:p-8 max-w-6xl">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-[13px] font-mono font-bold uppercase tracking-[0.2em] text-white">
-          CVE INTELLIGENCE
-        </h1>
-        <p className="text-[10px] text-[var(--text-subtle)] font-mono mt-1">
-          Search vulnerabilities by CVE ID or affected package using NVD + EPSS + OSV data
-        </p>
-        <Link
-          href="/dashboard/cve/dependencies"
-          className="inline-flex items-center gap-1.5 mt-3 text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-white px-3 py-1.5 border border-[var(--border)] hover:border-[var(--border-strong)] transition-colors"
-        >
-          <Package size={10} />
-          Dependency Scanner
-        </Link>
-      </div>
+      <div className="px-4 md:px-8 py-6 md:py-10 max-w-[1280px] mx-auto">
+        <PageHero
+          eyebrow="06 / CVE INTEL"
+          title="CVE Intelligence"
+          lede="Search vulnerabilities by CVE ID or affected package using NVD + EPSS + OSV data."
+          actions={
+            <Link
+              href="/dashboard/cve/dependencies"
+              className="inline-flex items-center gap-2 transition-colors"
+              style={{
+                fontFamily: "var(--bjhunt-font-sans)",
+                fontSize: 13,
+                color: "var(--bjhunt-text)",
+                border: "1px solid var(--bjhunt-border, #3d3a39)",
+                borderRadius: "var(--bjhunt-radius, 6px)",
+                padding: "0 16px",
+                height: 36,
+                background: "transparent",
+              }}
+            >
+              <Package size={14} />
+              Dependency Scanner
+            </Link>
+          }
+        />
 
-      {/* Search bar */}
-      <div className="mb-6">
-        {/* Mode toggle */}
-        <div className="flex items-center gap-0 mb-2">
-          <button
-            onClick={() => setSearchMode("cve")}
-            className={`text-[8px] font-mono uppercase tracking-widest px-3 py-1.5 border transition-colors ${
-              searchMode === "cve"
-                ? "text-white bg-[var(--bg-card)] border-[var(--border-strong)]"
-                : "text-[var(--text-subtle)] border-[var(--border)] hover:text-[var(--text-muted)]"
-            }`}
+        {/* Search bar */}
+        <div className="mb-6">
+          {/* Mode toggle */}
+          <div
+            className="inline-flex items-center mb-3 border overflow-hidden"
+            style={{
+              borderColor: "var(--bjhunt-border, #3d3a39)",
+              borderRadius: "var(--bjhunt-radius, 6px)",
+            }}
           >
-            By CVE
-          </button>
-          <button
-            onClick={() => setSearchMode("package")}
-            className={`text-[8px] font-mono uppercase tracking-widest px-3 py-1.5 border border-l-0 transition-colors ${
-              searchMode === "package"
-                ? "text-white bg-[var(--bg-card)] border-[var(--border-strong)]"
-                : "text-[var(--text-subtle)] border-[var(--border)] hover:text-[var(--text-muted)]"
-            }`}
-          >
-            By Package
-          </button>
-        </div>
-
-        {/* Search input */}
-        <div className="flex items-center border border-[var(--border)] bg-[var(--bg-input)]">
-          <Search
-            size={14}
-            className="ml-3 text-[var(--text-subtle)] flex-shrink-0"
-          />
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            placeholder={
-              searchMode === "cve"
-                ? "Search CVE (e.g., CVE-2024-1234) or keyword"
-                : "Search package (e.g., apache 2.4.49)"
-            }
-            className="bg-transparent text-[11px] font-mono text-white px-3 py-3 outline-none flex-1 placeholder:text-[var(--text-subtle)]"
-          />
-          <button
-            onClick={handleSearch}
-            disabled={loading}
-            className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-white px-4 py-3 border-l border-[var(--border)] transition-colors disabled:opacity-40"
-          >
-            {loading ? "Searching..." : "Search"}
-          </button>
-        </div>
-      </div>
-
-      {/* Search results */}
-      {hasSearched && (
-        <div className="mb-8">
-          <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-3">
-            Results ({results.length})
+            {(["cve", "package"] as const).map((mode, idx) => (
+              <button
+                key={mode}
+                onClick={() => setSearchMode(mode)}
+                className="px-4 transition-colors"
+                style={{
+                  height: 36,
+                  fontFamily: "var(--bjhunt-font-sans)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color:
+                    searchMode === mode
+                      ? "var(--bjhunt-text)"
+                      : "var(--bjhunt-text-muted)",
+                  background:
+                    searchMode === mode
+                      ? "var(--bjhunt-bg-secondary, var(--surface, #101010))"
+                      : "transparent",
+                  borderLeft:
+                    idx === 0 ? "none" : "1px solid var(--bjhunt-border, #3d3a39)",
+                }}
+              >
+                By {mode === "cve" ? "CVE" : "Package"}
+              </button>
+            ))}
           </div>
-          {loading ? (
-            <div className="border border-[var(--border)] px-4 py-12 text-center">
-              <p className="text-[10px] font-mono text-[var(--text-subtle)] animate-pulse">
-                Querying CVE databases...
-              </p>
-            </div>
-          ) : results.length === 0 ? (
-            <div className="border border-[var(--border)] px-4 py-12 text-center">
-              <Shield
-                size={24}
-                className="mx-auto mb-2 text-[var(--text-subtle)]"
-              />
-              <p className="text-[10px] font-mono text-[var(--text-muted)]">
-                No vulnerabilities found for this query.
-              </p>
-              <p className="text-[9px] font-mono text-[var(--text-subtle)] mt-1">
-                Try a different CVE ID or package name.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {results.map((cve) => (
-                <CveCard key={cve.cveId} cve={cve} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
-      {/* Trending / Recent Critical CVEs */}
-      {!hasSearched && (
-        <div>
-          <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-3">
-            Trending Critical CVEs
+          <div
+            className="flex items-center border"
+            style={{
+              background: "var(--bjhunt-bg-secondary, var(--surface, #101010))",
+              borderColor: "var(--bjhunt-border, #3d3a39)",
+              borderRadius: "var(--bjhunt-radius, 6px)",
+              height: 40,
+            }}
+          >
+            <Search size={14} className="ml-3 shrink-0" style={{ color: "var(--bjhunt-text-muted)" }} />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              placeholder={
+                searchMode === "cve"
+                  ? "Search CVE (e.g., CVE-2024-1234) or keyword"
+                  : "Search package (e.g., apache 2.4.49)"
+              }
+              className="bg-transparent px-2 outline-none flex-1"
+              style={{
+                fontFamily: "var(--bjhunt-font-sans)",
+                fontSize: 14,
+                color: "var(--bjhunt-text)",
+                height: 38,
+              }}
+            />
+            <button
+              onClick={handleSearch}
+              disabled={loading}
+              className="px-5 transition-colors h-full border-l disabled:opacity-40"
+              style={{
+                fontFamily: "var(--bjhunt-font-mono)",
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: "var(--bjhunt-text)",
+                borderColor: "var(--bjhunt-border, #3d3a39)",
+              }}
+            >
+              {loading ? "Searching..." : "Search"}
+            </button>
           </div>
-          {trending.length === 0 ? (
-            <div className="border border-[var(--border)] px-4 py-12 text-center">
-              <p className="text-[10px] font-mono text-[var(--text-subtle)] animate-pulse">
-                Loading trending vulnerabilities...
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {trending.map((cve) => {
-                const sevColor = SEVERITY_COLORS[cve.severity] || "#999";
-                const sevBg = SEVERITY_BG[cve.severity] || "transparent";
+        </div>
 
-                return (
-                  <button
-                    key={cve.cveId}
-                    onClick={() => {
-                      setSearchInput(cve.cveId);
-                      setSearchMode("cve");
-                      setResults([cve]);
-                      setHasSearched(true);
-                      setExpandedId(cve.cveId);
-                    }}
-                    className="border border-[var(--border)] bg-[var(--bg-card)] p-4 text-left hover:bg-[var(--bg-input)]/30 transition-colors group"
-                  >
-                    {/* Top row: CVE ID + Severity */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className="text-[10px] font-mono font-bold"
-                        style={{ color: "#00cc8a" }}
-                      >
-                        {cve.cveId}
-                      </span>
-                      <span
-                        className="text-[7px] font-mono font-bold uppercase tracking-widest px-1 py-0.5"
+        {hasSearched && (
+          <div className="mb-8">
+            <div className="mb-3">
+              <Eyebrow>Results ({results.length})</Eyebrow>
+            </div>
+            {loading ? (
+              <div className="border px-4 py-12 text-center" style={CARD_STYLE}>
+                <p
+                  className="animate-pulse"
+                  style={{
+                    fontFamily: "var(--bjhunt-font-sans)",
+                    fontSize: 13,
+                    color: "var(--bjhunt-text-muted)",
+                  }}
+                >
+                  Querying CVE databases...
+                </p>
+              </div>
+            ) : results.length === 0 ? (
+              <div className="border px-4 py-12 text-center" style={CARD_STYLE}>
+                <Shield
+                  size={28}
+                  className="mx-auto mb-3"
+                  style={{ color: "var(--bjhunt-text-muted)" }}
+                />
+                <p
+                  style={{
+                    fontFamily: "var(--bjhunt-font-sans)",
+                    fontSize: 14,
+                    color: "var(--bjhunt-text)",
+                  }}
+                >
+                  No vulnerabilities found for this query.
+                </p>
+                <p
+                  className="mt-1"
+                  style={{
+                    fontFamily: "var(--bjhunt-font-sans)",
+                    fontSize: 13,
+                    color: "var(--bjhunt-text-muted)",
+                  }}
+                >
+                  Try a different CVE ID or package name.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {results.map((cve) => (
+                  <CveCard key={cve.cveId} cve={cve} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!hasSearched && (
+          <section>
+            <div className="mb-3">
+              <Eyebrow>Trending Critical CVEs</Eyebrow>
+            </div>
+            {trending.length === 0 ? (
+              <div className="border px-4 py-12 text-center" style={CARD_STYLE}>
+                <p
+                  className="animate-pulse"
+                  style={{
+                    fontFamily: "var(--bjhunt-font-sans)",
+                    fontSize: 13,
+                    color: "var(--bjhunt-text-muted)",
+                  }}
+                >
+                  Loading trending vulnerabilities...
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {trending.map((cve) => {
+                  const sevTone = SEVERITY_TONE[cve.severity] || "neutral";
+                  const sevColor = TONE_COLORS[sevTone];
+                  const sevBg = TONE_BG[sevTone];
+                  const cvss = cvssTone(cve.cvss);
+
+                  return (
+                    <button
+                      key={cve.cveId}
+                      onClick={() => {
+                        setSearchInput(cve.cveId);
+                        setSearchMode("cve");
+                        setResults([cve]);
+                        setHasSearched(true);
+                        setExpandedId(cve.cveId);
+                      }}
+                      className="border p-4 text-left transition-colors hover:bg-white/[0.02]"
+                      style={CARD_STYLE}
+                    >
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <span
+                          style={{
+                            fontFamily: "var(--bjhunt-font-mono)",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "var(--bjhunt-text)",
+                          }}
+                        >
+                          {cve.cveId}
+                        </span>
+                        <span
+                          style={{
+                            fontFamily: "var(--bjhunt-font-mono)",
+                            fontSize: 11,
+                            fontWeight: 600,
+                            letterSpacing: "0.18em",
+                            textTransform: "uppercase",
+                            color: sevColor,
+                            border: `1px solid ${sevColor}`,
+                            background: sevBg,
+                            borderRadius: "var(--bjhunt-radius-sm, 4px)",
+                            padding: "1px 5px",
+                          }}
+                        >
+                          {cve.severity}
+                        </span>
+                        <span
+                          className="ml-auto"
+                          style={{
+                            fontFamily: "var(--bjhunt-font-mono)",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: TONE_COLORS[cvss],
+                          }}
+                        >
+                          {cve.cvss.toFixed(1)}
+                        </span>
+                      </div>
+
+                      <p
+                        className="line-clamp-2 mb-3"
                         style={{
-                          color: sevColor,
-                          background: sevBg,
-                          border: `1px solid ${sevColor}`,
+                          fontFamily: "var(--bjhunt-font-sans)",
+                          fontSize: 13,
+                          lineHeight: 1.5,
+                          color: "var(--bjhunt-text-muted)",
                         }}
                       >
-                        {cve.severity}
-                      </span>
-                      <span
-                        className="text-[9px] font-mono font-bold ml-auto"
-                        style={{ color: cvssColor(cve.cvss) }}
-                      >
-                        {cve.cvss.toFixed(1)}
-                      </span>
-                    </div>
+                        {cve.description}
+                      </p>
 
-                    {/* Description */}
-                    <p className="text-[9px] font-mono text-[var(--text-muted)] line-clamp-2 leading-relaxed mb-2">
-                      {cve.description}
-                    </p>
-
-                    {/* EPSS bar */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-[8px] font-mono text-[var(--text-subtle)]">
-                        EPSS
-                      </span>
-                      <div className="flex-1 h-[3px] bg-[var(--bg-input)] border border-[var(--border)]">
-                        <div
-                          className="h-full"
+                      <div className="flex items-center gap-2">
+                        <span
                           style={{
-                            width: epssWidth(cve.epss),
-                            background: cve.epss > 0.5 ? "#ff4444" : "#ff9900",
+                            fontFamily: "var(--bjhunt-font-mono)",
+                            fontSize: 11,
+                            fontWeight: 600,
+                            letterSpacing: "0.18em",
+                            textTransform: "uppercase",
+                            color: "var(--bjhunt-text-muted)",
                           }}
-                        />
+                        >
+                          EPSS
+                        </span>
+                        <div
+                          className="flex-1 h-1"
+                          style={{
+                            background: "var(--bjhunt-bg, #050507)",
+                            border: "1px solid var(--bjhunt-border, #3d3a39)",
+                            borderRadius: "var(--bjhunt-radius-pill, 9999px)",
+                          }}
+                        >
+                          <div
+                            className="h-full"
+                            style={{
+                              width: epssWidth(cve.epss),
+                              background:
+                                cve.epss > 0.5 ? TONE_COLORS.critical : TONE_COLORS.warning,
+                              borderRadius: "var(--bjhunt-radius-pill, 9999px)",
+                            }}
+                          />
+                        </div>
+                        <span
+                          style={{
+                            fontFamily: "var(--bjhunt-font-mono)",
+                            fontSize: 12,
+                            color: "var(--bjhunt-text)",
+                          }}
+                        >
+                          {(cve.epss * 100).toFixed(0)}%
+                        </span>
                       </div>
-                      <span className="text-[8px] font-mono text-[var(--text-muted)]">
-                        {(cve.epss * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
+      </div>
     </PlanGate>
   );
 }

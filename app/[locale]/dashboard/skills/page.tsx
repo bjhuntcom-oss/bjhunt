@@ -4,11 +4,13 @@ import { useState, useEffect, useCallback } from "react";
 import { browserBackendFetch } from "@/lib/backend-client";
 import { PlanGate } from "@/components/dashboard/plan-gate";
 import { usePlan } from "@/lib/use-plan";
+import { PageHero, Eyebrow, StatusDot } from "@/components/ui/page-hero";
 import {
   Search,
   BookOpen,
   ChevronDown,
   ChevronRight,
+  X,
 } from "lucide-react";
 
 // ── Types ───────────────────────────────────────────────────────────────
@@ -48,37 +50,57 @@ const CATEGORY_LABELS: Record<string, string> = {
   exploiter: "Exploiter",
   shared: "Shared",
   soundwave: "Soundwave",
-  decepticon: "BJHUNT ALPHA 1.0",   // user-facing brand for the orchestrator graph (internal id stays for engine compat)
+  decepticon: "BJHUNT ALPHA 1.0",
   vulnresearch: "Vuln Research",
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
-  recon: "#4a9eff",
-  exploit: "#ff4444",
-  "post-exploit": "#ff6b35",
-  analyst: "#b366ff",
-  ad: "#ff9900",
-  cloud: "#00bcd4",
-  contracts: "#8bc34a",
-  reverser: "#e91e63",
-  scanner: "#4a9eff",
-  detector: "#00cc8a",
-  verifier: "#00cc8a",
-  patcher: "#8bc34a",
-  exploiter: "#ff4444",
-  shared: "#999",
-  soundwave: "#b366ff",
-  decepticon: "#fff",
-  vulnresearch: "#b366ff",
+// All categories now resolve to design-token state colors. This retires the
+// hardcoded #4a9eff / #ff4444 / etc. palette that violated the spec — and
+// the prior `decepticon: "#fff"` (pure white, banned outside hero/inverted).
+const CATEGORY_TONE: Record<
+  string,
+  "critical" | "warning" | "success" | "neutral"
+> = {
+  recon: "neutral",
+  exploit: "critical",
+  "post-exploit": "critical",
+  analyst: "neutral",
+  ad: "warning",
+  cloud: "neutral",
+  contracts: "success",
+  reverser: "neutral",
+  scanner: "neutral",
+  detector: "success",
+  verifier: "success",
+  patcher: "success",
+  exploiter: "critical",
+  shared: "neutral",
+  soundwave: "neutral",
+  decepticon: "neutral",
+  vulnresearch: "neutral",
 };
 
-const DIFFICULTY_COLORS: Record<string, string> = {
-  easy: "#00cc8a",
-  medium: "#ff9900",
-  hard: "#ff4444",
+const TONE_COLORS: Record<string, string> = {
+  critical: "var(--bjhunt-status-danger, #fb565b)",
+  warning: "var(--bjhunt-status-warning, #ffba00)",
+  success: "var(--bjhunt-status-success, #00d992)",
+  neutral: "var(--bjhunt-text-muted, #8b949e)",
 };
 
-const CATEGORY_TREE: { key: string; label: string; children?: { key: string; label: string }[] }[] = [
+const DIFFICULTY_TONE: Record<
+  string,
+  "success" | "warning" | "critical"
+> = {
+  easy: "success",
+  medium: "warning",
+  hard: "critical",
+};
+
+const CATEGORY_TREE: {
+  key: string;
+  label: string;
+  children?: { key: string; label: string }[];
+}[] = [
   {
     key: "recon",
     label: "Recon",
@@ -127,13 +149,7 @@ const CATEGORY_TREE: { key: string; label: string; children?: { key: string; lab
     ],
   },
   { key: "ad", label: "Active Directory" },
-  {
-    key: "cloud",
-    label: "Cloud",
-    children: [
-      { key: "aws-iam-enum", label: "AWS IAM Enum" },
-    ],
-  },
+  { key: "cloud", label: "Cloud", children: [{ key: "aws-iam-enum", label: "AWS IAM Enum" }] },
   { key: "contracts", label: "Smart Contracts" },
   { key: "reverser", label: "Reverse Engineering" },
   { key: "scanner", label: "Scanner" },
@@ -147,6 +163,13 @@ const CATEGORY_TREE: { key: string; label: string; children?: { key: string; lab
   { key: "decepticon", label: "BJHUNT ALPHA 1.0" },
 ];
 
+// Shared inline styles
+const CARD_STYLE: React.CSSProperties = {
+  background: "var(--bjhunt-bg-secondary, var(--surface, #101010))",
+  borderColor: "var(--bjhunt-border, #3d3a39)",
+  borderRadius: "var(--bjhunt-radius-md, 8px)",
+};
+
 // ── Component ───────────────────────────────────────────────────────────
 
 export default function SkillCatalogPage() {
@@ -158,7 +181,7 @@ export default function SkillCatalogPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-  const [expandedSkill, setExpandedSkill] = useState<string | null>(null);
+  const [drawerSkill, setDrawerSkill] = useState<SkillMeta | null>(null);
   const [skillDetail, setSkillDetail] = useState<SkillFull | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
@@ -188,21 +211,14 @@ export default function SkillCatalogPage() {
     fetchSkills();
   }, [fetchSkills]);
 
-  // ── Fetch single skill detail ───────────────────────────────────────
+  // ── Drawer open: fetch full skill body ──────────────────────────────
 
-  const fetchSkillDetail = async (skill: SkillMeta) => {
-    const key = skill.filePath;
-    if (expandedSkill === key) {
-      setExpandedSkill(null);
-      setSkillDetail(null);
-      return;
-    }
-
-    setExpandedSkill(key);
+  const openDrawer = async (skill: SkillMeta) => {
+    setDrawerSkill(skill);
+    setSkillDetail(null);
     setLoadingDetail(true);
 
     try {
-      // Derive category/name from filePath
       const parts = skill.filePath.split("/");
       const category = parts[0];
       const name = parts.length > 2 ? parts[1] : skill.name;
@@ -218,13 +234,16 @@ export default function SkillCatalogPage() {
     }
   };
 
+  const closeDrawer = () => {
+    setDrawerSkill(null);
+    setSkillDetail(null);
+  };
+
   // ── Search submit ───────────────────────────────────────────────────
 
   const handleSearch = () => {
     setSearchQuery(searchInput);
   };
-
-  // ── Toggle category tree ────────────────────────────────────────────
 
   const toggleTreeCategory = (key: string) => {
     setExpandedCategories((prev) => {
@@ -235,448 +254,624 @@ export default function SkillCatalogPage() {
     });
   };
 
-  // ── Displayed skills ───────────────────────────────────────────────
-
   const displayedSkills = skills;
 
   // ── Render ──────────────────────────────────────────────────────────
 
   return (
     <PlanGate requiredPlan="pro" currentPlan={plan} featureName="Skill Catalog">
-    <div className="p-6 md:p-10 max-w-7xl">
-      <header className="mb-12 md:mb-16">
-        <div
-          className="mb-5 inline-flex items-center gap-2"
-          style={{
-            fontFamily: 'var(--bjhunt-font-mono)',
-            fontSize: 10,
-            letterSpacing: '0.32em',
-            textTransform: 'uppercase',
-            color: 'var(--bjhunt-text-subtle)',
-          }}
-        >
-          <span
-            aria-hidden
-            style={{
-              width: 6,
-              height: 6,
-              background: 'var(--bjhunt-brand-primary)',
-              boxShadow: '0 0 8px var(--bjhunt-brand-primary)',
-              display: 'inline-block',
-            }}
-          />
-          <span>Skill Catalog</span>
-        </div>
-        <h1
-          style={{
-            fontFamily: 'var(--bjhunt-font-sans)',
-            fontWeight: 200,
-            fontSize: 'clamp(48px, 8vw, 96px)',
-            letterSpacing: '-0.04em',
-            lineHeight: 1.0,
-            color: 'var(--bjhunt-text)',
-            margin: 0,
-          }}
-        >
-          Skills
-        </h1>
-        <p
-          className="mt-5 max-w-2xl"
-          style={{
-            fontFamily: 'var(--bjhunt-font-sans)',
-            fontWeight: 300,
-            fontSize: 17,
-            lineHeight: 1.5,
-            color: 'var(--bjhunt-text-muted)',
-          }}
-        >
-          Browse offensive and defensive techniques the engine can execute —
-          filtered by category, MITRE ATT&amp;CK technique, or keyword.
-        </p>
-      </header>
-
-      {/* Search bar */}
-      <div className="flex items-center border border-[var(--border)] bg-[var(--bg-input)] mb-6">
-        <Search
-          size={12}
-          className="ml-2 text-[var(--text-subtle)] flex-shrink-0"
+      <div className="px-4 md:px-8 py-6 md:py-10 max-w-[1280px] mx-auto">
+        <PageHero
+          eyebrow="03 / SKILLS"
+          title="Skills"
+          lede="Browse offensive and defensive techniques the engine can execute — filtered by category, MITRE ATT&CK technique, or keyword."
         />
-        <input
-          type="text"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          placeholder="Filter skills by name, keyword, or MITRE technique (e.g., T1595)..."
-          className="bg-transparent text-[10px] font-mono text-white px-2 py-2 outline-none flex-1 placeholder:text-[var(--text-subtle)]"
-        />
-        <button
-          onClick={handleSearch}
-          className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-white px-3 py-2 border-l border-[var(--border)] transition-colors"
-        >
-          Filter
-        </button>
-        {(searchQuery || selectedCategory) && (
-          <button
-            onClick={() => {
-              setSearchInput("");
-              setSearchQuery("");
-              setSelectedCategory(null);
-            }}
-            className="text-[8px] font-mono uppercase tracking-widest text-[var(--danger)] hover:text-white px-2 py-2 border-l border-[var(--border)] transition-colors"
-          >
-            Clear
-          </button>
-        )}
-      </div>
 
-      {/* Main layout: sidebar + content */}
-      <div className="flex gap-4">
-        {/* Category sidebar */}
-        <div
-          className="flex-shrink-0 border border-[var(--border)] bg-[var(--bg-card)] overflow-y-auto"
-          style={{ width: 200, maxHeight: "calc(100vh - 220px)" }}
-        >
-          <div className="px-3 py-2 border-b border-[var(--border)]">
-            <span className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)]">
-              Categories
-            </span>
-          </div>
-
-          <div className="py-1">
-            {/* All */}
+        {/* Filter chips row */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <Eyebrow>{selectedCategory ? "FILTER" : "ALL"}</Eyebrow>
+          {selectedCategory && (
             <button
               onClick={() => setSelectedCategory(null)}
-              className={`w-full text-left px-3 py-1.5 text-[9px] font-mono uppercase tracking-wide transition-colors ${
-                selectedCategory === null
-                  ? "text-white bg-[var(--bg-input)]"
-                  : "text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-input)]/50"
-              }`}
+              className="inline-flex items-center gap-1.5 transition-colors"
+              style={{
+                fontFamily: "var(--bjhunt-font-mono)",
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: TONE_COLORS[CATEGORY_TONE[selectedCategory] || "neutral"],
+                border: `1px solid ${TONE_COLORS[CATEGORY_TONE[selectedCategory] || "neutral"]}`,
+                borderRadius: "var(--bjhunt-radius-sm, 4px)",
+                padding: "4px 8px",
+                background: "transparent",
+              }}
             >
-              All Skills
-              <span className="text-[8px] text-[var(--text-subtle)] ml-1">
-                ({skills.length})
-              </span>
+              {CATEGORY_LABELS[selectedCategory] || selectedCategory}
+              <X size={10} />
             </button>
-
-            {CATEGORY_TREE.map((cat) => {
-              const isExpanded = expandedCategories.has(cat.key);
-              const isActive = selectedCategory === cat.key;
-              const count = grouped[cat.key]?.length ?? 0;
-
-              return (
-                <div key={cat.key}>
-                  <div className="flex items-center">
-                    {cat.children && (
-                      <button
-                        onClick={() => toggleTreeCategory(cat.key)}
-                        className="px-1 py-1.5 text-[var(--text-subtle)] hover:text-white"
-                      >
-                        {isExpanded ? (
-                          <ChevronDown size={8} />
-                        ) : (
-                          <ChevronRight size={8} />
-                        )}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setSelectedCategory(isActive ? null : cat.key)}
-                      className={`flex-1 text-left py-1.5 text-[9px] font-mono uppercase tracking-wide transition-colors ${
-                        !cat.children ? "px-3" : "pr-3"
-                      } ${
-                        isActive
-                          ? "text-white bg-[var(--bg-input)]"
-                          : "text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-input)]/50"
-                      }`}
-                    >
-                      <span
-                        className="inline-block w-1.5 h-1.5 mr-1.5"
-                        style={{
-                          background: CATEGORY_COLORS[cat.key] || "#999",
-                        }}
-                      />
-                      {cat.label}
-                      {count > 0 && (
-                        <span className="text-[8px] text-[var(--text-subtle)] ml-1">
-                          {count}
-                        </span>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Subcategories */}
-                  {cat.children && isExpanded && (
-                    <div className="ml-4 border-l border-[var(--border)]">
-                      {cat.children.map((sub) => (
-                        <button
-                          key={sub.key}
-                          onClick={() => {
-                            setSearchInput(sub.key);
-                            setSearchQuery(sub.key);
-                            setSelectedCategory(cat.key);
-                          }}
-                          className="w-full text-left pl-3 py-1 text-[8px] font-mono text-[var(--text-subtle)] hover:text-[var(--text-muted)] transition-colors"
-                        >
-                          {sub.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          )}
+          {searchQuery && (
+            <button
+              onClick={() => {
+                setSearchInput("");
+                setSearchQuery("");
+              }}
+              className="inline-flex items-center gap-1.5 transition-colors"
+              style={{
+                fontFamily: "var(--bjhunt-font-mono)",
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: "var(--bjhunt-text-muted)",
+                border: "1px solid var(--bjhunt-border, #3d3a39)",
+                borderRadius: "var(--bjhunt-radius-sm, 4px)",
+                padding: "4px 8px",
+                background: "transparent",
+              }}
+            >
+              "{searchQuery}"
+              <X size={10} />
+            </button>
+          )}
+          <span
+            className="ml-auto"
+            style={{
+              fontFamily: "var(--bjhunt-font-mono)",
+              fontSize: 13,
+              color: "var(--bjhunt-text-muted)",
+            }}
+          >
+            {displayedSkills.length} skills
+          </span>
         </div>
 
-        {/* Skills content area */}
-        <div className="flex-1 min-w-0">
-          {loading ? (
-            <div className="border border-[var(--border)] px-4 py-16 text-center">
-              <p className="text-[10px] font-mono text-[var(--text-subtle)] animate-pulse">
-                Loading skills catalog...
-              </p>
-            </div>
-          ) : displayedSkills.length === 0 ? (
-            <div className="border border-[var(--border)] px-4 py-16 text-center">
-              <BookOpen
-                size={28}
-                className="mx-auto mb-3 text-[var(--text-subtle)]"
-              />
-              <p className="text-[11px] font-mono text-[var(--text-muted)] mb-1">
-                {selectedCategory || searchQuery
-                  ? "No skills match your filter."
-                  : "Select a category or search to browse skills."}
-              </p>
-              <p className="text-[10px] font-mono text-[var(--text-subtle)]">
-                {selectedCategory || searchQuery
-                  ? "Try a different category or search term."
-                  : "The engine contains ~70 specialized offensive and defensive skill documents."}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {/* Stats */}
-              <div className="flex items-center gap-3 mb-3 flex-wrap">
-                <span className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)]">
-                  {displayedSkills.length} skills
-                </span>
-                {selectedCategory && (
-                  <span
-                    className="text-[8px] font-mono uppercase px-1.5 py-0.5 border"
-                    style={{
-                      color: CATEGORY_COLORS[selectedCategory] || "#999",
-                      borderColor: CATEGORY_COLORS[selectedCategory] || "#999",
-                      background: `${CATEGORY_COLORS[selectedCategory] || "#999"}11`,
-                    }}
-                  >
-                    {CATEGORY_LABELS[selectedCategory] || selectedCategory}
-                  </span>
-                )}
-              </div>
+        {/* Search bar */}
+        <div
+          className="flex items-center mb-6 border"
+          style={{
+            background: "var(--bjhunt-bg-secondary, var(--surface, #101010))",
+            borderColor: "var(--bjhunt-border, #3d3a39)",
+            borderRadius: "var(--bjhunt-radius, 6px)",
+            height: 40,
+          }}
+        >
+          <Search size={14} className="ml-3 shrink-0" style={{ color: "var(--bjhunt-text-muted)" }} />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            placeholder="Filter skills by name, keyword, or MITRE technique (e.g., T1595)..."
+            className="bg-transparent px-2 outline-none flex-1"
+            style={{
+              fontFamily: "var(--bjhunt-font-sans)",
+              fontSize: 14,
+              color: "var(--bjhunt-text)",
+              height: 38,
+            }}
+          />
+          <button
+            onClick={handleSearch}
+            className="px-4 transition-colors h-full border-l"
+            style={{
+              fontFamily: "var(--bjhunt-font-mono)",
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: "var(--bjhunt-text)",
+              borderColor: "var(--bjhunt-border, #3d3a39)",
+            }}
+          >
+            Filter
+          </button>
+        </div>
 
-              {/* Skill cards */}
-              {displayedSkills.map((skill) => {
-                const isOpen = expandedSkill === skill.filePath;
-                const catColor = CATEGORY_COLORS[skill.category] || "#999";
-                const diffColor = DIFFICULTY_COLORS[skill.difficulty] || "#999";
+        {/* Main layout: sidebar + content */}
+        <div className="flex gap-4 flex-col lg:flex-row">
+          {/* Category sidebar */}
+          <aside
+            className="border overflow-y-auto shrink-0"
+            style={{
+              ...CARD_STYLE,
+              width: "100%",
+              maxWidth: 240,
+              maxHeight: "calc(100vh - 220px)",
+            }}
+          >
+            <div
+              className="px-4 py-3 border-b"
+              style={{ borderColor: "var(--bjhunt-border, #3d3a39)" }}
+            >
+              <Eyebrow>Categories</Eyebrow>
+            </div>
+
+            <div className="py-1">
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className="w-full text-left px-4 py-2 transition-colors"
+                style={{
+                  fontFamily: "var(--bjhunt-font-sans)",
+                  fontSize: 13,
+                  color:
+                    selectedCategory === null
+                      ? "var(--bjhunt-text)"
+                      : "var(--bjhunt-text-muted)",
+                  background:
+                    selectedCategory === null
+                      ? "var(--bjhunt-bg, #050507)"
+                      : "transparent",
+                }}
+              >
+                All Skills{" "}
+                <span style={{ color: "var(--bjhunt-text-subtle, #52525b)" }}>
+                  ({skills.length})
+                </span>
+              </button>
+
+              {CATEGORY_TREE.map((cat) => {
+                const isExpanded = expandedCategories.has(cat.key);
+                const isActive = selectedCategory === cat.key;
+                const count = grouped[cat.key]?.length ?? 0;
+                const tone = CATEGORY_TONE[cat.key] || "neutral";
 
                 return (
-                  <div
-                    key={skill.filePath}
-                    className="border border-[var(--border)] bg-[var(--bg-card)]"
-                  >
-                    {/* Skill header */}
-                    <button
-                      onClick={() => fetchSkillDetail(skill)}
-                      className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-[var(--bg-input)]/30 transition-colors"
-                    >
-                      {/* Expand */}
-                      <div className="w-3 flex-shrink-0 mt-0.5 text-[var(--text-subtle)]">
-                        {isOpen ? (
-                          <ChevronDown size={10} />
-                        ) : (
-                          <ChevronRight size={10} />
-                        )}
-                      </div>
-
-                      {/* Name */}
-                      <div className="flex-shrink-0 min-w-[120px]">
-                        <span className="text-[10px] font-mono font-bold text-white">
-                          {skill.name}
-                        </span>
-                      </div>
-
-                      {/* Category tag */}
-                      <div className="flex-shrink-0">
-                        <span
-                          className="text-[7px] font-mono uppercase tracking-widest px-1.5 py-0.5 border"
-                          style={{
-                            color: catColor,
-                            borderColor: catColor,
-                            background: `${catColor}11`,
-                          }}
+                  <div key={cat.key}>
+                    <div className="flex items-center">
+                      {cat.children && (
+                        <button
+                          onClick={() => toggleTreeCategory(cat.key)}
+                          className="px-2 py-2 transition-colors"
+                          style={{ color: "var(--bjhunt-text-muted)" }}
+                          aria-label="Toggle"
                         >
-                          {CATEGORY_LABELS[skill.category] || skill.category}
-                        </span>
-                      </div>
-
-                      {/* MITRE techniques */}
-                      {skill.mitre.length > 0 && (
-                        <div className="flex items-center gap-1 flex-shrink-0 flex-wrap">
-                          {skill.mitre.slice(0, 4).map((t) => (
-                            <span
-                              key={t}
-                              className="text-[7px] font-mono text-[var(--warning)] bg-[rgba(255,153,0,0.08)] border border-[var(--warning)]/30 px-1 py-0.5"
-                            >
-                              {t}
-                            </span>
-                          ))}
-                          {skill.mitre.length > 4 && (
-                            <span className="text-[7px] font-mono text-[var(--text-subtle)]">
-                              +{skill.mitre.length - 4}
-                            </span>
-                          )}
-                        </div>
+                          {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                        </button>
                       )}
-
-                      {/* Difficulty */}
-                      <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
+                      <button
+                        onClick={() => setSelectedCategory(isActive ? null : cat.key)}
+                        className={`flex-1 text-left py-2 transition-colors ${
+                          !cat.children ? "px-4" : "pr-3"
+                        }`}
+                        style={{
+                          fontFamily: "var(--bjhunt-font-sans)",
+                          fontSize: 13,
+                          color: isActive ? "var(--bjhunt-text)" : "var(--bjhunt-text-muted)",
+                          background: isActive ? "var(--bjhunt-bg, #050507)" : "transparent",
+                        }}
+                      >
                         <span
-                          className="inline-block w-1.5 h-1.5"
-                          style={{ background: diffColor, borderRadius: "50%" }}
+                          aria-hidden
+                          className="inline-block mr-2"
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: "var(--bjhunt-radius-pill, 9999px)",
+                            background: TONE_COLORS[tone],
+                            verticalAlign: "middle",
+                          }}
                         />
-                        <span className="text-[8px] font-mono text-[var(--text-subtle)] uppercase">
-                          {skill.difficulty}
-                        </span>
-                      </div>
+                        {cat.label}
+                        {count > 0 && (
+                          <span
+                            className="ml-1"
+                            style={{ color: "var(--bjhunt-text-subtle, #52525b)" }}
+                          >
+                            ({count})
+                          </span>
+                        )}
+                      </button>
+                    </div>
 
-                      {/* Time estimate */}
-                      <div className="flex-shrink-0 hidden md:block">
-                        <span className="text-[8px] font-mono text-[var(--text-subtle)]">
-                          {skill.timeEstimate}
-                        </span>
-                      </div>
-                    </button>
-
-                    {/* Description preview (always visible) */}
-                    {skill.description && !isOpen && (
-                      <div className="px-4 pb-2 -mt-1">
-                        <p className="text-[9px] font-mono text-[var(--text-subtle)] line-clamp-2 leading-relaxed pl-6">
-                          {skill.description}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Expanded: full content */}
-                    {isOpen && (
-                      <div className="px-4 pb-4 border-t border-[var(--border)]">
-                        <div className="pt-3 space-y-3">
-                          {/* Description */}
-                          {skill.description && (
-                            <div>
-                              <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                                Description
-                              </div>
-                              <p className="text-[11px] font-mono text-[var(--text-muted)] leading-relaxed">
-                                {skill.description}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Metadata row */}
-                          <div className="flex items-center gap-4 flex-wrap">
-                            {skill.allowedTools.length > 0 && (
-                              <div>
-                                <span className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)]">
-                                  Tools:{" "}
-                                </span>
-                                {skill.allowedTools.map((t) => (
-                                  <span
-                                    key={t}
-                                    className="text-[8px] font-mono text-[var(--text-muted)] mr-1"
-                                  >
-                                    {t}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                            {skill.subcategory && (
-                              <div>
-                                <span className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)]">
-                                  Subcategory:{" "}
-                                </span>
-                                <span className="text-[8px] font-mono text-[var(--text-muted)]">
-                                  {skill.subcategory}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Tags */}
-                          {skill.tags.length > 0 && (
-                            <div>
-                              <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                                Tags
-                              </div>
-                              <div className="flex items-center gap-1 flex-wrap">
-                                {skill.tags.map((tag) => (
-                                  <span
-                                    key={tag}
-                                    className="text-[8px] font-mono text-[var(--text-muted)] bg-[var(--bg-input)] border border-[var(--border)] px-1.5 py-0.5"
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* MITRE ATT&CK (full list) */}
-                          {skill.mitre.length > 0 && (
-                            <div>
-                              <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                                MITRE ATT&CK
-                              </div>
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                {skill.mitre.map((t) => (
-                                  <span
-                                    key={t}
-                                    className="text-[8px] font-mono text-[var(--warning)] bg-[rgba(255,153,0,0.08)] border border-[var(--warning)] px-1.5 py-0.5"
-                                  >
-                                    {t}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Full markdown body */}
-                          {loadingDetail ? (
-                            <div className="py-4 text-center">
-                              <p className="text-[9px] font-mono text-[var(--text-subtle)] animate-pulse">
-                                Loading skill content...
-                              </p>
-                            </div>
-                          ) : skillDetail && expandedSkill === skill.filePath ? (
-                            <div>
-                              <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                                Content
-                              </div>
-                              <pre className="text-[10px] font-mono text-[var(--text-muted)] bg-[var(--bg)] border border-[var(--border)] px-3 py-3 overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-[400px] overflow-y-auto">
-                                {skillDetail.body}
-                              </pre>
-                            </div>
-                          ) : null}
-                        </div>
+                    {cat.children && isExpanded && (
+                      <div
+                        className="ml-6 border-l"
+                        style={{ borderColor: "var(--bjhunt-border, #3d3a39)" }}
+                      >
+                        {cat.children.map((sub) => (
+                          <button
+                            key={sub.key}
+                            onClick={() => {
+                              setSearchInput(sub.key);
+                              setSearchQuery(sub.key);
+                              setSelectedCategory(cat.key);
+                            }}
+                            className="w-full text-left pl-3 py-1 transition-colors"
+                            style={{
+                              fontFamily: "var(--bjhunt-font-sans)",
+                              fontSize: 12,
+                              color: "var(--bjhunt-text-muted)",
+                            }}
+                          >
+                            {sub.label}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
                 );
               })}
             </div>
-          )}
+          </aside>
+
+          {/* Skills content area */}
+          <div className="flex-1 min-w-0">
+            {loading ? (
+              <div className="border px-4 py-16 text-center" style={CARD_STYLE}>
+                <p
+                  className="animate-pulse"
+                  style={{
+                    fontFamily: "var(--bjhunt-font-sans)",
+                    fontSize: 13,
+                    color: "var(--bjhunt-text-muted)",
+                  }}
+                >
+                  Loading skills catalog...
+                </p>
+              </div>
+            ) : displayedSkills.length === 0 ? (
+              <div className="border px-4 py-16 text-center" style={CARD_STYLE}>
+                <BookOpen
+                  size={28}
+                  className="mx-auto mb-3"
+                  style={{ color: "var(--bjhunt-text-muted)" }}
+                />
+                <p
+                  style={{
+                    fontFamily: "var(--bjhunt-font-sans)",
+                    fontSize: 14,
+                    color: "var(--bjhunt-text)",
+                  }}
+                >
+                  {selectedCategory || searchQuery
+                    ? "No skills match your filter."
+                    : "Select a category or search to browse skills."}
+                </p>
+                <p
+                  className="mt-1"
+                  style={{
+                    fontFamily: "var(--bjhunt-font-sans)",
+                    fontSize: 13,
+                    color: "var(--bjhunt-text-muted)",
+                  }}
+                >
+                  {selectedCategory || searchQuery
+                    ? "Try a different category or search term."
+                    : "The engine contains ~70 specialized offensive and defensive skill documents."}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {displayedSkills.map((skill) => {
+                  const tone = CATEGORY_TONE[skill.category] || "neutral";
+                  const diffTone = DIFFICULTY_TONE[skill.difficulty] || "warning";
+
+                  return (
+                    <button
+                      key={skill.filePath}
+                      onClick={() => openDrawer(skill)}
+                      className="w-full text-left border p-4 transition-colors hover:bg-white/[0.02]"
+                      style={CARD_STYLE}
+                    >
+                      <div className="flex items-start gap-3 flex-wrap">
+                        {/* mono ID */}
+                        <span
+                          className="shrink-0"
+                          style={{
+                            fontFamily: "var(--bjhunt-font-mono)",
+                            fontSize: 13,
+                            color: "var(--bjhunt-text-muted)",
+                          }}
+                        >
+                          {skill.filePath}
+                        </span>
+                        {/* name H4 */}
+                        <h4
+                          className="m-0 min-w-0 truncate"
+                          style={{
+                            fontFamily: "var(--bjhunt-font-sans)",
+                            fontWeight: 600,
+                            fontSize: 16,
+                            lineHeight: 1.5,
+                            color: "var(--bjhunt-text)",
+                            flex: "1 1 200px",
+                          }}
+                        >
+                          {skill.name}
+                        </h4>
+
+                        {/* category chip */}
+                        <span
+                          className="shrink-0 inline-flex items-center"
+                          style={{
+                            fontFamily: "var(--bjhunt-font-mono)",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            letterSpacing: "0.18em",
+                            textTransform: "uppercase",
+                            color: TONE_COLORS[tone],
+                            border: `1px solid ${TONE_COLORS[tone]}`,
+                            borderRadius: "var(--bjhunt-radius-sm, 4px)",
+                            padding: "2px 6px",
+                            background: "transparent",
+                          }}
+                        >
+                          {CATEGORY_LABELS[skill.category] || skill.category}
+                        </span>
+
+                        {/* status dot for difficulty */}
+                        <StatusDot
+                          state={diffTone}
+                          label={
+                            <span
+                              style={{
+                                fontFamily: "var(--bjhunt-font-mono)",
+                                fontSize: 12,
+                                fontWeight: 600,
+                                letterSpacing: "0.18em",
+                                textTransform: "uppercase",
+                                color: "var(--bjhunt-text-muted)",
+                              }}
+                            >
+                              {skill.difficulty}
+                            </span>
+                          }
+                        />
+                      </div>
+
+                      {skill.description && (
+                        <p
+                          className="mt-2 line-clamp-2"
+                          style={{
+                            fontFamily: "var(--bjhunt-font-sans)",
+                            fontSize: 13,
+                            lineHeight: 1.5,
+                            color: "var(--bjhunt-text-muted)",
+                          }}
+                        >
+                          {skill.description}
+                        </p>
+                      )}
+
+                      {skill.mitre.length > 0 && (
+                        <div className="mt-3 flex items-center gap-1.5 flex-wrap">
+                          {skill.mitre.slice(0, 6).map((t) => (
+                            <span
+                              key={t}
+                              style={{
+                                fontFamily: "var(--bjhunt-font-mono)",
+                                fontSize: 11,
+                                fontWeight: 500,
+                                color: "var(--bjhunt-status-warning, #ffba00)",
+                                border: "1px solid var(--bjhunt-status-warning, #ffba00)",
+                                borderRadius: "var(--bjhunt-radius-sm, 4px)",
+                                padding: "1px 6px",
+                                background: "var(--bjhunt-severity-medium-bg, rgba(255,186,0,0.12))",
+                              }}
+                            >
+                              {t}
+                            </span>
+                          ))}
+                          {skill.mitre.length > 6 && (
+                            <span
+                              style={{
+                                fontFamily: "var(--bjhunt-font-mono)",
+                                fontSize: 11,
+                                color: "var(--bjhunt-text-muted)",
+                              }}
+                            >
+                              +{skill.mitre.length - 6}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Right drawer with skill details */}
+        {drawerSkill && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={closeDrawer}
+              style={{ background: "var(--bjhunt-bg-overlay, rgba(0,0,0,0.7))" }}
+              aria-hidden
+            />
+            <aside
+              role="dialog"
+              aria-label={drawerSkill.name}
+              className="fixed top-0 right-0 bottom-0 z-50 w-full md:w-[560px] overflow-y-auto border-l"
+              style={{
+                background: "var(--bjhunt-bg-elevated, #16161a)",
+                borderColor: "var(--bjhunt-border, #3d3a39)",
+              }}
+            >
+              <header
+                className="flex items-start justify-between gap-3 p-6 border-b sticky top-0 z-10"
+                style={{
+                  background: "var(--bjhunt-bg-elevated, #16161a)",
+                  borderColor: "var(--bjhunt-border, #3d3a39)",
+                }}
+              >
+                <div className="min-w-0">
+                  <Eyebrow>{CATEGORY_LABELS[drawerSkill.category] || drawerSkill.category}</Eyebrow>
+                  <h3
+                    className="mt-1 m-0"
+                    style={{
+                      fontFamily: "var(--bjhunt-font-sans)",
+                      fontWeight: 600,
+                      fontSize: 20,
+                      lineHeight: 1.4,
+                      color: "var(--bjhunt-text)",
+                    }}
+                  >
+                    {drawerSkill.name}
+                  </h3>
+                  <p
+                    className="mt-1 m-0"
+                    style={{
+                      fontFamily: "var(--bjhunt-font-mono)",
+                      fontSize: 13,
+                      color: "var(--bjhunt-text-muted)",
+                    }}
+                  >
+                    {drawerSkill.filePath}
+                  </p>
+                </div>
+                <button
+                  onClick={closeDrawer}
+                  className="shrink-0 p-1 transition-colors"
+                  style={{ color: "var(--bjhunt-text-muted)" }}
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              </header>
+
+              <div className="p-6 space-y-5">
+                {drawerSkill.description && (
+                  <section>
+                    <Eyebrow>Description</Eyebrow>
+                    <p
+                      className="mt-2"
+                      style={{
+                        fontFamily: "var(--bjhunt-font-sans)",
+                        fontSize: 14,
+                        lineHeight: 1.6,
+                        color: "var(--bjhunt-text)",
+                      }}
+                    >
+                      {drawerSkill.description}
+                    </p>
+                  </section>
+                )}
+
+                {drawerSkill.mitre.length > 0 && (
+                  <section>
+                    <Eyebrow>MITRE ATT&CK</Eyebrow>
+                    <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                      {drawerSkill.mitre.map((t) => (
+                        <span
+                          key={t}
+                          style={{
+                            fontFamily: "var(--bjhunt-font-mono)",
+                            fontSize: 12,
+                            color: "var(--bjhunt-status-warning, #ffba00)",
+                            border: "1px solid var(--bjhunt-status-warning, #ffba00)",
+                            borderRadius: "var(--bjhunt-radius-sm, 4px)",
+                            padding: "2px 6px",
+                            background: "var(--bjhunt-severity-medium-bg, rgba(255,186,0,0.12))",
+                          }}
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {drawerSkill.allowedTools.length > 0 && (
+                  <section>
+                    <Eyebrow>Tools</Eyebrow>
+                    <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                      {drawerSkill.allowedTools.map((t) => (
+                        <span
+                          key={t}
+                          style={{
+                            fontFamily: "var(--bjhunt-font-mono)",
+                            fontSize: 12,
+                            color: "var(--bjhunt-text)",
+                            border: "1px solid var(--bjhunt-border, #3d3a39)",
+                            borderRadius: "var(--bjhunt-radius-sm, 4px)",
+                            padding: "2px 6px",
+                          }}
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {drawerSkill.tags.length > 0 && (
+                  <section>
+                    <Eyebrow>Tags</Eyebrow>
+                    <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                      {drawerSkill.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          style={{
+                            fontFamily: "var(--bjhunt-font-mono)",
+                            fontSize: 12,
+                            color: "var(--bjhunt-text-muted)",
+                            border: "1px solid var(--bjhunt-border, #3d3a39)",
+                            borderRadius: "var(--bjhunt-radius-sm, 4px)",
+                            padding: "2px 6px",
+                          }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                <section>
+                  <Eyebrow>Content</Eyebrow>
+                  {loadingDetail ? (
+                    <p
+                      className="mt-2 animate-pulse"
+                      style={{
+                        fontFamily: "var(--bjhunt-font-sans)",
+                        fontSize: 13,
+                        color: "var(--bjhunt-text-muted)",
+                      }}
+                    >
+                      Loading skill content...
+                    </p>
+                  ) : skillDetail ? (
+                    <pre
+                      className="mt-2 px-4 py-3 overflow-x-auto"
+                      style={{
+                        fontFamily: "var(--bjhunt-font-mono)",
+                        fontSize: 13,
+                        lineHeight: 1.6,
+                        color: "var(--bjhunt-text)",
+                        background: "var(--bjhunt-bg, #050507)",
+                        border: "1px solid var(--bjhunt-border, #3d3a39)",
+                        borderRadius: "var(--bjhunt-radius, 6px)",
+                        whiteSpace: "pre-wrap",
+                        maxHeight: 480,
+                        overflowY: "auto",
+                      }}
+                    >
+                      {skillDetail.body}
+                    </pre>
+                  ) : (
+                    <p
+                      className="mt-2"
+                      style={{
+                        fontFamily: "var(--bjhunt-font-sans)",
+                        fontSize: 13,
+                        color: "var(--bjhunt-text-muted)",
+                      }}
+                    >
+                      No content available.
+                    </p>
+                  )}
+                </section>
+              </div>
+            </aside>
+          </>
+        )}
       </div>
-    </div>
     </PlanGate>
   );
 }

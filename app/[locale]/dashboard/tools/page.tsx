@@ -5,6 +5,8 @@ import { browserBackendFetch } from "@/lib/backend-client";
 import { cn } from "@/lib/utils";
 import { PlanGate } from "@/components/dashboard/plan-gate";
 import { usePlan } from "@/lib/use-plan";
+import { PageHero, Eyebrow, StatusDot } from "@/components/ui/page-hero";
+import { Button } from "@/components/ui/button";
 import {
   Terminal,
   Search,
@@ -15,8 +17,6 @@ import {
   Play,
   Loader2,
   Clock,
-  CheckCircle2,
-  XCircle,
   Copy,
 } from "lucide-react";
 
@@ -87,7 +87,8 @@ const TOOLS: ToolDef[] = [
     icon: Key,
     inputType: "textarea",
     inputLabel: "JWT Token",
-    inputPlaceholder: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.POstGetfAytaZS82wHcjoTyoqhMyxXiWdR7Nn7A29DNSl0EiXLdwJ6xC6AfgZWF1bOsS_TuYI3OG85AmiExREkrS6tDfTQ2B3WXlrr-wp5AokiRbz3_oB4OxG-W9KcEEbDRcZc0nH3L7LzYptiy1PtAylQGxHTWZXtGz4ht0bAecBgmpdgXMguEIcoqPJ1n3pIWk_dUZegpqx0Lka21H6XxUTxiy8OcaarA8zdnPUnV6AmNP3ecFawIFYdvJB_cm-GvpCSbr8G8y_Mllj8f4x9nBH8pQux89_6gUY618iYv7tuPWBFfEbLxtF2pZS6YC1aSfLQxaOoaBSTlpVbHEaJd2T",
+    inputPlaceholder:
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature",
     inputKey: "token",
   },
   {
@@ -98,7 +99,8 @@ const TOOLS: ToolDef[] = [
     icon: Shield,
     inputType: "textarea",
     inputLabel: "IAM Policy JSON",
-    inputPlaceholder: '{\n  "Version": "2012-10-17",\n  "Statement": [\n    {\n      "Effect": "Allow",\n      "Action": "s3:*",\n      "Resource": "*"\n    }\n  ]\n}',
+    inputPlaceholder:
+      '{\n  "Version": "2012-10-17",\n  "Statement": [\n    {\n      "Effect": "Allow",\n      "Action": "s3:*",\n      "Resource": "*"\n    }\n  ]\n}',
     inputKey: "policy",
   },
   {
@@ -114,15 +116,29 @@ const TOOLS: ToolDef[] = [
   },
 ];
 
-// ── Category colors ─────────────────────────────────────────────────────
+// All hardcoded blue/purple/orange hex have been replaced by neutral or
+// state colors per the 2026 design spec — chromatic accents are reserved
+// for state semantics (success / warning / critical), not category labels.
+const CATEGORY_TONE: Record<string, "critical" | "warning" | "success" | "neutral"> = {
+  execution: "critical",
+  query: "neutral",
+  intel: "warning",
+  utility: "success",
+  cloud: "neutral",
+  recon: "neutral",
+};
 
-const CATEGORY_COLORS: Record<string, string> = {
-  execution: "var(--danger)",
-  query: "#60a5fa",
-  intel: "var(--warning)",
-  utility: "var(--success)",
-  cloud: "#a78bfa",
-  recon: "#f97316",
+const TONE_COLORS: Record<string, string> = {
+  critical: "var(--bjhunt-status-danger, #fb565b)",
+  warning: "var(--bjhunt-status-warning, #ffba00)",
+  success: "var(--bjhunt-status-success, #00d992)",
+  neutral: "var(--bjhunt-text-muted, #8b949e)",
+};
+
+const CARD_STYLE: React.CSSProperties = {
+  background: "var(--bjhunt-bg-secondary, var(--surface, #101010))",
+  borderColor: "var(--bjhunt-border, #3d3a39)",
+  borderRadius: "var(--bjhunt-radius-md, 8px)",
 };
 
 // ── Component ───────────────────────────────────────────────────────────
@@ -143,8 +159,6 @@ export default function ToolPlaygroundPage() {
   const setInputValue = (val: string) => {
     setInputValues((prev) => ({ ...prev, [activeTool]: val }));
   };
-
-  // ── Execute ─────────────────────────────────────────────────────────
 
   const execute = useCallback(async () => {
     if (!inputValue.trim() || loading) return;
@@ -191,16 +205,12 @@ export default function ToolPlaygroundPage() {
     }
   }, [activeTool, inputValue, loading, tool.inputKey]);
 
-  // ── Copy output ─────────────────────────────────────────────────────
-
   const copyOutput = () => {
     if (!result) return;
     navigator.clipboard.writeText(result.output);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
-  // ── Format output (try JSON pretty-print) ──────────────────────────
 
   const formatOutput = (output: string): string => {
     try {
@@ -211,299 +221,430 @@ export default function ToolPlaygroundPage() {
     }
   };
 
-  // ── Render ─────────────────────────────────────────────────────────
+  const inputBaseStyle: React.CSSProperties = {
+    fontFamily: "var(--bjhunt-font-mono)",
+    fontSize: 13,
+    color: "var(--bjhunt-text)",
+    background: "var(--bjhunt-bg, #050507)",
+    border: "1px solid var(--bjhunt-border, #3d3a39)",
+    borderRadius: "var(--bjhunt-radius, 6px)",
+  };
 
   return (
     <PlanGate requiredPlan="enterprise" currentPlan={plan} featureName="Tool Playground">
-    <div className="p-6 md:p-8 max-w-6xl">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-[13px] font-mono font-bold uppercase tracking-[0.2em] text-white">
-          TOOL PLAYGROUND
-        </h1>
-        <p className="text-[10px] text-[var(--text-subtle)] font-mono mt-1">
-          Execute engine tools directly -- bash commands, graph queries, CVE lookups, JWT analysis
-        </p>
-      </div>
+      <div className="px-4 md:px-8 py-6 md:py-10 max-w-[1280px] mx-auto">
+        <PageHero
+          eyebrow="05 / TOOLS"
+          title="Tool Playground"
+          lede="Execute engine tools directly — bash commands, graph queries, CVE lookups, JWT analysis."
+        />
 
-      {/* Tool selector tabs */}
-      <div className="flex items-center gap-0 mb-6 flex-wrap">
-        {TOOLS.map((t) => {
-          const Icon = t.icon;
-          const active = activeTool === t.id;
-          const catColor = CATEGORY_COLORS[t.category] || "var(--text-muted)";
+        {/* Tool selector tabs */}
+        <div
+          className="flex items-center flex-wrap mb-6 border overflow-hidden"
+          style={{
+            borderColor: "var(--bjhunt-border, #3d3a39)",
+            borderRadius: "var(--bjhunt-radius-md, 8px)",
+            background: "var(--bjhunt-bg-secondary, var(--surface, #101010))",
+          }}
+        >
+          {TOOLS.map((t, idx) => {
+            const Icon = t.icon;
+            const active = activeTool === t.id;
+            const tone = CATEGORY_TONE[t.category] || "neutral";
 
-          return (
-            <button
-              key={t.id}
-              onClick={() => {
-                setActiveTool(t.id);
-                setResult(null);
-              }}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-2 text-[9px] font-mono uppercase tracking-widest border transition-colors",
-                active
-                  ? "text-white bg-[var(--bg-card)] border-[var(--border-strong)]"
-                  : "text-[var(--text-subtle)] border-[var(--border)] hover:text-[var(--text-muted)] hover:bg-[var(--bg-input)]/30",
-                t.id !== TOOLS[0]!.id && "border-l-0",
-              )}
-            >
-              <Icon
-                className="w-3 h-3 flex-shrink-0"
-                style={{ color: active ? catColor : undefined }}
-              />
-              <span>{t.name}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Active tool panel */}
-      <div className="border border-[var(--border)] bg-[var(--bg-card)]">
-        {/* Tool header */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--border)]">
-          <div className="flex items-center gap-2">
-            <tool.icon
-              className="w-3.5 h-3.5"
-              style={{ color: CATEGORY_COLORS[tool.category] }}
-            />
-            <span className="text-[11px] font-mono font-bold text-white uppercase tracking-wider">
-              {tool.name}
-            </span>
-            <span
-              className="text-[7px] font-mono uppercase tracking-widest px-1.5 py-0.5 border"
-              style={{
-                color: CATEGORY_COLORS[tool.category],
-                borderColor: (CATEGORY_COLORS[tool.category] || "var(--border)") + "40",
-              }}
-            >
-              {tool.category}
-            </span>
-          </div>
-          <span className="text-[9px] font-mono text-[var(--text-subtle)]">
-            {tool.description}
-          </span>
+            return (
+              <button
+                key={t.id}
+                onClick={() => {
+                  setActiveTool(t.id);
+                  setResult(null);
+                }}
+                className="flex items-center gap-2 px-4 transition-colors"
+                style={{
+                  height: 40,
+                  fontFamily: "var(--bjhunt-font-sans)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: active ? "var(--bjhunt-text)" : "var(--bjhunt-text-muted)",
+                  background: active ? "var(--bjhunt-bg, #050507)" : "transparent",
+                  borderLeft:
+                    idx === 0 ? "none" : "1px solid var(--bjhunt-border, #3d3a39)",
+                }}
+              >
+                <Icon
+                  className="w-4 h-4 shrink-0"
+                  style={{ color: active ? TONE_COLORS[tone] : "currentColor" }}
+                />
+                <span>{t.name}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Input area */}
-        <div className="px-4 py-3 border-b border-[var(--border)]">
-          <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1.5">
-            {tool.inputLabel}
-          </div>
-          {tool.inputType === "textarea" ? (
-            <textarea
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                  e.preventDefault();
-                  execute();
-                }
+        {/* Active tool panel */}
+        <div className="border" style={CARD_STYLE}>
+          {/* Tool header */}
+          <header
+            className="flex items-center justify-between px-6 py-4 border-b flex-wrap gap-3"
+            style={{ borderColor: "var(--bjhunt-border, #3d3a39)" }}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <tool.icon
+                className="w-4 h-4 shrink-0"
+                style={{ color: TONE_COLORS[CATEGORY_TONE[tool.category] || "neutral"] }}
+              />
+              <h3
+                className="m-0"
+                style={{
+                  fontFamily: "var(--bjhunt-font-sans)",
+                  fontWeight: 600,
+                  fontSize: 16,
+                  color: "var(--bjhunt-text)",
+                }}
+              >
+                {tool.name}
+              </h3>
+              <span
+                style={{
+                  fontFamily: "var(--bjhunt-font-mono)",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase",
+                  color: TONE_COLORS[CATEGORY_TONE[tool.category] || "neutral"],
+                  border: `1px solid ${TONE_COLORS[CATEGORY_TONE[tool.category] || "neutral"]}`,
+                  borderRadius: "var(--bjhunt-radius-sm, 4px)",
+                  padding: "2px 6px",
+                }}
+              >
+                {tool.category}
+              </span>
+            </div>
+            <span
+              style={{
+                fontFamily: "var(--bjhunt-font-sans)",
+                fontSize: 13,
+                color: "var(--bjhunt-text-muted)",
               }}
-              placeholder={tool.inputPlaceholder}
-              rows={tool.id === "iam_audit" ? 8 : 4}
-              className="w-full bg-[var(--bg-input)] border border-[var(--border)] text-[11px] font-mono text-white px-3 py-2.5 outline-none placeholder:text-[var(--text-subtle)] resize-y min-h-[60px]"
-              spellCheck={false}
-            />
-          ) : (
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  execute();
-                }
-              }}
-              placeholder={tool.inputPlaceholder}
-              className="w-full bg-[var(--bg-input)] border border-[var(--border)] text-[11px] font-mono text-white px-3 py-2.5 outline-none placeholder:text-[var(--text-subtle)]"
-              spellCheck={false}
-            />
-          )}
-
-          {/* Execute button */}
-          <div className="flex items-center justify-between mt-2.5">
-            <span className="text-[8px] font-mono text-[var(--text-subtle)]">
-              {tool.inputType === "textarea" ? "Ctrl+Enter to execute" : "Enter to execute"}
+            >
+              {tool.description}
             </span>
-            <button
-              onClick={execute}
-              disabled={loading || !inputValue.trim()}
-              className={cn(
-                "flex items-center gap-1.5 px-4 py-1.5 text-[9px] font-mono uppercase tracking-widest border transition-colors",
-                loading || !inputValue.trim()
-                  ? "text-[var(--text-subtle)] border-[var(--border)] cursor-not-allowed opacity-50"
-                  : "text-[var(--success)] border-[var(--success)]/40 hover:border-[var(--success)] hover:bg-[var(--success)]/5",
+          </header>
+
+          {/* Input area */}
+          <div
+            className="px-6 py-4 border-b"
+            style={{ borderColor: "var(--bjhunt-border, #3d3a39)" }}
+          >
+            <label
+              className="block mb-2"
+              style={{
+                fontFamily: "var(--bjhunt-font-sans)",
+                fontSize: 13,
+                fontWeight: 500,
+                color: "var(--bjhunt-text)",
+              }}
+            >
+              {tool.inputLabel}
+            </label>
+            {tool.inputType === "textarea" ? (
+              <textarea
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    execute();
+                  }
+                }}
+                placeholder={tool.inputPlaceholder}
+                rows={tool.id === "iam_audit" ? 8 : 4}
+                className="w-full outline-none resize-y px-3 py-2.5 min-h-[60px]"
+                style={inputBaseStyle}
+                spellCheck={false}
+              />
+            ) : (
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    execute();
+                  }
+                }}
+                placeholder={tool.inputPlaceholder}
+                className="w-full outline-none px-3"
+                style={{ ...inputBaseStyle, height: 40 }}
+                spellCheck={false}
+              />
+            )}
+
+            <div className="flex items-center justify-between mt-3 flex-wrap gap-3">
+              <span
+                style={{
+                  fontFamily: "var(--bjhunt-font-mono)",
+                  fontSize: 12,
+                  color: "var(--bjhunt-text-muted)",
+                }}
+              >
+                {tool.inputType === "textarea" ? "Ctrl+Enter to execute" : "Enter to execute"}
+              </span>
+              <Button
+                variant="success"
+                size="md"
+                onClick={execute}
+                disabled={loading || !inputValue.trim()}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin mr-2" />
+                    <span>Executing</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3 h-3 mr-2" />
+                    <span>Execute</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Output area */}
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-3">
+              <Eyebrow>Output</Eyebrow>
+              {result && (
+                <div className="flex items-center gap-4 flex-wrap">
+                  <StatusDot
+                    state={result.status === "success" ? "success" : "critical"}
+                    label={
+                      <span
+                        style={{
+                          fontFamily: "var(--bjhunt-font-mono)",
+                          fontSize: 12,
+                          fontWeight: 600,
+                          letterSpacing: "0.18em",
+                          textTransform: "uppercase",
+                          color:
+                            result.status === "success"
+                              ? "var(--bjhunt-status-success, #00d992)"
+                              : "var(--bjhunt-status-danger, #fb565b)",
+                        }}
+                      >
+                        {result.status}
+                      </span>
+                    }
+                  />
+                  <div
+                    className="flex items-center gap-1"
+                    style={{
+                      fontFamily: "var(--bjhunt-font-mono)",
+                      fontSize: 13,
+                      color: "var(--bjhunt-text-muted)",
+                    }}
+                  >
+                    <Clock className="w-3 h-3" />
+                    <span>{result.durationMs}ms</span>
+                  </div>
+                  <span
+                    style={{
+                      fontFamily: "var(--bjhunt-font-mono)",
+                      fontSize: 13,
+                      color: "var(--bjhunt-text-muted)",
+                    }}
+                  >
+                    {new Date(result.timestamp).toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    })}
+                  </span>
+                  <button
+                    onClick={copyOutput}
+                    className="inline-flex items-center gap-1 transition-colors"
+                    style={{
+                      fontFamily: "var(--bjhunt-font-sans)",
+                      fontSize: 13,
+                      color: "var(--bjhunt-text-muted)",
+                    }}
+                  >
+                    <Copy className="w-3 h-3" />
+                    <span>{copied ? "Copied" : "Copy"}</span>
+                  </button>
+                </div>
               )}
+            </div>
+
+            <div
+              className={cn("min-h-[120px] max-h-[400px] overflow-auto")}
+              style={{
+                background: "var(--bjhunt-bg, #050507)",
+                border: "1px solid var(--bjhunt-border, #3d3a39)",
+                borderLeftWidth: 2,
+                borderLeftColor:
+                  result?.status === "success"
+                    ? "var(--bjhunt-status-success, #00d992)"
+                    : result?.status === "error"
+                      ? "var(--bjhunt-status-danger, #fb565b)"
+                      : "var(--bjhunt-border, #3d3a39)",
+                borderRadius: "var(--bjhunt-radius, 6px)",
+              }}
             >
               {loading ? (
-                <>
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  <span>Executing...</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-3 h-3" />
-                  <span>Execute</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Output area */}
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)]">
-              Output
-            </div>
-            {result && (
-              <div className="flex items-center gap-3">
-                {/* Status */}
-                <div className="flex items-center gap-1">
-                  {result.status === "success" ? (
-                    <CheckCircle2 className="w-2.5 h-2.5" style={{ color: "var(--success)" }} />
-                  ) : (
-                    <XCircle className="w-2.5 h-2.5" style={{ color: "var(--danger)" }} />
-                  )}
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-4 h-4 animate-spin" style={{ color: "var(--bjhunt-text-muted)" }} />
                   <span
-                    className="text-[8px] font-mono uppercase tracking-wider"
-                    style={{ color: result.status === "success" ? "var(--success)" : "var(--danger)" }}
+                    className="ml-2 animate-pulse"
+                    style={{
+                      fontFamily: "var(--bjhunt-font-mono)",
+                      fontSize: 13,
+                      color: "var(--bjhunt-text-muted)",
+                    }}
                   >
-                    {result.status}
+                    Executing {tool.name}...
                   </span>
                 </div>
-
-                {/* Duration */}
-                <div className="flex items-center gap-1">
-                  <Clock className="w-2.5 h-2.5 text-[var(--text-subtle)]" />
-                  <span className="text-[8px] font-mono text-[var(--text-muted)]">
-                    {result.durationMs}ms
-                  </span>
-                </div>
-
-                {/* Timestamp */}
-                <span className="text-[8px] font-mono text-[var(--text-subtle)]">
-                  {new Date(result.timestamp).toLocaleTimeString("en-US", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                  })}
-                </span>
-
-                {/* Copy */}
-                <button
-                  onClick={copyOutput}
-                  className="flex items-center gap-1 text-[8px] font-mono text-[var(--text-muted)] hover:text-white transition-colors"
-                >
-                  <Copy className="w-2.5 h-2.5" />
-                  <span>{copied ? "Copied" : "Copy"}</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Output box */}
-          <div
-            className={cn(
-              "bg-[var(--bg)] border min-h-[120px] max-h-[400px] overflow-auto",
-              result?.status === "success"
-                ? "border-l-2 border-l-[var(--success)] border-t-[var(--border)] border-r-[var(--border)] border-b-[var(--border)]"
-                : result?.status === "error"
-                  ? "border-l-2 border-l-[var(--danger)] border-t-[var(--border)] border-r-[var(--border)] border-b-[var(--border)]"
-                  : "border-[var(--border)]",
-            )}
-          >
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-4 h-4 animate-spin text-[var(--text-subtle)]" />
-                <span className="ml-2 text-[10px] font-mono text-[var(--text-subtle)] animate-pulse">
-                  Executing {tool.name}...
-                </span>
-              </div>
-            ) : result ? (
-              <pre className="text-[10px] font-mono text-[var(--text-muted)] p-3 whitespace-pre-wrap break-words leading-relaxed">
-                {formatOutput(result.output)}
-              </pre>
-            ) : (
-              <div className="flex items-center justify-center py-8">
-                <span className="text-[10px] font-mono text-[var(--text-subtle)]">
-                  Output will appear here after execution
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Meta info */}
-          {result?.meta && Object.keys(result.meta).length > 0 && (
-            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-              {Object.entries(result.meta).map(([key, value]) => (
-                <div key={key} className="flex items-center gap-1">
-                  <span className="text-[7px] font-mono uppercase tracking-widest text-[var(--text-subtle)]">
-                    {key}:
-                  </span>
-                  <span className="text-[8px] font-mono text-[var(--text-muted)]">
-                    {String(value)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Execution history */}
-      {history.length > 0 && (
-        <div className="mt-6">
-          <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-2">
-            Recent Executions ({history.length})
-          </div>
-          <div className="border border-[var(--border)] divide-y divide-[var(--border)]">
-            {history.map((entry, idx) => {
-              const entryTool = TOOLS.find((t) => t.id === entry.tool);
-              const Icon = entryTool?.icon || Terminal;
-              const catColor = CATEGORY_COLORS[entryTool?.category || ""] || "var(--text-muted)";
-
-              return (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    setActiveTool(entry.tool);
-                    setResult(entry);
+              ) : result ? (
+                <pre
+                  className="p-4 whitespace-pre-wrap break-words"
+                  style={{
+                    fontFamily: "var(--bjhunt-font-mono)",
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                    color: "var(--bjhunt-text)",
+                    margin: 0,
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-[var(--bg-input)]/30 transition-colors"
                 >
-                  <Icon className="w-3 h-3 flex-shrink-0" style={{ color: catColor }} />
-                  <span className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider flex-shrink-0 w-[70px]">
-                    {entryTool?.name || entry.tool}
+                  {formatOutput(result.output)}
+                </pre>
+              ) : (
+                <div className="flex items-center justify-center py-8">
+                  <span
+                    style={{
+                      fontFamily: "var(--bjhunt-font-mono)",
+                      fontSize: 13,
+                      color: "var(--bjhunt-text-muted)",
+                    }}
+                  >
+                    Output will appear here after execution
                   </span>
-                  <span className="text-[9px] font-mono text-[var(--text-subtle)] truncate flex-1">
-                    {entry.output.slice(0, 80)}...
-                  </span>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {entry.status === "success" ? (
-                      <CheckCircle2 className="w-2.5 h-2.5" style={{ color: "var(--success)" }} />
-                    ) : (
-                      <XCircle className="w-2.5 h-2.5" style={{ color: "var(--danger)" }} />
-                    )}
-                    <span className="text-[8px] font-mono text-[var(--text-subtle)]">
-                      {entry.durationMs}ms
+                </div>
+              )}
+            </div>
+
+            {result?.meta && Object.keys(result.meta).length > 0 && (
+              <div className="flex items-center gap-3 mt-3 flex-wrap">
+                {Object.entries(result.meta).map(([key, value]) => (
+                  <div key={key} className="flex items-center gap-1">
+                    <span
+                      style={{
+                        fontFamily: "var(--bjhunt-font-mono)",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        letterSpacing: "0.18em",
+                        textTransform: "uppercase",
+                        color: "var(--bjhunt-text-muted)",
+                      }}
+                    >
+                      {key}:
                     </span>
-                    <span className="text-[8px] font-mono text-[var(--text-subtle)]">
-                      {new Date(entry.timestamp).toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                    <span
+                      style={{
+                        fontFamily: "var(--bjhunt-font-mono)",
+                        fontSize: 12,
+                        color: "var(--bjhunt-text)",
+                      }}
+                    >
+                      {String(value)}
                     </span>
                   </div>
-                </button>
-              );
-            })}
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      )}
-    </div>
+
+        {/* Execution history */}
+        {history.length > 0 && (
+          <section className="mt-8">
+            <div className="mb-3">
+              <Eyebrow>Recent Executions ({history.length})</Eyebrow>
+            </div>
+            <div className="border" style={CARD_STYLE}>
+              {history.map((entry, idx) => {
+                const entryTool = TOOLS.find((t) => t.id === entry.tool);
+                const Icon = entryTool?.icon || Terminal;
+                const tone = CATEGORY_TONE[entryTool?.category || ""] || "neutral";
+
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setActiveTool(entry.tool);
+                      setResult(entry);
+                    }}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.02]",
+                      idx > 0 && "border-t"
+                    )}
+                    style={{ borderColor: "var(--bjhunt-border, #3d3a39)" }}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" style={{ color: TONE_COLORS[tone] }} />
+                    <span
+                      className="shrink-0 w-[100px]"
+                      style={{
+                        fontFamily: "var(--bjhunt-font-mono)",
+                        fontSize: 13,
+                        color: "var(--bjhunt-text)",
+                      }}
+                    >
+                      {entryTool?.name || entry.tool}
+                    </span>
+                    <span
+                      className="flex-1 truncate"
+                      style={{
+                        fontFamily: "var(--bjhunt-font-mono)",
+                        fontSize: 13,
+                        color: "var(--bjhunt-text-muted)",
+                      }}
+                    >
+                      {entry.output.slice(0, 100)}
+                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <StatusDot state={entry.status === "success" ? "success" : "critical"} />
+                      <span
+                        style={{
+                          fontFamily: "var(--bjhunt-font-mono)",
+                          fontSize: 12,
+                          color: "var(--bjhunt-text-muted)",
+                        }}
+                      >
+                        {entry.durationMs}ms
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: "var(--bjhunt-font-mono)",
+                          fontSize: 12,
+                          color: "var(--bjhunt-text-muted)",
+                        }}
+                      >
+                        {new Date(entry.timestamp).toLocaleTimeString("en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+      </div>
     </PlanGate>
   );
 }
