@@ -11,14 +11,15 @@ import { LayoutShell } from "@/components/layout/layout-shell";
 import { Preloader } from "@/components/ui/preloader";
 import { Inter } from "next/font/google";
 
-// Cut to 3 weights only — we use 400 (body), 600 (UI emphasis), 800 (display
-// headings). The previous 7-weight load shipped ~7 woff2 files render-blocking
-// LCP. Keeping `display: swap` so first paint is never blocked by the network.
+// W8 design system requires editorial weights 200/300 for display headings
+// + body, plus 400/500/600 for UI text and emphasis. `display: swap` keeps
+// first paint unblocked. The `--font-inter` CSS variable is consumed by
+// `app/design-tokens.css` (--bjhunt-font-sans).
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
-  weight: ["400", "600", "800"],
+  weight: ["200", "300", "400", "500", "600"],
 });
 
 export function generateStaticParams() {

@@ -1,49 +1,62 @@
 /*
  * BJHUNT — Design tokens per docs/architecture/17-DESIGN-SYSTEM.md
  *
- * Imported by globals.css. New components (SeverityBadge, TerminalBlock,
- * FindingCard, ProgressBarPhases, …) consume these via the `var(--bjhunt-*)`
- * names so the palette refresh in W8 lands without touching component code.
- *
- * The legacy variables in globals.css are retained for backward compatibility.
- * They will be retired in W8/W9 once every component reads from the tokens
- * declared here.
+ * W8 update (2026-04-26): aligned with `BJHUNT/W8 Design System.html` inspiration —
+ * deeper near-black surfaces, Apple system severity palette, Apple/spring easings,
+ * extended duration scale. Legacy variables remain as additive aliases so older
+ * components continue to inherit the refreshed palette without code edits.
  */
 
 :root {
   /* ── Brand ─────────────────────────────────────────── */
   --bjhunt-brand-primary:      #6366F1;     /* indigo 500 */
+  --bjhunt-brand-hover:        #818CF8;     /* indigo 400 — W8 hover */
   --bjhunt-brand-primary-fg:   #FFFFFF;
   --bjhunt-brand-primary-soft: rgba(99, 102, 241, 0.12);
 
-  /* ── Surfaces ──────────────────────────────────────── */
-  --bjhunt-bg:                 #0A0A0F;     /* near-black with a hint of blue */
-  --bjhunt-bg-secondary:       #111118;
-  --bjhunt-bg-tertiary:        #16161E;
+  /* ── Surfaces (W8 deeper black with hint of indigo) ─── */
+  --bjhunt-bg:                 #07070B;
+  --bjhunt-bg-secondary:       #0C0C12;
+  --bjhunt-bg-tertiary:        #111118;
   --bjhunt-bg-elevated:        #1B1B24;
 
   /* ── Text ──────────────────────────────────────────── */
   --bjhunt-text:               #F4F4F7;
   --bjhunt-text-muted:         #A1A1AA;
-  --bjhunt-text-subtle:        #71717A;
-  --bjhunt-text-disabled:      #52525B;
+  --bjhunt-text-subtle:        #52525B;
+  --bjhunt-text-disabled:      #3F3F46;
 
-  /* ── Borders ───────────────────────────────────────── */
-  --bjhunt-border:             #27272A;
-  --bjhunt-border-strong:      #3F3F46;
+  /* ── Borders (W8 translucent overlays) ──────────────── */
+  --bjhunt-border:             rgba(255, 255, 255, 0.06);
+  --bjhunt-border-strong:      rgba(255, 255, 255, 0.12);
   --bjhunt-border-focus:       var(--bjhunt-brand-primary);
 
-  /* ── Severity (per doc 17) ─────────────────────────── */
-  --bjhunt-severity-critical:    #DC2626;
-  --bjhunt-severity-critical-bg: rgba(220, 38, 38, 0.12);
-  --bjhunt-severity-high:        #F97316;
-  --bjhunt-severity-high-bg:     rgba(249, 115, 22, 0.12);
-  --bjhunt-severity-medium:      #EAB308;
-  --bjhunt-severity-medium-bg:   rgba(234, 179, 8, 0.12);
-  --bjhunt-severity-low:         #22C55E;          /* green per doc 17 spec */
-  --bjhunt-severity-low-bg:      rgba(34, 197, 94, 0.12);
-  --bjhunt-severity-info:        #6366F1;          /* indigo per doc 17 spec */
-  --bjhunt-severity-info-bg:     rgba(99, 102, 241, 0.12);
+  /* ── Severity (W8 — Apple system colors) ─────────────
+     Both `--bjhunt-severity-*` and `--sev-*` aliases are exposed because
+     the W8 inspiration components use the short form and existing atomic
+     components use the long form. Keep both for compatibility. */
+  --bjhunt-severity-critical:    #FF453A;
+  --bjhunt-severity-critical-bg: rgba(255, 69, 58, 0.12);
+  --bjhunt-severity-high:        #FF9F0A;
+  --bjhunt-severity-high-bg:     rgba(255, 159, 10, 0.12);
+  --bjhunt-severity-medium:      #FFD60A;
+  --bjhunt-severity-medium-bg:   rgba(255, 214, 10, 0.10);
+  --bjhunt-severity-low:         #30D158;
+  --bjhunt-severity-low-bg:      rgba(48, 209, 88, 0.12);
+  --bjhunt-severity-info:        #64D2FF;
+  --bjhunt-severity-info-bg:     rgba(100, 210, 255, 0.12);
+
+  /* Short-form aliases used by W8 inspiration components */
+  --sev-critical:    var(--bjhunt-severity-critical);
+  --sev-critical-bg: var(--bjhunt-severity-critical-bg);
+  --sev-high:        var(--bjhunt-severity-high);
+  --sev-high-bg:     var(--bjhunt-severity-high-bg);
+  --sev-medium:      var(--bjhunt-severity-medium);
+  --sev-medium-bg:   var(--bjhunt-severity-medium-bg);
+  --sev-low:         var(--bjhunt-severity-low);
+  --sev-low-bg:      var(--bjhunt-severity-low-bg);
+  --sev-info:        var(--bjhunt-severity-info);
+  --sev-info-bg:     var(--bjhunt-severity-info-bg);
 
   /* ── Status ────────────────────────────────────────── */
   --bjhunt-status-success:     #10B981;
@@ -78,9 +91,10 @@
   --bjhunt-space-12:           48px;
 
   /* ── Typography ──────────────────────────────────────
-     Prefers the next/font/google optimised Inter (injected as --font-inter
-     via app/[locale]/layout.tsx) and falls back gracefully. */
-  --bjhunt-font-sans:          var(--font-inter), 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+     W8 leans on Inter weights 200/300 for editorial display + 400/500/600
+     for UI. The next/font/google loader in app/[locale]/layout.tsx exposes
+     `--font-inter`; we fall back to system stacks otherwise. */
+  --bjhunt-font-sans:          var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', ui-sans-serif, system-ui, sans-serif;
   --bjhunt-font-mono:          'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --bjhunt-text-xs:            12px;
   --bjhunt-text-sm:            13px;
@@ -90,11 +104,19 @@
   --bjhunt-text-2xl:           24px;
 
   /* ── Animation ─────────────────────────────────────── */
+  /* Legacy long-form (kept for back-compat with existing components) */
   --bjhunt-duration-fast:      120ms;
   --bjhunt-duration-base:      200ms;
   --bjhunt-duration-slow:      400ms;
   --bjhunt-easing-out:         cubic-bezier(0.16, 1, 0.3, 1);
   --bjhunt-easing-in-out:      cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* W8 short-form duration + easing tokens */
+  --dur-fast:                  180ms;
+  --dur-base:                  360ms;
+  --dur-slow:                  640ms;
+  --ease-apple:                cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-spring:               cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Respect prefers-reduced-motion — already enforced globally in globals.css.
@@ -104,5 +126,8 @@
     --bjhunt-duration-fast:    0ms;
     --bjhunt-duration-base:    0ms;
     --bjhunt-duration-slow:    0ms;
+    --dur-fast:                0ms;
+    --dur-base:                0ms;
+    --dur-slow:                0ms;
   }
 }
