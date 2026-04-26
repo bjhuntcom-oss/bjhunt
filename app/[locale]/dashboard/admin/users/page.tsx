@@ -46,37 +46,114 @@ export default async function AdminUsersPage({
   const admins   = users.filter((u: User) => u.role === 'platform_admin').length
 
   return (
-    <div className="p-6 md:p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight">Utilisateurs</h1>
-          <p className="text-[11px] text-[var(--text-muted)] font-mono mt-1">
-            Gestion des comptes, rôles et accès
-          </p>
+    <div className="p-6 md:p-10">
+      <header className="mb-12 md:mb-16">
+        <div
+          className="mb-5 inline-flex items-center gap-2"
+          style={{
+            fontFamily: 'var(--bjhunt-font-mono)',
+            fontSize: 10,
+            letterSpacing: '0.32em',
+            textTransform: 'uppercase',
+            color: 'var(--bjhunt-text-subtle)',
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              width: 6,
+              height: 6,
+              background: 'var(--bjhunt-brand-primary)',
+              boxShadow: '0 0 8px var(--bjhunt-brand-primary)',
+              display: 'inline-block',
+            }}
+          />
+          <span>Admin · Identity</span>
         </div>
-      </div>
+        <h1
+          style={{
+            fontFamily: 'var(--bjhunt-font-sans)',
+            fontWeight: 200,
+            fontSize: 'clamp(48px, 7vw, 80px)',
+            letterSpacing: '-0.04em',
+            lineHeight: 1.0,
+            color: 'var(--bjhunt-text)',
+            margin: 0,
+          }}
+        >
+          Utilisateurs
+        </h1>
+        <p
+          className="mt-5 max-w-2xl"
+          style={{
+            fontFamily: 'var(--bjhunt-font-sans)',
+            fontWeight: 300,
+            fontSize: 17,
+            lineHeight: 1.5,
+            color: 'var(--bjhunt-text-muted)',
+          }}
+        >
+          Gestion des comptes, rôles et accès — sessions actives et statut de connexion en temps réel.
+        </p>
+      </header>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border)] mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[rgba(255,255,255,0.06)] mb-12">
         {[
           { label: 'Total',   value: total   },
           { label: 'Actifs',  value: active  },
           { label: 'Bloqués', value: blocked },
           { label: 'Admins',  value: admins  },
         ].map(({ label, value }) => (
-          <div key={label} className="bg-[var(--bg-card)] p-6">
-            <div className="text-3xl font-black font-mono text-white">{value}</div>
-            <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-[0.15em] mt-1">{label}</div>
+          <div key={label} className="bg-[var(--bjhunt-bg)] p-6">
+            <div
+              style={{
+                fontFamily: 'var(--bjhunt-font-sans)',
+                fontWeight: 200,
+                fontSize: 40,
+                letterSpacing: '-0.03em',
+                color: 'var(--bjhunt-text)',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {value}
+            </div>
+            <div
+              className="mt-2"
+              style={{
+                fontFamily: 'var(--bjhunt-font-mono)',
+                fontSize: 10,
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--bjhunt-text-subtle)',
+              }}
+            >
+              {label}
+            </div>
           </div>
         ))}
       </div>
 
       {/* Table */}
-      <div className="border border-[var(--border)] divide-y divide-[var(--border)]">
-        <div className="grid grid-cols-6 bg-[var(--bg-card)] px-4 py-2">
-          {['EMAIL', 'RÔLE', 'STATUT', 'DERNIÈRE ACTIVITÉ', 'SESSIONS', 'ACTIONS'].map((h) => (
-            <span key={h} className="text-[8px] font-mono text-[var(--text-subtle)] uppercase tracking-widest">{h}</span>
+      <div
+        style={{
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <div
+          className="grid grid-cols-6 px-4 py-3"
+          style={{
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            fontFamily: 'var(--bjhunt-font-mono)',
+            fontSize: 10,
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--bjhunt-text-subtle)',
+          }}
+        >
+          {['Email', 'Rôle', 'Statut', 'Dernière activité', 'Sessions', 'Actions'].map((h) => (
+            <span key={h}>{h}</span>
           ))}
         </div>
 
@@ -93,20 +170,53 @@ export default async function AdminUsersPage({
             : '—'
 
           return (
-            <div key={user.id} className="grid grid-cols-6 px-4 py-3 items-center hover:bg-[var(--bg-card)]/50 transition-colors">
+            <div
+              key={user.id}
+              className="grid grid-cols-6 px-4 py-4 items-center transition-colors"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.012)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '' }}
+            >
               <div className="min-w-0">
-                <div className="text-[11px] font-mono text-white truncate">{user.email}</div>
+                <div
+                  style={{
+                    fontFamily: 'var(--bjhunt-font-mono)',
+                    fontSize: 12,
+                    color: 'var(--bjhunt-text)',
+                  }}
+                  className="truncate"
+                >
+                  {user.email}
+                </div>
                 {user.displayName && (
-                  <div className="text-[9px] text-[var(--text-muted)] truncate">{user.displayName}</div>
+                  <div
+                    style={{
+                      fontFamily: 'var(--bjhunt-font-sans)',
+                      fontSize: 12,
+                      fontWeight: 300,
+                      color: 'var(--bjhunt-text-muted)',
+                    }}
+                    className="truncate"
+                  >
+                    {user.displayName}
+                  </div>
                 )}
               </div>
-              <span className="text-[10px] font-mono text-[var(--text-muted)] uppercase">
+              <span
+                style={{
+                  fontFamily: 'var(--bjhunt-font-mono)',
+                  fontSize: 10,
+                  letterSpacing: '0.22em',
+                  textTransform: 'uppercase',
+                  color: 'var(--bjhunt-text-muted)',
+                }}
+              >
                 {user.role === 'platform_admin' ? 'Admin' : 'User'}
               </span>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <div
                   className="w-1.5 h-1.5 flex-shrink-0"
-                  style={{ background: isBlocked ? 'var(--danger)' : user.sessions?.isOnline ? 'var(--success)' : 'var(--text-subtle)' }}
+                  style={{ background: isBlocked ? 'var(--bjhunt-status-danger)' : user.sessions?.isOnline ? 'var(--bjhunt-status-success)' : 'var(--bjhunt-text-subtle)' }}
                 />
                 <span className="text-[10px] font-mono text-[var(--text-muted)]">
                   {isBlocked ? 'Bloqué' : user.sessions?.isOnline ? 'En ligne' : 'Actif'}

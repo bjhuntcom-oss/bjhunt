@@ -59,21 +59,73 @@ export default async function AuditRunDetailPage({
   const results = findingsData.findings ?? []
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl">
-      <div className="mb-6">
+    <div className="p-6 md:p-10 max-w-6xl">
+      <div className="mb-10">
         <Link
           href={`/${locale}/dashboard/audits`}
-          className="flex items-center gap-1 text-[10px] font-mono text-[var(--text-muted)] hover:text-white transition-colors mb-4"
+          className="inline-flex items-center gap-1 mb-8 transition-colors hover:text-white"
+          style={{
+            fontFamily: 'var(--bjhunt-font-mono)',
+            fontSize: 10,
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--bjhunt-text-muted)',
+          }}
         >
           <ChevronLeft size={12} />
           Retour aux audits
         </Link>
 
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-black tracking-tight">{run.title}</h1>
+        <div className="flex items-start justify-between gap-6 flex-wrap">
+          <div className="min-w-0 flex-1">
+            <div
+              className="mb-3 inline-flex items-center gap-2"
+              style={{
+                fontFamily: 'var(--bjhunt-font-mono)',
+                fontSize: 10,
+                letterSpacing: '0.32em',
+                textTransform: 'uppercase',
+                color: 'var(--bjhunt-text-subtle)',
+              }}
+            >
+              <span
+                aria-hidden
+                style={{
+                  width: 6,
+                  height: 6,
+                  background: STATUS_COLORS[run.status] ?? 'var(--bjhunt-brand-primary)',
+                  boxShadow: `0 0 8px ${STATUS_COLORS[run.status] ?? 'var(--bjhunt-brand-primary)'}`,
+                  display: 'inline-block',
+                }}
+              />
+              <span>Engagement · {STATUS_LABELS[run.status] ?? run.status}</span>
+            </div>
+            <h1
+              style={{
+                fontFamily: 'var(--bjhunt-font-sans)',
+                fontWeight: 200,
+                fontSize: 'clamp(36px, 6vw, 64px)',
+                letterSpacing: '-0.04em',
+                lineHeight: 1.05,
+                color: 'var(--bjhunt-text)',
+                margin: 0,
+                textWrap: 'balance',
+              }}
+            >
+              {run.title}
+            </h1>
             {run.target && (
-              <p className="text-[11px] text-[var(--text-muted)] font-mono mt-1">{run.target}</p>
+              <p
+                className="mt-3"
+                style={{
+                  fontFamily: 'var(--bjhunt-font-mono)',
+                  fontSize: 12,
+                  color: 'var(--bjhunt-text-muted)',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                {run.target}
+              </p>
             )}
           </div>
           <span

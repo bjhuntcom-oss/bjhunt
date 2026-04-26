@@ -19,11 +19,11 @@ interface AuditRun {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: 'var(--text-muted)',
-  running: 'var(--warning)',
-  completed: 'var(--success)',
-  failed: 'var(--danger)',
-  cancelled: 'var(--text-subtle)',
+  draft: 'var(--bjhunt-text-muted)',
+  running: 'var(--bjhunt-status-warning)',
+  completed: 'var(--bjhunt-status-success)',
+  failed: 'var(--bjhunt-status-danger)',
+  cancelled: 'var(--bjhunt-text-subtle)',
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -711,9 +711,47 @@ export function AuditsClient({
       )}
 
       {runs.length === 0 ? (
-        <div className="border border-[var(--border)] px-4 py-12 text-center">
-          <p className="text-[11px] font-mono text-[var(--text-muted)] mb-4">
-            Aucun audit — créez-en un pour commencer.
+        <div
+          className="px-4 py-24 text-center"
+          style={{
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+          }}
+        >
+          <div
+            style={{
+              fontFamily: 'var(--bjhunt-font-mono)',
+              fontSize: 10,
+              letterSpacing: '0.32em',
+              textTransform: 'uppercase',
+              color: 'var(--bjhunt-text-subtle)',
+              marginBottom: 12,
+            }}
+          >
+            Empty State
+          </div>
+          <h2
+            style={{
+              fontFamily: 'var(--bjhunt-font-sans)',
+              fontWeight: 200,
+              fontSize: 32,
+              letterSpacing: '-0.02em',
+              color: 'var(--bjhunt-text)',
+              margin: '0 0 8px',
+            }}
+          >
+            No audits yet
+          </h2>
+          <p
+            className="mb-6"
+            style={{
+              fontFamily: 'var(--bjhunt-font-sans)',
+              fontWeight: 300,
+              fontSize: 15,
+              color: 'var(--bjhunt-text-muted)',
+            }}
+          >
+            Create your first engagement to put the orchestrator to work.
           </p>
           {/* DASH-P2: inline CTA inside the empty state so the user
               doesn't have to hunt for the "+ Nouvel audit" button. */}
@@ -727,9 +765,30 @@ export function AuditsClient({
           </button>
         </div>
       ) : (
-        <div className="border border-[var(--border)] divide-y divide-[var(--border)]">
+        <div
+          style={{
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+          }}
+        >
           {runs.map((run) => (
-            <div key={run.id} className="flex items-center justify-between px-4 py-3 hover:bg-[var(--bg-card)] transition-colors">
+            <div
+              key={run.id}
+              className="flex items-center justify-between px-4 py-4 transition-[padding,background-color]"
+              style={{
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                transitionDuration: 'var(--bjhunt-duration-base)',
+                transitionTimingFunction: 'var(--bjhunt-easing-out)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.012)'
+                e.currentTarget.style.paddingLeft = '40px'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = ''
+                e.currentTarget.style.paddingLeft = ''
+              }}
+            >
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div
                   className="w-1.5 h-1.5 flex-shrink-0 rounded-full"
