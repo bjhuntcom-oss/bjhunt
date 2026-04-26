@@ -4,8 +4,21 @@ import { useState, useTransition, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { browserBackendFetch } from '@/lib/backend-client'
-import { Plus, X, ChevronRight, ChevronLeft, Loader2, Check, Target, Shield, Cpu, FileText } from 'lucide-react'
+import {
+  Plus,
+  X,
+  ChevronRight,
+  ChevronLeft,
+  Loader2,
+  Check,
+  Target,
+  Shield,
+  Cpu,
+  FileText,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Eyebrow, H3, H4, Body } from '@/components/ui/typography'
+import { StatusDot, type DotState } from '@/components/ui/status-dot'
 
 interface AuditRun {
   id: string
@@ -18,20 +31,20 @@ interface AuditRun {
   updatedAt: string
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  draft: 'var(--bjhunt-text-muted)',
-  running: 'var(--bjhunt-status-warning)',
-  completed: 'var(--bjhunt-status-success)',
-  failed: 'var(--bjhunt-status-danger)',
-  cancelled: 'var(--bjhunt-text-subtle)',
+const STATUS_DOT: Record<string, DotState> = {
+  draft: 'neutral',
+  running: 'warning',
+  completed: 'success',
+  failed: 'critical',
+  cancelled: 'neutral',
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  draft: 'Brouillon',
-  running: 'En cours',
-  completed: 'Termine',
-  failed: 'Echoue',
-  cancelled: 'Annule',
+  draft: 'DRAFT',
+  running: 'RUNNING',
+  completed: 'DONE',
+  failed: 'FAILED',
+  cancelled: 'CANCELLED',
 }
 
 // ── Wizard types ────────────────────────────────────────────────────────
@@ -39,15 +52,12 @@ const STATUS_LABELS: Record<string, string> = {
 type TargetType = 'web' | 'network' | 'cloud' | 'ad' | 'mobile' | 'contract'
 
 interface WizardState {
-  // Step 1: Target
   targetUrl: string
   targetName: string
   targetType: TargetType
-  // Step 2: Scope
   inScope: string
   outOfScope: string
   maxDuration: number
-  // Step 3: Agent
   agentGraph: string
   vaccineMode: boolean
   autoReport: boolean
@@ -70,26 +80,30 @@ const DURATION_OPTIONS = [
   { value: 28800, label: '8 hours' },
 ]
 
-// IMPORTANT: every `value` MUST exactly match a key in `engine/langgraph.json`
-// (verified 2026-04-18). Sending a non-registered name returns LangGraph 404.
-const AGENT_OPTIONS = [
-  { value: 'bjhunt', label: 'BJHUNT Orchestrator', description: 'Full autonomous scan — coordinates all 9 specialist sub-agents' },
-  { value: 'soundwave', label: 'Soundwave (Planner)', description: 'Engagement planning — RoE, CONOPS, deconfliction, OPPLAN' },
-  { value: 'recon', label: 'Recon', description: 'OSINT, subdomain enum, port scanning, service detection' },
-  { value: 'exploit', label: 'Exploit', description: 'SQLi, SSTI, Kerberoasting, credential attacks' },
-  { value: 'postexploit', label: 'PostExploit', description: 'Privilege escalation, lateral movement, C2' },
-  { value: 'analyst', label: 'Analyst', description: 'Code review, static analysis, CVE sweeps, fuzzing' },
-  { value: 'reverser', label: 'Reverser', description: 'ELF/PE/firmware triage, ROP gadgets, Ghidra' },
-  { value: 'contract_auditor', label: 'Contract Auditor', description: 'Solidity/EVM: reentrancy, flash loans, Slither' },
-  { value: 'cloud_hunter', label: 'Cloud Hunter', description: 'AWS IAM privesc, S3 takeover, K8s RBAC' },
-  { value: 'ad_operator', label: 'AD Operator', description: 'BloodHound, Kerberoast, ADCS, DCSync' },
-  { value: 'vulnresearch', label: 'VulnResearch', description: 'Vulnerability research pipeline (Scanner→Detector→Verifier→Patcher→Exploiter)' },
-  { value: 'scanner', label: 'Scanner', description: 'Phase 1 — sweep codebase for candidate weaknesses' },
-  { value: 'detector', label: 'Detector', description: 'Phase 2 — promote candidates to vulnerabilities' },
-  { value: 'verifier', label: 'Verifier', description: 'Phase 3 — craft PoCs (zero false positive)' },
-  { value: 'patcher', label: 'Patcher', description: 'Phase 4 — generate minimal patches' },
-  { value: 'exploiter', label: 'Exploiter', description: 'Phase 5 — chain primitives into weaponized attack paths' },
-  { value: 'defender', label: 'Defender', description: 'Vaccine loop — attack → defense → verify' },
+// IMPORTANT: every `value` MUST exactly match a key in `engine/langgraph.json`.
+const AGENT_OPTIONS: {
+  value: string
+  label: string
+  description: string
+  icon: typeof Target
+}[] = [
+  { value: 'bjhunt', label: 'BJHUNT Orchestrator', description: 'Full autonomous scan — coordinates all 9 specialist sub-agents', icon: Cpu },
+  { value: 'soundwave', label: 'Soundwave (Planner)', description: 'Engagement planning — RoE, CONOPS, deconfliction, OPPLAN', icon: FileText },
+  { value: 'recon', label: 'Recon', description: 'OSINT, subdomain enum, port scanning, service detection', icon: Target },
+  { value: 'exploit', label: 'Exploit', description: 'SQLi, SSTI, Kerberoasting, credential attacks', icon: Shield },
+  { value: 'postexploit', label: 'PostExploit', description: 'Privilege escalation, lateral movement, C2', icon: Shield },
+  { value: 'analyst', label: 'Analyst', description: 'Code review, static analysis, CVE sweeps, fuzzing', icon: FileText },
+  { value: 'reverser', label: 'Reverser', description: 'ELF/PE/firmware triage, ROP gadgets, Ghidra', icon: Cpu },
+  { value: 'contract_auditor', label: 'Contract Auditor', description: 'Solidity/EVM: reentrancy, flash loans, Slither', icon: FileText },
+  { value: 'cloud_hunter', label: 'Cloud Hunter', description: 'AWS IAM privesc, S3 takeover, K8s RBAC', icon: Target },
+  { value: 'ad_operator', label: 'AD Operator', description: 'BloodHound, Kerberoast, ADCS, DCSync', icon: Target },
+  { value: 'vulnresearch', label: 'VulnResearch', description: 'Vulnerability research pipeline (Scanner→Detector→Verifier)', icon: Cpu },
+  { value: 'scanner', label: 'Scanner', description: 'Phase 1 — sweep codebase for candidate weaknesses', icon: Target },
+  { value: 'detector', label: 'Detector', description: 'Phase 2 — promote candidates to vulnerabilities', icon: Target },
+  { value: 'verifier', label: 'Verifier', description: 'Phase 3 — craft PoCs (zero false positive)', icon: Shield },
+  { value: 'patcher', label: 'Patcher', description: 'Phase 4 — generate minimal patches', icon: FileText },
+  { value: 'exploiter', label: 'Exploiter', description: 'Phase 5 — chain primitives into weaponized attack paths', icon: Shield },
+  { value: 'defender', label: 'Defender', description: 'Vaccine loop — attack → defense → verify', icon: Shield },
 ]
 
 const STEP_ICONS = [Target, Shield, Cpu, FileText]
@@ -170,58 +184,65 @@ function WizardModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div
+      className="fixed inset-0 z-50 flex items-stretch md:items-center md:justify-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="wizard-title"
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
+        aria-hidden
       />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-2xl mx-4 border border-[var(--border)] bg-[var(--bg)] max-h-[90vh] overflow-y-auto">
+      {/* Modal — full-screen on <md, contained on md+ */}
+      <div className="relative w-full md:w-[720px] md:max-w-[90vw] md:max-h-[90vh] md:mx-4 border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-elevated)] flex flex-col md:rounded-[8px]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
+        <div className="flex items-center justify-between px-5 md:px-6 py-4 border-b border-[var(--bjhunt-border)]">
           <div>
-            <h2 className="text-[14px] font-mono font-bold uppercase tracking-widest text-white">
-              New Scan
-            </h2>
-            <p className="text-[9px] font-mono text-[var(--text-subtle)] mt-0.5">
-              Step {step + 1} of {totalSteps}
-            </p>
+            <Eyebrow className="block">Step {step + 1} of {totalSteps}</Eyebrow>
+            <H3 id="wizard-title" className="mt-1">New scan</H3>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-[var(--text-muted)] hover:text-white transition-colors"
+            className="p-2 text-[var(--bjhunt-text-muted)] hover:text-[var(--bjhunt-text)] transition-colors"
+            aria-label="Close wizard"
           >
-            <X size={14} />
+            <X size={16} />
           </button>
         </div>
 
-        {/* Progress indicator */}
-        <div className="flex items-center px-6 py-3 border-b border-[var(--border)] bg-[var(--bg-card)]">
+        {/* Step tabs / progress */}
+        <div className="flex items-center px-5 md:px-6 py-3 border-b border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-secondary)] overflow-x-auto">
           {STEP_LABELS.map((label, i) => {
             const Icon = STEP_ICONS[i]
             const isActive = i === step
             const isDone = i < step
             return (
-              <div key={label} className="flex items-center flex-1">
-                <div className="flex items-center gap-1.5">
+              <div key={label} className="flex items-center flex-shrink-0">
+                <div className="flex items-center gap-2">
                   <div
                     className={cn(
-                      'w-5 h-5 flex items-center justify-center border',
+                      'w-6 h-6 flex items-center justify-center border rounded-[4px] transition-colors',
                       isActive
-                        ? 'border-white bg-white text-black'
+                        ? 'border-[var(--state-success)] text-[var(--state-success)]'
                         : isDone
-                          ? 'border-[var(--success)] bg-[var(--success)] text-black'
-                          : 'border-[var(--border)] text-[var(--text-subtle)]'
+                          ? 'border-[var(--state-success)] bg-[var(--state-success)] text-black'
+                          : 'border-[var(--bjhunt-border)] text-[var(--bjhunt-text-muted)]',
                     )}
                   >
-                    {isDone ? <Check size={10} /> : <Icon size={10} />}
+                    {isDone ? <Check size={11} /> : <Icon size={11} />}
                   </div>
                   <span
                     className={cn(
-                      'text-[8px] font-mono uppercase tracking-widest',
-                      isActive ? 'text-white' : isDone ? 'text-[var(--success)]' : 'text-[var(--text-subtle)]'
+                      'font-mono text-[11px] uppercase tracking-[0.18em]',
+                      isActive
+                        ? 'text-[var(--bjhunt-text)]'
+                        : isDone
+                          ? 'text-[var(--state-success)]'
+                          : 'text-[var(--bjhunt-text-muted)]',
                     )}
                   >
                     {label}
@@ -230,9 +251,10 @@ function WizardModal({
                 {i < totalSteps - 1 && (
                   <div
                     className={cn(
-                      'flex-1 h-px mx-3',
-                      isDone ? 'bg-[var(--success)]' : 'bg-[var(--border)]'
+                      'w-8 md:w-12 h-px mx-2',
+                      isDone ? 'bg-[var(--state-success)]' : 'bg-[var(--bjhunt-border)]',
                     )}
+                    aria-hidden
                   />
                 )}
               </div>
@@ -240,333 +262,231 @@ function WizardModal({
           })}
         </div>
 
-        {/* Step content */}
-        <div className="px-6 py-5 space-y-4">
+        {/* Step content (scrollable) */}
+        <div className="flex-1 overflow-y-auto px-5 md:px-6 py-5 space-y-5">
           {/* Step 1: Target */}
           {step === 0 && (
             <>
-              <div>
-                <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
-                  Target URL / IP *
-                </label>
+              <Field label="Target URL / IP *">
                 <input
                   value={wizard.targetUrl}
                   onChange={(e) => updateField('targetUrl', e.target.value)}
-                  className="w-full bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--border-strong)]"
+                  className="w-full bg-[var(--bjhunt-bg-secondary)] border border-[var(--bjhunt-border)] px-3 h-11 md:h-10 text-[13px] font-mono text-[var(--bjhunt-text)] focus:outline-none focus:border-[var(--state-success)] rounded-[6px]"
                   placeholder="https://example.com or 192.168.1.0/24"
                   autoFocus
                 />
-              </div>
-              <div>
-                <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
-                  Target Name
-                </label>
+              </Field>
+              <Field label="Target name" hint="Leave blank to auto-generate from the target URL.">
                 <input
                   value={wizard.targetName}
                   onChange={(e) => updateField('targetName', e.target.value)}
-                  className="w-full bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--border-strong)]"
+                  className="w-full bg-[var(--bjhunt-bg-secondary)] border border-[var(--bjhunt-border)] px-3 h-11 md:h-10 text-[13px] font-mono text-[var(--bjhunt-text)] focus:outline-none focus:border-[var(--state-success)] rounded-[6px]"
                   placeholder={wizard.targetUrl ? deriveNameFromUrl(wizard.targetUrl) : 'Auto-generated from URL'}
                 />
-                <p className="text-[8px] font-mono text-[var(--text-subtle)] mt-1">
-                  Leave blank to auto-generate from the target URL.
-                </p>
-              </div>
-              <div>
-                <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
-                  Target Type
-                </label>
-                <div className="grid grid-cols-3 gap-2">
+              </Field>
+              <Field label="Target type">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                   {TARGET_TYPES.map((tt) => (
                     <button
                       key={tt.value}
                       onClick={() => updateField('targetType', tt.value)}
                       className={cn(
-                        'px-3 py-2 text-[10px] font-mono border transition-colors text-left',
+                        'h-11 md:h-10 px-3 text-[12px] font-mono border transition-colors text-left rounded-[6px]',
                         wizard.targetType === tt.value
-                          ? 'border-white text-white bg-[var(--bg-card)]'
-                          : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-white'
+                          ? 'border-[var(--state-success)] text-[var(--state-success)] bg-[var(--state-success-tint)]'
+                          : 'border-[var(--bjhunt-border)] text-[var(--bjhunt-text-muted)] hover:border-[var(--bjhunt-border-strong)] hover:text-[var(--bjhunt-text)]',
                       )}
                     >
                       {tt.label}
                     </button>
                   ))}
                 </div>
-              </div>
+              </Field>
             </>
           )}
 
           {/* Step 2: Scope */}
           {step === 1 && (
             <>
-              <div>
-                <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
-                  In-Scope Domains / IPs
-                </label>
+              <Field label="In-scope domains / IPs" hint="One entry per line. Wildcards and CIDR supported.">
                 <textarea
                   value={wizard.inScope}
                   onChange={(e) => updateField('inScope', e.target.value)}
                   rows={4}
-                  className="w-full bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--border-strong)] resize-none"
-                  placeholder={"example.com\n*.example.com\n192.168.1.0/24"}
+                  className="w-full bg-[var(--bjhunt-bg-secondary)] border border-[var(--bjhunt-border)] px-3 py-2 text-[13px] font-mono text-[var(--bjhunt-text)] focus:outline-none focus:border-[var(--state-success)] resize-none rounded-[6px]"
+                  placeholder={'example.com\n*.example.com\n192.168.1.0/24'}
                 />
-                <p className="text-[8px] font-mono text-[var(--text-subtle)] mt-1">
-                  One entry per line. Supports wildcards and CIDR notation.
-                </p>
-              </div>
-              <div>
-                <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
-                  Out-of-Scope
-                </label>
+              </Field>
+              <Field label="Out-of-scope" hint="Systems that must NOT be tested.">
                 <textarea
                   value={wizard.outOfScope}
                   onChange={(e) => updateField('outOfScope', e.target.value)}
                   rows={3}
-                  className="w-full bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--border-strong)] resize-none"
-                  placeholder={"prod.example.com\n10.0.0.0/8"}
+                  className="w-full bg-[var(--bjhunt-bg-secondary)] border border-[var(--bjhunt-border)] px-3 py-2 text-[13px] font-mono text-[var(--bjhunt-text)] focus:outline-none focus:border-[var(--state-success)] resize-none rounded-[6px]"
+                  placeholder={'prod.example.com\n10.0.0.0/8'}
                 />
-                <p className="text-[8px] font-mono text-[var(--text-subtle)] mt-1">
-                  Systems that must NOT be tested.
-                </p>
-              </div>
-              <div>
-                <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
-                  Max Scan Duration
-                </label>
-                <div className="flex gap-2">
+              </Field>
+              <Field label="Max scan duration">
+                <div className="flex flex-wrap gap-2">
                   {DURATION_OPTIONS.map((d) => (
                     <button
                       key={d.value}
                       onClick={() => updateField('maxDuration', d.value)}
                       className={cn(
-                        'px-3 py-1.5 text-[10px] font-mono border transition-colors',
+                        'h-9 px-4 text-[12px] font-mono border transition-colors rounded-[6px]',
                         wizard.maxDuration === d.value
-                          ? 'border-white text-white bg-[var(--bg-card)]'
-                          : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-white'
+                          ? 'border-[var(--state-success)] text-[var(--state-success)] bg-[var(--state-success-tint)]'
+                          : 'border-[var(--bjhunt-border)] text-[var(--bjhunt-text-muted)] hover:border-[var(--bjhunt-border-strong)] hover:text-[var(--bjhunt-text)]',
                       )}
                     >
                       {d.label}
                     </button>
                   ))}
                 </div>
-              </div>
+              </Field>
             </>
           )}
 
-          {/* Step 3: Agent Selection */}
+          {/* Step 3: Agent picker — 1 / 2 / 3 col */}
           {step === 2 && (
             <>
-              <div>
-                <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
-                  Agent Graph
-                </label>
-                <div className="max-h-[250px] overflow-y-auto border border-[var(--border)] divide-y divide-[var(--border)]">
-                  {AGENT_OPTIONS.map((agent) => (
-                    <button
-                      key={agent.value}
-                      onClick={() => updateField('agentGraph', agent.value)}
-                      className={cn(
-                        'w-full flex items-start gap-3 px-3 py-2.5 text-left transition-colors',
-                        wizard.agentGraph === agent.value
-                          ? 'bg-[var(--bg-card)]'
-                          : 'hover:bg-[var(--bg-card)]'
-                      )}
-                    >
-                      <div
+              <Field label="Agent graph">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {AGENT_OPTIONS.map((agent) => {
+                    const Icon = agent.icon
+                    const selected = wizard.agentGraph === agent.value
+                    return (
+                      <button
+                        key={agent.value}
+                        onClick={() => updateField('agentGraph', agent.value)}
                         className={cn(
-                          'w-3 h-3 border flex-shrink-0 mt-0.5 flex items-center justify-center',
-                          wizard.agentGraph === agent.value
-                            ? 'border-white bg-white'
-                            : 'border-[var(--border-strong)]'
+                          'flex flex-col gap-1.5 text-left p-4 border transition-colors rounded-[6px] bg-[var(--bjhunt-bg-secondary)]',
+                          selected
+                            ? 'border-[var(--state-success)]'
+                            : 'border-[var(--bjhunt-border)] hover:border-[var(--bjhunt-border-strong)]',
                         )}
                       >
-                        {wizard.agentGraph === agent.value && (
-                          <Check size={8} className="text-black" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-[10px] font-mono font-bold text-white">
-                          {agent.label}
+                        <div className="flex items-center gap-2">
+                          <Icon
+                            size={20}
+                            className={selected ? 'text-[var(--state-success)]' : 'text-[var(--bjhunt-text-muted)]'}
+                            aria-hidden
+                          />
+                          <H4 className="text-[14px]">{agent.label}</H4>
                         </div>
-                        <div className="text-[9px] font-mono text-[var(--text-muted)] mt-0.5">
+                        <Body size="sm" muted>
                           {agent.description}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+                        </Body>
+                      </button>
+                    )
+                  })}
                 </div>
-              </div>
-              <div className="space-y-2 pt-2">
-                <label
-                  className="flex items-center gap-3 cursor-pointer group"
-                  onClick={() => updateField('vaccineMode', !wizard.vaccineMode)}
-                >
-                  <div
-                    className={cn(
-                      'w-3.5 h-3.5 border flex items-center justify-center transition-colors',
-                      wizard.vaccineMode
-                        ? 'border-[var(--success)] bg-[var(--success)]'
-                        : 'border-[var(--border-strong)] group-hover:border-[var(--text-muted)]'
-                    )}
-                  >
-                    {wizard.vaccineMode && <Check size={9} className="text-black" />}
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-mono text-white">
-                      Enable Vaccine Loop
-                    </span>
-                    <p className="text-[8px] font-mono text-[var(--text-subtle)]">
-                      Attack, defense, verify cycle — generates defensive recommendations
-                    </p>
-                  </div>
-                </label>
-                <label
-                  className="flex items-center gap-3 cursor-pointer group"
-                  onClick={() => updateField('autoReport', !wizard.autoReport)}
-                >
-                  <div
-                    className={cn(
-                      'w-3.5 h-3.5 border flex items-center justify-center transition-colors',
-                      wizard.autoReport
-                        ? 'border-[var(--success)] bg-[var(--success)]'
-                        : 'border-[var(--border-strong)] group-hover:border-[var(--text-muted)]'
-                    )}
-                  >
-                    {wizard.autoReport && <Check size={9} className="text-black" />}
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-mono text-white">
-                      Enable Auto-Reporting
-                    </span>
-                    <p className="text-[8px] font-mono text-[var(--text-subtle)]">
-                      Automatically generate reports when the scan completes
-                    </p>
-                  </div>
-                </label>
+              </Field>
+
+              <div className="space-y-3 pt-1">
+                <ToggleRow
+                  checked={wizard.vaccineMode}
+                  onChange={(v) => updateField('vaccineMode', v)}
+                  label="Enable vaccine loop"
+                  hint="Attack → defense → verify cycle. Generates defensive recommendations."
+                />
+                <ToggleRow
+                  checked={wizard.autoReport}
+                  onChange={(v) => updateField('autoReport', v)}
+                  label="Enable auto-reporting"
+                  hint="Generate reports automatically when the scan completes."
+                />
               </div>
             </>
           )}
 
           {/* Step 4: Review & Launch */}
           {step === 3 && (
-            <>
-              <div className="border border-[var(--border)] divide-y divide-[var(--border)]">
-                {/* Target */}
-                <div className="px-4 py-3">
-                  <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                    Target
-                  </div>
-                  <div className="text-[11px] font-mono text-white font-bold">
-                    {wizard.targetName || deriveNameFromUrl(wizard.targetUrl)}
-                  </div>
-                  <div className="text-[10px] font-mono text-[var(--text-muted)] mt-0.5">
-                    {wizard.targetUrl}
-                  </div>
-                  <span className="inline-block text-[8px] font-mono uppercase tracking-widest px-1.5 py-0.5 border border-[var(--border)] text-[var(--text-muted)] mt-1">
-                    {TARGET_TYPES.find((t) => t.value === wizard.targetType)?.label ?? wizard.targetType}
-                  </span>
-                </div>
+            <div className="border border-[var(--bjhunt-border)] rounded-[6px] divide-y divide-[var(--bjhunt-border)]">
+              <ReviewRow label="Target">
+                <H4>{wizard.targetName || deriveNameFromUrl(wizard.targetUrl)}</H4>
+                <Body size="sm" muted className="mt-0.5 font-mono">
+                  {wizard.targetUrl}
+                </Body>
+                <span className="inline-flex mt-2 px-2 py-0.5 text-[11px] font-mono uppercase tracking-[0.18em] border border-[var(--bjhunt-border)] text-[var(--bjhunt-text-muted)] rounded-[4px]">
+                  {TARGET_TYPES.find((t) => t.value === wizard.targetType)?.label ?? wizard.targetType}
+                </span>
+              </ReviewRow>
 
-                {/* Scope */}
-                <div className="px-4 py-3">
-                  <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                    Scope
+              <ReviewRow label="Scope">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Eyebrow>In-scope</Eyebrow>
+                    <Body size="sm" muted className="mt-1 font-mono whitespace-pre-line">
+                      {wizard.inScope || '(all from target)'}
+                    </Body>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-[8px] font-mono text-[var(--text-subtle)] mb-0.5">In-scope</div>
-                      <div className="text-[10px] font-mono text-[var(--text-muted)] whitespace-pre-line">
-                        {wizard.inScope || '(all from target)'}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[8px] font-mono text-[var(--text-subtle)] mb-0.5">Out-of-scope</div>
-                      <div className="text-[10px] font-mono text-[var(--text-muted)] whitespace-pre-line">
-                        {wizard.outOfScope || '(none)'}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-[9px] font-mono text-[var(--text-subtle)] mt-2">
-                    Max duration: {DURATION_OPTIONS.find((d) => d.value === wizard.maxDuration)?.label ?? `${wizard.maxDuration}s`}
+                  <div>
+                    <Eyebrow>Out-of-scope</Eyebrow>
+                    <Body size="sm" muted className="mt-1 font-mono whitespace-pre-line">
+                      {wizard.outOfScope || '(none)'}
+                    </Body>
                   </div>
                 </div>
+                <Body size="sm" muted className="mt-3 font-mono">
+                  Max duration: {DURATION_OPTIONS.find((d) => d.value === wizard.maxDuration)?.label ?? `${wizard.maxDuration}s`}
+                </Body>
+              </ReviewRow>
 
-                {/* Agent */}
-                <div className="px-4 py-3">
-                  <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                    Agent
-                  </div>
-                  <div className="text-[11px] font-mono text-white font-bold">
-                    {AGENT_OPTIONS.find((a) => a.value === wizard.agentGraph)?.label ?? wizard.agentGraph}
-                  </div>
-                  <div className="flex items-center gap-3 mt-1.5">
-                    <span className={cn(
-                      'text-[8px] font-mono uppercase tracking-widest px-1.5 py-0.5 border',
-                      wizard.vaccineMode
-                        ? 'border-[var(--success)] text-[var(--success)]'
-                        : 'border-[var(--border)] text-[var(--text-subtle)]'
-                    )}>
-                      Vaccine {wizard.vaccineMode ? 'ON' : 'OFF'}
-                    </span>
-                    <span className={cn(
-                      'text-[8px] font-mono uppercase tracking-widest px-1.5 py-0.5 border',
-                      wizard.autoReport
-                        ? 'border-[var(--success)] text-[var(--success)]'
-                        : 'border-[var(--border)] text-[var(--text-subtle)]'
-                    )}>
-                      Auto-report {wizard.autoReport ? 'ON' : 'OFF'}
-                    </span>
-                  </div>
+              <ReviewRow label="Agent">
+                <H4>
+                  {AGENT_OPTIONS.find((a) => a.value === wizard.agentGraph)?.label ?? wizard.agentGraph}
+                </H4>
+                <div className="flex items-center gap-2 mt-2">
+                  <ReviewBadge active={wizard.vaccineMode}>Vaccine {wizard.vaccineMode ? 'ON' : 'OFF'}</ReviewBadge>
+                  <ReviewBadge active={wizard.autoReport}>Auto-report {wizard.autoReport ? 'ON' : 'OFF'}</ReviewBadge>
                 </div>
-              </div>
-            </>
+              </ReviewRow>
+            </div>
           )}
         </div>
 
-        {/* Footer buttons */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--border)] bg-[var(--bg-card)]">
-          <div>
-            {step > 0 && (
-              <button
-                onClick={() => setStep((s) => s - 1)}
-                disabled={isPending}
-                className="flex items-center gap-1 px-3 py-1.5 text-[10px] font-mono uppercase tracking-widest border border-[var(--border)] text-[var(--text-muted)] hover:text-white hover:border-[var(--border-strong)] transition-colors disabled:opacity-40"
-              >
-                <ChevronLeft size={10} />
-                Back
-              </button>
-            )}
-          </div>
+        {/* Footer */}
+        <div className="flex items-center justify-between px-5 md:px-6 py-4 border-t border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-secondary)]">
+          {step > 0 ? (
+            <button
+              onClick={() => setStep((s) => s - 1)}
+              disabled={isPending}
+              className="inline-flex items-center gap-1 h-10 md:h-9 px-4 text-[11px] font-mono uppercase tracking-[0.18em] border border-[var(--bjhunt-border)] text-[var(--bjhunt-text-muted)] hover:text-[var(--bjhunt-text)] hover:border-[var(--bjhunt-border-strong)] transition-colors disabled:opacity-40 rounded-[6px]"
+            >
+              <ChevronLeft size={12} />
+              Back
+            </button>
+          ) : (
+            <span />
+          )}
           <div className="flex items-center gap-2">
             {step < totalSteps - 1 ? (
               <button
                 onClick={() => setStep((s) => s + 1)}
                 disabled={!canNext}
-                className="flex items-center gap-1 px-4 py-1.5 text-[10px] font-mono font-bold uppercase tracking-widest bg-white text-black hover:opacity-90 transition-opacity disabled:opacity-40"
+                className="inline-flex items-center gap-1 h-10 md:h-9 px-5 text-[11px] font-mono uppercase tracking-[0.18em] border border-[var(--state-success)] text-[var(--state-success)] hover:bg-[var(--state-success-tint)] transition-colors disabled:opacity-40 rounded-[6px]"
               >
                 Next
-                <ChevronRight size={10} />
+                <ChevronRight size={12} />
               </button>
             ) : (
               <>
                 <button
                   onClick={() => handleSubmit(false)}
                   disabled={isPending}
-                  className="px-4 py-1.5 text-[10px] font-mono uppercase tracking-widest border border-[var(--border)] text-[var(--text-muted)] hover:text-white hover:border-[var(--border-strong)] transition-colors disabled:opacity-40"
+                  className="h-11 md:h-10 px-5 text-[11px] font-mono uppercase tracking-[0.18em] border border-[var(--bjhunt-border)] text-[var(--bjhunt-text)] hover:border-[var(--bjhunt-border-strong)] transition-colors disabled:opacity-40 rounded-[6px]"
                 >
-                  {isPending ? (
-                    <Loader2 className="w-3 h-3 animate-spin inline mr-1" />
-                  ) : null}
-                  Create Scan
+                  {isPending ? <Loader2 className="w-3 h-3 animate-spin inline mr-1" /> : null}
+                  Create scan
                 </button>
                 <button
                   onClick={() => handleSubmit(true)}
                   disabled={isPending}
-                  className="flex items-center gap-1.5 px-4 py-1.5 text-[10px] font-mono font-bold uppercase tracking-widest bg-[var(--success)] text-black hover:opacity-90 transition-opacity disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 h-11 md:h-10 px-5 text-[11px] font-mono uppercase tracking-[0.18em] border border-[var(--state-success)] text-[var(--state-success)] hover:bg-[var(--state-success-tint)] transition-colors disabled:opacity-40 rounded-[6px]"
                 >
-                  {isPending ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : null}
-                  Create &amp; Launch
+                  {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                  Create &amp; launch
                 </button>
               </>
             )}
@@ -577,7 +497,209 @@ function WizardModal({
   )
 }
 
-// ── Main audits list ────────────────────────────────────────────────────
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string
+  hint?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div>
+      <label className="block mb-1.5">
+        <Eyebrow>{label}</Eyebrow>
+      </label>
+      {children}
+      {hint && (
+        <Body size="sm" muted className="mt-1.5">
+          {hint}
+        </Body>
+      )}
+    </div>
+  )
+}
+
+function ToggleRow({
+  checked,
+  onChange,
+  label,
+  hint,
+}: {
+  checked: boolean
+  onChange: (v: boolean) => void
+  label: string
+  hint: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className="flex items-center gap-3 w-full p-3 border border-[var(--bjhunt-border)] hover:border-[var(--bjhunt-border-strong)] transition-colors text-left rounded-[6px]"
+    >
+      <div
+        className={cn(
+          'w-5 h-5 flex items-center justify-center border rounded-[4px] transition-colors flex-shrink-0',
+          checked
+            ? 'border-[var(--state-success)] bg-[var(--state-success)]'
+            : 'border-[var(--bjhunt-border-strong)]',
+        )}
+        aria-hidden
+      >
+        {checked && <Check size={12} className="text-black" />}
+      </div>
+      <div className="min-w-0">
+        <Body className="text-[14px]">{label}</Body>
+        <Body size="sm" muted>
+          {hint}
+        </Body>
+      </div>
+    </button>
+  )
+}
+
+function ReviewRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="px-4 py-4">
+      <Eyebrow className="block mb-2">{label}</Eyebrow>
+      {children}
+    </div>
+  )
+}
+
+function ReviewBadge({
+  active,
+  children,
+}: {
+  active: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <span
+      className={cn(
+        'inline-flex px-2 py-0.5 text-[11px] font-mono uppercase tracking-[0.18em] border rounded-[4px]',
+        active
+          ? 'border-[var(--state-success)] text-[var(--state-success)]'
+          : 'border-[var(--bjhunt-border)] text-[var(--bjhunt-text-muted)]',
+      )}
+    >
+      {children}
+    </span>
+  )
+}
+
+// ── Engagement card ─────────────────────────────────────────────────────
+
+function EngagementCard({
+  run,
+  locale,
+  onCancel,
+  isPending,
+}: {
+  run: AuditRun
+  locale: string
+  onCancel: (id: string) => void
+  isPending: boolean
+}) {
+  const dotState = STATUS_DOT[run.status] ?? 'neutral'
+  const isLive = run.status === 'running'
+  const summary = (run.resultSummary ?? {}) as { totalFindings?: number; criticalCount?: number }
+
+  return (
+    <div className="bg-[var(--bjhunt-bg-secondary)] p-6 hover:bg-[var(--bjhunt-bg-tertiary)] transition-colors flex flex-col gap-4 group">
+      {/* Eyebrow status */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="inline-flex items-center gap-2">
+          <StatusDot state={dotState} live={isLive} />
+          <span
+            style={{
+              fontFamily: 'var(--bjhunt-font-mono)',
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color:
+                dotState === 'success'
+                  ? 'var(--state-success)'
+                  : dotState === 'warning'
+                    ? 'var(--state-warning)'
+                    : dotState === 'critical'
+                      ? 'var(--state-critical)'
+                      : 'var(--bjhunt-text-muted)',
+            }}
+          >
+            {STATUS_LABELS[run.status] ?? run.status}
+          </span>
+        </div>
+        {(run.status === 'draft' || run.status === 'running') && (
+          <button
+            onClick={() => onCancel(run.id)}
+            disabled={isPending}
+            title="Cancel"
+            aria-label="Cancel engagement"
+            className="p-1.5 text-[var(--bjhunt-text-muted)] hover:text-[var(--state-critical)] transition-colors disabled:opacity-40"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
+      {/* Title */}
+      <Link
+        href={`/${locale}/dashboard/audits/${run.id}`}
+        className="block hover:text-white transition-colors"
+      >
+        <H3 className="line-clamp-2">{run.title}</H3>
+      </Link>
+
+      {/* Target — mono */}
+      {run.target && (
+        <Body
+          className="font-mono truncate text-[13px]"
+          style={{ color: 'var(--bjhunt-text)' }}
+        >
+          {run.target}
+        </Body>
+      )}
+
+      {/* Last run */}
+      <Body size="sm" muted className="font-mono">
+        Updated {new Date(run.updatedAt ?? run.createdAt).toLocaleString('en-US', {
+          month: 'short',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        })}
+      </Body>
+
+      {/* Summary chip row */}
+      {summary.totalFindings != null && summary.totalFindings > 0 && (
+        <div className="flex items-center gap-3 pt-2 border-t border-[var(--bjhunt-border)] text-[12px] font-mono">
+          <span className="text-[var(--bjhunt-text-muted)]">
+            <span className="tabular-nums text-[var(--bjhunt-text)]">{summary.totalFindings}</span> findings
+          </span>
+          {summary.criticalCount != null && summary.criticalCount > 0 && (
+            <span className="text-[var(--state-critical)]">
+              <span className="tabular-nums">{summary.criticalCount}</span> critical
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* CTA */}
+      <Link
+        href={`/${locale}/dashboard/audits/${run.id}`}
+        className="inline-flex items-center justify-center gap-1 mt-auto h-9 text-[11px] font-mono uppercase tracking-[0.18em] border border-[var(--bjhunt-border)] text-[var(--bjhunt-text)] hover:border-[var(--bjhunt-border-strong)] hover:bg-white/[0.04] transition-colors rounded-[6px]"
+      >
+        Open
+        <ChevronRight size={12} />
+      </Link>
+    </div>
+  )
+}
+
+// ── Main client ─────────────────────────────────────────────────────────
 
 export function AuditsClient({
   initialRuns,
@@ -591,17 +713,10 @@ export function AuditsClient({
   const [runs, setRuns] = useState(initialRuns)
   const [total, setTotal] = useState(initialTotal)
   const [showWizard, setShowWizard] = useState(false)
-  // DASH-P2: replace browser-native confirm() with a styled modal so the
-  // confirmation matches the design system + works on mobile (where some
-  // PWA configurations suppress confirm()).
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null)
-
-  // DASH-P2: auto-refresh while at least one audit is in flight, so users
-  // see status transitions without clicking Refresh. Server component
-  // re-fetch via router.refresh() every 15s; cleared when no run is
-  // running anymore. Cheap because the SSR data fetch is a single SQL
-  // query. Pause when the tab isn't visible.
   const router = useRouter()
+
+  // Auto-refresh while a run is in flight
   useEffect(() => {
     const hasRunning = runs.some((r) =>
       ['running', 'pending', 'queued', 'planning', 'approved'].includes(
@@ -615,6 +730,7 @@ export function AuditsClient({
     const interval = setInterval(tick, 15000)
     return () => clearInterval(interval)
   }, [runs, router])
+
   const [isPending, startTransition] = useTransition()
 
   const handleCreated = (run: AuditRun) => {
@@ -623,10 +739,7 @@ export function AuditsClient({
     setShowWizard(false)
   }
 
-  const handleCancel = (id: string) => {
-    // Open the modal; actual API call happens in confirmCancel below.
-    setCancelTargetId(id)
-  }
+  const handleCancel = (id: string) => setCancelTargetId(id)
 
   const confirmCancel = () => {
     const id = cancelTargetId
@@ -647,62 +760,59 @@ export function AuditsClient({
 
   return (
     <div>
+      {/* Cancel confirmation modal */}
       {cancelTargetId && (
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="cancel-audit-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
           onClick={() => setCancelTargetId(null)}
         >
           <div
-            className="border border-[var(--border)] bg-[var(--bg-card)] p-6 max-w-sm w-full mx-4"
+            className="border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-elevated)] p-6 max-w-sm w-full rounded-[8px]"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3
-              id="cancel-audit-title"
-              className="text-[12px] font-mono font-bold uppercase tracking-widest text-white mb-2"
-            >
-              Annuler cet audit ?
-            </h3>
-            <p className="text-[10px] font-mono text-[var(--text-muted)] mb-5 leading-relaxed">
-              L&apos;audit passera en statut <span className="text-white">cancelled</span>. Les findings déjà collectés sont conservés.
-            </p>
+            <H3 id="cancel-audit-title" className="mb-2">Cancel this audit?</H3>
+            <Body muted className="mb-5">
+              The audit will switch to <span className="text-[var(--bjhunt-text)] font-mono">cancelled</span>. Findings already collected are kept.
+            </Body>
             <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setCancelTargetId(null)}
-                className="px-3 py-1.5 text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-white border border-[var(--border)] transition-colors"
+                className="h-10 px-4 text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--bjhunt-text)] border border-[var(--bjhunt-border)] hover:border-[var(--bjhunt-border-strong)] transition-colors rounded-[6px]"
               >
-                Retour
+                Back
               </button>
               <button
                 type="button"
                 onClick={confirmCancel}
                 disabled={isPending}
-                className="px-3 py-1.5 text-[9px] font-mono uppercase tracking-widest text-white bg-[var(--danger)] hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="h-10 px-4 text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--state-critical)] border border-[var(--state-critical)] hover:bg-[var(--state-critical-tint)] transition-colors disabled:opacity-50 rounded-[6px]"
               >
-                Confirmer l&apos;annulation
+                Confirm cancel
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-[11px] font-mono text-[var(--text-muted)]">
-          {total} audit{total !== 1 ? 's' : ''}
-        </span>
+      {/* Top bar */}
+      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+        <Body className="font-mono text-[13px]" muted>
+          {total} engagement{total !== 1 ? 's' : ''}
+        </Body>
         <button
           onClick={() => setShowWizard(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-white text-[11px] font-mono font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
+          className="inline-flex items-center gap-1.5 h-10 px-5 text-[11px] font-mono uppercase tracking-[0.18em] border border-[var(--state-success)] text-[var(--state-success)] hover:bg-[var(--state-success-tint)] transition-colors rounded-[6px]"
         >
-          <Plus size={12} />
-          Nouvel audit
+          <Plus size={14} />
+          New audit
         </button>
       </div>
 
-      {/* Wizard modal */}
+      {/* Wizard */}
       {showWizard && (
         <WizardModal
           onClose={() => setShowWizard(false)}
@@ -710,138 +820,35 @@ export function AuditsClient({
         />
       )}
 
+      {/* Empty / Grid */}
       {runs.length === 0 ? (
-        <div
-          className="px-4 py-24 text-center"
-          style={{
-            borderTop: '1px solid rgba(255,255,255,0.06)',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          <div
-            style={{
-              fontFamily: 'var(--bjhunt-font-mono)',
-              fontSize: 10,
-              letterSpacing: '0.32em',
-              textTransform: 'uppercase',
-              color: 'var(--bjhunt-text-subtle)',
-              marginBottom: 12,
-            }}
-          >
-            Empty State
-          </div>
-          <h2
-            style={{
-              fontFamily: 'var(--bjhunt-font-sans)',
-              fontWeight: 200,
-              fontSize: 32,
-              letterSpacing: '-0.02em',
-              color: 'var(--bjhunt-text)',
-              margin: '0 0 8px',
-            }}
-          >
-            No audits yet
-          </h2>
-          <p
-            className="mb-6"
-            style={{
-              fontFamily: 'var(--bjhunt-font-sans)',
-              fontWeight: 300,
-              fontSize: 15,
-              color: 'var(--bjhunt-text-muted)',
-            }}
-          >
+        <div className="border-y border-[var(--bjhunt-border)] py-24 px-4 text-center">
+          <Eyebrow className="block mb-3">Empty State</Eyebrow>
+          <H3 className="mb-2">No audits yet</H3>
+          <Body muted className="mb-6 max-w-md mx-auto">
             Create your first engagement to put the orchestrator to work.
-          </p>
-          {/* DASH-P2: inline CTA inside the empty state so the user
-              doesn't have to hunt for the "+ Nouvel audit" button. */}
+          </Body>
           <button
             type="button"
             onClick={() => setShowWizard(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-white text-[10px] font-mono font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-1.5 h-10 px-5 text-[11px] font-mono uppercase tracking-[0.18em] border border-[var(--state-success)] text-[var(--state-success)] hover:bg-[var(--state-success-tint)] transition-colors rounded-[6px]"
           >
-            <Plus size={12} />
-            Nouvel audit
+            <Plus size={14} />
+            New audit
           </button>
         </div>
       ) : (
         <div
-          style={{
-            borderTop: '1px solid rgba(255,255,255,0.06)',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-          }}
+          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-px bg-[var(--bjhunt-border)] border border-[var(--bjhunt-border)]"
         >
           {runs.map((run) => (
-            <div
+            <EngagementCard
               key={run.id}
-              className="flex items-center justify-between px-4 py-4 transition-[padding,background-color]"
-              style={{
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
-                transitionDuration: 'var(--bjhunt-duration-base)',
-                transitionTimingFunction: 'var(--bjhunt-easing-out)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.012)'
-                e.currentTarget.style.paddingLeft = '40px'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = ''
-                e.currentTarget.style.paddingLeft = ''
-              }}
-            >
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div
-                  className="w-1.5 h-1.5 flex-shrink-0 rounded-full"
-                  style={{ background: STATUS_COLORS[run.status] ?? 'var(--text-subtle)' }}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Link
-                      href={`/${locale}/dashboard/audits/${run.id}`}
-                      className="text-[12px] font-mono font-bold text-white hover:text-[var(--accent)] transition-colors truncate"
-                    >
-                      {run.title}
-                    </Link>
-                    <span
-                      className="text-[8px] font-mono uppercase tracking-widest px-1.5 py-0.5 border flex-shrink-0"
-                      style={{ borderColor: STATUS_COLORS[run.status], color: STATUS_COLORS[run.status] }}
-                    >
-                      {STATUS_LABELS[run.status] ?? run.status}
-                    </span>
-                  </div>
-                  {run.target && (
-                    <div className="text-[10px] text-[var(--text-muted)] font-mono truncate mt-0.5">
-                      {run.target}
-                    </div>
-                  )}
-                  <div className="text-[9px] text-[var(--text-subtle)] font-mono mt-0.5">
-                    {new Date(run.createdAt).toLocaleDateString('fr-FR', {
-                      day: '2-digit', month: '2-digit', year: 'numeric',
-                      hour: '2-digit', minute: '2-digit',
-                    })}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {(run.status === 'draft' || run.status === 'running') && (
-                  <button
-                    onClick={() => handleCancel(run.id)}
-                    disabled={isPending}
-                    title="Annuler"
-                    className="p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors disabled:opacity-40"
-                  >
-                    <X size={13} />
-                  </button>
-                )}
-                <Link
-                  href={`/${locale}/dashboard/audits/${run.id}`}
-                  className="p-1.5 text-[var(--text-muted)] hover:text-white transition-colors"
-                  title="Voir le detail"
-                >
-                  <ChevronRight size={13} />
-                </Link>
-              </div>
-            </div>
+              run={run}
+              locale={locale}
+              onCancel={handleCancel}
+              isPending={isPending}
+            />
           ))}
         </div>
       )}

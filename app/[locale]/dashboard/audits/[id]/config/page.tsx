@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { browserBackendFetch } from "@/lib/backend-client";
+import { Eyebrow, H1, Body } from "@/components/ui/typography";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -47,21 +48,21 @@ const OPSEC_LEVELS = [
     label: "Standard",
     description: "Normal scan speed and volume. Acceptable noise level for most targets.",
     icon: Target,
-    color: "var(--success)",
+    color: "var(--state-success)",
   },
   {
     value: "careful",
     label: "Careful",
     description: "Reduced scan rate, randomized timing, avoid triggering IDS/IPS.",
     icon: Shield,
-    color: "var(--warning)",
+    color: "var(--state-warning)",
   },
   {
     value: "paranoid",
     label: "Paranoid",
     description: "Minimal footprint, encrypted channels only, max evasion techniques.",
     icon: AlertTriangle,
-    color: "var(--danger)",
+    color: "var(--state-critical)",
   },
 ];
 
@@ -208,7 +209,7 @@ export default function EngagementConfigPage() {
   if (loading) {
     return (
       <div className="p-6 md:p-8 flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-5 h-5 animate-spin text-[var(--text-muted)]" />
+        <Loader2 className="w-5 h-5 animate-spin text-[var(--bjhunt-text-muted)]" />
       </div>
     );
   }
@@ -217,57 +218,55 @@ export default function EngagementConfigPage() {
     return (
       <div className="p-6 md:p-8 flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <AlertTriangle className="w-5 h-5 text-[var(--danger)] mx-auto mb-2" />
-          <p className="text-[11px] font-mono text-[var(--text-muted)]">{error}</p>
+          <AlertTriangle className="w-5 h-5 text-[var(--state-critical)] mx-auto mb-2" />
+          <p className="text-[11px] font-mono text-[var(--bjhunt-text-muted)]">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl">
-      {/* Header */}
-      <div className="mb-6">
-        <Link
-          href={`/${locale}/dashboard/audits/${id}`}
-          className="flex items-center gap-1 text-[10px] font-mono text-[var(--text-muted)] hover:text-white transition-colors mb-4"
-        >
-          <ChevronLeft size={12} />
-          Back to audit
-        </Link>
+    <div className="px-4 py-8 sm:px-6 md:p-10 max-w-[960px] mx-auto">
+      {/* Back */}
+      <Link
+        href={`/${locale}/dashboard/audits/${id}`}
+        className="inline-flex items-center gap-1 mb-6 text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)] hover:text-[var(--bjhunt-text)] transition-colors"
+      >
+        <ChevronLeft size={12} />
+        Back to audit
+      </Link>
 
-        <div className="flex items-center gap-3">
-          <Settings className="w-5 h-5 text-[var(--text-muted)]" />
-          <div>
-            <h1 className="text-xl font-black tracking-tight">
-              ENGAGEMENT CONFIG
-            </h1>
-            <p className="text-[10px] font-mono text-[var(--text-subtle)] mt-0.5">
-              Configure scan parameters and agent behavior
-            </p>
-          </div>
+      {/* Hero */}
+      <header className="mb-8">
+        <div className="inline-flex items-center gap-2 mb-3">
+          <Settings size={14} className="text-[var(--bjhunt-text-muted)]" aria-hidden />
+          <Eyebrow>Engagement config</Eyebrow>
         </div>
+        <H1>Configuration</H1>
+        <Body muted className="mt-3 max-w-2xl">
+          Tune scan parameters and agent behavior.
+        </Body>
 
         {isReadonly && (
-          <div className="mt-3 flex items-center gap-2 px-3 py-2 border border-[var(--warning)] bg-[var(--warning)]/5">
-            <AlertTriangle className="w-3 h-3 text-[var(--warning)]" />
-            <span className="text-[9px] font-mono text-[var(--warning)]">
+          <div className="mt-5 flex items-center gap-2 px-3 py-2 border border-[var(--state-warning)] bg-[var(--state-warning-tint)] rounded-[6px]">
+            <AlertTriangle size={12} className="text-[var(--state-warning)]" aria-hidden />
+            <span className="text-[12px] font-mono text-[var(--state-warning)]">
               This engagement is {engagement?.status}. Configuration is read-only.
             </span>
           </div>
         )}
-      </div>
+      </header>
 
       {/* Section: Name / Description */}
-      <div className="border border-[var(--border)] mb-4">
-        <div className="px-4 py-2.5 border-b border-[var(--border)] bg-[var(--bg-card)]">
-          <span className="text-[8px] font-mono uppercase tracking-[0.15em] text-[var(--text-subtle)] font-bold">
+      <div className="border border-[var(--bjhunt-border)] mb-4">
+        <div className="px-4 py-2.5 border-b border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-secondary)]">
+          <span className="text-[8px] font-mono uppercase tracking-[0.15em] text-[var(--bjhunt-text-muted)] font-bold">
             General
           </span>
         </div>
         <div className="p-4 space-y-4">
           <div>
-            <label className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] block mb-1">
+            <label className="text-[8px] font-mono uppercase tracking-widest text-[var(--bjhunt-text-muted)] block mb-1">
               Engagement Name
             </label>
             <input
@@ -275,11 +274,11 @@ export default function EngagementConfigPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={isReadonly}
-              className="w-full bg-[var(--bg-input)] border border-[var(--border)] text-[11px] font-mono text-white px-3 py-2 outline-none focus:border-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[var(--bjhunt-bg-tertiary)] border border-[var(--bjhunt-border)] text-[11px] font-mono text-white px-3 py-2 outline-none focus:border-white disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
           <div>
-            <label className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] block mb-1">
+            <label className="text-[8px] font-mono uppercase tracking-widest text-[var(--bjhunt-text-muted)] block mb-1">
               Description
             </label>
             <textarea
@@ -287,22 +286,22 @@ export default function EngagementConfigPage() {
               onChange={(e) => setDescription(e.target.value)}
               disabled={isReadonly}
               rows={3}
-              className="w-full bg-[var(--bg-input)] border border-[var(--border)] text-[11px] font-mono text-white px-3 py-2 outline-none focus:border-white resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[var(--bjhunt-bg-tertiary)] border border-[var(--bjhunt-border)] text-[11px] font-mono text-white px-3 py-2 outline-none focus:border-white resize-none disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
         </div>
       </div>
 
       {/* Section: Target */}
-      <div className="border border-[var(--border)] mb-4">
-        <div className="px-4 py-2.5 border-b border-[var(--border)] bg-[var(--bg-card)]">
-          <span className="text-[8px] font-mono uppercase tracking-[0.15em] text-[var(--text-subtle)] font-bold">
+      <div className="border border-[var(--bjhunt-border)] mb-4">
+        <div className="px-4 py-2.5 border-b border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-secondary)]">
+          <span className="text-[8px] font-mono uppercase tracking-[0.15em] text-[var(--bjhunt-text-muted)] font-bold">
             Target
           </span>
         </div>
         <div className="p-4 space-y-4">
           <div>
-            <label className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] block mb-1">
+            <label className="text-[8px] font-mono uppercase tracking-widest text-[var(--bjhunt-text-muted)] block mb-1">
               Target URL / IP
             </label>
             <input
@@ -311,18 +310,18 @@ export default function EngagementConfigPage() {
               onChange={(e) => setTarget(e.target.value)}
               disabled={isReadonly}
               placeholder="https://example.com or 192.168.1.0/24"
-              className="w-full bg-[var(--bg-input)] border border-[var(--border)] text-[11px] font-mono text-white px-3 py-2 outline-none focus:border-white placeholder:text-[var(--text-subtle)] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[var(--bjhunt-bg-tertiary)] border border-[var(--bjhunt-border)] text-[11px] font-mono text-white px-3 py-2 outline-none focus:border-white placeholder:text-[var(--bjhunt-text-muted)] disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
           <div>
-            <label className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] block mb-1">
+            <label className="text-[8px] font-mono uppercase tracking-widest text-[var(--bjhunt-text-muted)] block mb-1">
               Target Type
             </label>
             <select
               value={targetType}
               onChange={(e) => setTargetType(e.target.value)}
               disabled={isReadonly}
-              className="bg-[var(--bg-input)] border border-[var(--border)] text-[11px] font-mono text-[var(--text-muted)] px-3 py-2 outline-none focus:border-white appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-[var(--bjhunt-bg-tertiary)] border border-[var(--bjhunt-border)] text-[11px] font-mono text-[var(--bjhunt-text-muted)] px-3 py-2 outline-none focus:border-white appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {TARGET_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -333,15 +332,15 @@ export default function EngagementConfigPage() {
       </div>
 
       {/* Section: Scope */}
-      <div className="border border-[var(--border)] mb-4">
-        <div className="px-4 py-2.5 border-b border-[var(--border)] bg-[var(--bg-card)]">
-          <span className="text-[8px] font-mono uppercase tracking-[0.15em] text-[var(--text-subtle)] font-bold">
+      <div className="border border-[var(--bjhunt-border)] mb-4">
+        <div className="px-4 py-2.5 border-b border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-secondary)]">
+          <span className="text-[8px] font-mono uppercase tracking-[0.15em] text-[var(--bjhunt-text-muted)] font-bold">
             Scope
           </span>
         </div>
         <div className="p-4 space-y-4">
           <div>
-            <label className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] block mb-1">
+            <label className="text-[8px] font-mono uppercase tracking-widest text-[var(--bjhunt-text-muted)] block mb-1">
               In-Scope Domains (one per line)
             </label>
             <textarea
@@ -350,11 +349,11 @@ export default function EngagementConfigPage() {
               disabled={isReadonly}
               rows={4}
               placeholder={"*.example.com\n192.168.1.0/24\napi.example.com"}
-              className="w-full bg-[var(--bg-input)] border border-[var(--border)] text-[11px] font-mono text-white px-3 py-2 outline-none focus:border-white resize-none placeholder:text-[var(--text-subtle)] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[var(--bjhunt-bg-tertiary)] border border-[var(--bjhunt-border)] text-[11px] font-mono text-white px-3 py-2 outline-none focus:border-white resize-none placeholder:text-[var(--bjhunt-text-muted)] disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
           <div>
-            <label className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] block mb-1">
+            <label className="text-[8px] font-mono uppercase tracking-widest text-[var(--bjhunt-text-muted)] block mb-1">
               Out-of-Scope (one per line)
             </label>
             <textarea
@@ -363,16 +362,16 @@ export default function EngagementConfigPage() {
               disabled={isReadonly}
               rows={3}
               placeholder={"production.example.com\npayments.example.com"}
-              className="w-full bg-[var(--bg-input)] border border-[var(--border)] text-[11px] font-mono text-white px-3 py-2 outline-none focus:border-white resize-none placeholder:text-[var(--text-subtle)] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[var(--bjhunt-bg-tertiary)] border border-[var(--bjhunt-border)] text-[11px] font-mono text-white px-3 py-2 outline-none focus:border-white resize-none placeholder:text-[var(--bjhunt-text-muted)] disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
         </div>
       </div>
 
       {/* Section: OPSEC Level */}
-      <div className="border border-[var(--border)] mb-4">
-        <div className="px-4 py-2.5 border-b border-[var(--border)] bg-[var(--bg-card)]">
-          <span className="text-[8px] font-mono uppercase tracking-[0.15em] text-[var(--text-subtle)] font-bold">
+      <div className="border border-[var(--bjhunt-border)] mb-4">
+        <div className="px-4 py-2.5 border-b border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-secondary)]">
+          <span className="text-[8px] font-mono uppercase tracking-[0.15em] text-[var(--bjhunt-text-muted)] font-bold">
             OPSEC Level
           </span>
         </div>
@@ -389,8 +388,8 @@ export default function EngagementConfigPage() {
                   className={cn(
                     "text-left p-4 border transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
                     isSelected
-                      ? "border-white bg-[var(--bg-card)]"
-                      : "border-[var(--border)] hover:border-[var(--border-strong)]",
+                      ? "border-white bg-[var(--bjhunt-bg-secondary)]"
+                      : "border-[var(--bjhunt-border)] hover:border-[var(--bjhunt-border-strong)]",
                   )}
                 >
                   <div className="flex items-center gap-2 mb-2">
@@ -402,7 +401,7 @@ export default function EngagementConfigPage() {
                       {level.label}
                     </span>
                   </div>
-                  <p className="text-[9px] font-mono text-[var(--text-subtle)] leading-relaxed">
+                  <p className="text-[9px] font-mono text-[var(--bjhunt-text-muted)] leading-relaxed">
                     {level.description}
                   </p>
                 </button>
@@ -413,16 +412,16 @@ export default function EngagementConfigPage() {
       </div>
 
       {/* Section: Agent & Execution */}
-      <div className="border border-[var(--border)] mb-4">
-        <div className="px-4 py-2.5 border-b border-[var(--border)] bg-[var(--bg-card)]">
-          <span className="text-[8px] font-mono uppercase tracking-[0.15em] text-[var(--text-subtle)] font-bold">
+      <div className="border border-[var(--bjhunt-border)] mb-4">
+        <div className="px-4 py-2.5 border-b border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-secondary)]">
+          <span className="text-[8px] font-mono uppercase tracking-[0.15em] text-[var(--bjhunt-text-muted)] font-bold">
             Agent & Execution
           </span>
         </div>
         <div className="p-4 space-y-4">
           {/* Agent graph */}
           <div>
-            <label className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] block mb-1.5">
+            <label className="text-[8px] font-mono uppercase tracking-widest text-[var(--bjhunt-text-muted)] block mb-1.5">
               <Cpu className="w-3 h-3 inline-block mr-1" />
               Agent Graph
             </label>
@@ -435,17 +434,17 @@ export default function EngagementConfigPage() {
                   className={cn(
                     "text-left px-3 py-2 border transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
                     agentGraph === ag.value
-                      ? "border-white bg-[var(--bg-card)]"
-                      : "border-[var(--border)] hover:border-[var(--border-strong)]",
+                      ? "border-white bg-[var(--bjhunt-bg-secondary)]"
+                      : "border-[var(--bjhunt-border)] hover:border-[var(--bjhunt-border-strong)]",
                   )}
                 >
                   <span className={cn(
                     "text-[9px] font-mono font-bold block",
-                    agentGraph === ag.value ? "text-white" : "text-[var(--text-muted)]",
+                    agentGraph === ag.value ? "text-white" : "text-[var(--bjhunt-text-muted)]",
                   )}>
                     {ag.label}
                   </span>
-                  <span className="text-[8px] font-mono text-[var(--text-subtle)]">
+                  <span className="text-[8px] font-mono text-[var(--bjhunt-text-muted)]">
                     {ag.description}
                   </span>
                 </button>
@@ -454,13 +453,13 @@ export default function EngagementConfigPage() {
           </div>
 
           {/* Vaccine mode */}
-          <div className="flex items-center justify-between py-2 border-t border-[var(--border)]">
+          <div className="flex items-center justify-between py-2 border-t border-[var(--bjhunt-border)]">
             <div>
               <label className="text-[9px] font-mono text-white block">
                 <Shield className="w-3 h-3 inline-block mr-1" />
                 Vaccine Mode
               </label>
-              <span className="text-[8px] font-mono text-[var(--text-subtle)]">
+              <span className="text-[8px] font-mono text-[var(--bjhunt-text-muted)]">
                 Attack → Defense → Verification loop
               </span>
             </div>
@@ -470,8 +469,8 @@ export default function EngagementConfigPage() {
               className={cn(
                 "w-10 h-5 border transition-colors flex items-center px-0.5 disabled:opacity-50 disabled:cursor-not-allowed",
                 vaccineMode
-                  ? "bg-[var(--success)] border-[var(--success)]"
-                  : "bg-[var(--bg-input)] border-[var(--border)]",
+                  ? "bg-[var(--state-success)] border-[var(--state-success)]"
+                  : "bg-[var(--bjhunt-bg-tertiary)] border-[var(--bjhunt-border)]",
               )}
             >
               <div
@@ -484,8 +483,8 @@ export default function EngagementConfigPage() {
           </div>
 
           {/* Max duration */}
-          <div className="border-t border-[var(--border)] pt-3">
-            <label className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] block mb-1.5">
+          <div className="border-t border-[var(--bjhunt-border)] pt-3">
+            <label className="text-[8px] font-mono uppercase tracking-widest text-[var(--bjhunt-text-muted)] block mb-1.5">
               <Clock className="w-3 h-3 inline-block mr-1" />
               Max Duration
             </label>
@@ -498,8 +497,8 @@ export default function EngagementConfigPage() {
                   className={cn(
                     "text-[9px] font-mono px-3 py-1.5 border transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
                     maxDuration === opt.value
-                      ? "text-white border-white bg-[var(--bg-card)]"
-                      : "text-[var(--text-muted)] border-[var(--border)] hover:border-[var(--border-strong)]",
+                      ? "text-white border-white bg-[var(--bjhunt-bg-secondary)]"
+                      : "text-[var(--bjhunt-text-muted)] border-[var(--bjhunt-border)] hover:border-[var(--bjhunt-border-strong)]",
                   )}
                 >
                   {opt.label}
@@ -532,13 +531,13 @@ export default function EngagementConfigPage() {
           </button>
 
           {saved && (
-            <span className="text-[9px] font-mono text-[var(--success)]">
+            <span className="text-[9px] font-mono text-[var(--state-success)]">
               Configuration saved successfully
             </span>
           )}
 
           {error && (
-            <span className="text-[9px] font-mono text-[var(--danger)]">
+            <span className="text-[9px] font-mono text-[var(--state-critical)]">
               {error}
             </span>
           )}

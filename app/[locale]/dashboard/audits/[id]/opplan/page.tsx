@@ -35,24 +35,24 @@ interface EngagementSummary {
 // ── Agent category colors ────────────────────────────────────────────────
 
 const AGENT_COLORS: Record<string, string> = {
-  decepticon: "var(--warning)",
+  decepticon: "var(--state-warning)",
   soundwave: "#74a4d4",
   recon: "#74a4d4",
-  exploit: "var(--danger)",
-  postexploit: "var(--danger)",
+  exploit: "var(--state-critical)",
+  postexploit: "var(--state-critical)",
   analyst: "#a4d474",
   reverser: "#d4a574",
   "contract auditor": "#d474a4",
   "cloud hunter": "#60a5fa",
   "ad operator": "#a474d4",
-  vulnresearch: "var(--warning)",
+  vulnresearch: "var(--state-warning)",
   scanner: "#74a4d4",
   detector: "#a4d474",
-  verifier: "var(--success)",
-  patcher: "var(--success)",
-  exploiter: "var(--danger)",
-  defender: "var(--success)",
-  bjhunt: "var(--success)",
+  verifier: "var(--state-success)",
+  patcher: "var(--state-success)",
+  exploiter: "var(--state-critical)",
+  defender: "var(--state-success)",
+  bjhunt: "var(--state-success)",
 };
 
 function agentDotColor(agent?: string): string {
@@ -78,19 +78,19 @@ const COLUMNS: {
   {
     key: "in_progress",
     label: "IN PROGRESS",
-    color: "var(--warning)",
+    color: "var(--state-warning)",
     bgDim: "rgba(255,153,0,0.08)",
   },
   {
     key: "passed",
     label: "PASSED",
-    color: "var(--success)",
+    color: "var(--state-success)",
     bgDim: "rgba(0,204,138,0.08)",
   },
   {
     key: "blocked",
     label: "BLOCKED",
-    color: "var(--danger)",
+    color: "var(--state-critical)",
     bgDim: "rgba(255,68,68,0.08)",
   },
 ];
@@ -256,12 +256,12 @@ export default function OpplanPage() {
                 {passed}/{total} passed
               </span>
               {inProgress > 0 && (
-                <span className="text-[var(--warning)]">
+                <span className="text-[var(--state-warning)]">
                   {inProgress} active
                 </span>
               )}
               {blocked > 0 && (
-                <span className="text-[var(--danger)]">
+                <span className="text-[var(--state-critical)]">
                   {blocked} blocked
                 </span>
               )}
@@ -273,7 +273,7 @@ export default function OpplanPage() {
         {total > 0 && (
           <div className="mt-3 h-px bg-[var(--border)]">
             <div
-              className="h-full bg-[var(--success)] transition-all duration-500"
+              className="h-full bg-[var(--state-success)] transition-all duration-500"
               style={{ width: `${(passed / total) * 100}%` }}
             />
           </div>
@@ -290,7 +290,7 @@ export default function OpplanPage() {
       {error && !loading && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <AlertTriangle className="w-5 h-5 text-[var(--danger)] mx-auto mb-2" />
+            <AlertTriangle className="w-5 h-5 text-[var(--state-critical)] mx-auto mb-2" />
             <p className="text-[11px] font-mono text-[var(--text-muted)]">
               {error}
             </p>

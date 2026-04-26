@@ -4,16 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { browserBackendFetch } from "@/lib/backend-client";
-import {
-  ChevronDown,
-  ChevronRight,
-  Search,
-  Shield,
-  Download,
-  Network,
-  Loader2,
-} from "lucide-react";
-import { SeverityBadge, type Severity } from "@/components/ui/severity-badge";
+import { Search, Download, Loader2, X } from "lucide-react";
+import { Eyebrow, H1, H3, Body } from "@/components/ui/typography";
+import { StatusDot, type DotState } from "@/components/ui/status-dot";
+import { StateText } from "@/components/ui/state-text";
+import type { Severity } from "@/components/ui/severity-badge";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -52,35 +47,40 @@ interface Engagement {
 
 // ── Constants ───────────────────────────────────────────────────────────
 
-const SEVERITY_COLORS: Record<string, string> = {
-  critical: "var(--bjhunt-severity-critical)",
-  high: "var(--bjhunt-severity-high)",
-  medium: "var(--bjhunt-severity-medium)",
-  low: "var(--bjhunt-severity-low)",
-  info: "var(--bjhunt-severity-info)",
-};
-
-const SEVERITY_BG: Record<string, string> = {
-  critical: "var(--bjhunt-severity-critical-bg)",
-  high: "var(--bjhunt-severity-high-bg)",
-  medium: "var(--bjhunt-severity-medium-bg)",
-  low: "var(--bjhunt-severity-low-bg)",
-  info: "var(--bjhunt-severity-info-bg)",
-};
-
 const SEVERITY_ORDER = ["critical", "high", "medium", "low", "info"] as const;
 
-const REMEDIATION_STATUS_COLORS: Record<string, string> = {
-  pending: "var(--bjhunt-status-warning)",
-  applied: "var(--bjhunt-status-success)",
-  verified: "var(--bjhunt-status-info)",
+const SEVERITY_TO_STATE: Record<string, DotState> = {
+  open: "warning",
+  remediated: "success",
+  false_positive: "neutral",
+  pending: "warning",
+  applied: "success",
+  verified: "success",
 };
 
-const REMEDIATION_STATUS_LABELS: Record<string, string> = {
-  pending: "PENDING",
-  applied: "APPLIED",
-  verified: "VERIFIED",
-};
+function severityKey(s: string): Severity {
+  return (SEVERITY_ORDER as readonly string[]).includes(s)
+    ? (s as Severity)
+    : "info";
+}
+
+function severityState(s: string): DotState {
+  switch (severityKey(s)) {
+    case "critical":
+    case "high":
+      return "critical";
+    case "medium":
+      return "warning";
+    case "low":
+      return "success";
+    default:
+      return "neutral";
+  }
+}
+
+function statusState(s: string): DotState {
+  return SEVERITY_TO_STATE[s] ?? "neutral";
+}
 
 // ── Component ───────────────────────────────────────────────────────────
 
@@ -99,7 +99,6 @@ export default function FindingsPage() {
   });
   const [engagements, setEngagements] = useState<Engagement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Selection for batch export
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -108,6 +107,7 @@ export default function FindingsPage() {
 
   // Filters
   const [severityFilter, setSeverityFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [engagementFilter, setEngagementFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -117,7 +117,7 @@ export default function FindingsPage() {
   const [total, setTotal] = useState(0);
   const limit = 50;
 
-  // ── Toggle selection ────────────────────────────────────────────────
+  // ── Selection helpers ───────────────────────────────────────────────
 
   const toggleSelected = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -164,13 +164,15 @@ export default function FindingsPage() {
       }
     } catch (err) {
       console.error("[findings] export failed", err);
-      setExportError(err instanceof Error ? err.message : "Export failed — network error.");
+      setExportError(
+        err instanceof Error ? err.message : "Export failed — network error.",
+      );
     } finally {
       setExporting(false);
     }
   }, [selectedIds]);
 
-  // ── Fetch stats ─────────────────────────────────────────────────────
+  // ── Fetch helpers ───────────────────────────────────────────────────
 
   const fetchStats = useCallback(async () => {
     try {
@@ -184,8 +186,6 @@ export default function FindingsPage() {
     }
   }, []);
 
-  // ── Fetch engagements for filter dropdown ───────────────────────────
-
   const fetchEngagements = useCallback(async () => {
     try {
       const res = await browserBackendFetch("/api/engagements?limit=100");
@@ -198,8 +198,6 @@ export default function FindingsPage() {
     }
   }, []);
 
-  // ── Fetch findings ──────────────────────────────────────────────────
-
   const fetchFindings = useCallback(async () => {
     setLoading(true);
     try {
@@ -207,11 +205,12 @@ export default function FindingsPage() {
       params.set("limit", String(limit));
       params.set("offset", String(offset));
       if (severityFilter) params.set("severity", severityFilter);
+      if (statusFilter) params.set("status", statusFilter);
       if (engagementFilter) params.set("engagement_id", engagementFilter);
       if (searchQuery) params.set("q", searchQuery);
 
       const res = await browserBackendFetch(
-        `/api/findings?${params.toString()}`
+        `/api/findings?${params.toString()}`,
       );
       if (res.ok) {
         const data = await res.json();
@@ -223,9 +222,7 @@ export default function FindingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [offset, severityFilter, engagementFilter, searchQuery]);
-
-  // ── Initial load ────────────────────────────────────────────────────
+  }, [offset, severityFilter, statusFilter, engagementFilter, searchQuery]);
 
   useEffect(() => {
     fetchStats();
@@ -236,8 +233,6 @@ export default function FindingsPage() {
     fetchFindings();
   }, [fetchFindings]);
 
-  // ── Search submit ───────────────────────────────────────────────────
-
   const handleSearch = () => {
     setOffset(0);
     setSearchQuery(searchInput);
@@ -245,100 +240,41 @@ export default function FindingsPage() {
 
   const handleFilterChange = (
     setter: (v: string) => void,
-    value: string
+    value: string,
   ) => {
     setOffset(0);
     setter(value);
   };
 
-  // ── CVSS color ──────────────────────────────────────────────────────
-
-  const cvssColor = (score: number): string => {
-    if (score >= 9.0) return "var(--bjhunt-severity-critical)";
-    if (score >= 7.0) return "var(--bjhunt-severity-high)";
-    if (score >= 4.0) return "var(--bjhunt-severity-medium)";
-    if (score >= 0.1) return "var(--bjhunt-severity-low)";
-    return "var(--bjhunt-severity-info)";
-  };
-
   // ── Render ──────────────────────────────────────────────────────────
 
+  const allSelected = selectedIds.size === findings.length && findings.length > 0;
+
   return (
-    <div className="p-6 md:p-10 max-w-6xl">
-      {/* W8 Page Hero — eyebrow + display h1 (Inter 200) + lede */}
-      <header className="mb-12 md:mb-16">
-        <div
-          className="mb-5 inline-flex items-center gap-2"
-          style={{
-            fontFamily: 'var(--bjhunt-font-mono)',
-            fontSize: 10,
-            letterSpacing: '0.32em',
-            textTransform: 'uppercase',
-            color: 'var(--bjhunt-text-subtle)',
-          }}
-        >
-          <span
-            aria-hidden
-            style={{
-              width: 6,
-              height: 6,
-              background: 'var(--bjhunt-brand-primary)',
-              boxShadow: '0 0 8px var(--bjhunt-brand-primary)',
-              display: 'inline-block',
-            }}
-          />
-          <span>Findings · Vuln Pipeline</span>
-        </div>
-        <h1
-          className="text-white"
-          style={{
-            fontFamily: 'var(--bjhunt-font-sans)',
-            fontWeight: 200,
-            fontSize: 'clamp(48px, 8vw, 96px)',
-            letterSpacing: '-0.04em',
-            lineHeight: 1.0,
-            margin: 0,
-          }}
-        >
-          Findings
-        </h1>
-        <p
-          className="mt-5 max-w-2xl"
-          style={{
-            fontFamily: 'var(--bjhunt-font-sans)',
-            fontWeight: 300,
-            fontSize: 17,
-            lineHeight: 1.5,
-            color: 'var(--bjhunt-text-muted)',
-          }}
-        >
-          Verified vulnerabilities discovered across every engagement —
-          deduplicated, scored, and mapped to MITRE ATT&amp;CK.
-        </p>
+    <div className="px-4 py-8 sm:px-6 md:p-10 max-w-[1280px] mx-auto">
+      {/* Hero */}
+      <header className="mb-10 md:mb-12">
+        <Eyebrow className="mb-4 inline-block">01 / Findings</Eyebrow>
+        <H1>Findings</H1>
+        <Body muted className="mt-4 max-w-2xl">
+          Vulnerabilities discovered across all engagements — verified,
+          deduplicated, and mapped to MITRE ATT&amp;CK.
+        </Body>
       </header>
 
-      {/* Stats bar — SeverityBadge (outline variant) with live counts */}
-      <div className="flex items-center gap-2 mb-6 flex-wrap">
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 border border-[var(--bjhunt-border-strong)] bg-[var(--bjhunt-bg-secondary)]"
-        >
-          <span className="text-[9px] font-mono uppercase tracking-[0.24em] text-[var(--bjhunt-text-subtle)]">
-            Total
+      {/* Stats summary — minimal mono */}
+      <div className="mb-6 flex items-center gap-6 flex-wrap text-[11px] font-mono text-[var(--bjhunt-text-muted)]">
+        <span>
+          <span className="text-[var(--bjhunt-text-muted)]">total</span>{' '}
+          <span className="text-[var(--bjhunt-text)] tabular-nums">{stats.total}</span>
+        </span>
+        {SEVERITY_ORDER.map((sev) => (
+          <span key={sev} className="inline-flex items-center gap-2">
+            <StatusDot state={severityState(sev)} compact />
+            <StateText state={`severity-${sev}` as const}>
+              {sev} {stats[sev as keyof FindingStats]}
+            </StateText>
           </span>
-          <span className="text-[13px] font-mono font-semibold text-[var(--bjhunt-text)] tabular-nums">
-            {stats.total}
-          </span>
-        </div>
-        {(['critical', 'high', 'medium', 'low', 'info'] as Severity[]).map((sev) => (
-          <SeverityBadge
-            key={sev}
-            severity={sev}
-            variant={sev === 'critical' && stats.critical > 0 ? 'solid' : 'outline'}
-            size="md"
-            pulse={sev === 'critical' && stats.critical > 0}
-          >
-            {sev} · {stats[sev]}
-          </SeverityBadge>
         ))}
       </div>
 
@@ -346,88 +282,79 @@ export default function FindingsPage() {
       {exportError && (
         <div
           role="alert"
-          className="flex items-center justify-between gap-3 mb-4 px-3 py-2 border border-red-500/40 bg-red-500/10 text-[10px] font-mono text-red-300"
+          className="mb-4 flex items-center justify-between gap-3 px-3 py-2 border border-[var(--state-critical)] bg-[var(--state-critical-tint)]"
         >
-          <span>{exportError}</span>
+          <span className="text-[12px] font-mono text-[var(--state-critical)]">
+            {exportError}
+          </span>
           <button
             type="button"
             onClick={() => setExportError(null)}
-            className="text-red-200 hover:text-white"
-            aria-label="Dismiss error"
+            className="text-[var(--state-critical)] hover:opacity-80"
+            aria-label="Dismiss"
           >
-            ×
+            <X size={14} />
           </button>
         </div>
       )}
 
-      {/* Export bar */}
+      {/* Selection bar */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 mb-4 px-3 py-2 border border-[var(--border)] bg-[var(--bg-card)]">
-          <span className="text-[9px] font-mono text-[var(--text-muted)]">
-            {selectedIds.size} finding{selectedIds.size !== 1 ? "s" : ""} selected
+        <div className="mb-4 flex items-center gap-3 px-3 py-2 border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-secondary)]">
+          <span className="text-[12px] font-mono text-[var(--bjhunt-text-muted)]">
+            {selectedIds.size} selected
           </span>
           <button
             onClick={handleExport}
             disabled={exporting}
-            className="flex items-center gap-1.5 text-[8px] font-mono uppercase tracking-widest text-white hover:text-white/80 px-3 py-1.5 bg-[var(--bg-input)] border border-[var(--border)] transition-colors disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 h-9 px-4 text-[10px] font-mono uppercase tracking-[0.18em] border border-[var(--state-success)] text-[var(--state-success)] hover:bg-[var(--state-success-tint)] transition-colors disabled:opacity-40"
           >
             {exporting ? (
-              <Loader2 size={10} className="animate-spin" />
+              <Loader2 size={12} className="animate-spin" />
             ) : (
-              <Download size={10} />
+              <Download size={12} />
             )}
-            Export Selected
+            Export selected
           </button>
           <button
             onClick={() => setSelectedIds(new Set())}
-            className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] hover:text-white px-2 py-1.5 transition-colors ml-auto"
+            className="text-[10px] font-mono uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)] hover:text-[var(--bjhunt-text)] px-2 h-9 ml-auto"
           >
             Clear
           </button>
         </div>
       )}
 
-      {/* Filter bar */}
-      <div className="flex items-center gap-2 mb-5 flex-wrap">
-        {/* Severity dropdown */}
-        <select
+      {/* Filter chips */}
+      <div className="mb-6 flex items-center gap-2 flex-wrap">
+        <FilterChip
+          label="Severity"
           value={severityFilter}
-          onChange={(e) =>
-            handleFilterChange(setSeverityFilter, e.target.value)
-          }
-          className="bg-[var(--bg-input)] border border-[var(--border)] text-[10px] font-mono text-[var(--text-muted)] px-2 py-1.5 outline-none focus:border-[var(--border-strong)] appearance-none cursor-pointer"
-          style={{ minWidth: 120 }}
-        >
-          <option value="">All severities</option>
-          {SEVERITY_ORDER.map((s) => (
-            <option key={s} value={s}>
-              {s.toUpperCase()}
-            </option>
-          ))}
-        </select>
-
-        {/* Engagement dropdown */}
-        <select
+          options={SEVERITY_ORDER.map((s) => ({ value: s, label: s.toUpperCase() }))}
+          onChange={(v) => handleFilterChange(setSeverityFilter, v)}
+        />
+        <FilterChip
+          label="Status"
+          value={statusFilter}
+          options={[
+            { value: "open", label: "OPEN" },
+            { value: "remediated", label: "REMEDIATED" },
+            { value: "false_positive", label: "FALSE POSITIVE" },
+          ]}
+          onChange={(v) => handleFilterChange(setStatusFilter, v)}
+        />
+        <FilterChip
+          label="Engagement"
           value={engagementFilter}
-          onChange={(e) =>
-            handleFilterChange(setEngagementFilter, e.target.value)
-          }
-          className="bg-[var(--bg-input)] border border-[var(--border)] text-[10px] font-mono text-[var(--text-muted)] px-2 py-1.5 outline-none focus:border-[var(--border-strong)] appearance-none cursor-pointer"
-          style={{ minWidth: 160 }}
-        >
-          <option value="">All engagements</option>
-          {engagements.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.name}
-            </option>
-          ))}
-        </select>
+          options={engagements.map((e) => ({ value: e.id, label: e.name }))}
+          onChange={(v) => handleFilterChange(setEngagementFilter, v)}
+        />
 
         {/* Search input */}
-        <div className="flex items-center border border-[var(--border)] bg-[var(--bg-input)] flex-1 min-w-[180px]">
+        <div className="flex items-center border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-secondary)] flex-1 min-w-[200px] h-9 rounded-[6px]">
           <Search
-            size={12}
-            className="ml-2 text-[var(--text-subtle)] flex-shrink-0"
+            size={14}
+            className="ml-3 text-[var(--bjhunt-text-muted)] flex-shrink-0"
           />
           <input
             type="text"
@@ -435,485 +362,102 @@ export default function FindingsPage() {
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             placeholder="Search by title, CVE, description..."
-            className="bg-transparent text-[10px] font-mono text-white px-2 py-1.5 outline-none flex-1 placeholder:text-[var(--text-subtle)]"
+            className="bg-transparent text-[12px] font-mono text-[var(--bjhunt-text)] px-2 outline-none flex-1 placeholder:text-[var(--bjhunt-text-muted)]"
           />
-          <button
-            onClick={handleSearch}
-            className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-white px-2 py-1.5 border-l border-[var(--border)] transition-colors"
-          >
-            Search
-          </button>
         </div>
       </div>
 
-      {/* Findings list */}
+      {/* Table */}
       {loading ? (
-        <div className="border border-[var(--border)] px-4 py-12 text-center">
-          <p className="text-[10px] font-mono text-[var(--text-subtle)] animate-pulse">
+        <div className="px-4 py-16 text-center border-y border-[var(--bjhunt-border)]">
+          <span className="text-[12px] font-mono text-[var(--bjhunt-text-muted)] animate-pulse">
             Loading findings...
-          </p>
+          </span>
         </div>
       ) : findings.length === 0 ? (
-        <div
-          className="px-4 py-24 text-center"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
-        >
-          <Shield
-            size={28}
-            className="mx-auto mb-5 text-[var(--bjhunt-text-subtle)]"
-          />
-          <div
-            style={{
-              fontFamily: 'var(--bjhunt-font-mono)',
-              fontSize: 10,
-              letterSpacing: '0.32em',
-              textTransform: 'uppercase',
-              color: 'var(--bjhunt-text-subtle)',
-              marginBottom: 12,
-            }}
-          >
-            Empty State
-          </div>
-          <h2
-            style={{
-              fontFamily: 'var(--bjhunt-font-sans)',
-              fontWeight: 200,
-              fontSize: 32,
-              letterSpacing: '-0.02em',
-              color: 'var(--bjhunt-text)',
-              margin: '0 0 8px',
-            }}
-          >
-            No findings yet
-          </h2>
-          <p
-            className="max-w-md mx-auto mb-6"
-            style={{
-              fontFamily: 'var(--bjhunt-font-sans)',
-              fontWeight: 300,
-              fontSize: 15,
-              color: 'var(--bjhunt-text-muted)',
-              lineHeight: 1.5,
-            }}
-          >
-            Run a scan to discover vulnerabilities. Verified PoCs land here in real time.
-          </p>
-          {/* DASH-P2: empty state now offers a direct CTA to start a scan
-              instead of leaving the user to figure out where to go. */}
-          <div className="flex items-center justify-center gap-2">
-            <Link
-              href={`/${locale}/dashboard/chat`}
-              className="px-3 py-1.5 text-[9px] font-mono uppercase tracking-widest bg-white text-black hover:bg-white/90 transition-colors"
-            >
-              Start a scan
-            </Link>
-            <Link
-              href={`/${locale}/dashboard/audits`}
-              className="px-3 py-1.5 text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-white border border-[var(--border)] transition-colors"
-            >
-              View audits
-            </Link>
-          </div>
-        </div>
+        <EmptyState locale={locale} />
       ) : (
         <>
-          <div
-            style={{
-              borderTop: '1px solid rgba(255,255,255,0.06)',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            {/* W8 Table header — JetBrains Mono 10px / 0.22em tracking, hairline divider */}
-            <div
-              className="flex items-center gap-3 px-4 py-3"
-              style={{
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
-                fontFamily: 'var(--bjhunt-font-mono)',
-                fontSize: 10,
-                letterSpacing: '0.22em',
-                textTransform: 'uppercase',
-                color: 'var(--bjhunt-text-subtle)',
-              }}
-            >
-              <div className="w-4 flex-shrink-0">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.size === findings.length && findings.length > 0}
-                  onChange={toggleAll}
-                  className="w-3 h-3 accent-white cursor-pointer"
-                />
-              </div>
-              <div className="w-4 flex-shrink-0" />
-              <div className="w-[72px] flex-shrink-0">Severity</div>
-              <div className="flex-1 min-w-0">Title</div>
-              <div className="w-[90px] flex-shrink-0 hidden md:block">CVE</div>
-              <div className="w-[50px] flex-shrink-0 hidden md:block text-center">CVSS</div>
-              <div className="w-[80px] flex-shrink-0 hidden lg:block text-center">Remediation</div>
-              <div className="w-[120px] flex-shrink-0 hidden lg:block">Engagement</div>
-              <div className="w-[60px] flex-shrink-0 hidden lg:block text-right">Date</div>
-            </div>
-
-            {/* Findings rows */}
-            {findings.map((f) => {
-              const isExpanded = expandedId === f.id;
-              const remStatus = f.remediationStatus || "pending";
-              const remColor = REMEDIATION_STATUS_COLORS[remStatus] || "var(--text-subtle)";
-
-              return (
-                <div key={f.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  {/* W8 Row — hairline divider, hover shifts left padding +24px */}
-                  <div
-                    className="flex items-center gap-3 px-4 py-3 group/row transition-[padding,background-color]"
-                    style={{
-                      transitionDuration: 'var(--bjhunt-duration-base)',
-                      transitionTimingFunction: 'var(--bjhunt-easing-out)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.012)'
-                      e.currentTarget.style.paddingLeft = '40px'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = ''
-                      e.currentTarget.style.paddingLeft = ''
-                    }}
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-[var(--bjhunt-bg)] border-b border-[var(--bjhunt-border)]">
+                  <th
+                    scope="col"
+                    className="text-left px-4 py-3 w-[36px]"
                   >
-                    {/* Checkbox */}
-                    <div className="w-4 flex-shrink-0">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(f.id)}
-                        onChange={() => toggleSelected(f.id)}
-                        className="w-3 h-3 accent-white cursor-pointer"
-                      />
-                    </div>
-
-                    <button
-                      onClick={() => setExpandedId(isExpanded ? null : f.id)}
-                      className="flex-1 flex items-center gap-3 text-left min-w-0"
-                    >
-                    {/* Expand chevron */}
-                    <div className="w-4 flex-shrink-0 text-[var(--text-subtle)]">
-                      {isExpanded ? (
-                        <ChevronDown size={12} />
-                      ) : (
-                        <ChevronRight size={12} />
-                      )}
-                    </div>
-
-                    {/* Severity badge */}
-                    <div className="w-[72px] flex-shrink-0">
-                      <span
-                        className="inline-block text-[8px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5"
-                        style={{
-                          color: SEVERITY_COLORS[f.severity],
-                          background: SEVERITY_BG[f.severity],
-                          border: `1px solid ${SEVERITY_COLORS[f.severity]}`,
-                        }}
-                      >
-                        {f.severity}
-                      </span>
-                    </div>
-
-                    {/* Title + inline MITRE badges */}
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[10px] font-mono text-white truncate block">
-                        {f.title}
-                      </span>
-                      {f.mitreAttack && f.mitreAttack.length > 0 && (
-                        <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                          {f.mitreAttack.slice(0, 3).map((t) => (
-                            <span
-                              key={t}
-                              className="text-[7px] font-mono text-[var(--warning)] bg-[var(--warning-dim)] border border-[var(--warning)] px-1 py-px"
-                            >
-                              {t}
-                            </span>
-                          ))}
-                          {f.mitreAttack.length > 3 && (
-                            <span className="text-[7px] font-mono text-[var(--text-subtle)]">
-                              +{f.mitreAttack.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* CVE */}
-                    <div className="w-[90px] flex-shrink-0 hidden md:block">
-                      {f.cveIds && f.cveIds.length > 0 ? (
-                        <span className="text-[9px] font-mono text-[var(--success)]">
-                          {f.cveIds[0]}
-                          {f.cveIds.length > 1 && (
-                            <span className="text-[var(--text-subtle)]">
-                              {" "}
-                              +{f.cveIds.length - 1}
-                            </span>
-                          )}
-                        </span>
-                      ) : (
-                        <span className="text-[9px] font-mono text-[var(--text-subtle)]">
-                          --
-                        </span>
-                      )}
-                    </div>
-
-                    {/* CVSS */}
-                    <div className="w-[50px] flex-shrink-0 hidden md:block text-center">
-                      {f.cvssScore != null ? (
-                        <span
-                          className="text-[9px] font-mono font-bold"
-                          style={{ color: cvssColor(f.cvssScore) }}
-                        >
-                          {f.cvssScore.toFixed(1)}
-                        </span>
-                      ) : (
-                        <span className="text-[9px] font-mono text-[var(--text-subtle)]">
-                          --
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Remediation status */}
-                    <div className="w-[80px] flex-shrink-0 hidden lg:block text-center">
-                      <span
-                        className="text-[7px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5"
-                        style={{
-                          color: remColor,
-                          backgroundColor: `${remColor}15`,
-                          border: `1px solid ${remColor}`,
-                        }}
-                      >
-                        {REMEDIATION_STATUS_LABELS[remStatus] || remStatus.toUpperCase()}
-                      </span>
-                    </div>
-
-                    {/* Engagement */}
-                    <div className="w-[120px] flex-shrink-0 hidden lg:block">
-                      <span className="text-[9px] font-mono text-[var(--text-muted)] truncate block">
-                        {f.engagementName ?? "--"}
-                      </span>
-                    </div>
-
-                    {/* Date */}
-                    <div className="w-[60px] flex-shrink-0 hidden lg:block text-right">
-                      <span className="text-[9px] font-mono text-[var(--text-subtle)]">
-                        {new Date(f.createdAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "2-digit",
-                        })}
-                      </span>
-                    </div>
-                    </button>
-                  </div>
-
-                  {/* Expanded detail */}
-                  {isExpanded && (
-                    <div className="px-4 pb-4 pt-0 bg-[var(--bg-card)]/30">
-                      <div className="pl-7 border-l border-[var(--border-strong)] ml-1.5 space-y-4">
-                        {/* Description */}
-                        {f.description && (
-                          <div>
-                            <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                              Description
-                            </div>
-                            <p className="text-[11px] font-mono text-[var(--text-muted)] whitespace-pre-wrap leading-relaxed">
-                              {f.description}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Evidence / PoC */}
-                        {f.evidence && Object.keys(f.evidence).length > 0 && (
-                          <div>
-                            <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                              Evidence / PoC
-                            </div>
-                            <pre className="text-[10px] font-mono text-[var(--success)] bg-[var(--bg)] border border-[var(--border)] px-3 py-2 overflow-x-auto whitespace-pre-wrap">
-                              {typeof f.evidence === "string"
-                                ? f.evidence
-                                : JSON.stringify(f.evidence, null, 2)}
-                            </pre>
-                          </div>
-                        )}
-
-                        {/* Remediation */}
-                        {f.remediation && (
-                          <div>
-                            <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                              Remediation
-                            </div>
-                            <p className="text-[11px] font-mono text-[var(--text-muted)] whitespace-pre-wrap leading-relaxed border-l-2 border-[var(--success)] pl-3">
-                              {f.remediation}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* MITRE ATT&CK */}
-                        {f.mitreAttack && f.mitreAttack.length > 0 && (
-                          <div>
-                            <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                              MITRE ATT&CK
-                            </div>
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              {f.mitreAttack.map((t) => (
-                                <span
-                                  key={t}
-                                  className="text-[8px] font-mono text-[var(--warning)] bg-[var(--warning-dim)] border border-[var(--warning)] px-1.5 py-0.5"
-                                >
-                                  {t}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* CVE IDs (full list) */}
-                        {f.cveIds && f.cveIds.length > 0 && (
-                          <div>
-                            <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                              CVE IDs
-                            </div>
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              {f.cveIds.map((cve) => (
-                                <span
-                                  key={cve}
-                                  className="text-[9px] font-mono text-[var(--success)]"
-                                >
-                                  {cve}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* CVSS Vector */}
-                        {f.cvssVector && (
-                          <div>
-                            <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                              CVSS Vector
-                            </div>
-                            <span className="text-[9px] font-mono text-[var(--text-muted)]">
-                              {f.cvssVector}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Metadata row */}
-                        <div className="flex items-center gap-4 flex-wrap pt-1">
-                          {f.engagementName && (
-                            <div>
-                              <span className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)]">
-                                Engagement:{" "}
-                              </span>
-                              <span className="text-[9px] font-mono text-[var(--text-muted)]">
-                                {f.engagementName}
-                              </span>
-                            </div>
-                          )}
-                          <div>
-                            <span className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)]">
-                              Status:{" "}
-                            </span>
-                            <span
-                              className="text-[9px] font-mono uppercase"
-                              style={{
-                                color:
-                                  f.status === "open"
-                                    ? "var(--warning)"
-                                    : f.status === "remediated"
-                                      ? "var(--success)"
-                                      : f.status === "false_positive"
-                                        ? "var(--text-subtle)"
-                                        : "var(--text-muted)",
-                              }}
-                            >
-                              {f.status.replace("_", " ")}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)]">
-                              Found:{" "}
-                            </span>
-                            <span className="text-[9px] font-mono text-[var(--text-muted)]">
-                              {new Date(f.createdAt).toLocaleDateString(
-                                "en-US",
-                                {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "2-digit",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                }
-                              )}
-                            </span>
-                          </div>
-
-                          {/* View in Graph */}
-                          {f.engagementId && (
-                            <Link
-                              href={`/${locale}/dashboard/audits/${f.engagementId}/graph`}
-                              className="flex items-center gap-1 text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-white transition-colors ml-auto"
-                            >
-                              <Network size={9} />
-                              View in Graph
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleAll}
+                      className="w-3.5 h-3.5 accent-[var(--state-success)] cursor-pointer"
+                      aria-label="Select all findings on this page"
+                    />
+                  </th>
+                  <ThEyebrow>Title</ThEyebrow>
+                  <ThEyebrow className="w-[100px]">Severity</ThEyebrow>
+                  <ThEyebrow className="w-[120px]">Status</ThEyebrow>
+                  <ThEyebrow className="hidden md:table-cell w-[80px] text-right">CVSS</ThEyebrow>
+                  <ThEyebrow className="hidden md:table-cell w-[140px]">CVE</ThEyebrow>
+                  <ThEyebrow className="hidden lg:table-cell w-[180px]">Engagement</ThEyebrow>
+                  <ThEyebrow className="hidden lg:table-cell w-[110px] text-right">Date</ThEyebrow>
+                </tr>
+              </thead>
+              <tbody>
+                {findings.map((f) => (
+                  <FindingRow
+                    key={f.id}
+                    f={f}
+                    locale={locale}
+                    selected={selectedIds.has(f.id)}
+                    onToggle={() => toggleSelected(f.id)}
+                  />
+                ))}
+              </tbody>
+            </table>
           </div>
 
           {/* Pagination */}
           {total > limit && (
-            <div className="flex items-center justify-between mt-4">
-              <span className="text-[9px] font-mono text-[var(--text-subtle)]">
-                Showing {offset + 1}-{Math.min(offset + limit, total)} of{" "}
-                {total}
+            <div className="mt-6 flex items-center justify-between">
+              <span className="text-[12px] font-mono text-[var(--bjhunt-text-muted)]">
+                {offset + 1}-{Math.min(offset + limit, total)} of {total}
               </span>
               <div className="flex items-center gap-2">
-                <button
+                <PagerButton
                   disabled={offset === 0}
                   onClick={() => setOffset(Math.max(0, offset - limit))}
-                  className="text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-white px-2 py-1 border border-[var(--border)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   Prev
-                </button>
-                {/* DASH-P2: Go-to-page input for large finding sets. */}
-                <span className="text-[9px] font-mono text-[var(--text-subtle)]">
-                  Page
-                </span>
-                <input
-                  type="number"
-                  min={1}
-                  max={Math.max(1, Math.ceil(total / limit))}
-                  value={Math.floor(offset / limit) + 1}
-                  onChange={(e) => {
-                    const n = Math.max(
-                      1,
-                      Math.min(
-                        Math.ceil(total / limit) || 1,
-                        Number.parseInt(e.target.value, 10) || 1,
-                      ),
-                    );
-                    setOffset((n - 1) * limit);
-                  }}
-                  aria-label="Go to page"
-                  className="w-12 text-center text-[9px] font-mono bg-transparent border border-[var(--border)] px-1 py-1 text-white focus:outline-none focus:border-white/40"
-                />
-                <span className="text-[9px] font-mono text-[var(--text-subtle)]">
+                </PagerButton>
+                <span className="text-[11px] font-mono text-[var(--bjhunt-text-muted)] px-2">
+                  Page{' '}
+                  <input
+                    type="number"
+                    min={1}
+                    max={Math.max(1, Math.ceil(total / limit))}
+                    value={Math.floor(offset / limit) + 1}
+                    onChange={(e) => {
+                      const n = Math.max(
+                        1,
+                        Math.min(
+                          Math.ceil(total / limit) || 1,
+                          Number.parseInt(e.target.value, 10) || 1,
+                        ),
+                      );
+                      setOffset((n - 1) * limit);
+                    }}
+                    aria-label="Go to page"
+                    className="w-12 mx-1 text-center bg-[var(--bjhunt-bg-secondary)] border border-[var(--bjhunt-border)] px-1 py-0.5 text-[var(--bjhunt-text)] focus:outline-none focus:border-[var(--state-success)]"
+                  />
                   / {Math.max(1, Math.ceil(total / limit))}
                 </span>
-                <button
+                <PagerButton
                   disabled={offset + limit >= total}
                   onClick={() => setOffset(offset + limit)}
-                  className="text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-white px-2 py-1 border border-[var(--border)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   Next
-                </button>
+                </PagerButton>
               </div>
             </div>
           )}
@@ -923,3 +467,213 @@ export default function FindingsPage() {
   );
 }
 
+// ── Subcomponents ─────────────────────────────────────────────────────
+
+function ThEyebrow({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <th
+      scope="col"
+      className={`text-left px-4 py-3 ${className}`}
+      style={{
+        fontFamily: "var(--bjhunt-font-mono)",
+        fontSize: 11,
+        fontWeight: 600,
+        letterSpacing: "0.18em",
+        textTransform: "uppercase",
+        color: "var(--bjhunt-text-muted)",
+      }}
+    >
+      {children}
+    </th>
+  );
+}
+
+function FilterChip({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="inline-flex items-center gap-2 h-9 px-3 border border-[var(--bjhunt-border)] hover:border-[var(--bjhunt-border-strong)] bg-transparent rounded-[6px] cursor-pointer transition-colors">
+      <span
+        style={{
+          fontFamily: "var(--bjhunt-font-mono)",
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: "0.18em",
+          textTransform: "uppercase",
+          color: "var(--bjhunt-text-muted)",
+        }}
+      >
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="bg-transparent text-[12px] font-mono text-[var(--bjhunt-text)] outline-none cursor-pointer appearance-none"
+      >
+        <option value="">All</option>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function PagerButton({
+  disabled,
+  onClick,
+  children,
+}: {
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="h-9 px-4 text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--bjhunt-text)] border border-[var(--bjhunt-border)] hover:border-[var(--bjhunt-border-strong)] hover:bg-white/[0.04] transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-[6px]"
+    >
+      {children}
+    </button>
+  );
+}
+
+function FindingRow({
+  f,
+  locale,
+  selected,
+  onToggle,
+}: {
+  f: Finding;
+  locale: string;
+  selected: boolean;
+  onToggle: () => void;
+}) {
+  const sev = severityKey(f.severity);
+  const statusLabel = f.status.replace(/_/g, " ");
+
+  return (
+    <tr
+      className="border-b border-[var(--bjhunt-border)] transition-[padding,background-color] hover:bg-white/[0.02] group"
+    >
+      <td className="px-4 py-3">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggle}
+          onClick={(e) => e.stopPropagation()}
+          className="w-3.5 h-3.5 accent-[var(--state-success)] cursor-pointer"
+          aria-label={`Select ${f.title}`}
+        />
+      </td>
+      <td className="px-4 py-3 group-hover:pl-7 transition-[padding] duration-150">
+        <Link
+          href={`/${locale}/dashboard/audits/${f.engagementId}`}
+          className="text-[14px] text-[var(--bjhunt-text)] hover:text-white transition-colors"
+        >
+          {f.title}
+        </Link>
+        {f.cveIds && f.cveIds.length > 0 && (
+          <div className="md:hidden mt-1 text-[11px] font-mono text-[var(--bjhunt-text-muted)]">
+            {f.cveIds[0]}
+          </div>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        <StateText state={`severity-${sev}` as const}>{sev}</StateText>
+      </td>
+      <td className="px-4 py-3">
+        <StatusDot state={statusState(f.status)} label={statusLabel} />
+      </td>
+      <td className="hidden md:table-cell px-4 py-3 text-right">
+        {f.cvssScore != null ? (
+          <span
+            className="font-mono text-[13px] tabular-nums"
+            style={{
+              color:
+                f.cvssScore >= 9.0
+                  ? "var(--state-critical)"
+                  : f.cvssScore >= 7.0
+                    ? "var(--state-critical)"
+                    : f.cvssScore >= 4.0
+                      ? "var(--state-warning)"
+                      : f.cvssScore >= 0.1
+                        ? "var(--state-success)"
+                        : "var(--bjhunt-text-muted)",
+            }}
+          >
+            {f.cvssScore.toFixed(1)}
+          </span>
+        ) : (
+          <span className="font-mono text-[13px] text-[var(--bjhunt-text-muted)]">--</span>
+        )}
+      </td>
+      <td className="hidden md:table-cell px-4 py-3 font-mono text-[13px] text-[var(--bjhunt-text)]">
+        {f.cveIds && f.cveIds.length > 0 ? (
+          <>
+            {f.cveIds[0]}
+            {f.cveIds.length > 1 && (
+              <span className="text-[var(--bjhunt-text-muted)]"> +{f.cveIds.length - 1}</span>
+            )}
+          </>
+        ) : (
+          <span className="text-[var(--bjhunt-text-muted)]">--</span>
+        )}
+      </td>
+      <td className="hidden lg:table-cell px-4 py-3 text-[13px] text-[var(--bjhunt-text-muted)] truncate max-w-[180px]">
+        {f.engagementName ?? "--"}
+      </td>
+      <td className="hidden lg:table-cell px-4 py-3 text-right font-mono text-[12px] text-[var(--bjhunt-text-muted)]">
+        {new Date(f.createdAt).toLocaleDateString("en-US", {
+          month: "short",
+          day: "2-digit",
+        })}
+      </td>
+    </tr>
+  );
+}
+
+function EmptyState({ locale }: { locale: string }) {
+  return (
+    <div className="border-y border-[var(--bjhunt-border)] py-24 px-4 text-center">
+      <Eyebrow className="block mb-3">Empty State</Eyebrow>
+      <H3 className="mb-2">No findings yet</H3>
+      <Body muted className="mb-6 max-w-md mx-auto">
+        Run a scan to discover vulnerabilities. Verified findings land here in
+        real time.
+      </Body>
+      <div className="flex items-center justify-center gap-2">
+        <Link
+          href={`/${locale}/dashboard/chat`}
+          className="inline-flex items-center h-10 px-5 text-[11px] font-mono uppercase tracking-[0.18em] border border-[var(--state-success)] text-[var(--state-success)] hover:bg-[var(--state-success-tint)] transition-colors rounded-[6px]"
+        >
+          Start a scan
+        </Link>
+        <Link
+          href={`/${locale}/dashboard/audits`}
+          className="inline-flex items-center h-10 px-5 text-[11px] font-mono uppercase tracking-[0.18em] border border-[var(--bjhunt-border)] text-[var(--bjhunt-text)] hover:border-[var(--bjhunt-border-strong)] hover:bg-white/[0.04] transition-colors rounded-[6px]"
+        >
+          View audits
+        </Link>
+      </div>
+    </div>
+  );
+}

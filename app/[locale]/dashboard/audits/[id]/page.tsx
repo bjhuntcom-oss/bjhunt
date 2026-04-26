@@ -9,27 +9,42 @@ import { DefenseBriefPanel } from '@/components/dashboard/defense-brief-panel'
 import { FindingCard } from '@/components/ui/finding-card'
 import { type Severity } from '@/components/ui/severity-badge'
 import { type AgentId } from '@/lib/agent-labels'
+import { Eyebrow, H1, H2, Body } from '@/components/ui/typography'
+import { StatusDot, type DotState } from '@/components/ui/status-dot'
 
-const STATUS_COLORS: Record<string, string> = {
-  draft: 'var(--bjhunt-text-muted)',
-  running: 'var(--bjhunt-status-warning)',
-  completed: 'var(--bjhunt-status-success)',
-  failed: 'var(--bjhunt-status-danger)',
-  cancelled: 'var(--bjhunt-text-subtle)',
+const STATUS_DOT: Record<string, DotState> = {
+  draft: 'neutral',
+  running: 'warning',
+  completed: 'success',
+  failed: 'critical',
+  cancelled: 'neutral',
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  draft: 'Brouillon',
-  running: 'En cours',
-  completed: 'Terminé',
-  failed: 'Échoué',
-  cancelled: 'Annulé',
+  draft: 'DRAFT',
+  running: 'RUNNING',
+  completed: 'DONE',
+  failed: 'FAILED',
+  cancelled: 'CANCELLED',
 }
 
 const SEVERITY_ORDER: Severity[] = ['critical', 'high', 'medium', 'low', 'info']
 
 function clampSeverity(s: string): Severity {
   return (SEVERITY_ORDER as string[]).includes(s) ? (s as Severity) : 'info'
+}
+
+function statusColor(state: DotState): string {
+  switch (state) {
+    case 'success':
+      return 'var(--state-success)'
+    case 'warning':
+      return 'var(--state-warning)'
+    case 'critical':
+      return 'var(--state-critical)'
+    default:
+      return 'var(--bjhunt-text-muted)'
+  }
 }
 
 export default async function AuditRunDetailPage({
@@ -58,172 +73,151 @@ export default async function AuditRunDetailPage({
   const run = { ...engagement, title: engagement.name }
   const results = findingsData.findings ?? []
 
-  return (
-    <div className="p-6 md:p-10 max-w-6xl">
-      <div className="mb-10">
-        <Link
-          href={`/${locale}/dashboard/audits`}
-          className="inline-flex items-center gap-1 mb-8 transition-colors hover:text-white"
-          style={{
-            fontFamily: 'var(--bjhunt-font-mono)',
-            fontSize: 10,
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            color: 'var(--bjhunt-text-muted)',
-          }}
-        >
-          <ChevronLeft size={12} />
-          Retour aux audits
-        </Link>
+  const dotState = STATUS_DOT[run.status] ?? 'neutral'
+  const isLive = run.status === 'running'
 
-        <div className="flex items-start justify-between gap-6 flex-wrap">
-          <div className="min-w-0 flex-1">
-            <div
-              className="mb-3 inline-flex items-center gap-2"
-              style={{
-                fontFamily: 'var(--bjhunt-font-mono)',
-                fontSize: 10,
-                letterSpacing: '0.32em',
-                textTransform: 'uppercase',
-                color: 'var(--bjhunt-text-subtle)',
-              }}
-            >
-              <span
-                aria-hidden
-                style={{
-                  width: 6,
-                  height: 6,
-                  background: STATUS_COLORS[run.status] ?? 'var(--bjhunt-brand-primary)',
-                  boxShadow: `0 0 8px ${STATUS_COLORS[run.status] ?? 'var(--bjhunt-brand-primary)'}`,
-                  display: 'inline-block',
-                }}
-              />
-              <span>Engagement · {STATUS_LABELS[run.status] ?? run.status}</span>
-            </div>
-            <h1
-              style={{
-                fontFamily: 'var(--bjhunt-font-sans)',
-                fontWeight: 200,
-                fontSize: 'clamp(36px, 6vw, 64px)',
-                letterSpacing: '-0.04em',
-                lineHeight: 1.05,
-                color: 'var(--bjhunt-text)',
-                margin: 0,
-                textWrap: 'balance',
-              }}
-            >
-              {run.title}
-            </h1>
-            {run.target && (
-              <p
-                className="mt-3"
-                style={{
-                  fontFamily: 'var(--bjhunt-font-mono)',
-                  fontSize: 12,
-                  color: 'var(--bjhunt-text-muted)',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                {run.target}
-              </p>
-            )}
-          </div>
+  return (
+    <div className="px-4 py-8 sm:px-6 md:p-10 max-w-[1280px] mx-auto">
+      {/* Back link */}
+      <Link
+        href={`/${locale}/dashboard/audits`}
+        className="inline-flex items-center gap-1 mb-6 text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)] hover:text-[var(--bjhunt-text)] transition-colors"
+      >
+        <ChevronLeft size={12} />
+        Back to audits
+      </Link>
+
+      {/* Hero */}
+      <header className="mb-10 md:mb-12">
+        <div className="inline-flex items-center gap-2 mb-4">
+          <StatusDot state={dotState} live={isLive} />
           <span
-            className="text-[9px] font-mono uppercase tracking-widest px-2 py-1 border flex-shrink-0"
-            style={{ borderColor: STATUS_COLORS[run.status], color: STATUS_COLORS[run.status] }}
+            style={{
+              fontFamily: 'var(--bjhunt-font-mono)',
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color: statusColor(dotState),
+            }}
           >
-            {STATUS_LABELS[run.status] ?? run.status}
+            Engagement · {STATUS_LABELS[run.status] ?? run.status}
           </span>
         </div>
-
-        <p className="text-[10px] text-[var(--text-subtle)] font-mono mt-2">
-          Créé le {new Date(run.createdAt).toLocaleDateString('fr-FR', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit',
+        <H1 className="max-w-3xl" style={{ textWrap: 'balance' }}>
+          {run.title}
+        </H1>
+        {run.target && (
+          <p
+            className="mt-3 font-mono"
+            style={{
+              fontSize: 14,
+              color: 'var(--bjhunt-text)',
+              letterSpacing: '0.02em',
+            }}
+          >
+            <span className="text-[var(--bjhunt-text-muted)]">target </span>
+            {run.target}
+          </p>
+        )}
+        <Body size="sm" muted className="mt-2 font-mono">
+          Created {new Date(run.createdAt).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
           })}
-        </p>
-      </div>
+        </Body>
+      </header>
 
-      {/* OPPLAN link + Export bar */}
-      <div className="mb-6 flex items-center gap-3 flex-wrap">
-        <Link
-          href={`/${locale}/dashboard/audits/${id}/opplan`}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider border border-[var(--border)] text-[var(--text-muted)] hover:text-white hover:border-[var(--border-strong)] hover:bg-[var(--bg-input)] transition-colors"
-        >
-          View OPPLAN &rarr;
-        </Link>
-        <Link
-          href={`/${locale}/dashboard/audits/${id}/graph`}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider border border-[var(--border)] text-[var(--text-muted)] hover:text-white hover:border-[var(--border-strong)] hover:bg-[var(--bg-input)] transition-colors"
-        >
-          View Knowledge Graph &rarr;
-        </Link>
-        <Link
-          href={`/${locale}/dashboard/audits/${id}/config`}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider border border-[var(--border)] text-[var(--text-muted)] hover:text-white hover:border-[var(--border-strong)] hover:bg-[var(--bg-input)] transition-colors"
-        >
-          Config &rarr;
-        </Link>
+      {/* Action strip */}
+      <div className="mb-6 flex items-center gap-2 flex-wrap">
+        <NavLink href={`/${locale}/dashboard/audits/${id}/opplan`}>OPPLAN</NavLink>
+        <NavLink href={`/${locale}/dashboard/audits/${id}/graph`}>Knowledge graph</NavLink>
+        <NavLink href={`/${locale}/dashboard/audits/${id}/config`}>Config</NavLink>
+        <NavLink href={`/${locale}/dashboard/audits/${id}/report/view`}>Report</NavLink>
       </div>
       <div className="mb-6">
         <ReportExportBar engagementId={id} />
       </div>
 
-      {/* Vaccine loop monitor — shown when running or has findings */}
-      {(run.status === 'running' || results.length > 0) && (
-        <div className="mb-6">
-          <VaccineMonitor engagementId={id} />
-        </div>
-      )}
-
-      {/* Defense brief — shown when engagement has findings */}
-      {results.length > 0 && (
-        <div className="mb-6">
-          <DefenseBriefPanel engagementId={id} />
-        </div>
-      )}
-
-      {/* Scan results */}
-      <div>
-        <h2 className="text-[11px] font-mono font-bold uppercase tracking-widest text-[var(--bjhunt-text-muted)] mb-4">
-          Résultats ({results.length})
-        </h2>
-
-        {results.length === 0 ? (
-          <div className="border border-[var(--bjhunt-border)] px-4 py-10 text-center text-[11px] font-mono text-[var(--bjhunt-text-muted)] uppercase tracking-[0.2em]">
-            Aucun résultat de scan pour cet audit.
+      {/* 2-col layout xl+, single col below */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Left: findings */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <H2>Findings</H2>
+            <span className="font-mono text-[13px] text-[var(--bjhunt-text-muted)] tabular-nums">
+              {results.length}
+            </span>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            {results.map((r: {
-              id: string
-              severity: string
-              category: string
-              title: string
-              description: string | null
-              cve: string | null
-              cvssScore: number | null
-              mitreTechnique?: string | null
-              agent?: string | null
-              verified?: boolean
-              remediation: string | null
-              createdAt: string
-            }) => (
-              <FindingCard
-                key={r.id}
-                severity={clampSeverity(r.severity)}
-                title={r.title}
-                cve={r.cve}
-                cvss={r.cvssScore ?? undefined}
-                mitre={r.mitreTechnique ?? null}
-                agent={(r.agent ?? null) as AgentId | null}
-                verified={r.verified}
-                description={r.description ?? r.remediation ?? ''}
-              />
-            ))}
-          </div>
-        )}
+
+          {results.length === 0 ? (
+            <div className="border border-[var(--bjhunt-border)] px-4 py-10 text-center">
+              <Body muted>No scan results for this audit yet.</Body>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3">
+              {results.map((r: {
+                id: string
+                severity: string
+                category: string
+                title: string
+                description: string | null
+                cve: string | null
+                cvssScore: number | null
+                mitreTechnique?: string | null
+                agent?: string | null
+                verified?: boolean
+                remediation: string | null
+                createdAt: string
+              }) => (
+                <FindingCard
+                  key={r.id}
+                  severity={clampSeverity(r.severity)}
+                  title={r.title}
+                  cve={r.cve}
+                  cvss={r.cvssScore ?? undefined}
+                  mitre={r.mitreTechnique ?? null}
+                  agent={(r.agent ?? null) as AgentId | null}
+                  verified={r.verified}
+                  description={r.description ?? r.remediation ?? ''}
+                  compact
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Right: monitors */}
+        <section className="space-y-6">
+          {(run.status === 'running' || results.length > 0) && (
+            <VaccineMonitor engagementId={id} />
+          )}
+          {results.length > 0 && <DefenseBriefPanel engagementId={id} />}
+          {run.status !== 'running' && results.length === 0 && (
+            <div className="border border-[var(--bjhunt-border)] p-6">
+              <Eyebrow className="block mb-2">Status</Eyebrow>
+              <Body muted>
+                The orchestrator is idle for this engagement. Launch a scan from
+                the chat or via the OPPLAN to populate findings.
+              </Body>
+            </div>
+          )}
+        </section>
       </div>
     </div>
+  )
+}
+
+function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex items-center h-9 px-4 text-[11px] font-mono uppercase tracking-[0.18em] border border-[var(--bjhunt-border)] text-[var(--bjhunt-text)] hover:border-[var(--bjhunt-border-strong)] hover:bg-white/[0.04] transition-colors rounded-[6px]"
+    >
+      {children}
+    </Link>
   )
 }
