@@ -57,24 +57,13 @@ export function PricingTeaser() {
         viewport={{ once: true }}
         variants={fadeUp}
       >
-        <p
-          className="m-0 mb-6 font-mono uppercase"
-          style={{ fontSize: 10, letterSpacing: "0.32em", color: "var(--bjhunt-text-subtle)" }}
-        >
+        <p className="m-0 mb-6 font-mono text-[10px] uppercase tracking-[0.32em] text-[var(--bjhunt-text-subtle)]">
           04 / Pricing
         </p>
-        <h2
-          className="m-0"
-          style={{
-            fontSize: "clamp(40px, 6vw, 64px)",
-            fontWeight: 200,
-            letterSpacing: "-0.03em",
-            lineHeight: 1.0,
-          }}
-        >
+        <h2 className="m-0 font-extralight text-[clamp(40px,6vw,64px)] tracking-[-0.03em] leading-[1.0]">
           Commencez gratuitement.
           <br />
-          <em className="not-italic" style={{ color: "var(--bjhunt-text-muted)", fontWeight: 200 }}>
+          <em className="not-italic font-extralight text-[var(--bjhunt-text-muted)]">
             Montez en puissance.
           </em>
         </h2>
@@ -92,14 +81,14 @@ export function PricingTeaser() {
           <motion.article
             key={plan.name}
             variants={fadeUp}
-            className="relative flex flex-col gap-7 p-9"
-            style={{
-              background: plan.featured
-                ? `linear-gradient(180deg, rgba(${plan.accent},0.04), rgba(${plan.accent},0.01)), var(--bjhunt-bg)`
-                : "var(--bjhunt-bg)",
-              backdropFilter: "blur(24px)",
-              WebkitBackdropFilter: "blur(24px)",
-            }}
+            className="relative flex flex-col gap-7 p-9 backdrop-blur-2xl bg-[var(--bjhunt-bg)]"
+            style={
+              plan.featured
+                ? {
+                    backgroundImage: `linear-gradient(180deg, rgba(${plan.accent},0.04), rgba(${plan.accent},0.01))`,
+                  }
+                : undefined
+            }
           >
             {plan.featured && (
               <span

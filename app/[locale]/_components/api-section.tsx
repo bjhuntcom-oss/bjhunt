@@ -43,49 +43,19 @@ export function APISection() {
           variants={fadeUp}
           className="flex flex-col gap-7"
         >
-          <p
-            className="m-0 font-mono uppercase"
-            style={{
-              fontSize: 10,
-              letterSpacing: "0.32em",
-              color: "var(--bjhunt-text-subtle)",
-            }}
-          >
+          <p className="m-0 font-mono text-[10px] uppercase tracking-[0.32em] text-[var(--bjhunt-text-subtle)]">
             03 / API Surface
           </p>
-          <h2
-            className="m-0"
-            style={{
-              fontSize: "clamp(36px, 5vw, 56px)",
-              fontWeight: 200,
-              letterSpacing: "-0.03em",
-              lineHeight: 1.0,
-            }}
-          >
+          <h2 className="m-0 font-extralight text-[clamp(36px,5vw,56px)] tracking-[-0.03em] leading-[1.0]">
             {t("title")}
           </h2>
-          <p
-            className="m-0 max-w-[520px]"
-            style={{
-              color: "var(--bjhunt-text-muted)",
-              fontSize: 16,
-              lineHeight: 1.65,
-              fontWeight: 300,
-            }}
-          >
+          <p className="m-0 max-w-[520px] font-light text-[16px] leading-[1.65] text-[var(--bjhunt-text-muted)]">
             {t("subtitle")}
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
               href="/api-docs"
-              className="inline-flex items-center gap-2.5 px-5 py-3 font-mono uppercase transition-colors duration-200"
-              style={{
-                fontSize: 11,
-                letterSpacing: "0.22em",
-                color: "var(--bjhunt-text)",
-                border: "1px solid var(--bjhunt-border-strong)",
-                background: "rgba(255,255,255,0.02)",
-              }}
+              className="inline-flex items-center gap-2.5 px-5 py-3 font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--bjhunt-text)] border border-[var(--bjhunt-border-strong)] bg-white/[0.02] hover:bg-white/[0.05] transition-colors duration-200"
             >
               {t("cta")}
               <span aria-hidden>→</span>
@@ -98,13 +68,7 @@ export function APISection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          style={{
-            border: "1px solid var(--bjhunt-border)",
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.012), rgba(255,255,255,0.002))",
-            backdropFilter: "blur(24px)",
-            WebkitBackdropFilter: "blur(24px)",
-          }}
+          className="border border-[var(--bjhunt-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.012),rgba(255,255,255,0.002))] backdrop-blur-2xl"
         >
           <Terminal lines={API_LINES} autoPlay />
         </motion.div>

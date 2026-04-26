@@ -25,37 +25,18 @@ function W8Feature({ idx, tag, title, description, illustration, accent = "99,10
   return (
     <motion.article
       variants={fadeUp}
-      className="grid grid-cols-1 gap-10 py-14 md:grid-cols-[280px_1fr] md:gap-20"
-      style={{ borderBottom: "1px solid var(--bjhunt-border)" }}
+      className="grid grid-cols-1 gap-10 py-14 md:grid-cols-[280px_1fr] md:gap-20 border-b border-[var(--bjhunt-border)]"
     >
       <div>
-        <div
-          className="mb-5 font-mono uppercase"
-          style={{
-            fontSize: 10,
-            letterSpacing: "0.32em",
-            color: "var(--bjhunt-text-disabled)",
-          }}
-        >
+        <div className="mb-5 font-mono text-[10px] uppercase tracking-[0.32em] text-[var(--bjhunt-text-disabled)]">
           {idx}
         </div>
-        <h3
-          className="m-0 mb-5"
-          style={{
-            fontSize: 36,
-            fontWeight: 200,
-            letterSpacing: "-0.02em",
-            lineHeight: 1,
-            color: "var(--bjhunt-text)",
-          }}
-        >
+        <h3 className="m-0 mb-5 font-extralight text-[36px] tracking-[-0.02em] leading-none text-[var(--bjhunt-text)]">
           {title}
         </h3>
         <span
-          className="mb-5 inline-flex items-center gap-2 px-2.5 py-1 font-mono uppercase"
+          className="mb-5 inline-flex items-center gap-2 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.22em]"
           style={{
-            fontSize: 9,
-            letterSpacing: "0.22em",
             color: `rgb(${accent})`,
             background: `rgba(${accent},0.08)`,
             border: `1px solid rgba(${accent},0.20)`,
@@ -63,23 +44,14 @@ function W8Feature({ idx, tag, title, description, illustration, accent = "99,10
         >
           {tag}
         </span>
-        <p
-          className="m-0"
-          style={{
-            color: "var(--bjhunt-text-muted)",
-            fontSize: 13,
-            lineHeight: 1.65,
-            fontWeight: 300,
-          }}
-        >
+        <p className="m-0 font-light text-[13px] leading-[1.65] text-[var(--bjhunt-text-muted)]">
           {description}
         </p>
       </div>
 
       <div
-        className="relative flex min-h-[260px] items-center justify-center overflow-hidden p-10"
+        className="relative flex min-h-[260px] items-center justify-center overflow-hidden p-10 border border-[var(--bjhunt-border)]"
         style={{
-          border: "1px solid var(--bjhunt-border)",
           background:
             `linear-gradient(180deg, rgba(255,255,255,0.012), rgba(255,255,255,0.002)),`
             + `radial-gradient(ellipse 80% 60% at 50% 0%, rgba(${accent},0.05), transparent 70%)`,
@@ -105,32 +77,14 @@ export function FeaturesSection() {
         viewport={{ once: true, margin: "-80px" }}
         variants={fadeUp}
       >
-        <p
-          className="m-0 mb-6 font-mono uppercase"
-          style={{
-            fontSize: 10,
-            letterSpacing: "0.32em",
-            color: "var(--bjhunt-text-subtle)",
-          }}
-        >
+        <p className="m-0 mb-6 font-mono text-[10px] uppercase tracking-[0.32em] text-[var(--bjhunt-text-subtle)]">
           {/* TODO i18n: features.eyebrow */}
           02 / Capabilities
         </p>
-        <h2
-          className="m-0"
-          style={{
-            fontSize: "clamp(40px, 6vw, 64px)",
-            fontWeight: 200,
-            letterSpacing: "-0.03em",
-            lineHeight: 1.0,
-          }}
-        >
+        <h2 className="m-0 font-extralight text-[clamp(40px,6vw,64px)] tracking-[-0.03em] leading-[1.0]">
           {t("title")}
         </h2>
-        <p
-          className="mt-6"
-          style={{ color: "var(--bjhunt-text-muted)", fontSize: 17, lineHeight: 1.6, fontWeight: 300 }}
-        >
+        <p className="mt-6 font-light text-[17px] leading-[1.6] text-[var(--bjhunt-text-muted)]">
           {t("subtitle")}
         </p>
       </motion.header>
@@ -140,7 +94,7 @@ export function FeaturesSection() {
         whileInView="visible"
         viewport={{ once: true, margin: "-60px" }}
         variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
-        style={{ borderTop: "1px solid var(--bjhunt-border)" }}
+        className="border-t border-[var(--bjhunt-border)]"
       >
         <W8Feature
           idx="A1"
