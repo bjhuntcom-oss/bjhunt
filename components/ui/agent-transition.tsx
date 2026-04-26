@@ -165,7 +165,7 @@ export function AgentTransition({
             opacity: 0,
             pointerEvents: 'none',
             mixBlendMode: 'overlay',
-            animation: 'bjhunt-handoff-sweep 640ms var(--bjhunt-easing-out, ease)',
+            animation: 'bjhunt-handoff-sweep 640ms var(--bjhunt-ease-out, ease)',
           }}
         />
       )}
@@ -191,7 +191,7 @@ export function AgentTransition({
             inset: -1,
             border: '1px solid var(--agent-color)',
             opacity: 0.3,
-            animation: 'bjhunt-pulse-ring 2.4s var(--bjhunt-easing-out, ease) infinite',
+            animation: 'bjhunt-pulse-ring 2.4s var(--bjhunt-ease-out, ease) infinite',
           }}
         />
         <Icon style={{ width: 28, height: 28 }} />
@@ -214,7 +214,7 @@ export function AgentTransition({
             fontSize: 10,
             letterSpacing: '0.28em',
             textTransform: 'uppercase',
-            color: 'var(--bjhunt-text-subtle)',
+            color: 'var(--bjhunt-text-muted)',
             display: 'inline-flex',
             alignItems: 'center',
             gap: 10,
@@ -240,7 +240,7 @@ export function AgentTransition({
         <div
           style={{
             fontSize: 28,
-            fontWeight: 200,
+            fontWeight: 400,
             letterSpacing: '-0.02em',
             color: 'var(--bjhunt-text)',
             display: 'flex',
@@ -271,7 +271,7 @@ export function AgentTransition({
             lineHeight: 1.55,
             margin: 0,
             maxWidth: 620,
-            fontWeight: 300,
+            fontWeight: 400,
           }}
         >
           {description ?? current.description}
@@ -287,7 +287,7 @@ export function AgentTransition({
           gap: 10,
           fontFamily: 'var(--bjhunt-font-mono)',
           fontSize: 10,
-          color: 'var(--bjhunt-text-subtle)',
+          color: 'var(--bjhunt-text-muted)',
           letterSpacing: '0.14em',
           flexShrink: 0,
         }}
@@ -346,7 +346,7 @@ function PillInner({ meta }: { meta: ReturnType<typeof agentMeta> }) {
           height: 5,
           background: 'var(--agent-color)',
           boxShadow: '0 0 10px var(--agent-color)',
-          animation: 'bjhunt-pulse-ring 1.8s var(--bjhunt-easing-out, ease) infinite',
+          animation: 'bjhunt-pulse-ring 1.8s var(--bjhunt-ease-out, ease) infinite',
         }}
       />
       <Icon style={{ width: 14, height: 14, color: 'var(--agent-color)' }} aria-hidden />

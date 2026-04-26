@@ -1,0 +1,23 @@
+{
+  "name": "BJHUNT",
+  "short_name": "BJHUNT",
+  "description": "AI-Powered Autonomous Cybersecurity Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050507",
+  "theme_color": "#050507",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "32x32",
+      "purpose": "any"
+    }
+  ]
+}

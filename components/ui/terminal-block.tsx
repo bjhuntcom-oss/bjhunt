@@ -18,9 +18,9 @@ const STATUS_LABEL: Record<TerminalStatus, string> = {
 }
 
 const STATUS_COLOR: Record<TerminalStatus, string> = {
-  running: 'var(--bjhunt-status-warning)',
-  completed: 'var(--bjhunt-status-success)',
-  error: 'var(--bjhunt-status-danger)',
+  running: 'var(--state-warning)',
+  completed: 'var(--state-success)',
+  error: 'var(--state-critical)',
 }
 
 export interface TerminalBlockProps {
@@ -55,7 +55,7 @@ export function TerminalBlock({
   const wasTruncated = output.split('\n').length > maxLines
 
   const wrap: CSSProperties = {
-    backgroundColor: 'var(--bjhunt-terminal-bg)',
+    backgroundColor: 'var(--bjhunt-bg-surface)',
     border: '1px solid var(--bjhunt-border)',
     borderRadius: 'var(--bjhunt-radius-md)',
     fontFamily: 'var(--bjhunt-font-mono)',
@@ -69,14 +69,14 @@ export function TerminalBlock({
     justifyContent: 'space-between',
     padding: '6px 12px',
     borderBottom: '1px solid var(--bjhunt-border)',
-    backgroundColor: 'var(--bjhunt-bg-tertiary)',
+    backgroundColor: 'var(--bjhunt-bg)',
     color: 'var(--bjhunt-text-muted)',
     fontSize: 'var(--bjhunt-text-xs)',
   }
 
   const body: CSSProperties = {
     padding: '12px',
-    color: 'var(--bjhunt-terminal-text)',
+    color: 'var(--state-success)',
     overflow: 'auto',
     maxHeight: typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
     whiteSpace: 'pre',
@@ -91,7 +91,7 @@ export function TerminalBlock({
           {command && (
             <>
               <span aria-hidden>·</span>
-              <code style={{ color: 'var(--bjhunt-terminal-prompt)' }}>$ {command}</code>
+              <code style={{ color: 'var(--bjhunt-text)' }}>$ {command}</code>
             </>
           )}
           <span aria-hidden>·</span>
@@ -108,7 +108,7 @@ export function TerminalBlock({
         {headerRightSlot}
       </div>
       <pre style={body}>
-        {truncated || <span style={{ color: 'var(--bjhunt-text-subtle)' }}>(no output)</span>}
+        {truncated || <span style={{ color: 'var(--bjhunt-text-muted)' }}>(no output)</span>}
         {wasTruncated && (
           <span style={{ color: 'var(--bjhunt-text-muted)', display: 'block', marginTop: 12 }}>
             … truncated at {maxLines} lines …

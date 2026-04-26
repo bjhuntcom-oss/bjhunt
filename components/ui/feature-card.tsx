@@ -12,26 +12,33 @@ interface FeatureCardProps {
 
 export function FeatureCard({ title, description, illustration, tag, className }: FeatureCardProps) {
   return (
-    <div className={cn("bg-[var(--bg-card)] border border-[var(--border)] flex flex-col", className)}>
-      {/* Zone illustration */}
+    <div
+      className={cn(
+        "bg-[var(--bjhunt-bg-surface)] border border-[var(--bjhunt-border)] flex flex-col",
+        "rounded-[var(--bjhunt-radius-md)] overflow-hidden",
+        className
+      )}
+    >
       {illustration && (
-        <div className="relative border-b border-[var(--border)] overflow-hidden bg-[var(--bg)] flex items-center justify-center"
-          style={{ minHeight: 200 }}>
-          <div className="bg-grid absolute inset-0" />
-          <div className="relative z-10">
-            {illustration}
-          </div>
+        <div
+          className="relative border-b border-[var(--bjhunt-border)] overflow-hidden bg-[var(--bjhunt-bg)] flex items-center justify-center"
+          style={{ minHeight: 200 }}
+        >
+          <div className="relative z-10">{illustration}</div>
         </div>
       )}
-      {/* Contenu */}
       <div className="p-6 flex flex-col gap-2">
         {tag && (
-          <span className="text-[9px] text-[var(--text-muted)] uppercase tracking-[0.2em]">
+          <span className="font-mono text-[12px] text-[var(--bjhunt-text-muted)] uppercase tracking-[0.18em] font-semibold">
             {tag}
           </span>
         )}
-        <h3 className="text-base font-bold text-white tracking-tight">{title}</h3>
-        <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">{description}</p>
+        <h3 className="text-[20px] leading-[1.4] tracking-[-0.01em] font-semibold text-[var(--bjhunt-text)]">
+          {title}
+        </h3>
+        <p className="text-[13px] text-[var(--bjhunt-text-secondary)] leading-[1.5]">
+          {description}
+        </p>
       </div>
     </div>
   );

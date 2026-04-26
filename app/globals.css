@@ -5,31 +5,55 @@
 @import "tailwindcss";
 @import "./design-tokens.css";
 
-/* ── RESET GLOBAL : rely on component tokens for radius (W8) ────
-   The prior `* { border-radius: 0 !important }` override was retired:
-   atomic components (FindingCard, SeverityBadge, TerminalBlock, …) now
-   choose their radius via `var(--bjhunt-radius-*)`. Pages that want the
-   dev-tool square aesthetic opt in locally via `radius-xs` / 0. */
+/* ── Tailwind v4 theme bridge ───────────────────────── */
+@theme inline {
+  --color-bjhunt-bg:           var(--bjhunt-bg);
+  --color-bjhunt-bg-surface:   var(--bjhunt-bg-surface);
+  --color-bjhunt-bg-elevated:  var(--bjhunt-bg-elevated);
+  --color-bjhunt-text:         var(--bjhunt-text);
+  --color-bjhunt-text-muted:   var(--bjhunt-text-muted);
+  --color-bjhunt-border:       var(--bjhunt-border);
+  --color-state-success:       var(--state-success);
+  --color-state-warning:       var(--state-warning);
+  --color-state-critical:      var(--state-critical);
+  --font-sans:                 var(--bjhunt-font-sans);
+  --font-mono:                 var(--bjhunt-font-mono);
+  --font-display:              var(--bjhunt-font-display);
+}
 
-/* ── A11y: focus-visible outlines (WCAG 2.4.7) ─────── */
+/* ── Body ────────────────────────────────────────────
+   Flat canvas — no body::before gradient. Weight defaults to 400
+   (200/300 was failing WCAG contrast on dark surfaces). */
+body {
+  background: var(--bjhunt-bg);
+  color: var(--bjhunt-text);
+  font-family: var(--bjhunt-font-sans);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--bjhunt-text-inverted);
+}
+
+/* ── A11y: focus-visible (WCAG 2.4.7) ──────────────── */
 *:focus { outline: none; }
 *:focus-visible {
-  outline: 2px solid var(--bjhunt-brand-primary);
-  outline-offset: 2px;
-}
-button:focus-visible,
-a:focus-visible,
-[role="button"]:focus-visible,
-[tabindex]:focus-visible {
-  outline: 2px solid var(--bjhunt-brand-primary);
+  outline: 2px solid var(--state-success);
   outline-offset: 2px;
 }
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: 1px solid var(--bjhunt-brand-primary);
+  outline: 1px solid var(--state-success);
   outline-offset: -1px;
 }
+
+/* ── Reduced motion (global) ───────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -39,144 +63,28 @@ select:focus-visible {
   }
 }
 
-/* Scrollbar carré */
+/* ── Scrollbar ─────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: #0a0a0a; }
-::-webkit-scrollbar-thumb { background: #2a2a2a; }
-::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+::-webkit-scrollbar-track { background: var(--bjhunt-bg); }
+::-webkit-scrollbar-thumb { background: var(--bjhunt-border); }
+::-webkit-scrollbar-thumb:hover { background: var(--bjhunt-border-strong); }
 
-/* ── LEGACY TOKENS (aliased to --bjhunt-* for W8 migration) ─────
-   Old pages still reference `--bg`, `--bg-card`, `--text-muted`, … —
-   we retain those names but re-point them at the new design tokens so
-   a page-by-page migration is unnecessary. Every non-atomic page that
-   consumed these will inherit the new palette automatically. */
-:root {
-  --bg:            var(--bjhunt-bg);
-  --bg-card:       var(--bjhunt-bg-secondary);
-  --bg-input:      var(--bjhunt-bg-tertiary);
-  --border:        var(--bjhunt-border);
-  --border-strong: var(--bjhunt-border-strong);
-  --text:          var(--bjhunt-text);
-  --text-muted:    var(--bjhunt-text-muted);
-  --text-subtle:   var(--bjhunt-text-subtle);
-  --success:       var(--bjhunt-status-success);
-  --danger:        var(--bjhunt-status-danger);
-  --warning:       var(--bjhunt-status-warning);
+/* ── Safe-area utilities (iOS notch / home indicator) ── */
+.safe-top    { padding-top:    env(safe-area-inset-top);    }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-x      { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
 
-  /* Compat layer used by shadcn/ui primitives and older components */
-  --background:     var(--bjhunt-bg);
-  --foreground:     var(--bjhunt-text);
-  --surface:        var(--bjhunt-bg-secondary);
-  --surface-2:      var(--bjhunt-bg-secondary);
-  --surface-3:      var(--bjhunt-bg-tertiary);
-  --surface-4:      var(--bjhunt-bg-elevated);
-  --border-2:       var(--bjhunt-border-strong);
-  --border-3:       #52525B;
-  --ring:           var(--bjhunt-brand-primary-soft);
-  --text-primary:   var(--bjhunt-text);
-  --text-secondary: var(--bjhunt-text-muted);
-  --text-tertiary:  var(--bjhunt-text-subtle);
-  --accent:             var(--bjhunt-brand-primary);
-  --accent-foreground:  var(--bjhunt-brand-primary-fg);
-
-  --severity-critical:    var(--bjhunt-severity-critical);
-  --severity-critical-bg: var(--bjhunt-severity-critical-bg);
-  --severity-high:        var(--bjhunt-severity-high);
-  --severity-high-bg:     var(--bjhunt-severity-high-bg);
-  --severity-medium:      var(--bjhunt-severity-medium);
-  --severity-medium-bg:   var(--bjhunt-severity-medium-bg);
-  --severity-low:         var(--bjhunt-severity-low);
-  --severity-low-bg:      var(--bjhunt-severity-low-bg);
-  --severity-info:        var(--bjhunt-severity-info);
-  --severity-info-bg:     var(--bjhunt-severity-info-bg);
-
-  --success-dim:   rgba(16, 185, 129, 0.12);
-  --danger-dim:    rgba(239, 68, 68, 0.12);
-  --warning-dim:   rgba(245, 158, 11, 0.12);
-
-  --sidebar-width:           220px;
-  --sidebar-collapsed-width: 56px;
-
-  /* Radii now follow the design-tokens scale. Pages that need the
-     square dev-tool look should opt in locally (radius-xs or 0). */
-  --radius-none: 0px;
-  --radius-sm:   var(--bjhunt-radius-sm);
-  --radius-md:   var(--bjhunt-radius-md);
-  --radius-lg:   var(--bjhunt-radius-lg);
-}
-
-@theme inline {
-  --color-black: var(--bjhunt-bg);
-  --color-white: var(--bjhunt-text);
-  --font-sans:   var(--bjhunt-font-sans);
-  --font-mono:   var(--bjhunt-font-mono);
-}
-
-body {
-  background: var(--bjhunt-bg);
-  color: var(--bjhunt-text);
-  font-family: var(--bjhunt-font-sans);
-  font-weight: 300;
-  letter-spacing: -0.005em;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  position: relative;
-  min-height: 100vh;
-}
-
-/* W8 ambient atmosphere — three radial gradients: indigo top-left,
-   red top-right, info-cyan bottom. Fixed-position, behind everything,
-   non-interactive. */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    radial-gradient(ellipse 60% 40% at 10% 0%, rgba(99, 102, 241, 0.08), transparent 50%),
-    radial-gradient(ellipse 50% 40% at 90% 20%, rgba(255, 69, 58, 0.04), transparent 50%),
-    radial-gradient(ellipse 60% 50% at 50% 100%, rgba(100, 210, 255, 0.03), transparent 50%);
-}
-
-/* Direct body children sit above the ambient gradient layer. */
-body > * {
-  position: relative;
-  z-index: 1;
-}
-
-::selection {
-  background: rgba(255,255,255,0.15);
-  color: #ffffff;
-}
-
-/* ── KEYFRAMES ─────────────────────────────────────── */
-
-/* Curseur terminal clignotant */
-@keyframes terminal-cursor {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
-}
-
-/* Ligne de scan descendante */
-@keyframes scan-line {
-  0%   { top: 0%; }
-  100% { top: 100%; }
-}
-
-/* Dot status pulsant */
+/* ── Keyframes ─────────────────────────────────────── */
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.3; transform: scale(0.6); }
+  50%      { opacity: 0.3; transform: scale(0.6); }
 }
 
-/* Flottement vertical lent */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-8px); }
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+  50%      { box-shadow: 0 0 0 4px transparent; opacity: 0.6; }
 }
 
-/* Arrow logo animations */
 @keyframes arrow-draw {
   from { stroke-dashoffset: 100; }
   to   { stroke-dashoffset: 0; }
@@ -193,13 +101,8 @@ body > * {
 }
 
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes growth-dot {
-  from { opacity: 0; }
-  to   { opacity: 1; }
 }
 
 @keyframes progress-fill {
@@ -213,206 +116,58 @@ body > * {
   100% { opacity: 0; pointer-events: none; }
 }
 
-@keyframes price-bar-in {
-  from { transform: scaleY(0); opacity: 0; }
-  to   { transform: scaleY(1); opacity: 1; }
-}
-
-@keyframes signal-pulse {
-  from { opacity: 0.3; }
-  to   { opacity: 1;   }
-}
-
-@keyframes signal-ring {
-  0%   { transform: scale(0.8); opacity: 0.4; }
-  100% { transform: scale(1.2); opacity: 0; }
-}
-
-@keyframes growth-draw {
-  to { stroke-dashoffset: 0; }
-}
-
-@keyframes hex-pulse {
-  0%   { opacity: 0.4; }
-  100% { opacity: 1; }
-}
-
-/* Shimmer de la grille background */
-@keyframes grid-shimmer {
-  0%, 100% { opacity: 0.15; }
-  50%       { opacity: 0.3; }
-}
-
-/* Défilement horizontal (logos marquee) */
 @keyframes marquee {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
 
-/* Typing terminal — largeur de texte */
-@keyframes type-in {
-  from { width: 0; }
-  to   { width: 100%; }
-}
-
-/* Fade in depuis le bas (scroll reveal) */
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(24px); }
+@keyframes slide-up-fade {
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── UTILITAIRES ────────────────────────────────────── */
+/* ── Utilities ─────────────────────────────────────── */
 
-/* Grille pixel en background */
-.bg-grid {
-  background-image:
-    linear-gradient(var(--border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border) 1px, transparent 1px);
-  background-size: 40px 40px;
-  animation: grid-shimmer 4s ease-in-out infinite;
-}
-
-/* Cursor terminal */
-.terminal-cursor {
-  display: inline-block;
-  width: 7px;
-  height: 14px;
-  background: #ffffff;
-  animation: terminal-cursor 1s step-end infinite;
-  vertical-align: text-bottom;
-}
-
-/* ── CHATBOX GLOW ─────────────────────────────────── */
-
-@keyframes glow-pulse {
-  0%, 100% { opacity: 0.4; }
-  50%      { opacity: 0.7; }
-}
-
-.chatbox-glow {
-  position: relative;
-  background: rgba(13, 13, 13, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-/* Minimalist focus state — no coloured halo, just a tighter white border */
-.chatbox-glow:focus-within {
-  border-color: rgba(255, 255, 255, 0.20);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-.chatbox-glow:not(:focus-within):hover {
-  border-color: rgba(255, 255, 255, 0.14);
-}
-
-/* ── SLASH MENU ANIMATION ─────────────────────────── */
-
-@keyframes slide-up-fade {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.slash-menu-enter {
-  animation: slide-up-fade 0.15s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-/* Status dot */
-.status-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  background: var(--success);
-  animation: pulse-dot 2s ease-in-out infinite;
-}
-
-/* Scan line */
-.scan-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-  animation: scan-line 4s linear infinite;
-  pointer-events: none;
-}
-
-/* Float */
-.float {
-  animation: float 4s ease-in-out infinite;
-}
-
-/* Marquee */
 .marquee {
   animation: marquee 30s linear infinite;
 }
 
-/* Preloader */
-.preloader-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: #0a0a0a;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 32px;
-  animation: preloader-fade 0.5s ease-out 2.2s forwards;
-}
-
-.preloader-bar-track {
-  width: 120px;
-  height: 1px;
-  background: #1a1a1a;
-  overflow: hidden;
-  margin-top: 8px;
-}
-
-.preloader-bar-fill {
-  height: 100%;
-  background: #00cc8a;
-  animation: progress-fill 1.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.4s forwards;
-  width: 0%;
-}
-
-/* Fade up reveal */
 .reveal {
-  animation: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: fade-up 0.6s var(--bjhunt-ease-out) both;
 }
 
-/* ── SYNTAX HIGHLIGHT (rehype-highlight) ────────────── */
+.slash-menu-enter {
+  animation: slide-up-fade var(--bjhunt-duration-base) var(--bjhunt-ease-out) both;
+}
+
+/* Live "running" status pulse (per spec §10) */
+.bjhunt-pulse-live {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+/* ── Syntax highlight (rehype-highlight) ───────────── */
 .hljs {
-  background: var(--bg-card) !important;
-  color: var(--text);
-  border: 1px solid var(--border);
+  background: var(--bjhunt-bg-surface) !important;
+  color: var(--bjhunt-text);
+  border: 1px solid var(--bjhunt-border);
   padding: 1rem;
   overflow-x: auto;
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--bjhunt-font-mono);
   font-size: 0.8125rem;
   line-height: 1.7;
 }
-
 .hljs-keyword,
 .hljs-selector-tag,
-.hljs-built_in  { color: var(--warning); }
+.hljs-built_in           { color: var(--state-warning); }
 .hljs-string,
-.hljs-attr      { color: var(--success); }
-.hljs-comment   { color: var(--text-muted); font-style: italic; }
+.hljs-attr               { color: var(--state-success); }
+.hljs-comment            { color: var(--bjhunt-text-muted); font-style: italic; }
 .hljs-number,
-.hljs-literal   { color: var(--warning); }
+.hljs-literal            { color: var(--state-warning); }
 .hljs-function .hljs-title,
-.hljs-title.function_ { color: #60a5fa; }
+.hljs-title.function_    { color: var(--bjhunt-text); }
 
-/* ── CHAT PROSE ─────────────────────────────────────── */
+/* ── Chat prose (markdown rendering) ────────────────── */
 .chat-prose p { margin: 0.5em 0; }
 .chat-prose p:first-child { margin-top: 0; }
 .chat-prose p:last-child  { margin-bottom: 0; }
@@ -420,12 +175,13 @@ body > * {
 .chat-prose ol { margin: 0.5em 0; padding-left: 1.5em; }
 .chat-prose li { margin: 0.25em 0; }
 .chat-prose code:not(.hljs) {
-  background: var(--bg-card);
-  border: 1px solid var(--border-strong);
+  background: var(--bjhunt-bg-surface);
+  border: 1px solid var(--bjhunt-border-strong);
   padding: 0.125em 0.375em;
   font-size: 0.85em;
-  font-family: "JetBrains Mono", monospace;
-  color: rgba(255, 255, 255, 0.92);
+  font-family: var(--bjhunt-font-mono);
+  color: var(--bjhunt-text);
+  border-radius: var(--bjhunt-radius-sm);
 }
 .chat-prose pre    { margin: 0.75em 0; }
 .chat-prose pre code { border: none; padding: 0; background: none; }
@@ -433,242 +189,51 @@ body > * {
 .chat-prose h2,
 .chat-prose h3,
 .chat-prose h4 {
-  font-weight: 700;
+  font-weight: 600;
   margin: 1em 0 0.5em;
   letter-spacing: -0.02em;
-  color: #ffffff;
+  color: var(--bjhunt-text);
 }
-.chat-prose strong { color: #ffffff; }
-.chat-prose em { color: #cccccc; }
+.chat-prose strong { color: var(--bjhunt-text); }
+.chat-prose em     { color: var(--bjhunt-text-secondary); }
 .chat-prose h1 { font-size: 1.25em; }
 .chat-prose h2 { font-size: 1.125em; }
 .chat-prose h3 { font-size: 1em; }
 .chat-prose blockquote {
-  border-left: 2px solid var(--border-strong);
+  border-left: 2px solid var(--bjhunt-border-strong);
   padding-left: 1em;
-  color: var(--text-muted);
+  color: var(--bjhunt-text-muted);
   margin: 0.75em 0;
 }
 .chat-prose a {
-  color: var(--text);
+  color: var(--bjhunt-text);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 .chat-prose table { width: 100%; border-collapse: collapse; margin: 0.75em 0; font-size: 0.875em; }
 .chat-prose th,
-.chat-prose td { border: 1px solid var(--border); padding: 0.375em 0.75em; text-align: left; }
-.chat-prose th  { background: var(--bg-card); font-weight: 600; }
+.chat-prose td { border: 1px solid var(--bjhunt-border); padding: 0.375em 0.75em; text-align: left; }
+.chat-prose th  { background: var(--bjhunt-bg-surface); font-weight: 600; }
 
-/* ── TECHNOLOGY PAGE ANIMATIONS ───────────────────────── */
-
-/* Hero neural network — edge draw-in */
-@keyframes tech-edge-in {
-  0%   { opacity: 0; stroke-dashoffset: 200; }
-  50%  { opacity: 0.3; }
-  100% { opacity: 0.15; stroke-dashoffset: 0; }
-}
-.tech-edge {
-  stroke-dasharray: 200;
-  stroke-dashoffset: 200;
-  animation: tech-edge-in 2s ease-out forwards;
-}
-
-/* Hero neural network — node fade-in */
-@keyframes tech-node-in {
-  0%   { opacity: 0; transform: scale(0.5); }
-  100% { opacity: 0.6; transform: scale(1); }
-}
-.tech-node {
-  animation: tech-node-in 0.8s ease-out forwards;
-  transform-origin: center;
-  transform-box: fill-box;
-}
-
-/* Hero neural network — node ring expand */
-@keyframes tech-ring-in {
-  0%   { opacity: 0; transform: scale(0.3); }
-  60%  { opacity: 0.2; }
-  100% { opacity: 0.1; transform: scale(1); }
-}
-.tech-node-ring {
-  animation: tech-ring-in 1.2s ease-out forwards;
-  transform-origin: center;
-  transform-box: fill-box;
-}
-
-/* Orchestration — connection lines pulse */
-@keyframes tech-orch-pulse {
-  0%   { opacity: 0; stroke-dashoffset: 300; }
-  50%  { opacity: 0.6; }
-  100% { opacity: 0.3; stroke-dashoffset: 0; }
-}
-.tech-orch-line {
-  stroke-dasharray: 300;
-  stroke-dashoffset: 300;
-  animation: tech-orch-pulse 1.5s ease-out forwards;
-}
-
-/* Hub center pulse */
-@keyframes tech-hub-glow {
-  0%, 100% { stroke-opacity: 1; }
-  50%      { stroke-opacity: 0.4; }
-}
-.tech-hub-pulse {
-  animation: tech-hub-glow 3s ease-in-out infinite;
-}
-
-/* Agent nodes — sequential glow */
-@keyframes tech-agent-appear {
-  0%   { opacity: 0.5; }
-  100% { opacity: 1; }
-}
-.tech-agent-node {
-  opacity: 0;
-  animation: tech-agent-appear 0.6s ease-out forwards;
-}
-
-/* Agent ring glow — sequential highlight */
-@keyframes tech-agent-highlight {
-  0%, 100% { opacity: 0; stroke-width: 1; }
-  20%, 40% { opacity: 0.8; stroke-width: 2; }
-}
-.tech-agent-glow {
-  animation: tech-agent-highlight 3s ease-in-out infinite;
-}
-
-/* Vaccine loop — trace path */
-@keyframes tech-loop-draw {
-  0%   { stroke-dashoffset: 1200; }
-  100% { stroke-dashoffset: 0; }
-}
-.tech-loop-trace {
-  stroke-dasharray: 1200;
-  stroke-dashoffset: 1200;
-  animation: tech-loop-draw 4s ease-in-out infinite;
-}
-
-/* Phase glow — sequential */
-@keyframes tech-phase-pulse {
-  0%, 100% { opacity: 0; }
-  25%, 50% { opacity: 0.8; }
-}
-.tech-phase-glow {
-  animation: tech-phase-pulse 4s ease-in-out infinite;
-}
-
-/* Directional arrow fade */
-@keyframes tech-arrow-in {
-  0%, 100% { opacity: 0.2; }
-  30%, 60% { opacity: 0.8; }
-}
-.tech-arrow-fade {
-  animation: tech-arrow-in 4s ease-in-out infinite;
-}
-
-/* Knowledge graph — node fade in */
-@keyframes tech-kg-appear {
-  0%   { opacity: 0; transform: scale(0.5); }
-  100% { opacity: 0.8; transform: scale(1); }
-}
-.tech-kg-node {
-  animation: tech-kg-appear 0.6s ease-out forwards;
-  transform-origin: center;
-  transform-box: fill-box;
-}
-
-/* Knowledge graph — edge draw */
-@keyframes tech-kg-draw {
-  0%   { stroke-dashoffset: 500; opacity: 0; }
-  100% { stroke-dashoffset: 0; opacity: 0.4; }
-}
-.tech-kg-edge {
-  stroke-dasharray: 500;
-  stroke-dashoffset: 500;
-  animation: tech-kg-draw 1s ease-out forwards;
-}
-
-/* Sandbox — pulsing dashed border */
-@keyframes tech-sandbox-pulse {
-  0%, 100% { stroke-opacity: 0.4; stroke-dashoffset: 0; }
-  50%      { stroke-opacity: 0.8; stroke-dashoffset: 24; }
-}
-.tech-sandbox-border {
-  animation: tech-sandbox-pulse 3s ease-in-out infinite;
-}
-
-/* Shield path draw */
-@keyframes tech-shield-trace {
-  0%   { stroke-dashoffset: 200; opacity: 0; }
-  100% { stroke-dashoffset: 0; opacity: 1; }
-}
-.tech-shield-draw {
-  stroke-dasharray: 200;
-  stroke-dashoffset: 200;
-  animation: tech-shield-trace 1.5s ease-out 0.5s forwards;
-}
-
-/* Shield checkmark */
-@keyframes tech-check-draw {
-  0%   { stroke-dashoffset: 40; opacity: 0; }
-  100% { stroke-dashoffset: 0; opacity: 1; }
-}
-.tech-shield-check {
-  stroke-dasharray: 40;
-  stroke-dashoffset: 40;
-  animation: tech-check-draw 0.6s ease-out 1.8s forwards;
-}
-
-/* IO arrows — slide in */
-@keyframes tech-io-slide {
-  0%   { opacity: 0; stroke-dashoffset: 100; }
-  100% { opacity: 0.8; stroke-dashoffset: 0; }
-}
-.tech-io-arrow {
-  stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-  animation: tech-io-slide 0.8s ease-out forwards;
-}
-
-/* ── GLASSMORPHISM UTILITIES ──────────────────────── */
-
-.glass-panel {
-  background: rgba(10, 10, 10, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-}
-
-.glass-card {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.glass-hover {
-  transition: all 0.2s ease;
-}
-.glass-hover:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-/* Smooth scroll for messages area */
+/* ── Smooth scroll for chat messages ───────────────── */
 .chat-messages-scroll {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
 
-/* Fade gradient above the chatbox so messages dissolve as they scroll behind */
-.chat-input-glass {
-  position: relative;
-}
-.chat-input-glass::before {
-  content: "";
-  position: absolute;
-  top: -48px;
-  left: 0;
-  right: 0;
-  height: 48px;
-  background: linear-gradient(to bottom, transparent, rgba(10, 10, 10, 0.85));
-  pointer-events: none;
-  z-index: 1;
+/* ── Print stylesheet ──────────────────────────────── */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  *, *::before, *::after {
+    background: transparent !important;
+    color: #000000 !important;
+    border-color: #000000 !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+  a, a:visited { text-decoration: underline; }
+  pre, blockquote { page-break-inside: avoid; }
 }

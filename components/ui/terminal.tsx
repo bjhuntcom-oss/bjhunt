@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 export interface TerminalLine {
   type: "prompt" | "output" | "success" | "error" | "warning" | "comment";
   content: string;
-  delay?: number; // ms avant d'afficher cette ligne
+  delay?: number; // ms before showing this line
 }
 
 interface TerminalProps {
@@ -18,12 +18,12 @@ interface TerminalProps {
 }
 
 const lineColors: Record<TerminalLine["type"], string> = {
-  prompt:  "text-white",
-  output:  "text-[var(--text-muted)]",
-  success: "text-[var(--success)]",
-  error:   "text-[var(--danger)]",
-  warning: "text-[var(--warning)]",
-  comment: "text-[var(--text-subtle)]",
+  prompt:  "text-[var(--bjhunt-text)]",
+  output:  "text-[var(--bjhunt-text-muted)]",
+  success: "text-[var(--state-success)]",
+  error:   "text-[var(--state-critical)]",
+  warning: "text-[var(--state-warning)]",
+  comment: "text-[var(--bjhunt-text-muted)]",
 };
 
 export function Terminal({ lines, className, autoPlay = true, showCursor = true }: TerminalProps) {
@@ -44,32 +44,33 @@ export function Terminal({ lines, className, autoPlay = true, showCursor = true 
   return (
     <div
       className={cn(
-        "bg-[var(--bg-card)] border border-[var(--border)] p-4 font-mono text-[11px] leading-relaxed",
+        "bg-[var(--bjhunt-bg-surface)] border border-[var(--bjhunt-border)] p-4 font-mono text-[11px] leading-relaxed",
+        "rounded-[var(--bjhunt-radius-md)]",
         className
       )}
     >
-      {/* Barre dots */}
+      {/* Header dots */}
       <div className="flex items-center gap-1.5 mb-4">
-        <div className="w-2.5 h-2.5 bg-[var(--border-strong)]" />
-        <div className="w-2.5 h-2.5 bg-[var(--border-strong)]" />
-        <div className="w-2.5 h-2.5 bg-[var(--border-strong)]" />
-        <span className="ml-2 text-[9px] text-[var(--text-subtle)] tracking-widest uppercase">
+        <div className="w-2.5 h-2.5 rounded-full bg-[var(--bjhunt-border-strong)]" />
+        <div className="w-2.5 h-2.5 rounded-full bg-[var(--bjhunt-border-strong)]" />
+        <div className="w-2.5 h-2.5 rounded-full bg-[var(--bjhunt-border-strong)]" />
+        <span className="ml-2 text-[9px] text-[var(--bjhunt-text-muted)] tracking-widest uppercase">
           bjhunt terminal
         </span>
       </div>
 
-      {/* Lignes */}
+      {/* Lines */}
       <div className="space-y-1">
         {lines.slice(0, visibleCount).map((line, i) => (
           <div key={i} className={cn("flex gap-2", lineColors[line.type])}>
             {line.type === "prompt" && (
-              <span className="text-[var(--text-muted)] select-none">$</span>
+              <span className="text-[var(--bjhunt-text-muted)] select-none">$</span>
             )}
             {line.type === "success" && (
-              <span className="select-none">✓</span>
+              <span className="select-none">{"✓"}</span>
             )}
             {line.type === "error" && (
-              <span className="select-none">✗</span>
+              <span className="select-none">{"✗"}</span>
             )}
             {line.type === "warning" && (
               <span className="select-none">!</span>
@@ -78,11 +79,14 @@ export function Terminal({ lines, className, autoPlay = true, showCursor = true 
           </div>
         ))}
 
-        {/* Curseur clignotant */}
+        {/* Blinking cursor */}
         {showCursor && visibleCount >= lines.length && (
-          <div className="flex gap-2 text-[var(--text-muted)]">
+          <div className="flex gap-2 text-[var(--bjhunt-text-muted)]">
             <span>$</span>
-            <span className="terminal-cursor" />
+            <span
+              aria-hidden
+              className="inline-block w-[7px] h-[14px] align-text-bottom bg-[var(--bjhunt-text)] animate-pulse"
+            />
           </div>
         )}
       </div>
