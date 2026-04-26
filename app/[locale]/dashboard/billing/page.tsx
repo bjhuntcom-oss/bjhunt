@@ -56,15 +56,58 @@ export default async function BillingPage({
   const isFree = planData.plan === 'free'
 
   return (
-    <div className="p-6 md:p-8 max-w-3xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-black tracking-tight">
+    <div className="p-6 md:p-10 max-w-4xl">
+      <header className="mb-12 md:mb-16">
+        <div
+          className="mb-5 inline-flex items-center gap-2"
+          style={{
+            fontFamily: 'var(--bjhunt-font-mono)',
+            fontSize: 10,
+            letterSpacing: '0.32em',
+            textTransform: 'uppercase',
+            color: 'var(--bjhunt-text-subtle)',
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              width: 6,
+              height: 6,
+              background: 'var(--bjhunt-brand-primary)',
+              boxShadow: '0 0 8px var(--bjhunt-brand-primary)',
+              display: 'inline-block',
+            }}
+          />
+          <span>{planData.organizationName}</span>
+        </div>
+        <h1
+          style={{
+            fontFamily: 'var(--bjhunt-font-sans)',
+            fontWeight: 200,
+            fontSize: 'clamp(40px, 6vw, 72px)',
+            letterSpacing: '-0.04em',
+            lineHeight: 1.0,
+            color: 'var(--bjhunt-text)',
+            margin: 0,
+          }}
+        >
           {isFr ? 'Facturation' : 'Billing'}
         </h1>
-        <p className="text-[11px] text-[var(--text-muted)] font-mono mt-1">
-          {planData.organizationName}
+        <p
+          className="mt-5 max-w-xl"
+          style={{
+            fontFamily: 'var(--bjhunt-font-sans)',
+            fontWeight: 300,
+            fontSize: 17,
+            lineHeight: 1.5,
+            color: 'var(--bjhunt-text-muted)',
+          }}
+        >
+          {isFr
+            ? 'Plan actuel, limites et consommation du mois en cours.'
+            : 'Current plan, quotas and consumption for the running month.'}
         </p>
-      </div>
+      </header>
 
       {/* Current plan */}
       <section className="border border-[var(--border)] mb-6">

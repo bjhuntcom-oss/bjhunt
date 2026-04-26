@@ -53,27 +53,27 @@ interface Engagement {
 // ── Constants ───────────────────────────────────────────────────────────
 
 const SEVERITY_COLORS: Record<string, string> = {
-  critical: "var(--severity-critical)",
-  high: "var(--severity-high)",
-  medium: "var(--severity-medium)",
-  low: "var(--severity-low)",
-  info: "var(--severity-info)",
+  critical: "var(--bjhunt-severity-critical)",
+  high: "var(--bjhunt-severity-high)",
+  medium: "var(--bjhunt-severity-medium)",
+  low: "var(--bjhunt-severity-low)",
+  info: "var(--bjhunt-severity-info)",
 };
 
 const SEVERITY_BG: Record<string, string> = {
-  critical: "var(--severity-critical-bg)",
-  high: "var(--severity-high-bg)",
-  medium: "var(--severity-medium-bg)",
-  low: "var(--severity-low-bg)",
-  info: "var(--severity-info-bg)",
+  critical: "var(--bjhunt-severity-critical-bg)",
+  high: "var(--bjhunt-severity-high-bg)",
+  medium: "var(--bjhunt-severity-medium-bg)",
+  low: "var(--bjhunt-severity-low-bg)",
+  info: "var(--bjhunt-severity-info-bg)",
 };
 
 const SEVERITY_ORDER = ["critical", "high", "medium", "low", "info"] as const;
 
 const REMEDIATION_STATUS_COLORS: Record<string, string> = {
-  pending: "var(--warning)",
-  applied: "var(--success)",
-  verified: "#4a9eff",
+  pending: "var(--bjhunt-status-warning)",
+  applied: "var(--bjhunt-status-success)",
+  verified: "var(--bjhunt-status-info)",
 };
 
 const REMEDIATION_STATUS_LABELS: Record<string, string> = {
@@ -254,26 +254,68 @@ export default function FindingsPage() {
   // ── CVSS color ──────────────────────────────────────────────────────
 
   const cvssColor = (score: number): string => {
-    if (score >= 9.0) return "var(--severity-critical)";
-    if (score >= 7.0) return "var(--severity-high)";
-    if (score >= 4.0) return "var(--severity-medium)";
-    if (score >= 0.1) return "var(--severity-low)";
-    return "var(--severity-info)";
+    if (score >= 9.0) return "var(--bjhunt-severity-critical)";
+    if (score >= 7.0) return "var(--bjhunt-severity-high)";
+    if (score >= 4.0) return "var(--bjhunt-severity-medium)";
+    if (score >= 0.1) return "var(--bjhunt-severity-low)";
+    return "var(--bjhunt-severity-info)";
   };
 
   // ── Render ──────────────────────────────────────────────────────────
 
   return (
-    <div className="p-6 md:p-8 max-w-6xl">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-[13px] font-mono font-bold uppercase tracking-[0.2em] text-white">
-          FINDINGS
+    <div className="p-6 md:p-10 max-w-6xl">
+      {/* W8 Page Hero — eyebrow + display h1 (Inter 200) + lede */}
+      <header className="mb-12 md:mb-16">
+        <div
+          className="mb-5 inline-flex items-center gap-2"
+          style={{
+            fontFamily: 'var(--bjhunt-font-mono)',
+            fontSize: 10,
+            letterSpacing: '0.32em',
+            textTransform: 'uppercase',
+            color: 'var(--bjhunt-text-subtle)',
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              width: 6,
+              height: 6,
+              background: 'var(--bjhunt-brand-primary)',
+              boxShadow: '0 0 8px var(--bjhunt-brand-primary)',
+              display: 'inline-block',
+            }}
+          />
+          <span>Findings · Vuln Pipeline</span>
+        </div>
+        <h1
+          className="text-white"
+          style={{
+            fontFamily: 'var(--bjhunt-font-sans)',
+            fontWeight: 200,
+            fontSize: 'clamp(48px, 8vw, 96px)',
+            letterSpacing: '-0.04em',
+            lineHeight: 1.0,
+            margin: 0,
+          }}
+        >
+          Findings
         </h1>
-        <p className="text-[10px] text-[var(--text-subtle)] font-mono mt-1">
-          Security vulnerabilities discovered across all scans
+        <p
+          className="mt-5 max-w-2xl"
+          style={{
+            fontFamily: 'var(--bjhunt-font-sans)',
+            fontWeight: 300,
+            fontSize: 17,
+            lineHeight: 1.5,
+            color: 'var(--bjhunt-text-muted)',
+          }}
+        >
+          Verified vulnerabilities discovered across every engagement —
+          deduplicated, scored, and mapped to MITRE ATT&amp;CK.
         </p>
-      </div>
+      </header>
 
       {/* Stats bar — SeverityBadge (outline variant) with live counts */}
       <div className="flex items-center gap-2 mb-6 flex-wrap">
@@ -412,16 +454,49 @@ export default function FindingsPage() {
           </p>
         </div>
       ) : findings.length === 0 ? (
-        <div className="border border-[var(--border)] px-4 py-16 text-center">
+        <div
+          className="px-4 py-24 text-center"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        >
           <Shield
             size={28}
-            className="mx-auto mb-3 text-[var(--text-subtle)]"
+            className="mx-auto mb-5 text-[var(--bjhunt-text-subtle)]"
           />
-          <p className="text-[11px] font-mono text-[var(--text-muted)] mb-1">
-            No findings yet.
-          </p>
-          <p className="text-[10px] font-mono text-[var(--text-subtle)] mb-4">
-            Run a scan to discover vulnerabilities.
+          <div
+            style={{
+              fontFamily: 'var(--bjhunt-font-mono)',
+              fontSize: 10,
+              letterSpacing: '0.32em',
+              textTransform: 'uppercase',
+              color: 'var(--bjhunt-text-subtle)',
+              marginBottom: 12,
+            }}
+          >
+            Empty State
+          </div>
+          <h2
+            style={{
+              fontFamily: 'var(--bjhunt-font-sans)',
+              fontWeight: 200,
+              fontSize: 32,
+              letterSpacing: '-0.02em',
+              color: 'var(--bjhunt-text)',
+              margin: '0 0 8px',
+            }}
+          >
+            No findings yet
+          </h2>
+          <p
+            className="max-w-md mx-auto mb-6"
+            style={{
+              fontFamily: 'var(--bjhunt-font-sans)',
+              fontWeight: 300,
+              fontSize: 15,
+              color: 'var(--bjhunt-text-muted)',
+              lineHeight: 1.5,
+            }}
+          >
+            Run a scan to discover vulnerabilities. Verified PoCs land here in real time.
           </p>
           {/* DASH-P2: empty state now offers a direct CTA to start a scan
               instead of leaving the user to figure out where to go. */}
@@ -442,9 +517,24 @@ export default function FindingsPage() {
         </div>
       ) : (
         <>
-          <div className="border border-[var(--border)] divide-y divide-[var(--border)]">
-            {/* Table header */}
-            <div className="flex items-center gap-3 px-4 py-2 bg-[var(--bg-card)]">
+          <div
+            style={{
+              borderTop: '1px solid rgba(255,255,255,0.06)',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            {/* W8 Table header — JetBrains Mono 10px / 0.22em tracking, hairline divider */}
+            <div
+              className="flex items-center gap-3 px-4 py-3"
+              style={{
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                fontFamily: 'var(--bjhunt-font-mono)',
+                fontSize: 10,
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--bjhunt-text-subtle)',
+              }}
+            >
               <div className="w-4 flex-shrink-0">
                 <input
                   type="checkbox"
@@ -454,27 +544,13 @@ export default function FindingsPage() {
                 />
               </div>
               <div className="w-4 flex-shrink-0" />
-              <div className="w-[72px] flex-shrink-0 text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)]">
-                Severity
-              </div>
-              <div className="flex-1 min-w-0 text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)]">
-                Title
-              </div>
-              <div className="w-[90px] flex-shrink-0 text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] hidden md:block">
-                CVE
-              </div>
-              <div className="w-[50px] flex-shrink-0 text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] hidden md:block text-center">
-                CVSS
-              </div>
-              <div className="w-[80px] flex-shrink-0 text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] hidden lg:block text-center">
-                Remediation
-              </div>
-              <div className="w-[120px] flex-shrink-0 text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] hidden lg:block">
-                Engagement
-              </div>
-              <div className="w-[60px] flex-shrink-0 text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] hidden lg:block text-right">
-                Date
-              </div>
+              <div className="w-[72px] flex-shrink-0">Severity</div>
+              <div className="flex-1 min-w-0">Title</div>
+              <div className="w-[90px] flex-shrink-0 hidden md:block">CVE</div>
+              <div className="w-[50px] flex-shrink-0 hidden md:block text-center">CVSS</div>
+              <div className="w-[80px] flex-shrink-0 hidden lg:block text-center">Remediation</div>
+              <div className="w-[120px] flex-shrink-0 hidden lg:block">Engagement</div>
+              <div className="w-[60px] flex-shrink-0 hidden lg:block text-right">Date</div>
             </div>
 
             {/* Findings rows */}
@@ -484,9 +560,23 @@ export default function FindingsPage() {
               const remColor = REMEDIATION_STATUS_COLORS[remStatus] || "var(--text-subtle)";
 
               return (
-                <div key={f.id}>
-                  {/* Row */}
-                  <div className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-card)]/50 transition-colors">
+                <div key={f.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  {/* W8 Row — hairline divider, hover shifts left padding +24px */}
+                  <div
+                    className="flex items-center gap-3 px-4 py-3 group/row transition-[padding,background-color]"
+                    style={{
+                      transitionDuration: 'var(--bjhunt-duration-base)',
+                      transitionTimingFunction: 'var(--bjhunt-easing-out)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.012)'
+                      e.currentTarget.style.paddingLeft = '40px'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = ''
+                      e.currentTarget.style.paddingLeft = ''
+                    }}
+                  >
                     {/* Checkbox */}
                     <div className="w-4 flex-shrink-0">
                       <input

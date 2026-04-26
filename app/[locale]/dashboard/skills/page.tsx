@@ -243,16 +243,57 @@ export default function SkillCatalogPage() {
 
   return (
     <PlanGate requiredPlan="pro" currentPlan={plan} featureName="Skill Catalog">
-    <div className="p-6 md:p-8 max-w-7xl">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-[13px] font-mono font-bold uppercase tracking-[0.2em] text-white">
-          SKILL CATALOG
+    <div className="p-6 md:p-10 max-w-7xl">
+      <header className="mb-12 md:mb-16">
+        <div
+          className="mb-5 inline-flex items-center gap-2"
+          style={{
+            fontFamily: 'var(--bjhunt-font-mono)',
+            fontSize: 10,
+            letterSpacing: '0.32em',
+            textTransform: 'uppercase',
+            color: 'var(--bjhunt-text-subtle)',
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              width: 6,
+              height: 6,
+              background: 'var(--bjhunt-brand-primary)',
+              boxShadow: '0 0 8px var(--bjhunt-brand-primary)',
+              display: 'inline-block',
+            }}
+          />
+          <span>Skill Catalog</span>
+        </div>
+        <h1
+          style={{
+            fontFamily: 'var(--bjhunt-font-sans)',
+            fontWeight: 200,
+            fontSize: 'clamp(48px, 8vw, 96px)',
+            letterSpacing: '-0.04em',
+            lineHeight: 1.0,
+            color: 'var(--bjhunt-text)',
+            margin: 0,
+          }}
+        >
+          Skills
         </h1>
-        <p className="text-[10px] text-[var(--text-subtle)] font-mono mt-1">
-          Browse offensive and defensive skills by category, MITRE technique, or keyword
+        <p
+          className="mt-5 max-w-2xl"
+          style={{
+            fontFamily: 'var(--bjhunt-font-sans)',
+            fontWeight: 300,
+            fontSize: 17,
+            lineHeight: 1.5,
+            color: 'var(--bjhunt-text-muted)',
+          }}
+        >
+          Browse offensive and defensive techniques the engine can execute —
+          filtered by category, MITRE ATT&amp;CK technique, or keyword.
         </p>
-      </div>
+      </header>
 
       {/* Search bar */}
       <div className="flex items-center border border-[var(--border)] bg-[var(--bg-input)] mb-6">

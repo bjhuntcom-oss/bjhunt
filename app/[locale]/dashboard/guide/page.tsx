@@ -71,17 +71,48 @@ function CodeBlock({ children }: { children: string }) {
 
 export default function GuidePage() {
   return (
-    <div className="p-6 md:p-8 max-w-4xl">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-2">
-        <BookOpen className="w-4 h-4 text-[var(--text-muted)]" />
-        <h1 className="text-[13px] font-mono font-bold uppercase tracking-[0.2em] text-white">
-          GUIDE D&apos;UTILISATION
+    <div className="p-6 md:p-10 max-w-4xl">
+      <header className="mb-12 md:mb-16">
+        <div
+          className="mb-5 inline-flex items-center gap-2"
+          style={{
+            fontFamily: 'var(--bjhunt-font-mono)',
+            fontSize: 10,
+            letterSpacing: '0.32em',
+            textTransform: 'uppercase',
+            color: 'var(--bjhunt-text-subtle)',
+          }}
+        >
+          <BookOpen className="w-3 h-3" aria-hidden />
+          <span>Documentation · Reference</span>
+        </div>
+        <h1
+          style={{
+            fontFamily: 'var(--bjhunt-font-sans)',
+            fontWeight: 200,
+            fontSize: 'clamp(48px, 8vw, 96px)',
+            letterSpacing: '-0.04em',
+            lineHeight: 1.0,
+            color: 'var(--bjhunt-text)',
+            margin: 0,
+          }}
+        >
+          Guide
         </h1>
-      </div>
-      <p className="text-[10px] text-[var(--text-subtle)] font-mono mb-10 pl-7">
-        Documentation de reference pour la plateforme BJHUNT
-      </p>
+        <p
+          className="mt-5 max-w-2xl"
+          style={{
+            fontFamily: 'var(--bjhunt-font-sans)',
+            fontWeight: 300,
+            fontSize: 17,
+            lineHeight: 1.5,
+            color: 'var(--bjhunt-text-muted)',
+          }}
+        >
+          Documentation de reference pour la plateforme BJHUNT — agents,
+          workflows et bonnes pratiques d&apos;engagement.
+        </p>
+      </header>
 
       {/* ── 1. Premiers pas ──────────────────────────────────────── */}
       <Section number="01" title="Premiers pas">
