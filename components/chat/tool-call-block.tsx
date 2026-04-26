@@ -26,14 +26,21 @@ const TOOL_ICONS: Record<string, typeof Terminal> = {
   default: Code,
 };
 
+// Tool → tri-state mapping (refonte 2026 §1).
+// Maps each tool to its MITRE-relative risk profile so we can express tool
+// chrome with the 3-state system instead of bespoke hex.
+//   bash, neo4j  → success (low impact / introspection / shell)
+//   http, cloud  → success (read traffic / cloud enumeration is recon)
+//   nmap         → warning (active scanning, likely tripwire)
+//   nuclei,sqlmap→ critical (active exploit attempts)
 const TOOL_COLORS: Record<string, string> = {
-  bash: "var(--success)",
-  http: "#74a4d4",
-  nmap: "var(--warning)",
-  nuclei: "var(--danger)",
-  sqlmap: "var(--danger)",
-  cloud: "#a474d4",
-  neo4j: "#74d4a4",
+  bash:   "var(--state-success)",
+  http:   "var(--state-success)",
+  nmap:   "var(--state-warning)",
+  nuclei: "var(--state-critical)",
+  sqlmap: "var(--state-critical)",
+  cloud:  "var(--state-success)",
+  neo4j:  "var(--state-success)",
 };
 
 function getToolIcon(name: string) {
@@ -43,7 +50,7 @@ function getToolIcon(name: string) {
 
 function getToolColor(name: string): string {
   const key = Object.keys(TOOL_COLORS).find((k) => name.toLowerCase().includes(k));
-  return TOOL_COLORS[key || ""] || "var(--text-muted)";
+  return TOOL_COLORS[key || ""] || "var(--bjhunt-text-muted)";
 }
 
 export function ToolCallBlock({ tool }: { tool: ToolCall }) {
@@ -56,33 +63,22 @@ export function ToolCallBlock({ tool }: { tool: ToolCall }) {
 
   return (
     <div
-      className="my-2 transition-all duration-200"
-      style={isRunning ? {
-        background: "rgba(255, 153, 0, 0.04)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
-        border: "1px solid rgba(255, 153, 0, 0.2)",
-      } : isError ? {
-        background: "rgba(255, 68, 68, 0.04)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
-        border: "1px solid rgba(255, 68, 68, 0.15)",
-      } : {
-        background: expanded ? "rgba(255, 255, 255, 0.03)" : "rgba(255, 255, 255, 0.02)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
-        border: "1px solid rgba(255, 255, 255, 0.06)",
-      }}
+      className={cn(
+        "my-2 transition-colors rounded-[var(--bjhunt-radius)] border",
+        isRunning && "bg-[var(--state-warning-tint)] border-[var(--state-warning)]",
+        isError && "bg-[var(--state-critical-tint)] border-[var(--state-critical)]",
+        !isRunning && !isError && "bg-[var(--bjhunt-bg-surface)] border-[var(--bjhunt-border)]"
+      )}
     >
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.04] transition-all duration-200"
+        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.04] transition-colors rounded-[var(--bjhunt-radius)]"
       >
         {expanded ? (
-          <ChevronDown className="w-3 h-3 text-[var(--text-muted)] shrink-0" />
+          <ChevronDown className="w-3.5 h-3.5 text-[var(--bjhunt-text-muted)] shrink-0" />
         ) : (
-          <ChevronRight className="w-3 h-3 text-[var(--text-muted)] shrink-0" />
+          <ChevronRight className="w-3.5 h-3.5 text-[var(--bjhunt-text-muted)] shrink-0" />
         )}
 
         {isRunning ? (
@@ -91,7 +87,7 @@ export function ToolCallBlock({ tool }: { tool: ToolCall }) {
           <Icon className="w-3.5 h-3.5 shrink-0" style={{ color }} />
         )}
 
-        <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color }}>
+        <span className="font-mono font-semibold text-[12px] uppercase tracking-[0.18em]" style={{ color }}>
           {tool.name}
         </span>
 
@@ -101,7 +97,7 @@ export function ToolCallBlock({ tool }: { tool: ToolCall }) {
           if (!cmd) return null;
           const s = String(cmd);
           return (
-            <span className="text-[10px] font-mono text-[var(--text-subtle)] truncate max-w-[300px]">
+            <span className="font-mono text-[12px] text-[var(--bjhunt-text-muted)] truncate max-w-[300px]">
               {s.slice(0, 60)}{s.length > 60 ? "..." : ""}
             </span>
           );
@@ -109,32 +105,32 @@ export function ToolCallBlock({ tool }: { tool: ToolCall }) {
 
         <span className="ml-auto flex items-center gap-2">
           {tool.duration !== undefined && (
-            <span className="text-[9px] text-[var(--text-subtle)] font-mono">
+            <span className="font-mono tabular-nums text-[11px] text-[var(--bjhunt-text-muted)]">
               {tool.duration < 1000 ? `${tool.duration}ms` : `${(tool.duration / 1000).toFixed(1)}s`}
             </span>
           )}
 
           {/* Status icon instead of text badge */}
           {isRunning && (
-            <Loader2 className="w-3 h-3 animate-spin text-[var(--warning)]" />
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--state-warning)]" />
           )}
           {isCompleted && (
-            <CheckCircle2 className="w-3 h-3 text-[var(--success)]" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-[var(--state-success)]" />
           )}
           {isError && (
-            <XCircle className="w-3 h-3 text-[var(--danger)]" />
+            <XCircle className="w-3.5 h-3.5 text-[var(--state-critical)]" />
           )}
         </span>
       </button>
 
       {/* Expanded content */}
       {expanded && (
-        <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.06)" }}>
+        <div className="border-t border-[var(--bjhunt-border)]">
           {/* Args */}
           {Object.keys(tool.args).length > 0 && (
-            <div className="px-3 py-2" style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
-              <div className="text-[8px] uppercase tracking-[0.2em] text-[var(--text-subtle)] mb-1">input</div>
-              <pre className="text-[10px] font-mono text-[var(--text-muted)] whitespace-pre-wrap overflow-x-auto max-h-[200px] overflow-y-auto">
+            <div className="px-3 py-2 border-b border-[var(--bjhunt-border)]">
+              <div className="font-mono font-semibold text-[10px] uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)] mb-1">input</div>
+              <pre className="font-mono text-[12px] text-[var(--bjhunt-text)] whitespace-pre-wrap overflow-x-auto max-h-[200px] overflow-y-auto">
                 {typeof tool.args.command === "string"
                   ? tool.args.command
                   : JSON.stringify(tool.args, null, 2)}
@@ -145,10 +141,10 @@ export function ToolCallBlock({ tool }: { tool: ToolCall }) {
           {/* Result */}
           {tool.result && (
             <div className="px-3 py-2">
-              <div className="text-[8px] uppercase tracking-[0.2em] text-[var(--text-subtle)] mb-1">output</div>
+              <div className="font-mono font-semibold text-[10px] uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)] mb-1">output</div>
               <pre className={cn(
-                "text-[10px] font-mono whitespace-pre-wrap overflow-x-auto max-h-[400px] overflow-y-auto",
-                isError ? "text-[var(--danger)]" : "text-[var(--text-muted)]"
+                "font-mono text-[12px] whitespace-pre-wrap overflow-x-auto max-h-[400px] overflow-y-auto",
+                isError ? "text-[var(--state-critical)]" : "text-[var(--bjhunt-text)]"
               )}>
                 {tool.result}
               </pre>

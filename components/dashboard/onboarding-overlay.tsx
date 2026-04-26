@@ -86,12 +86,15 @@ export function OnboardingOverlay({ locale, onPrefillChat }: OnboardingOverlayPr
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className="relative w-full max-w-[520px] mx-4 border border-[var(--border)] bg-[var(--bg)]">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-sm"
+      style={{ background: "var(--bjhunt-bg-overlay, rgba(0,0,0,0.7))" }}
+    >
+      <div className="relative w-full max-w-[520px] mx-4 border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-surface)] rounded-[var(--bjhunt-radius-md)]">
         {/* Close button */}
         <button
           onClick={dismiss}
-          className="absolute top-3 right-3 p-1 text-[var(--text-subtle)] hover:text-white transition-colors z-10"
+          className="absolute top-3 right-3 p-1 text-[var(--bjhunt-text-muted)] hover:text-[var(--bjhunt-text)] transition-colors z-10 rounded-[var(--bjhunt-radius-sm)]"
           title="Fermer"
         >
           <X className="w-3.5 h-3.5" />
@@ -104,7 +107,7 @@ export function OnboardingOverlay({ locale, onPrefillChat }: OnboardingOverlayPr
               key={s}
               className="h-[2px] flex-1 transition-colors"
               style={{
-                backgroundColor: s <= step ? "#ffffff" : "var(--border)",
+                backgroundColor: s <= step ? "var(--bjhunt-text)" : "var(--bjhunt-border)",
               }}
             />
           ))}
@@ -115,18 +118,18 @@ export function OnboardingOverlay({ locale, onPrefillChat }: OnboardingOverlayPr
           {/* ── Step 0: Welcome ──────────────────────────────────── */}
           {step === 0 && (
             <div className="text-center py-6">
-              <h1 className="text-[18px] font-mono font-bold text-white uppercase tracking-[0.15em] mb-3">
+              <h1 className="font-mono font-semibold text-[18px] text-[var(--bjhunt-text)] uppercase tracking-[0.18em] mb-3">
                 Bienvenue sur BJHUNT
               </h1>
-              <p className="text-[10px] font-mono text-[var(--text-muted)] leading-relaxed max-w-[380px] mx-auto mb-8">
+              <p className="font-sans text-[14px] text-[var(--bjhunt-text-muted)] leading-relaxed max-w-[380px] mx-auto mb-8">
                 La plateforme de cybersecurite autonome propulsee par 17 agents IA
               </p>
               <button
                 onClick={() => setStep(1)}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-[0.15em] hover:bg-white/90 transition-colors"
+                className="inline-flex items-center gap-2 h-10 px-6 font-mono font-semibold text-[12px] uppercase tracking-[0.18em] bg-[var(--bjhunt-bg-surface)] border border-[var(--state-success)] text-[var(--state-success)] rounded-[var(--bjhunt-radius)] hover:bg-[var(--state-success-tint)] transition-colors"
               >
                 Commencer
-                <ArrowRight className="w-3 h-3" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
@@ -134,10 +137,10 @@ export function OnboardingOverlay({ locale, onPrefillChat }: OnboardingOverlayPr
           {/* ── Step 1: Choose action ────────────────────────────── */}
           {step === 1 && (
             <div>
-              <h2 className="text-[13px] font-mono font-bold text-white uppercase tracking-[0.12em] mb-1">
+              <h2 className="font-mono font-semibold text-[14px] text-[var(--bjhunt-text)] uppercase tracking-[0.18em] mb-1">
                 Choisissez votre premiere action
               </h2>
-              <p className="text-[9px] font-mono text-[var(--text-subtle)] mb-5">
+              <p className="font-sans text-[13px] text-[var(--bjhunt-text-muted)] mb-5">
                 Selectionnez un point de depart pour explorer la plateforme
               </p>
 
@@ -156,20 +159,20 @@ export function OnboardingOverlay({ locale, onPrefillChat }: OnboardingOverlayPr
                           onPrefillChat?.(card.prompt);
                         }
                       }}
-                      className="w-full flex items-start gap-3 px-4 py-3 border border-[var(--border)] text-left hover:border-[var(--border-strong)] hover:bg-[var(--bg-card)] transition-colors group"
+                      className="w-full flex items-start gap-3 px-4 py-3 border border-[var(--bjhunt-border)] text-left hover:border-[var(--bjhunt-border-strong)] hover:bg-white/[0.04] transition-colors group rounded-[var(--bjhunt-radius)]"
                     >
-                      <div className="w-8 h-8 flex items-center justify-center border border-[var(--border-strong)] flex-shrink-0 mt-0.5 group-hover:border-white/30 transition-colors">
-                        <Icon className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-white transition-colors" />
+                      <div className="w-9 h-9 flex items-center justify-center border border-[var(--bjhunt-border-strong)] flex-shrink-0 mt-0.5 group-hover:border-[var(--bjhunt-text)] transition-colors rounded-[var(--bjhunt-radius-sm)]">
+                        <Icon className="w-4 h-4 text-[var(--bjhunt-text-muted)] group-hover:text-[var(--bjhunt-text)] transition-colors" />
                       </div>
                       <div className="min-w-0">
-                        <div className="text-[11px] font-mono font-bold text-white mb-0.5">
+                        <div className="font-sans font-semibold text-[13px] text-[var(--bjhunt-text)] mb-0.5">
                           {card.title}
                         </div>
-                        <div className="text-[9px] font-mono text-[var(--text-subtle)] leading-relaxed">
+                        <div className="font-sans text-[12px] text-[var(--bjhunt-text-muted)] leading-relaxed">
                           {card.description}
                         </div>
                       </div>
-                      <ArrowRight className="w-3 h-3 text-[var(--text-subtle)] flex-shrink-0 mt-2 group-hover:text-white transition-colors" />
+                      <ArrowRight className="w-3.5 h-3.5 text-[var(--bjhunt-text-muted)] flex-shrink-0 mt-2 group-hover:text-[var(--bjhunt-text)] transition-colors" />
                     </button>
                   );
                 })}
@@ -178,13 +181,13 @@ export function OnboardingOverlay({ locale, onPrefillChat }: OnboardingOverlayPr
               <div className="flex items-center justify-between mt-5">
                 <button
                   onClick={() => setStep(0)}
-                  className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] hover:text-white transition-colors"
+                  className="font-mono font-semibold text-[11px] uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)] hover:text-[var(--bjhunt-text)] transition-colors"
                 >
                   Retour
                 </button>
                 <button
                   onClick={() => setStep(2)}
-                  className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-white transition-colors"
+                  className="font-mono font-semibold text-[11px] uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)] hover:text-[var(--bjhunt-text)] transition-colors"
                 >
                   Passer
                 </button>
@@ -195,10 +198,10 @@ export function OnboardingOverlay({ locale, onPrefillChat }: OnboardingOverlayPr
           {/* ── Step 2: Quick tips ───────────────────────────────── */}
           {step === 2 && (
             <div>
-              <h2 className="text-[13px] font-mono font-bold text-white uppercase tracking-[0.12em] mb-1">
+              <h2 className="font-mono font-semibold text-[14px] text-[var(--bjhunt-text)] uppercase tracking-[0.18em] mb-1">
                 Conseils rapides
               </h2>
-              <p className="text-[9px] font-mono text-[var(--text-subtle)] mb-5">
+              <p className="font-sans text-[13px] text-[var(--bjhunt-text-muted)] mb-5">
                 Quelques raccourcis pour etre productif des le depart
               </p>
 
@@ -208,12 +211,12 @@ export function OnboardingOverlay({ locale, onPrefillChat }: OnboardingOverlayPr
                   return (
                     <div
                       key={i}
-                      className="flex items-center gap-3 px-4 py-3 border border-[var(--border)] bg-[var(--bg-card)]"
+                      className="flex items-center gap-3 px-4 py-3 border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg)] rounded-[var(--bjhunt-radius)]"
                     >
-                      <div className="w-7 h-7 flex items-center justify-center border border-[var(--border-strong)] flex-shrink-0">
-                        <Icon className="w-3 h-3 text-[var(--text-muted)]" />
+                      <div className="w-8 h-8 flex items-center justify-center border border-[var(--bjhunt-border-strong)] flex-shrink-0 rounded-[var(--bjhunt-radius-sm)]">
+                        <Icon className="w-3.5 h-3.5 text-[var(--bjhunt-text-muted)]" />
                       </div>
-                      <span className="text-[10px] font-mono text-white leading-relaxed">
+                      <span className="font-sans text-[13px] text-[var(--bjhunt-text)] leading-relaxed">
                         {tip.text}
                       </span>
                     </div>
@@ -224,13 +227,13 @@ export function OnboardingOverlay({ locale, onPrefillChat }: OnboardingOverlayPr
               <div className="flex items-center justify-between mt-6">
                 <button
                   onClick={() => setStep(1)}
-                  className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] hover:text-white transition-colors"
+                  className="font-mono font-semibold text-[11px] uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)] hover:text-[var(--bjhunt-text)] transition-colors"
                 >
                   Retour
                 </button>
                 <button
                   onClick={finish}
-                  className="inline-flex items-center gap-2 px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-[0.12em] hover:bg-white/90 transition-colors"
+                  className="inline-flex items-center gap-2 h-10 px-5 font-mono font-semibold text-[12px] uppercase tracking-[0.18em] bg-[var(--bjhunt-bg-surface)] border border-[var(--state-success)] text-[var(--state-success)] rounded-[var(--bjhunt-radius)] hover:bg-[var(--state-success-tint)] transition-colors"
                 >
                   Terminer
                 </button>

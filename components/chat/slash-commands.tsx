@@ -183,51 +183,49 @@ export function SlashCommandsMenu({ query, activeIndex = 0, onSelect, onHover }:
   if (filtered.length === 0) return null;
 
   return (
-    <div
-      className="absolute bottom-full left-0 right-0 mb-2 z-50 slash-menu-enter overflow-hidden"
-      style={{
-        background: "rgba(17, 17, 17, 0.9)",
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
-        boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
-      }}
-    >
-      <div className="px-3 py-1.5 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)" }}>
-        <span className="text-[8px] uppercase tracking-[0.2em] text-[var(--text-muted)]">Commandes</span>
-        <span className="text-[8px] text-[var(--text-subtle)]">↑↓ naviguer · Enter sélectionner · Esc fermer</span>
+    <div className="absolute bottom-full left-0 right-0 mb-2 z-50 overflow-hidden bg-[var(--bjhunt-bg-surface)] border border-[var(--bjhunt-border)] rounded-[var(--bjhunt-radius-md)] shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
+      <div className="px-3 py-2 flex items-center justify-between border-b border-[var(--bjhunt-border)]">
+        <span className="font-mono font-semibold text-[10px] uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)]">Commandes</span>
+        <span className="font-mono text-[11px] text-[var(--bjhunt-text-muted)]">↑↓ naviguer · Enter sélectionner · Esc fermer</span>
       </div>
       <div className="max-h-[300px] overflow-y-auto">
-        {filtered.map((cmd, i) => (
-          <button
-            key={cmd.command}
-            onClick={() => onSelect(cmd.command + " ")}
-            onMouseEnter={() => onHover?.(i)}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 transition-all duration-200 text-left",
-              i === activeIndex
-                ? "border-l-2 border-l-[var(--success)]"
-                : "hover:bg-white/[0.04] border-l-2 border-l-transparent"
-            )}
-            style={i === activeIndex ? { background: "rgba(255, 255, 255, 0.06)" } : undefined}
-          >
-            <span className={cn(
-              "transition-colors",
-              i === activeIndex ? "text-[var(--success)]" : "text-[var(--text-muted)]"
-            )}>
-              {cmd.icon}
-            </span>
-            <div className="min-w-0">
-              <div className={cn(
-                "text-[11px] font-mono",
-                i === activeIndex ? "text-white" : "text-[var(--text-muted)]"
+        {filtered.map((cmd, i) => {
+          const isActive = i === activeIndex;
+          return (
+            <button
+              key={cmd.command}
+              onClick={() => onSelect(cmd.command + " ")}
+              onMouseEnter={() => onHover?.(i)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 transition-colors text-left border-l-2 border-b border-b-[var(--bjhunt-border)] last:border-b-0",
+                isActive
+                  ? "bg-white/[0.04] border-l-[var(--state-success)]"
+                  : "border-l-transparent hover:bg-white/[0.04]"
+              )}
+            >
+              <span className={cn(
+                "transition-colors flex-shrink-0",
+                isActive ? "text-[var(--state-success)]" : "text-[var(--bjhunt-text-muted)]"
               )}>
-                {cmd.command}
+                {cmd.icon}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className={cn(
+                  "font-mono text-[13px]",
+                  isActive ? "text-[var(--bjhunt-text)]" : "text-[var(--bjhunt-text)]"
+                )}>
+                  {cmd.command}
+                </div>
+                <div className="font-sans text-[13px] text-[var(--bjhunt-text-muted)] truncate">{cmd.description}</div>
               </div>
-              <div className="text-[9px] text-[var(--text-subtle)] truncate">{cmd.description}</div>
-            </div>
-          </button>
-        ))}
+              {isActive && (
+                <span className="font-mono text-[11px] text-[var(--bjhunt-text-muted)] flex-shrink-0">
+                  ↵
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

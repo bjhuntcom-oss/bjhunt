@@ -34,31 +34,47 @@ const PHASE_ORDER = [
   "impact",
 ];
 
+// MITRE ATT&CK tactic → tri-state colour mapping (refonte 2026 §1).
+//
+//   success  (emerald) → recon-only / passive observation phases that produce
+//                        intelligence without altering the target.
+//                        reconnaissance, discovery
+//
+//   warning  (amber)   → "we have a foothold" phases — active but not yet
+//                        catastrophic, or recoverable.
+//                        initial_access, persistence, lateral_movement,
+//                        collection
+//
+//   critical (coral)   → high-impact phases that change blast radius:
+//                        code execution, escalation, credentials, evasion,
+//                        exfiltration, destructive impact.
+//                        execution, privilege_escalation, defense_evasion,
+//                        credential_access, exfiltration, impact
 const PHASE_COLORS: Record<string, string> = {
-  reconnaissance: "#74a4d4",
-  initial_access: "var(--warning)",
-  execution: "var(--danger)",
-  persistence: "#d4a574",
-  privilege_escalation: "#d474a4",
-  defense_evasion: "#a474d4",
-  credential_access: "var(--danger)",
-  discovery: "#74a4d4",
-  lateral_movement: "var(--warning)",
-  collection: "#a4d474",
-  exfiltration: "var(--danger)",
-  impact: "var(--danger)",
+  reconnaissance:        "var(--state-success)",
+  initial_access:        "var(--state-warning)",
+  execution:             "var(--state-critical)",
+  persistence:           "var(--state-warning)",
+  privilege_escalation:  "var(--state-critical)",
+  defense_evasion:       "var(--state-critical)",
+  credential_access:     "var(--state-critical)",
+  discovery:             "var(--state-success)",
+  lateral_movement:      "var(--state-warning)",
+  collection:            "var(--state-warning)",
+  exfiltration:          "var(--state-critical)",
+  impact:                "var(--state-critical)",
 };
 
 function StatusIcon({ status }: { status: Objective["status"] }) {
   switch (status) {
     case "completed":
-      return <CheckCircle2 className="w-3 h-3 text-[var(--success)]" />;
+      return <CheckCircle2 className="w-3.5 h-3.5 text-[var(--state-success)]" />;
     case "active":
-      return <Loader2 className="w-3 h-3 animate-spin text-[var(--warning)]" />;
+      return <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--state-warning)]" />;
     case "failed":
-      return <XCircle className="w-3 h-3 text-[var(--danger)]" />;
+      return <XCircle className="w-3.5 h-3.5 text-[var(--state-critical)]" />;
     default:
-      return <Circle className="w-3 h-3 text-[var(--text-subtle)]" />;
+      return <Circle className="w-3.5 h-3.5 text-[var(--bjhunt-text-muted)]" />;
   }
 }
 
@@ -94,27 +110,27 @@ export function OpplanPanel({ objectives, className }: OpplanPanelProps) {
   }
 
   return (
-    <div className={cn("border border-[var(--border)] bg-[var(--bg-input)]", className)}>
+    <div className={cn("border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-surface)] rounded-[var(--bjhunt-radius-md)]", className)}>
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border)]">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--bjhunt-border)]">
         <div className="flex items-center gap-2">
-          <Target className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-          <span className="text-[10px] uppercase tracking-[0.15em] text-[var(--text-muted)]">
+          <Target className="w-4 h-4 text-[var(--bjhunt-text-muted)]" />
+          <span className="font-mono font-semibold text-[12px] uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)]">
             OPPLAN
           </span>
         </div>
-        <div className="flex items-center gap-3 text-[9px] text-[var(--text-subtle)]">
+        <div className="flex items-center gap-3 font-mono tabular-nums text-[11px] text-[var(--bjhunt-text-muted)]">
           <span>{completed}/{total} complete</span>
           {active > 0 && (
-            <span className="text-[var(--warning)]">{active} active</span>
+            <span className="text-[var(--state-warning)]">{active} active</span>
           )}
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="h-px bg-[var(--border)]">
+      <div className="h-px bg-[var(--bjhunt-border)]">
         <div
-          className="h-full bg-[var(--success)] transition-all duration-500"
+          className="h-full bg-[var(--state-success)] transition-all duration-500"
           style={{ width: total > 0 ? `${(completed / total) * 100}%` : "0%" }}
         />
       </div>
@@ -123,25 +139,25 @@ export function OpplanPanel({ objectives, className }: OpplanPanelProps) {
       <div className="max-h-[400px] overflow-y-auto">
         {sortedPhases.map(([phase, objs]) => {
           const isCollapsed = collapsed.has(phase);
-          const phaseColor = PHASE_COLORS[phase] || "var(--text-muted)";
+          const phaseColor = PHASE_COLORS[phase] || "var(--bjhunt-text-muted)";
           const phaseComplete = objs.filter((o) => o.status === "completed").length;
 
           return (
-            <div key={phase} className="border-b border-[var(--border)]/30 last:border-b-0">
+            <div key={phase} className="border-b border-[var(--bjhunt-border)] last:border-b-0">
               <button
                 onClick={() => togglePhase(phase)}
-                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--bg-card)] transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/[0.02] transition-colors"
               >
                 {isCollapsed ? (
-                  <ChevronRight className="w-2.5 h-2.5 text-[var(--text-subtle)]" />
+                  <ChevronRight className="w-3 h-3 text-[var(--bjhunt-text-muted)]" />
                 ) : (
-                  <ChevronDown className="w-2.5 h-2.5 text-[var(--text-subtle)]" />
+                  <ChevronDown className="w-3 h-3 text-[var(--bjhunt-text-muted)]" />
                 )}
-                <div className="w-1.5 h-1.5" style={{ backgroundColor: phaseColor }} />
-                <span className="text-[9px] uppercase tracking-wider" style={{ color: phaseColor }}>
+                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: phaseColor }} />
+                <span className="font-mono font-semibold text-[11px] uppercase tracking-[0.18em]" style={{ color: phaseColor }}>
                   {phase.replace(/_/g, " ")}
                 </span>
-                <span className="ml-auto text-[8px] text-[var(--text-subtle)]">
+                <span className="ml-auto font-mono tabular-nums text-[11px] text-[var(--bjhunt-text-muted)]">
                   {phaseComplete}/{objs.length}
                 </span>
               </button>
@@ -152,11 +168,11 @@ export function OpplanPanel({ objectives, className }: OpplanPanelProps) {
                     <div key={obj.id} className="flex items-start gap-2 py-0.5">
                       <StatusIcon status={obj.status} />
                       <div className="min-w-0">
-                        <div className="text-[10px] text-[var(--text-muted)] leading-tight">
+                        <div className="font-sans text-[12px] text-[var(--bjhunt-text)] leading-tight">
                           {obj.title}
                         </div>
                         {obj.mitre && (
-                          <span className="text-[8px] text-[var(--text-subtle)] font-mono">
+                          <span className="font-mono text-[11px] text-[var(--bjhunt-text-muted)]">
                             {obj.mitre}
                           </span>
                         )}

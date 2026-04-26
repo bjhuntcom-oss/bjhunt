@@ -4,18 +4,19 @@ interface PlanBadgeProps {
   requiredPlan: "pro" | "enterprise";
 }
 
-const PLAN_STYLES: Record<string, { color: string; bg: string; border: string; label: string }> = {
+// Refonte 2026: retired indigo brand (#4a9eff) and gold (#FFD700) hex.
+// PRO uses neutral text token (no brand accent); ENTERPRISE uses the
+// state-warning amber to signal premium tier — both consume CSS vars only.
+const PLAN_STYLES: Record<string, { color: string; border: string; label: string }> = {
   pro: {
-    color: "#4a9eff",
-    bg: "rgba(74,158,255,0.08)",
-    border: "rgba(74,158,255,0.3)",
-    label: "PRO",
+    color:  "var(--bjhunt-text)",
+    border: "var(--bjhunt-border-strong)",
+    label:  "PRO",
   },
   enterprise: {
-    color: "#FFD700",
-    bg: "rgba(255,215,0,0.08)",
-    border: "rgba(255,215,0,0.3)",
-    label: "ENTERPRISE",
+    color:  "var(--state-warning)",
+    border: "var(--state-warning)",
+    label:  "ENTERPRISE",
   },
 };
 
@@ -24,11 +25,10 @@ export function PlanBadge({ requiredPlan }: PlanBadgeProps) {
 
   return (
     <span
-      className="inline-flex items-center px-1 py-0.5 text-[7px] font-mono font-bold uppercase tracking-[0.12em] leading-none flex-shrink-0"
+      className="inline-flex items-center px-1.5 py-0.5 font-mono font-semibold text-[10px] uppercase tracking-[0.18em] leading-none flex-shrink-0 rounded-[var(--bjhunt-radius-xs)] border"
       style={{
         color: style.color,
-        backgroundColor: style.bg,
-        border: `1px solid ${style.border}`,
+        borderColor: style.border,
       }}
     >
       {style.label}
