@@ -1,149 +1,172 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Eyebrow, H1, H2, Body } from "@/components/ui/typography";
 
+/**
+ * Legal — Mentions légales (refonte 2026 §B9).
+ *
+ * Prose layout `max-w-2xl`. Typography primitives. Hairline section dividers.
+ * Body Inter 14 leading-1.6. Lists use mono dash bullets.
+ * No fallback hex inside `var(...)`.
+ */
 export default function LegalPage() {
   const t = useTranslations("legal");
 
   return (
-    <div className="relative pt-14">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 50% 30% at 50% 0%, rgba(99,102,241,0.04), transparent 55%)",
-        }}
-      />
-      <div className="relative z-10 mx-auto max-w-3xl px-8 py-24">
-        <p
-          className="m-0 mb-6 font-mono uppercase"
-          style={{ fontSize: 10, letterSpacing: "0.32em", color: "var(--bjhunt-text-subtle)" }}
+    <main className="relative pt-14 bg-[var(--bjhunt-bg)] text-[var(--bjhunt-text)] min-h-screen">
+      <article className="mx-auto max-w-2xl px-6 md:px-8 py-16 md:py-24">
+        <header className="mb-12">
+          <Eyebrow>09 / Legal</Eyebrow>
+          <H1 className="mt-4 mb-2">
+            Mentions légales
+            <span
+              aria-hidden
+              className="text-[var(--bjhunt-text-muted)]"
+            >
+              .
+            </span>
+          </H1>
+          <Body className="text-[var(--bjhunt-text-muted)] leading-[1.6]">
+            BJHUNT — Plateforme cybersécurité offensive autonome.
+          </Body>
+        </header>
+
+        <Section title={t("companySection")}>
+          <Field label={t("entity")}>BJHUNT</Field>
+          <Field label={t("type")}>{t("techStartup")}</Field>
+          <Field label={t("creation")}>Dec 2023</Field>
+          <Field label={t("ceo")}>ATCHAHOUE Destin</Field>
+          <Field label={t("contact")}>contact@bjhunt.com</Field>
+          <Field label={t("partners")}>partner@bjhunt.com</Field>
+        </Section>
+
+        <Section title={t("ipSection")}>
+          <Field label={t("copyright")}>{t("copyrightText")}</Field>
+          <Field label={t("trademarks")}>{t("trademarksText")}</Field>
+          <Field label={t("aiTech")}>{t("aiTechText")}</Field>
+        </Section>
+
+        <Section title={t("termsSection")}>
+          <Field label={t("acceptance")}>{t("acceptanceText")}</Field>
+          <Field label={t("usage")}>{t("usageText")}</Field>
+          <Field label={t("warning")}>{t("warningText")}</Field>
+        </Section>
+
+        <Section title={t("privacySection")}>
+          <Body className="text-[var(--bjhunt-text-secondary)] leading-[1.6] mb-3">
+            <strong className="text-[var(--bjhunt-text)] font-semibold">
+              {t("dataCollected")} :
+            </strong>
+          </Body>
+          <DashList
+            items={[
+              t("nameAndContact"),
+              t("companyInformation"),
+              t("emailAddress"),
+              t("customerRequests"),
+            ]}
+          />
+          <Body className="text-[var(--bjhunt-text-secondary)] leading-[1.6] mt-6 mb-3">
+            <strong className="text-[var(--bjhunt-text)] font-semibold">
+              {t("dataUsage")} :
+            </strong>
+          </Body>
+          <DashList
+            items={[
+              t("respondToRequests"),
+              t("waitlistManagement"),
+              t("productUpdates"),
+              t("serviceImprovement"),
+            ]}
+          />
+          <Field label={t("gdprRights")} className="mt-6">
+            {t("gdprText")}
+          </Field>
+        </Section>
+
+        <Section title={t("liabilitySection")}>
+          <Field label={t("exclusion")}>{t("exclusionText")}</Field>
+          <DashList
+            items={[
+              t("indirectDamages"),
+              t("lostProfits"),
+              t("dataLoss"),
+              t("unauthorizedAccess"),
+            ]}
+          />
+        </Section>
+
+        <Section title={t("contactSection")}>
+          <Field label={t("general")}>contact@bjhunt.com</Field>
+          <Field label={t("partnerships")}>partner@bjhunt.com</Field>
+        </Section>
+
+        <footer className="mt-16 pt-6 border-t border-[var(--bjhunt-border)]">
+          <Eyebrow className="text-[var(--bjhunt-text-muted)]">
+            BJHUNT © 2026 · {t("internalDocument")} · {t("update")}: 18/04/2026
+          </Eyebrow>
+        </footer>
+      </article>
+    </main>
+  );
+}
+
+/* -------------------- internal helpers -------------------- */
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mb-12 pb-12 border-b border-[var(--bjhunt-border)] last:border-b-0 last:pb-0 last:mb-0">
+      <H2 className="mb-6 text-[var(--bjhunt-text)]">{title}</H2>
+      <div className="space-y-3">{children}</div>
+    </section>
+  );
+}
+
+function Field({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <Body
+      className={`text-[var(--bjhunt-text-secondary)] leading-[1.6] ${className}`}
+    >
+      <strong className="text-[var(--bjhunt-text)] font-semibold">
+        {label} :
+      </strong>{" "}
+      {children}
+    </Body>
+  );
+}
+
+function DashList({ items }: { items: string[] }) {
+  return (
+    <ul className="space-y-2 list-none p-0 m-0">
+      {items.map((item, i) => (
+        <li
+          key={i}
+          className="flex gap-3 text-[14px] leading-[1.6] text-[var(--bjhunt-text-secondary)]"
         >
-          09 / Legal
-        </p>
-        <h1
-          className="m-0 mb-16"
-          style={{
-            fontSize: "clamp(40px, 6vw, 64px)",
-            fontWeight: 200,
-            letterSpacing: "-0.03em",
-            lineHeight: 1.0,
-          }}
-        >
-          Mentions légales<em className="not-italic" style={{ color: "var(--bjhunt-text-muted)", fontWeight: 200 }}>.</em>
-        </h1>
-
-        <div
-          className="legal-prose"
-          style={{
-            fontSize: 14,
-            fontWeight: 300,
-            lineHeight: 1.7,
-            color: "var(--bjhunt-text-muted)",
-          }}
-        >
-          <style jsx>{`
-            .legal-prose :global(h2) {
-              color: var(--bjhunt-text);
-              font-size: 22px;
-              font-weight: 300;
-              letter-spacing: -0.015em;
-              margin: 56px 0 18px;
-              padding-bottom: 12px;
-              border-bottom: 1px solid var(--bjhunt-border);
-            }
-            .legal-prose :global(h2:first-child) {
-              margin-top: 0;
-            }
-            .legal-prose :global(p) {
-              margin: 0 0 16px;
-            }
-            .legal-prose :global(strong) {
-              color: var(--bjhunt-text);
-              font-weight: 400;
-            }
-            .legal-prose :global(ul) {
-              margin: 0 0 16px;
-              padding-left: 20px;
-            }
-            .legal-prose :global(li) {
-              margin-bottom: 6px;
-            }
-          `}</style>
-
-          <h2>{t("companySection")}</h2>
-          <p>
-            <strong>{t("entity")}:</strong> BJHUNT &nbsp;|&nbsp;
-            <strong>{t("type")}:</strong> {t("techStartup")} &nbsp;|&nbsp;
-            <strong>{t("creation")}:</strong> Dec 2023
-          </p>
-          <p>
-            <strong>{t("ceo")}:</strong> ATCHAHOUE Destin
-          </p>
-          <p>
-            <strong>{t("contact")}:</strong> contact@bjhunt.com &nbsp;|&nbsp;
-            <strong>{t("partners")}:</strong> partner@bjhunt.com
-          </p>
-
-          <h2>{t("ipSection")}</h2>
-          <p><strong>{t("copyright")}:</strong> {t("copyrightText")}</p>
-          <p><strong>{t("trademarks")}:</strong> {t("trademarksText")}</p>
-          <p><strong>{t("aiTech")}:</strong> {t("aiTechText")}</p>
-
-          <h2>{t("termsSection")}</h2>
-          <p><strong>{t("acceptance")}:</strong> {t("acceptanceText")}</p>
-          <p><strong>{t("usage")}:</strong> {t("usageText")}</p>
-          <p><strong>{t("warning")}:</strong> {t("warningText")}</p>
-
-          <h2>{t("privacySection")}</h2>
-          <p><strong>{t("dataCollected")}:</strong></p>
-          <ul>
-            <li>{t("nameAndContact")}</li>
-            <li>{t("companyInformation")}</li>
-            <li>{t("emailAddress")}</li>
-            <li>{t("customerRequests")}</li>
-          </ul>
-          <p><strong>{t("dataUsage")}:</strong></p>
-          <ul>
-            <li>{t("respondToRequests")}</li>
-            <li>{t("waitlistManagement")}</li>
-            <li>{t("productUpdates")}</li>
-            <li>{t("serviceImprovement")}</li>
-          </ul>
-          <p><strong>{t("gdprRights")}:</strong> {t("gdprText")}</p>
-
-          <h2>{t("liabilitySection")}</h2>
-          <p><strong>{t("exclusion")}:</strong> {t("exclusionText")}</p>
-          <ul>
-            <li>{t("indirectDamages")}</li>
-            <li>{t("lostProfits")}</li>
-            <li>{t("dataLoss")}</li>
-            <li>{t("unauthorizedAccess")}</li>
-          </ul>
-
-          <h2>{t("contactSection")}</h2>
-          <p>
-            <strong>{t("general")}:</strong> contact@bjhunt.com
-          </p>
-          <p>
-            <strong>{t("partnerships")}:</strong> partner@bjhunt.com
-          </p>
-        </div>
-
-        <p
-          className="mt-16 font-mono uppercase"
-          style={{
-            fontSize: 9,
-            letterSpacing: "0.32em",
-            color: "var(--bjhunt-text-disabled)",
-            paddingTop: 24,
-            borderTop: "1px solid var(--bjhunt-border)",
-          }}
-        >
-          BJHUNT © 2026 · {t("internalDocument")} · {t("update")}: 18/01/2026
-        </p>
-      </div>
-    </div>
+          <span
+            aria-hidden
+            className="font-mono text-[var(--bjhunt-text-muted)] select-none flex-shrink-0"
+          >
+            —
+          </span>
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
