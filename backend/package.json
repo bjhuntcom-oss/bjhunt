@@ -12,7 +12,7 @@
     "db:migrate": "bun run src/db/migrate.ts"
   },
   "dependencies": {
-    "@hono/zod-validator": "^0.5.0",
+    "@hono/zod-validator": "^0.7.6",
     "@sentry/bun": "^10.50.0",
     "argon2": "^0.41.0",
     "fflate": "^0.8.2",
