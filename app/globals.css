@@ -116,8 +116,33 @@ body {
   background: var(--bjhunt-bg);
   color: var(--bjhunt-text);
   font-family: var(--bjhunt-font-sans);
+  font-weight: 300;
+  letter-spacing: -0.005em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  position: relative;
+  min-height: 100vh;
+}
+
+/* W8 ambient atmosphere — three radial gradients: indigo top-left,
+   red top-right, info-cyan bottom. Fixed-position, behind everything,
+   non-interactive. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 10% 0%, rgba(99, 102, 241, 0.08), transparent 50%),
+    radial-gradient(ellipse 50% 40% at 90% 20%, rgba(255, 69, 58, 0.04), transparent 50%),
+    radial-gradient(ellipse 60% 50% at 50% 100%, rgba(100, 210, 255, 0.03), transparent 50%);
+}
+
+/* Direct body children sit above the ambient gradient layer. */
+body > * {
+  position: relative;
+  z-index: 1;
 }
 
 ::selection {
