@@ -22,30 +22,17 @@ function normalizeRedirectTarget(value: string | null, locale: string) {
   }
 }
 
-// W8 minimal field — bottom-border style on transparent bg.
-const FIELD_STYLE: React.CSSProperties = {
-  width: '100%',
-  background: 'transparent',
-  border: 'none',
-  borderBottom: '1px solid var(--bjhunt-border)',
-  color: 'var(--bjhunt-text)',
-  padding: '12px 2px',
-  fontSize: 14,
-  fontWeight: 300,
-  outline: 'none',
-  fontFamily: 'var(--bjhunt-font-sans)',
-}
+// 2026 spec: bottom-border on transparent background, min-h 44px (touch target)
+const fieldClass =
+  'w-full bg-transparent border-0 border-b border-[var(--bjhunt-border)] ' +
+  'text-[var(--bjhunt-text)] text-[14px] font-normal py-3 px-0 outline-none ' +
+  'min-h-[44px] md:min-h-[40px] transition-colors ' +
+  'focus:border-[var(--success)] placeholder:text-[var(--bjhunt-text-subtle)] ' +
+  '[font-family:var(--bjhunt-font-sans)]'
 
-const LABEL_STYLE: React.CSSProperties = {
-  display: 'block',
-  marginBottom: 8,
-  fontFamily: 'var(--bjhunt-font-mono)',
-  fontSize: 9,
-  letterSpacing: '0.28em',
-  textTransform: 'uppercase',
-  color: 'var(--bjhunt-text-subtle)',
-  fontWeight: 400,
-}
+const labelClass =
+  'block mb-2 [font-family:var(--bjhunt-font-mono)] text-[12px] font-semibold ' +
+  'uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)]'
 
 export default function LoginPage() {
   const params = useParams<{ locale: string }>()
@@ -140,20 +127,12 @@ export default function LoginPage() {
     }
   }
 
-  return (
-    <div className="relative flex min-h-screen items-center justify-center px-6">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(99,102,241,0.07), transparent 55%),'
-            + 'radial-gradient(ellipse 40% 40% at 50% 100%, rgba(100,210,255,0.03), transparent 55%)',
-        }}
-      />
+  const eyebrow = isTwoFactor ? '2FA' : mode === 'login' ? (isFr ? 'Connexion' : 'Sign in') : (isFr ? 'Inscription' : 'Register')
 
-      <div className="relative z-10 w-full max-w-[420px]">
-        <div className="mb-12 flex justify-center">
+  return (
+    <div className="relative flex min-h-screen items-center justify-center px-6 py-12">
+      <div className="relative z-10 w-full max-w-md mx-auto">
+        <div className="mb-10 flex justify-center">
           <Link href="/" className="flex items-center gap-2.5" aria-label="BJHUNT">
             <LogoSymbol size={22} />
             <LogoWordmark />
@@ -161,49 +140,55 @@ export default function LoginPage() {
         </div>
 
         <div
-          className="px-9 py-10"
+          className="px-6 md:px-8 py-8 md:w-[420px] md:mx-auto"
           style={{
             border: '1px solid var(--bjhunt-border)',
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.003))',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
+            background: 'var(--bjhunt-bg-secondary)',
           }}
         >
           <p
-            className="m-0 mb-5 font-mono uppercase"
-            style={{ fontSize: 10, letterSpacing: '0.32em', color: 'var(--bjhunt-text-subtle)' }}
+            className="m-0 mb-4 [font-family:var(--bjhunt-font-mono)] uppercase font-semibold"
+            style={{ fontSize: 12, letterSpacing: '0.18em', color: 'var(--bjhunt-text-muted)' }}
           >
-            {isTwoFactor ? '2FA' : mode === 'login' ? 'Sign in' : 'Create account'}
+            {eyebrow}
           </p>
           <h1
-            className="m-0 mb-3"
-            style={{ fontSize: 36, fontWeight: 200, letterSpacing: '-0.02em', lineHeight: 1.0 }}
+            className="m-0 mb-3 font-normal"
+            style={{
+              fontFamily: 'var(--bjhunt-font-sans)',
+              fontSize: 28,
+              letterSpacing: '-0.025em',
+              lineHeight: 1.11,
+            }}
           >
             {isTwoFactor
-              ? isFr ? 'Vérification.' : 'Verify.'
+              ? isFr ? 'Vérification' : 'Verify'
               : mode === 'login'
-              ? isFr ? 'Bienvenue.' : 'Welcome back.'
-              : isFr ? 'Créer un compte.' : 'Create account.'}
+              ? isFr ? 'Connexion' : 'Sign in'
+              : isFr ? 'Créer un compte' : 'Create account'}
           </h1>
           <p
-            className="m-0 mb-9"
-            style={{ fontSize: 13, fontWeight: 300, lineHeight: 1.55, color: 'var(--bjhunt-text-muted)' }}
+            className="m-0 mb-8 font-normal"
+            style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--bjhunt-text-muted)' }}
           >
             {isTwoFactor
               ? isFr ? 'Entrez le code de votre application authentificateur.' : 'Enter the code from your authenticator app.'
               : isFr ? 'Accédez à votre espace BJHUNT.' : 'Access your BJHUNT workspace.'}
           </p>
 
-          <form onSubmit={submit} className="flex flex-col gap-7">
+          <form onSubmit={submit} className="flex flex-col gap-6" noValidate>
             {mode === 'register' && !isTwoFactor && (
               <div>
-                <label style={LABEL_STYLE}>{isFr ? 'Nom affiché' : 'Display name'}</label>
+                <label htmlFor="displayName" className={labelClass}>
+                  {isFr ? 'Nom affiché' : 'Display name'}
+                </label>
                 <input
+                  id="displayName"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   required
                   placeholder="Alice Martin"
-                  style={FIELD_STYLE}
+                  className={fieldClass}
                 />
               </div>
             )}
@@ -211,20 +196,24 @@ export default function LoginPage() {
             {!isTwoFactor && (
               <>
                 <div>
-                  <label style={LABEL_STYLE}>Email</label>
+                  <label htmlFor="email" className={labelClass}>Email</label>
                   <input
+                    id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     autoComplete="email"
                     placeholder="you@company.com"
-                    style={FIELD_STYLE}
+                    className={fieldClass}
                   />
                 </div>
                 <div>
-                  <label style={LABEL_STYLE}>{isFr ? 'Mot de passe' : 'Password'}</label>
+                  <label htmlFor="password" className={labelClass}>
+                    {isFr ? 'Mot de passe' : 'Password'}
+                  </label>
                   <input
+                    id="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -236,7 +225,7 @@ export default function LoginPage() {
                         ? isFr ? '14 caractères minimum' : '14 characters minimum'
                         : '••••••••••••'
                     }
-                    style={FIELD_STYLE}
+                    className={fieldClass}
                   />
                 </div>
               </>
@@ -244,8 +233,11 @@ export default function LoginPage() {
 
             {isTwoFactor && (
               <div>
-                <label style={LABEL_STYLE}>{isFr ? 'Code 2FA' : '2FA code'}</label>
+                <label htmlFor="totp" className={labelClass}>
+                  {isFr ? 'Code 2FA' : '2FA code'}
+                </label>
                 <input
+                  id="totp"
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]{6}"
@@ -255,17 +247,17 @@ export default function LoginPage() {
                   required
                   autoComplete="one-time-code"
                   placeholder="123456"
-                  style={{ ...FIELD_STYLE, fontFamily: 'var(--bjhunt-font-mono)', letterSpacing: '0.4em', fontSize: 18 }}
+                  className={`${fieldClass} [font-family:var(--bjhunt-font-mono)] tracking-[0.4em] text-[18px]`}
                 />
               </div>
             )}
 
             {mode === 'login' && !isTwoFactor && (
-              <div className="-mt-3 text-right">
+              <div className="-mt-2 text-right">
                 <Link
                   href="/forgot-password"
-                  className="font-mono uppercase transition-colors hover:text-white"
-                  style={{ fontSize: 9, letterSpacing: '0.22em', color: 'var(--bjhunt-text-subtle)' }}
+                  className="[font-family:var(--bjhunt-font-mono)] uppercase transition-colors hover:text-[var(--bjhunt-text)]"
+                  style={{ fontSize: 12, letterSpacing: '0.18em', color: 'var(--bjhunt-text-muted)' }}
                 >
                   {isFr ? 'Mot de passe oublié ?' : 'Forgot password?'}
                 </Link>
@@ -274,12 +266,14 @@ export default function LoginPage() {
 
             {error && (
               <div
-                className="px-4 py-3 text-[12px]"
+                role="alert"
+                aria-live="polite"
+                id="form-error"
+                className="px-4 py-3 text-[13px] font-normal"
                 style={{
-                  border: '1px solid rgba(255,69,58,0.30)',
-                  background: 'rgba(255,69,58,0.06)',
-                  color: '#FF8A82',
-                  fontWeight: 300,
+                  border: '1px solid var(--severity-critical)',
+                  background: 'var(--severity-critical-bg)',
+                  color: 'var(--severity-critical)',
                 }}
               >
                 {error}
@@ -288,12 +282,13 @@ export default function LoginPage() {
 
             {info && (
               <div
-                className="px-4 py-3 text-[12px]"
+                role="status"
+                aria-live="polite"
+                className="px-4 py-3 text-[13px] font-normal"
                 style={{
-                  border: '1px solid rgba(48,209,88,0.30)',
-                  background: 'rgba(48,209,88,0.06)',
-                  color: '#7CE8A0',
-                  fontWeight: 300,
+                  border: '1px solid var(--success)',
+                  background: 'var(--success-dim)',
+                  color: 'var(--success)',
                 }}
               >
                 {info}
@@ -303,14 +298,21 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 font-mono uppercase transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-describedby={error ? 'form-error' : undefined}
+              className="inline-flex w-full items-center justify-center gap-2 mt-2 px-5 font-medium uppercase tracking-[0.16em] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--success)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bjhunt-bg-secondary)]"
               style={{
-                fontSize: 11,
-                letterSpacing: '0.22em',
-                color: 'var(--bjhunt-text)',
-                border: '1px solid var(--bjhunt-border-strong)',
-                background: 'rgba(255,255,255,0.03)',
-                marginTop: 8,
+                fontSize: 12,
+                color: 'var(--success)',
+                border: '1px solid var(--success)',
+                background: 'transparent',
+                minHeight: 44,
+                fontFamily: 'var(--bjhunt-font-mono)',
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) e.currentTarget.style.background = 'var(--success-dim)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent'
               }}
             >
               {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
@@ -321,13 +323,13 @@ export default function LoginPage() {
                 : isTwoFactor
                   ? isFr ? 'Vérifier' : 'Verify'
                   : mode === 'login'
-                  ? isFr ? 'Se connecter →' : 'Sign in →'
-                  : isFr ? 'Créer et démarrer →' : 'Create and launch →'}
+                  ? isFr ? 'Se connecter' : 'Sign in'
+                  : isFr ? 'Créer le compte' : 'Create account'}
             </button>
           </form>
 
           <div
-            className="mt-9 pt-7 text-center"
+            className="mt-8 pt-6 text-center"
             style={{ borderTop: '1px solid var(--bjhunt-border)' }}
           >
             {isTwoFactor ? (
@@ -338,28 +340,34 @@ export default function LoginPage() {
                   setTwoFactorCode('')
                   setError('')
                 }}
-                className="font-mono uppercase transition-colors hover:text-white"
-                style={{ fontSize: 9, letterSpacing: '0.22em', color: 'var(--bjhunt-text-subtle)' }}
+                className="[font-family:var(--bjhunt-font-mono)] uppercase transition-colors hover:text-[var(--bjhunt-text)]"
+                style={{ fontSize: 12, letterSpacing: '0.18em', color: 'var(--bjhunt-text-muted)' }}
               >
                 {isFr ? '← Retour à la connexion' : '← Back to sign in'}
               </button>
             ) : mode === 'login' ? (
-              <span style={{ fontSize: 11, color: 'var(--bjhunt-text-muted)', fontWeight: 300 }}>
-                {isFr ? 'Première connexion ? ' : 'First time here? '}
+              <span
+                className="[font-family:var(--bjhunt-font-mono)] uppercase font-normal"
+                style={{ fontSize: 12, letterSpacing: '0.18em', color: 'var(--bjhunt-text-muted)' }}
+              >
+                {isFr ? 'Pas de compte ? ' : 'No account? '}
                 <button
                   type="button"
                   onClick={() => {
                     setMode('register')
                     setError('')
                   }}
-                  className="hover:underline"
-                  style={{ color: 'var(--bjhunt-text)', fontWeight: 400 }}
+                  className="hover:underline transition-colors"
+                  style={{ color: 'var(--bjhunt-text)' }}
                 >
-                  {isFr ? 'Créer un compte' : 'Create an account'}
+                  {isFr ? "S'inscrire" : 'Register'}
                 </button>
               </span>
             ) : (
-              <span style={{ fontSize: 11, color: 'var(--bjhunt-text-muted)', fontWeight: 300 }}>
+              <span
+                className="[font-family:var(--bjhunt-font-mono)] uppercase font-normal"
+                style={{ fontSize: 12, letterSpacing: '0.18em', color: 'var(--bjhunt-text-muted)' }}
+              >
                 {isFr ? 'Déjà inscrit ? ' : 'Already registered? '}
                 <button
                   type="button"
@@ -367,8 +375,8 @@ export default function LoginPage() {
                     setMode('login')
                     setError('')
                   }}
-                  className="hover:underline"
-                  style={{ color: 'var(--bjhunt-text)', fontWeight: 400 }}
+                  className="hover:underline transition-colors"
+                  style={{ color: 'var(--bjhunt-text)' }}
                 >
                   {isFr ? 'Se connecter' : 'Sign in'}
                 </button>
@@ -378,8 +386,8 @@ export default function LoginPage() {
         </div>
 
         <p
-          className="mt-8 text-center font-mono uppercase"
-          style={{ fontSize: 9, letterSpacing: '0.32em', color: 'var(--bjhunt-text-disabled)' }}
+          className="mt-8 text-center [font-family:var(--bjhunt-font-mono)] uppercase font-medium"
+          style={{ fontSize: 11, letterSpacing: '0.18em', color: 'var(--bjhunt-text-disabled)' }}
         >
           BJHUNT · Secured by design
         </p>

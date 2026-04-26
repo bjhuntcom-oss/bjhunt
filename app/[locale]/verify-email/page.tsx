@@ -9,27 +9,16 @@ import { browserBackendFetch } from '@/lib/backend-client'
 
 type State = 'verifying' | 'success' | 'error' | 'no-token'
 
-const FIELD_STYLE: React.CSSProperties = {
-  width: '100%',
-  background: 'transparent',
-  border: 'none',
-  borderBottom: '1px solid var(--bjhunt-border)',
-  color: 'var(--bjhunt-text)',
-  padding: '12px 2px',
-  fontSize: 14,
-  fontWeight: 300,
-  outline: 'none',
-}
+const fieldClass =
+  'w-full bg-transparent border-0 border-b border-[var(--bjhunt-border)] ' +
+  'text-[var(--bjhunt-text)] text-[14px] font-normal py-3 px-0 outline-none ' +
+  'min-h-[44px] md:min-h-[40px] transition-colors ' +
+  'focus:border-[var(--success)] placeholder:text-[var(--bjhunt-text-subtle)] ' +
+  '[font-family:var(--bjhunt-font-sans)]'
 
-const LABEL_STYLE: React.CSSProperties = {
-  display: 'block',
-  marginBottom: 8,
-  fontFamily: 'var(--bjhunt-font-mono)',
-  fontSize: 9,
-  letterSpacing: '0.28em',
-  textTransform: 'uppercase',
-  color: 'var(--bjhunt-text-subtle)',
-}
+const labelClass =
+  'block mb-2 [font-family:var(--bjhunt-font-mono)] text-[12px] font-semibold ' +
+  'uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)]'
 
 export default function VerifyEmailPage() {
   const params = useParams<{ locale: string }>()
@@ -92,17 +81,9 @@ export default function VerifyEmailPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center px-6">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(99,102,241,0.06), transparent 55%)',
-        }}
-      />
-      <div className="relative z-10 w-full max-w-[420px]">
-        <div className="mb-12 flex justify-center">
+    <div className="relative flex min-h-screen items-center justify-center px-6 py-12">
+      <div className="relative z-10 w-full max-w-md mx-auto">
+        <div className="mb-10 flex justify-center">
           <Link href="/" className="flex items-center gap-2.5" aria-label="BJHUNT">
             <LogoSymbol size={22} />
             <LogoWordmark />
@@ -110,20 +91,22 @@ export default function VerifyEmailPage() {
         </div>
 
         <div
-          className="px-9 py-10"
+          className="px-6 md:px-8 py-8 md:w-[420px] md:mx-auto"
           style={{
             border: '1px solid var(--bjhunt-border)',
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.003))',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
+            background: 'var(--bjhunt-bg-secondary)',
           }}
         >
           {state === 'verifying' && (
-            <div className="flex flex-col items-center gap-4 py-8">
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex flex-col items-center gap-4 py-8"
+            >
               <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--bjhunt-text-muted)' }} />
               <p
-                className="m-0 font-mono uppercase"
-                style={{ fontSize: 10, letterSpacing: '0.28em', color: 'var(--bjhunt-text-muted)' }}
+                className="m-0 [font-family:var(--bjhunt-font-mono)] uppercase font-semibold"
+                style={{ fontSize: 12, letterSpacing: '0.18em', color: 'var(--bjhunt-text-muted)' }}
               >
                 {isFr ? 'Vérification en cours…' : 'Verifying your email…'}
               </p>
@@ -132,13 +115,21 @@ export default function VerifyEmailPage() {
 
           {state === 'success' && (
             <div className="flex flex-col items-center gap-4 py-8 text-center">
-              <Check className="h-7 w-7" style={{ color: '#30D158' }} />
-              <h1 style={{ fontSize: 28, fontWeight: 200, letterSpacing: '-0.02em', margin: 0 }}>
-                {isFr ? 'Email vérifié.' : 'Email verified.'}
+              <Check className="h-7 w-7" style={{ color: 'var(--success)' }} />
+              <h1
+                className="m-0 font-normal"
+                style={{
+                  fontFamily: 'var(--bjhunt-font-sans)',
+                  fontSize: 28,
+                  letterSpacing: '-0.025em',
+                  lineHeight: 1.11,
+                }}
+              >
+                {isFr ? 'Email vérifié' : 'Email verified'}
               </h1>
               <p
-                className="m-0 font-mono uppercase"
-                style={{ fontSize: 9, letterSpacing: '0.28em', color: 'var(--bjhunt-text-subtle)' }}
+                className="m-0 [font-family:var(--bjhunt-font-mono)] uppercase font-semibold"
+                style={{ fontSize: 12, letterSpacing: '0.18em', color: 'var(--bjhunt-text-muted)' }}
               >
                 {isFr ? 'Redirection vers le dashboard…' : 'Redirecting to your dashboard…'}
               </p>
@@ -147,11 +138,11 @@ export default function VerifyEmailPage() {
 
           {(state === 'error' || state === 'no-token') && (
             <>
-              <div className="mb-5 flex items-center gap-3" style={{ color: '#FF9F0A' }}>
+              <div className="mb-4 flex items-center gap-3" style={{ color: 'var(--severity-high)' }}>
                 <AlertTriangle className="h-4 w-4" />
                 <p
-                  className="m-0 font-mono uppercase"
-                  style={{ fontSize: 10, letterSpacing: '0.32em' }}
+                  className="m-0 [font-family:var(--bjhunt-font-mono)] uppercase font-semibold"
+                  style={{ fontSize: 12, letterSpacing: '0.18em' }}
                 >
                   {state === 'no-token'
                     ? isFr ? 'Lien invalide' : 'Invalid link'
@@ -159,14 +150,19 @@ export default function VerifyEmailPage() {
                 </p>
               </div>
               <h1
-                className="m-0 mb-3"
-                style={{ fontSize: 28, fontWeight: 200, letterSpacing: '-0.02em' }}
+                className="m-0 mb-3 font-normal"
+                style={{
+                  fontFamily: 'var(--bjhunt-font-sans)',
+                  fontSize: 28,
+                  letterSpacing: '-0.025em',
+                  lineHeight: 1.11,
+                }}
               >
-                {isFr ? 'Demander un nouveau lien.' : 'Request a fresh link.'}
+                {isFr ? 'Demander un nouveau lien' : 'Request a fresh link'}
               </h1>
               <p
-                className="m-0 mb-7"
-                style={{ fontSize: 13, fontWeight: 300, lineHeight: 1.55, color: 'var(--bjhunt-text-muted)' }}
+                className="m-0 mb-7 font-normal"
+                style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--bjhunt-text-muted)' }}
               >
                 {state === 'no-token'
                   ? isFr ? 'Aucun token fourni. Vérifiez le lien dans votre email.' : 'No token provided. Check the link in your email.'
@@ -176,42 +172,53 @@ export default function VerifyEmailPage() {
               </p>
 
               {!resendSent ? (
-                <form onSubmit={submitResend} className="flex flex-col gap-7">
+                <form onSubmit={submitResend} className="flex flex-col gap-6" noValidate>
                   <div>
-                    <label style={LABEL_STYLE}>{isFr ? 'Renvoyer le lien à' : 'Resend link to'}</label>
+                    <label htmlFor="resendEmail" className={labelClass}>
+                      {isFr ? 'Renvoyer le lien à' : 'Resend link to'}
+                    </label>
                     <input
+                      id="resendEmail"
                       type="email"
                       required
                       value={resendEmail}
                       onChange={(e) => setResendEmail(e.target.value)}
                       placeholder="you@example.com"
-                      style={FIELD_STYLE}
+                      className={fieldClass}
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={resending}
-                    className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 font-mono uppercase disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex w-full items-center justify-center gap-2 mt-2 px-5 font-medium uppercase tracking-[0.16em] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--success)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bjhunt-bg-secondary)]"
                     style={{
-                      fontSize: 11,
-                      letterSpacing: '0.22em',
-                      color: 'var(--bjhunt-text)',
-                      border: '1px solid var(--bjhunt-border-strong)',
-                      background: 'rgba(255,255,255,0.03)',
+                      fontSize: 12,
+                      color: 'var(--success)',
+                      border: '1px solid var(--success)',
+                      background: 'transparent',
+                      minHeight: 44,
+                      fontFamily: 'var(--bjhunt-font-mono)',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!resending) e.currentTarget.style.background = 'var(--success-dim)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent'
                     }}
                   >
                     {resending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                    {isFr ? 'Renvoyer →' : 'Resend →'}
+                    {isFr ? 'Renvoyer' : 'Resend'}
                   </button>
                 </form>
               ) : (
                 <div
-                  className="px-4 py-3 text-[12px]"
+                  role="status"
+                  aria-live="polite"
+                  className="px-4 py-3 text-[13px] font-normal"
                   style={{
-                    border: '1px solid rgba(48,209,88,0.30)',
-                    background: 'rgba(48,209,88,0.06)',
-                    color: '#7CE8A0',
-                    fontWeight: 300,
+                    border: '1px solid var(--success)',
+                    background: 'var(--success-dim)',
+                    color: 'var(--success)',
                   }}
                 >
                   {isFr
@@ -221,13 +228,13 @@ export default function VerifyEmailPage() {
               )}
 
               <div
-                className="mt-9 pt-7 text-center"
+                className="mt-8 pt-6 text-center"
                 style={{ borderTop: '1px solid var(--bjhunt-border)' }}
               >
                 <Link
                   href="/login"
-                  className="font-mono uppercase transition-colors hover:text-white"
-                  style={{ fontSize: 9, letterSpacing: '0.22em', color: 'var(--bjhunt-text-subtle)' }}
+                  className="[font-family:var(--bjhunt-font-mono)] uppercase transition-colors hover:text-[var(--bjhunt-text)]"
+                  style={{ fontSize: 12, letterSpacing: '0.18em', color: 'var(--bjhunt-text-muted)' }}
                 >
                   {isFr ? '← Retour à la connexion' : '← Back to sign in'}
                 </Link>
