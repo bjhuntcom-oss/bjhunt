@@ -15,6 +15,8 @@ const buttonVariants = cva(
           "bg-transparent text-white border border-[var(--border-strong)] hover:border-white/30 hover:bg-white/[0.04]",
         ghost:
           "border border-transparent text-[var(--text-muted)] hover:bg-white/[0.05] hover:text-white",
+        bare:
+          "border-0 bg-transparent text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-white",
         danger:
           "bg-[var(--danger)] text-white border border-[var(--danger)] hover:bg-[var(--danger)]/90",
         success:

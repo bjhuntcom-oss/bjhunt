@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
 import { useState, useTransition, useEffect } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Ban, Power, Trash2, RefreshCcw, Check } from 'lucide-react'
 import { browserBackendFetch } from '@/lib/backend-client'
 import { useRouter } from 'next/navigation'
 
@@ -9,6 +9,9 @@ interface Props {
   userId: string
   isBlocked: boolean
 }
+
+const iconBtn =
+  'p-1.5 inline-flex items-center justify-center transition-colors hover:bg-white/[0.04] disabled:opacity-40 disabled:pointer-events-none'
 
 export function UserActionsPanel({ userId, isBlocked }: Props) {
   const router = useRouter()
@@ -18,122 +21,165 @@ export function UserActionsPanel({ userId, isBlocked }: Props) {
   const [revokeResult, setRevokeResult] = useState<number | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
-  // DASH-P1-3: 2-step confirmation on block/unblock to mirror the
-  // delete pattern. Auto-resets after 6s if the admin didn't confirm.
+  // 2-step confirmation auto-reset (DASH-P1-3 — keeps original logic)
   useEffect(() => {
     if (!confirmBlock) return
     const t = setTimeout(() => setConfirmBlock(false), 6000)
     return () => clearTimeout(t)
   }, [confirmBlock])
 
+  useEffect(() => {
+    if (!confirmDelete) return
+    const t = setTimeout(() => setConfirmDelete(false), 8000)
+    return () => clearTimeout(t)
+  }, [confirmDelete])
+
   const handleToggleBlock = async () => {
     setActionError(null)
     setConfirmBlock(false)
-    // Toggle role to 'viewer' (blocked) or 'member' (active)
     const res = await browserBackendFetch(`/api/admin/users/${userId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role: isBlocked ? 'member' : 'viewer' }),
     })
-    if (!res.ok) { setActionError('Erreur'); return }
+    if (!res.ok) {
+      setActionError('Erreur')
+      return
+    }
     startTransition(() => router.refresh())
   }
 
   const handleRevokeSessions = async () => {
-    const res = await browserBackendFetch(`/api/admin/users/${userId}/revoke-sessions`, {
-      method: 'POST',
-    })
+    const res = await browserBackendFetch(
+      `/api/admin/users/${userId}/revoke-sessions`,
+      { method: 'POST' },
+    )
     if (res.ok) {
-      const data = await res.json().catch(() => ({})) as { revokedSessions?: number }
+      const data = (await res
+        .json()
+        .catch(() => ({}))) as { revokedSessions?: number }
       setRevokeResult(data.revokedSessions ?? 0)
     }
   }
 
-  useEffect(() => {
-    if (!confirmDelete) return
-    const timer = setTimeout(() => setConfirmDelete(false), 8000)
-    return () => clearTimeout(timer)
-  }, [confirmDelete])
-
   const handleDelete = async () => {
     setActionError(null)
-    const res = await browserBackendFetch(`/api/admin/users/${userId}`, { method: 'DELETE' })
-    if (!res.ok) { setActionError('Erreur'); return }
+    const res = await browserBackendFetch(`/api/admin/users/${userId}`, {
+      method: 'DELETE',
+    })
+    if (!res.ok) {
+      setActionError('Erreur')
+      return
+    }
     startTransition(() => router.refresh())
   }
 
   return (
-    <div className="flex items-center gap-2 flex-wrap">
+    <div className="inline-flex items-center gap-1 justify-end">
       {revokeResult !== null ? (
-        <span className="text-[9px] font-mono text-[var(--success)]">
-          {revokeResult} session(s) révoquée(s)
+        <span
+          className="font-mono text-[11px] px-2"
+          style={{ color: 'var(--bjhunt-status-success)' }}
+        >
+          {revokeResult} revoked
         </span>
       ) : (
         <button
           onClick={handleRevokeSessions}
           disabled={isPending}
-          className="text-[9px] font-mono text-[var(--text-muted)] hover:text-white uppercase tracking-widest transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+          title="Revoke sessions"
+          className={iconBtn}
+          style={{ color: 'var(--bjhunt-text-muted)' }}
         >
-          {isPending && <Loader2 size={10} className="animate-spin" />}
-          Révoquer sessions
+          {isPending ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <RefreshCcw className="w-3.5 h-3.5" />
+          )}
         </button>
       )}
+
       {confirmBlock ? (
-        <div className="flex items-center gap-1.5">
+        <div className="inline-flex items-center gap-0.5">
           <button
             onClick={handleToggleBlock}
             disabled={isPending}
-            className="text-[9px] font-mono text-[var(--warning)] uppercase tracking-widest disabled:opacity-50 inline-flex items-center gap-1.5"
+            className={iconBtn}
+            style={{ color: 'var(--bjhunt-status-warning)' }}
+            title="Confirm"
           >
-            {isPending && <Loader2 size={10} className="animate-spin" />}
-            {isBlocked ? 'Confirmer débloquer' : 'Confirmer bloquer'}
+            <Check className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setConfirmBlock(false)}
-            className="text-[9px] font-mono text-[var(--text-muted)] hover:text-white uppercase tracking-widest transition-colors"
+            className="px-1.5 font-mono text-[11px] text-[var(--bjhunt-text-muted)] hover:text-[var(--bjhunt-text)]"
           >
-            Annuler
+            ×
           </button>
         </div>
       ) : (
         <button
           onClick={() => setConfirmBlock(true)}
           disabled={isPending}
-          className={`text-[9px] font-mono uppercase tracking-widest transition-colors disabled:opacity-50 ${
-            isBlocked
-              ? 'text-[var(--success)] hover:text-white'
-              : 'text-[var(--warning)] hover:text-[var(--danger)]'
-          }`}
+          title={isBlocked ? 'Unblock user' : 'Block user'}
+          className={iconBtn}
+          style={{
+            color: isBlocked
+              ? 'var(--bjhunt-status-success)'
+              : 'var(--bjhunt-status-warning)',
+          }}
         >
-          {isBlocked ? 'Débloquer' : 'Bloquer'}
+          {isBlocked ? (
+            <Power className="w-3.5 h-3.5" />
+          ) : (
+            <Ban className="w-3.5 h-3.5" />
+          )}
         </button>
       )}
+
       {confirmDelete ? (
-        <div className="flex items-center gap-1.5">
+        <div className="inline-flex items-center gap-0.5">
           <button
             onClick={handleDelete}
             disabled={isPending}
-            className="text-[9px] font-mono text-[var(--danger)] uppercase tracking-widest disabled:opacity-50 inline-flex items-center gap-1.5"
+            className={iconBtn}
+            style={{ color: 'var(--bjhunt-status-danger)' }}
+            title="Confirm delete"
           >
-            {isPending && <Loader2 size={10} className="animate-spin" />}
-            Confirmer
+            <Check className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setConfirmDelete(false)}
-            className="text-[9px] font-mono text-[var(--text-muted)] hover:text-white uppercase tracking-widest transition-colors"
+            className="px-1.5 font-mono text-[11px] text-[var(--bjhunt-text-muted)] hover:text-[var(--bjhunt-text)]"
           >
-            Annuler
+            ×
           </button>
         </div>
       ) : (
         <button
           onClick={() => setConfirmDelete(true)}
-          className="text-[9px] font-mono text-[var(--text-subtle)] hover:text-[var(--danger)] uppercase tracking-widest transition-colors"
+          title="Delete user"
+          className={iconBtn}
+          style={{ color: 'var(--bjhunt-text-muted)' }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.color = 'var(--bjhunt-status-danger)')
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.color = 'var(--bjhunt-text-muted)')
+          }
         >
-          Supprimer
+          <Trash2 className="w-3.5 h-3.5" />
         </button>
       )}
-      {actionError && <span className="text-[9px] font-mono text-[var(--danger)]">{actionError}</span>}
+
+      {actionError && (
+        <span
+          className="font-mono text-[11px] ml-1"
+          style={{ color: 'var(--bjhunt-status-danger)' }}
+        >
+          {actionError}
+        </span>
+      )}
     </div>
   )
 }
