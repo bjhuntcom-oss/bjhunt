@@ -71,3 +71,5 @@ venv/
 
 # OpenHands SDK clone (reference only — install via pyproject [openhands] extra)
 engine/external/
+BJHUNT/
+BJHUNT.zip
