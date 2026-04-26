@@ -259,7 +259,7 @@ export function ChatInput({
                 className={cn(
                   "p-2 md:p-2 min-h-[44px] min-w-[44px] flex items-center justify-center transition-all duration-200",
                   webSearch
-                    ? "text-[var(--success)] bg-[rgba(0,204,138,0.08)]"
+                    ? "text-white bg-white/[0.10] ring-1 ring-white/20"
                     : "text-[var(--text-muted)] hover:text-white hover:bg-white/[0.06]"
                 )}
               >
@@ -319,7 +319,7 @@ export function ChatInput({
           <div className="flex items-center justify-between mt-1">
             <div className="flex items-center gap-2 text-[8px] text-[var(--text-subtle)]">
               {webSearch && (
-                <span className="flex items-center gap-1 text-[var(--success)]">
+                <span className="flex items-center gap-1 text-white">
                   <Globe className="w-2.5 h-2.5" />
                   Recherche web active
                 </span>

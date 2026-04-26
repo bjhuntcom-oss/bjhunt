@@ -273,37 +273,14 @@ body {
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.chatbox-glow::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  background: linear-gradient(135deg, rgba(0,204,138,0.15), rgba(0,204,138,0.05), rgba(116,164,212,0.1));
-  z-index: -1;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-
-.chatbox-glow:focus-within::before {
-  opacity: 1;
-}
-
+/* Minimalist focus state — no coloured halo, just a tighter white border */
 .chatbox-glow:focus-within {
-  border-color: rgba(0,204,138,0.3);
-  box-shadow:
-    0 0 0 1px rgba(0,204,138,0.1),
-    0 0 30px rgba(0,204,138,0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-/* Subtle idle glow when not focused */
-.chatbox-glow:not(:focus-within) {
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  border-color: rgba(255, 255, 255, 0.20);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .chatbox-glow:not(:focus-within):hover {
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 0 15px rgba(0,204,138,0.05);
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
 /* ── SLASH MENU ANIMATION ─────────────────────────── */
@@ -423,7 +400,7 @@ body {
   padding: 0.125em 0.375em;
   font-size: 0.85em;
   font-family: "JetBrains Mono", monospace;
-  color: #00cc8a;
+  color: rgba(255, 255, 255, 0.92);
 }
 .chat-prose pre    { margin: 0.75em 0; }
 .chat-prose pre code { border: none; padding: 0; background: none; }
