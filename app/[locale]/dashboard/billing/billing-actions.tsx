@@ -113,7 +113,7 @@ export function BillingActions({ plan, locale }: Props) {
         {plan === 'free' && (
           <>
             <Button
-              variant="success"
+              variant="state" state="success"
               size="md"
               onClick={() => onUpgrade('pro')}
               disabled={loading !== null}
@@ -122,7 +122,7 @@ export function BillingActions({ plan, locale }: Props) {
               {isFr ? 'Passer en Pro' : 'Upgrade to Pro'}
             </Button>
             <Button
-              variant="secondary"
+              variant="ghost"
               size="md"
               onClick={() => onUpgrade('enterprise')}
               disabled={loading !== null}

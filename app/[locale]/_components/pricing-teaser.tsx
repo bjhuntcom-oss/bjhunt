@@ -179,7 +179,7 @@ export function PricingTeaser() {
                 </div>
 
                 {plan.badge ? (
-                  <StatusDot state="success" label={plan.badge} mono />
+                  <StatusDot state="success" label={plan.badge} />
                 ) : null}
               </header>
 

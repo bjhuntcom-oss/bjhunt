@@ -639,7 +639,7 @@ export default function CloudAssessmentPage() {
                   </span>
                 </p>
                 <Button
-                  variant="success"
+                  variant="state" state="success"
                   size="md"
                   onClick={handleLaunch}
                   disabled={isPending || result?.status === "running"}

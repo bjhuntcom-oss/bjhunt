@@ -215,7 +215,7 @@ export function TwoFactorPanel({ locale }: TwoFactorPanelProps) {
 
         {state === 'enabled' ? (
           <Button
-            variant="danger"
+            variant="state" state="critical"
             size="md"
             onClick={disable2FA}
             disabled={submitting}
@@ -224,7 +224,7 @@ export function TwoFactorPanel({ locale }: TwoFactorPanelProps) {
             {isFr ? 'Desactiver' : 'Disable'}
           </Button>
         ) : state === 'disabled' ? (
-          <Button variant="success" size="md" onClick={startSetup} disabled={submitting}>
+          <Button variant="state" state="success" size="md" onClick={startSetup} disabled={submitting}>
             {submitting && <Loader2 className="h-3 w-3 animate-spin mr-2" />}
             {isFr ? 'Activer 2FA' : 'Enable 2FA'}
           </Button>
@@ -305,7 +305,7 @@ export function TwoFactorPanel({ locale }: TwoFactorPanelProps) {
                 autoComplete="one-time-code"
               />
               <Button
-                variant="success"
+                variant="state" state="success"
                 size="md"
                 type="submit"
                 disabled={submitting || code.length !== 6}

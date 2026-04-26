@@ -153,7 +153,7 @@ export function ChangePasswordForm({ locale }: ChangePasswordFormProps) {
       )}
 
       <div className="flex justify-end">
-        <Button variant="success" size="md" type="submit" disabled={loading}>
+        <Button variant="state" state="success" size="md" type="submit" disabled={loading}>
           {loading && <Loader2 className="h-3 w-3 animate-spin mr-2" />}
           {isFr ? 'Sauvegarder' : 'Save'}
         </Button>

@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BJHUNT · SeverityBadge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bjhunt-brand-primary: #6366F1;
+  --bjhunt-bg: #07070B;
+  --bjhunt-bg-secondary: #0C0C12;
+  --bjhunt-text: #F4F4F7;
+  --bjhunt-text-muted: #A1A1AA;
+  --bjhunt-text-subtle: #52525B;
+  --bjhunt-text-disabled: #3F3F46;
+  --bjhunt-border: rgba(255,255,255,0.06);
+  --bjhunt-border-strong: rgba(255,255,255,0.12);
+
+  --sev-critical: #FF453A;
+  --sev-high:     #FF9F0A;
+  --sev-medium:   #FFD60A;
+  --sev-low:      #30D158;
+  --sev-info:     #64D2FF;
+
+  --bjhunt-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+  --bjhunt-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --ease-apple: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 180ms;
+  --dur-base: 360ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bjhunt-bg);
+  color: var(--bjhunt-text);
+  font-family: var(--bjhunt-font-sans);
+  font-size: 14px;
+  font-weight: 300;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 10%, rgba(255,69,58,0.05), transparent 50%),
+    radial-gradient(ellipse 60% 50% at 85% 90%, rgba(99,102,241,0.04), transparent 50%);
+}
+.wrap { position: relative; max-width: 1680px; margin: 0 auto; padding: 80px 64px 120px; z-index: 1; }
+
+/* Header */
+.hdr { margin-bottom: 96px; display: flex; justify-content: space-between; align-items: flex-end; gap: 64px; flex-wrap: wrap; }
+.eyebrow { font-family: var(--bjhunt-font-mono); font-size: 10px; color: var(--bjhunt-text-subtle); text-transform: uppercase; letter-spacing: 0.32em; margin: 0 0 24px; }
+h1 { font-size: 56px; font-weight: 200; letter-spacing: -0.03em; line-height: 1; margin: 0 0 20px; }
+h1 em { font-style: normal; color: var(--bjhunt-text-muted); font-weight: 200; }
+.lede { color: var(--bjhunt-text-muted); font-size: 15px; line-height: 1.6; margin: 0; max-width: 560px; font-weight: 300; }
+.hdr-meta { display: flex; flex-direction: column; gap: 12px; font-family: var(--bjhunt-font-mono); font-size: 10px; color: var(--bjhunt-text-subtle); letter-spacing: 0.1em; text-align: right; }
+.hdr-meta b { color: var(--bjhunt-text-muted); font-weight: 400; }
+
+.section { margin-bottom: 96px; }
+.section-hdr {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding-bottom: 24px; margin-bottom: 40px;
+  border-bottom: 1px solid var(--bjhunt-border);
+}
+.section-hdr .num { font-family: var(--bjhunt-font-mono); font-size: 10px; color: var(--bjhunt-text-disabled); letter-spacing: 0.32em; margin-right: 20px; }
+.section-hdr h2 { font-size: 22px; font-weight: 300; letter-spacing: -0.015em; margin: 0; flex: 1; }
+.section-hdr .meta { font-family: var(--bjhunt-font-mono); font-size: 10px; color: var(--bjhunt-text-subtle); letter-spacing: 0.15em; text-transform: uppercase; }
+
+/* ═════════════════════════════════════════════════════════════════════
+   SeverityBadge — 3 variants × 5 severities
+   ═════════════════════════════════════════════════════════════════════ */
+
+.sev {
+  --c: var(--sev-critical);
+  --c-rgb: 255, 69, 58;
+  --intensity: 1;
+  display: inline-flex; align-items: center; gap: 8px;
+  white-space: nowrap;
+  font-family: var(--bjhunt-font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-weight: 500;
+  position: relative;
+  transition: all var(--dur-fast) var(--ease-apple);
+  vertical-align: middle;
+}
+.sev[data-sev="critical"] { --c: var(--sev-critical); --c-rgb: 255, 69, 58; --intensity: 1; }
+.sev[data-sev="high"]     { --c: var(--sev-high);     --c-rgb: 255, 159, 10; --intensity: 0.78; }
+.sev[data-sev="medium"]   { --c: var(--sev-medium);   --c-rgb: 255, 214, 10; --intensity: 0.58; }
+.sev[data-sev="low"]      { --c: var(--sev-low);      --c-rgb: 48, 209, 88;  --intensity: 0.4; }
+.sev[data-sev="info"]     { --c: var(--sev-info);     --c-rgb: 100, 210, 255; --intensity: 0.3; }
+
+/* size variants */
+.sev[data-size="sm"] { font-size: 9px; padding: 3px 8px; gap: 6px; letter-spacing: 0.2em; }
+.sev[data-size="md"] { font-size: 10px; padding: 5px 11px; gap: 8px; letter-spacing: 0.24em; }
+.sev[data-size="lg"] { font-size: 11px; padding: 7px 14px; gap: 10px; letter-spacing: 0.26em; }
+
+/* ── Variant 01: Solid (pill) — default most-used ─────────── */
+.sev[data-variant="solid"] {
+  background: var(--c);
+  color: #07070B;
+  font-weight: 600;
+  box-shadow:
+    0 0 0 1px rgba(var(--c-rgb), 0.4),
+    0 0 calc(16px * var(--intensity)) rgba(var(--c-rgb), calc(0.35 * var(--intensity)));
+}
+.sev[data-variant="solid"][data-sev="medium"] { color: #07070B; }
+
+/* ── Variant 02: Outline ──────────────────────────────────── */
+.sev[data-variant="outline"] {
+  background: rgba(var(--c-rgb), 0.06);
+  color: var(--c);
+  border: 1px solid rgba(var(--c-rgb), 0.28);
+}
+
+/* ── Variant 03: Minimal (dot + label, no chrome) ─────────── */
+.sev[data-variant="minimal"] {
+  background: transparent;
+  color: var(--c);
+  padding-left: 0; padding-right: 0;
+}
+.sev[data-variant="minimal"] .sev-dot {
+  width: 6px; height: 6px;
+  background: var(--c);
+  box-shadow: 0 0 calc(8px * var(--intensity)) rgba(var(--c-rgb), 0.6);
+  flex-shrink: 0;
+}
+.sev[data-variant="minimal"][data-size="lg"] .sev-dot { width: 8px; height: 8px; }
+.sev[data-variant="minimal"][data-size="sm"] .sev-dot { width: 5px; height: 5px; }
+
+/* CVSS score sibling */
+.sev-cvss {
+  font-family: var(--bjhunt-font-mono);
+  font-size: 10px;
+  color: var(--bjhunt-text-muted);
+  padding-left: 8px;
+  border-left: 1px solid rgba(255,255,255,0.1);
+  margin-left: 4px;
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+}
+.sev[data-variant="solid"] .sev-cvss {
+  color: rgba(7,7,11,0.7);
+  border-left-color: rgba(7,7,11,0.18);
+}
+
+/* pulse for critical */
+@keyframes sev-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(var(--c-rgb), 0.4), 0 0 16px rgba(var(--c-rgb), 0.35), 0 0 0 0 rgba(var(--c-rgb), 0.5); }
+  50%      { box-shadow: 0 0 0 1px rgba(var(--c-rgb), 0.5), 0 0 24px rgba(var(--c-rgb), 0.55), 0 0 0 6px rgba(var(--c-rgb), 0); }
+}
+.sev[data-pulse="true"][data-variant="solid"] { animation: sev-pulse 2.4s var(--ease-apple) infinite; }
+
+/* stack rows */
+.badge-row {
+  display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+  padding: 28px 32px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.003));
+  border: 1px solid var(--bjhunt-border);
+}
+.badge-row + .badge-row { border-top: none; }
+.badge-row-lbl {
+  font-family: var(--bjhunt-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--bjhunt-text-subtle);
+  min-width: 120px;
+}
+
+/* inline table */
+.sev-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.sev-table th {
+  font-family: var(--bjhunt-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--bjhunt-text-subtle);
+  text-align: left;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--bjhunt-border);
+  font-weight: 400;
+}
+.sev-table td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--bjhunt-border);
+  color: var(--bjhunt-text);
+  font-weight: 300;
+}
+.sev-table td.sev-cell { width: 120px; }
+.sev-table td.mono {
+  font-family: var(--bjhunt-font-mono);
+  color: var(--bjhunt-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.sev-table tbody tr { transition: background var(--dur-fast) var(--ease-apple); }
+.sev-table tbody tr:hover { background: rgba(255,255,255,0.015); }
+
+/* Scale ladder */
+.scale {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  background: var(--bjhunt-border);
+  border: 1px solid var(--bjhunt-border);
+}
+.scale-cell {
+  background: var(--bjhunt-bg);
+  padding: 28px 24px 24px;
+  position: relative;
+  min-height: 180px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+.scale-cell::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 1px;
+  background: var(--c);
+  opacity: 0.5;
+}
+.scale-cvss {
+  font-size: 36px; font-weight: 200; letter-spacing: -0.03em;
+  color: var(--bjhunt-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.scale-cvss em { font-style: normal; color: var(--bjhunt-text-disabled); font-size: 14px; font-weight: 300; margin-left: 4px; }
+.scale-range {
+  font-family: var(--bjhunt-font-mono);
+  font-size: 10px;
+  color: var(--bjhunt-text-subtle);
+  letter-spacing: 0.2em;
+}
+.scale-name {
+  font-family: var(--bjhunt-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--c);
+  font-weight: 500;
+  margin-top: auto;
+}
+.scale-count {
+  font-size: 28px; font-weight: 200; letter-spacing: -0.02em;
+  color: var(--bjhunt-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* Usage cards */
+.usage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 1px;
+  background: var(--bjhunt-border);
+  border: 1px solid var(--bjhunt-border);
+}
+.usage-card {
+  background: var(--bjhunt-bg);
+  padding: 24px 28px;
+}
+.usage-card h3 {
+  font-family: var(--bjhunt-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--bjhunt-text-subtle);
+  margin: 0 0 20px;
+  font-weight: 400;
+}
+.usage-card .example {
+  font-size: 13px; line-height: 1.6; color: var(--bjhunt-text-muted); font-weight: 300;
+}
+.usage-card .example b { color: var(--bjhunt-text); font-weight: 400; }
+
+/* Tweaks */
+.tweaks {
+  position: fixed; right: 24px; bottom: 24px; width: 320px;
+  background: rgba(12,12,18,0.72);
+  backdrop-filter: blur(32px) saturate(160%);
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+  border: 1px solid var(--bjhunt-border-strong);
+  padding: 20px 24px;
+  z-index: 100; display: none;
+  box-shadow: 0 32px 64px rgba(0,0,0,0.6);
+}
+.tweaks.open { display: block; }
+.tweaks h3 { font-family: var(--bjhunt-font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.28em; color: var(--bjhunt-text-subtle); margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid var(--bjhunt-border); font-weight: 400; }
+.tweaks label { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; font-size: 11px; color: var(--bjhunt-text-muted); cursor: pointer; font-weight: 300; }
+.tweaks label:not(:last-child) { border-bottom: 1px solid var(--bjhunt-border); }
+.tw-switch { appearance: none; width: 28px; height: 16px; background: rgba(255,255,255,0.1); position: relative; cursor: pointer; transition: background var(--dur-fast) var(--ease-apple); }
+.tw-switch:checked { background: var(--bjhunt-brand-primary); }
+.tw-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; background: #fff; transition: left var(--dur-fast) var(--ease-apple); }
+.tw-switch:checked::after { left: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hdr">
+    <div>
+      <p class="eyebrow">W8 · Atomic · 04 / 05</p>
+      <h1>Severity<em>Badge.</em></h1>
+      <p class="lede">Five tiers. Three variants. One promise: the color carries the signal. Critical glows and pulses. Info whispers. Nothing in between shouts.</p>
+    </div>
+    <div class="hdr-meta">
+      <span><b>source</b> severity-badge.tsx</span>
+      <span><b>tiers</b> critical · high · medium · low · info</span>
+      <span><b>variants</b> solid · outline · minimal</span>
+      <span><b>sizes</b> sm · md · lg</span>
+    </div>
+  </header>
+
+  <section class="section">
+    <div class="section-hdr"><span class="num">01</span><h2>CVSS scale · canonical mapping</h2><span class="meta">Intensity increases with score</span></div>
+    <div class="scale">
+      <div class="scale-cell" style="--c: var(--sev-critical); --c-rgb: 255,69,58;">
+        <div class="scale-cvss">9.8<em>/10</em></div>
+        <div class="scale-range">9.0 – 10.0</div>
+        <span class="sev" data-sev="critical" data-variant="solid" data-size="md" data-pulse="true">Critical</span>
+        <div class="scale-name">Critical</div>
+      </div>
+      <div class="scale-cell" style="--c: var(--sev-high); --c-rgb: 255,159,10;">
+        <div class="scale-cvss">7.5<em>/10</em></div>
+        <div class="scale-range">7.0 – 8.9</div>
+        <span class="sev" data-sev="high" data-variant="solid" data-size="md">High</span>
+        <div class="scale-name">High</div>
+      </div>
+      <div class="scale-cell" style="--c: var(--sev-medium); --c-rgb: 255,214,10;">
+        <div class="scale-cvss">5.3<em>/10</em></div>
+        <div class="scale-range">4.0 – 6.9</div>
+        <span class="sev" data-sev="medium" data-variant="solid" data-size="md">Medium</span>
+        <div class="scale-name">Medium</div>
+      </div>
+      <div class="scale-cell" style="--c: var(--sev-low); --c-rgb: 48,209,88;">
+        <div class="scale-cvss">2.8<em>/10</em></div>
+        <div class="scale-range">0.1 – 3.9</div>
+        <span class="sev" data-sev="low" data-variant="solid" data-size="md">Low</span>
+        <div class="scale-name">Low</div>
+      </div>
+      <div class="scale-cell" style="--c: var(--sev-info); --c-rgb: 100,210,255;">
+        <div class="scale-cvss">—</div>
+        <div class="scale-range">Informational</div>
+        <span class="sev" data-sev="info" data-variant="solid" data-size="md">Info</span>
+        <div class="scale-name">Info</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-hdr"><span class="num">02</span><h2>Variants × sizes</h2><span class="meta">3 × 3 × 5 = 45 permutations</span></div>
+
+    <div class="badge-row">
+      <span class="badge-row-lbl">Solid · SM</span>
+      <span class="sev" data-sev="critical" data-variant="solid" data-size="sm">Critical</span>
+      <span class="sev" data-sev="high" data-variant="solid" data-size="sm">High</span>
+      <span class="sev" data-sev="medium" data-variant="solid" data-size="sm">Medium</span>
+      <span class="sev" data-sev="low" data-variant="solid" data-size="sm">Low</span>
+      <span class="sev" data-sev="info" data-variant="solid" data-size="sm">Info</span>
+    </div>
+    <div class="badge-row">
+      <span class="badge-row-lbl">Solid · MD</span>
+      <span class="sev" data-sev="critical" data-variant="solid" data-size="md" data-pulse="true">Critical</span>
+      <span class="sev" data-sev="high" data-variant="solid" data-size="md">High</span>
+      <span class="sev" data-sev="medium" data-variant="solid" data-size="md">Medium</span>
+      <span class="sev" data-sev="low" data-variant="solid" data-size="md">Low</span>
+      <span class="sev" data-sev="info" data-variant="solid" data-size="md">Info</span>
+    </div>
+    <div class="badge-row">
+      <span class="badge-row-lbl">Solid · LG</span>
+      <span class="sev" data-sev="critical" data-variant="solid" data-size="lg">Critical <span class="sev-cvss">9.8</span></span>
+      <span class="sev" data-sev="high" data-variant="solid" data-size="lg">High <span class="sev-cvss">7.5</span></span>
+      <span class="sev" data-sev="medium" data-variant="solid" data-size="lg">Medium <span class="sev-cvss">5.3</span></span>
+      <span class="sev" data-sev="low" data-variant="solid" data-size="lg">Low <span class="sev-cvss">2.8</span></span>
+      <span class="sev" data-sev="info" data-variant="solid" data-size="lg">Info</span>
+    </div>
+
+    <div class="badge-row">
+      <span class="badge-row-lbl">Outline · SM</span>
+      <span class="sev" data-sev="critical" data-variant="outline" data-size="sm">Critical</span>
+      <span class="sev" data-sev="high" data-variant="outline" data-size="sm">High</span>
+      <span class="sev" data-sev="medium" data-variant="outline" data-size="sm">Medium</span>
+      <span class="sev" data-sev="low" data-variant="outline" data-size="sm">Low</span>
+      <span class="sev" data-sev="info" data-variant="outline" data-size="sm">Info</span>
+    </div>
+    <div class="badge-row">
+      <span class="badge-row-lbl">Outline · MD</span>
+      <span class="sev" data-sev="critical" data-variant="outline" data-size="md">Critical</span>
+      <span class="sev" data-sev="high" data-variant="outline" data-size="md">High</span>
+      <span class="sev" data-sev="medium" data-variant="outline" data-size="md">Medium</span>
+      <span class="sev" data-sev="low" data-variant="outline" data-size="md">Low</span>
+      <span class="sev" data-sev="info" data-variant="outline" data-size="md">Info</span>
+    </div>
+    <div class="badge-row">
+      <span class="badge-row-lbl">Outline · LG</span>
+      <span class="sev" data-sev="critical" data-variant="outline" data-size="lg">Critical <span class="sev-cvss">9.8</span></span>
+      <span class="sev" data-sev="high" data-variant="outline" data-size="lg">High <span class="sev-cvss">7.5</span></span>
+      <span class="sev" data-sev="medium" data-variant="outline" data-size="lg">Medium <span class="sev-cvss">5.3</span></span>
+      <span class="sev" data-sev="low" data-variant="outline" data-size="lg">Low <span class="sev-cvss">2.8</span></span>
+      <span class="sev" data-sev="info" data-variant="outline" data-size="lg">Info</span>
+    </div>
+
+    <div class="badge-row">
+      <span class="badge-row-lbl">Minimal · SM</span>
+      <span class="sev" data-sev="critical" data-variant="minimal" data-size="sm"><span class="sev-dot"></span>Critical</span>
+      <span class="sev" data-sev="high" data-variant="minimal" data-size="sm"><span class="sev-dot"></span>High</span>
+      <span class="sev" data-sev="medium" data-variant="minimal" data-size="sm"><span class="sev-dot"></span>Medium</span>
+      <span class="sev" data-sev="low" data-variant="minimal" data-size="sm"><span class="sev-dot"></span>Low</span>
+      <span class="sev" data-sev="info" data-variant="minimal" data-size="sm"><span class="sev-dot"></span>Info</span>
+    </div>
+    <div class="badge-row">
+      <span class="badge-row-lbl">Minimal · MD</span>
+      <span class="sev" data-sev="critical" data-variant="minimal" data-size="md"><span class="sev-dot"></span>Critical</span>
+      <span class="sev" data-sev="high" data-variant="minimal" data-size="md"><span class="sev-dot"></span>High</span>
+      <span class="sev" data-sev="medium" data-variant="minimal" data-size="md"><span class="sev-dot"></span>Medium</span>
+      <span class="sev" data-sev="low" data-variant="minimal" data-size="md"><span class="sev-dot"></span>Low</span>
+      <span class="sev" data-sev="info" data-variant="minimal" data-size="md"><span class="sev-dot"></span>Info</span>
+    </div>
+    <div class="badge-row">
+      <span class="badge-row-lbl">Minimal · LG</span>
+      <span class="sev" data-sev="critical" data-variant="minimal" data-size="lg"><span class="sev-dot"></span>Critical</span>
+      <span class="sev" data-sev="high" data-variant="minimal" data-size="lg"><span class="sev-dot"></span>High</span>
+      <span class="sev" data-sev="medium" data-variant="minimal" data-size="lg"><span class="sev-dot"></span>Medium</span>
+      <span class="sev" data-sev="low" data-variant="minimal" data-size="lg"><span class="sev-dot"></span>Low</span>
+      <span class="sev" data-sev="info" data-variant="minimal" data-size="lg"><span class="sev-dot"></span>Info</span>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-hdr"><span class="num">03</span><h2>In context · findings table</h2><span class="meta">Minimal variant for dense lists</span></div>
+    <table class="sev-table">
+      <thead>
+        <tr>
+          <th style="width:120px">Severity</th>
+          <th>Finding</th>
+          <th style="width:140px">CVE</th>
+          <th style="width:100px">CVSS</th>
+          <th style="width:120px">Agent</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="sev-cell"><span class="sev" data-sev="critical" data-variant="minimal" data-size="md"><span class="sev-dot"></span>Critical</span></td>
+          <td>Remote code execution via Log4Shell (JNDI injection)</td>
+          <td class="mono">CVE-2021-44228</td>
+          <td class="mono">9.8</td>
+          <td class="mono">exploit</td>
+        </tr>
+        <tr>
+          <td class="sev-cell"><span class="sev" data-sev="high" data-variant="minimal" data-size="md"><span class="sev-dot"></span>High</span></td>
+          <td>Blind SQL injection on /api/search endpoint</td>
+          <td class="mono">CVE-2024-12345</td>
+          <td class="mono">8.1</td>
+          <td class="mono">recon</td>
+        </tr>
+        <tr>
+          <td class="sev-cell"><span class="sev" data-sev="high" data-variant="minimal" data-size="md"><span class="sev-dot"></span>High</span></td>
+          <td>Kerberoasting — service accounts with weak passwords</td>
+          <td class="mono">—</td>
+          <td class="mono">7.8</td>
+          <td class="mono">ad_operator</td>
+        </tr>
+        <tr>
+          <td class="sev-cell"><span class="sev" data-sev="medium" data-variant="minimal" data-size="md"><span class="sev-dot"></span>Medium</span></td>
+          <td>Stored XSS in admin audit log viewer</td>
+          <td class="mono">—</td>
+          <td class="mono">6.1</td>
+          <td class="mono">analyst</td>
+        </tr>
+        <tr>
+          <td class="sev-cell"><span class="sev" data-sev="low" data-variant="minimal" data-size="md"><span class="sev-dot"></span>Low</span></td>
+          <td>Session cookie missing Secure attribute</td>
+          <td class="mono">—</td>
+          <td class="mono">3.7</td>
+          <td class="mono">recon</td>
+        </tr>
+        <tr>
+          <td class="sev-cell"><span class="sev" data-sev="info" data-variant="minimal" data-size="md"><span class="sev-dot"></span>Info</span></td>
+          <td>Server version disclosed in HTTP response headers</td>
+          <td class="mono">—</td>
+          <td class="mono">—</td>
+          <td class="mono">recon</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-hdr"><span class="num">04</span><h2>Dashboard tiles · counts by severity</h2><span class="meta">Outline variant as header chip</span></div>
+    <div class="scale">
+      <div class="scale-cell" style="--c: var(--sev-critical); --c-rgb: 255,69,58;">
+        <span class="sev" data-sev="critical" data-variant="outline" data-size="sm">Critical</span>
+        <div class="scale-count">3</div>
+        <div class="scale-name" style="margin-top: 0">Findings</div>
+      </div>
+      <div class="scale-cell" style="--c: var(--sev-high); --c-rgb: 255,159,10;">
+        <span class="sev" data-sev="high" data-variant="outline" data-size="sm">High</span>
+        <div class="scale-count">7</div>
+        <div class="scale-name" style="margin-top: 0">Findings</div>
+      </div>
+      <div class="scale-cell" style="--c: var(--sev-medium); --c-rgb: 255,214,10;">
+        <span class="sev" data-sev="medium" data-variant="outline" data-size="sm">Medium</span>
+        <div class="scale-count">14</div>
+        <div class="scale-name" style="margin-top: 0">Findings</div>
+      </div>
+      <div class="scale-cell" style="--c: var(--sev-low); --c-rgb: 48,209,88;">
+        <span class="sev" data-sev="low" data-variant="outline" data-size="sm">Low</span>
+        <div class="scale-count">22</div>
+        <div class="scale-name" style="margin-top: 0">Findings</div>
+      </div>
+      <div class="scale-cell" style="--c: var(--sev-info); --c-rgb: 100,210,255;">
+        <span class="sev" data-sev="info" data-variant="outline" data-size="sm">Info</span>
+        <div class="scale-count">48</div>
+        <div class="scale-name" style="margin-top: 0">Findings</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-hdr"><span class="num">05</span><h2>Usage contract</h2><span class="meta">Where each variant lives</span></div>
+    <div class="usage-grid">
+      <div class="usage-card">
+        <h3>Solid</h3>
+        <p class="example">The default. Use for <b>single-item emphasis</b>: FindingCard header, hero stat, notification. <b>Pulse</b> reserved for critical severity on live stream.</p>
+      </div>
+      <div class="usage-card">
+        <h3>Outline</h3>
+        <p class="example">Use for <b>filter pills</b>, dashboard tiles, and anywhere the badge coexists with dense color. Softer presence, preserves contrast on bright backgrounds.</p>
+      </div>
+      <div class="usage-card">
+        <h3>Minimal</h3>
+        <p class="example">Use for <b>tables, lists, and rows</b> where the column itself communicates "severity". Just the dot + word. No chrome.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="tweaks" id="tweaks">
+  <h3>Tweaks</h3>
+  <label>Pulse all critical <input type="checkbox" class="tw-switch" id="tw-pulse" checked></label>
+  <label>Boost glow ×1.5 <input type="checkbox" class="tw-switch" id="tw-glow"></label>
+</div>
+
+<script>
+/*EDITMODE-BEGIN*/
+const TWEAK_DEFAULTS = {
+  "pulse": true,
+  "glow": false
+}
+/*EDITMODE-END*/
+
+window.addEventListener('message', (e) => {
+  if (!e.data || typeof e.data !== 'object') return;
+  if (e.data.type === '__activate_edit_mode') document.getElementById('tweaks').classList.add('open');
+  if (e.data.type === '__deactivate_edit_mode') document.getElementById('tweaks').classList.remove('open');
+});
+window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+
+document.getElementById('tw-pulse').checked = TWEAK_DEFAULTS.pulse;
+document.getElementById('tw-glow').checked = TWEAK_DEFAULTS.glow;
+document.getElementById('tw-pulse').addEventListener('change', (e) => {
+  document.querySelectorAll('.sev[data-sev="critical"][data-variant="solid"]').forEach(el => {
+    el.setAttribute('data-pulse', e.target.checked ? 'true' : 'false');
+  });
+});
+document.getElementById('tw-glow').addEventListener('change', (e) => {
+  const boost = e.target.checked ? 1.5 : 1;
+  document.querySelectorAll('.sev').forEach(el => {
+    const sev = el.getAttribute('data-sev');
+    const map = { critical: 1, high: 0.78, medium: 0.58, low: 0.4, info: 0.3 };
+    el.style.setProperty('--intensity', map[sev] * boost);
+  });
+});
+</script>
+</body>
+</html>

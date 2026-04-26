@@ -112,7 +112,7 @@ export function DisplayNameForm({ locale, initialName }: DisplayNameFormProps) {
 
       <div className="flex justify-end">
         <Button
-          variant="success"
+          variant="state" state="success"
           size="md"
           type="submit"
           disabled={loading || displayName.trim().length === 0}

@@ -255,7 +255,7 @@ export default function DependencyScannerPage() {
 
           <div className="flex items-center gap-3 mt-4 flex-wrap">
             <Button
-              variant="success"
+              variant="state" state="success"
               size="md"
               onClick={handleScan}
               disabled={!file || scanning}

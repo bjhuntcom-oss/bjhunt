@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BJHUNT · AgentTransition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bjhunt-brand-primary: #6366F1;
+  --bjhunt-bg: #07070B;
+  --bjhunt-bg-secondary: #0C0C12;
+  --bjhunt-bg-tertiary: #111118;
+  --bjhunt-text: #F4F4F7;
+  --bjhunt-text-muted: #A1A1AA;
+  --bjhunt-text-subtle: #52525B;
+  --bjhunt-text-disabled: #3F3F46;
+  --bjhunt-border: rgba(255,255,255,0.06);
+  --bjhunt-border-strong: rgba(255,255,255,0.12);
+  --bjhunt-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+  --bjhunt-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --ease-apple: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 180ms;
+  --dur-base: 360ms;
+  --dur-slow: 640ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur-base: 0ms; --dur-slow: 0ms; }
+  .agent-transition * { animation: none !important; transition: none !important; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bjhunt-bg);
+  color: var(--bjhunt-text);
+  font-family: var(--bjhunt-font-sans);
+  font-size: 14px;
+  font-weight: 300;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 10%, rgba(99,102,241,0.08), transparent 50%),
+    radial-gradient(ellipse 60% 50% at 85% 90%, rgba(100,210,255,0.03), transparent 50%);
+}
+.wrap { position: relative; max-width: 1680px; margin: 0 auto; padding: 80px 64px 120px; z-index: 1; }
+
+/* Header */
+.hdr { margin-bottom: 96px; display: flex; justify-content: space-between; align-items: flex-end; gap: 64px; flex-wrap: wrap; }
+.eyebrow { font-family: var(--bjhunt-font-mono); font-size: 10px; color: var(--bjhunt-text-subtle); text-transform: uppercase; letter-spacing: 0.32em; margin: 0 0 24px; }
+h1 { font-size: 56px; font-weight: 200; letter-spacing: -0.03em; line-height: 1; margin: 0 0 20px; }
+h1 em { font-style: normal; color: var(--bjhunt-text-muted); font-weight: 200; }
+.lede { color: var(--bjhunt-text-muted); font-size: 15px; line-height: 1.6; margin: 0; max-width: 560px; font-weight: 300; }
+.hdr-meta { display: flex; flex-direction: column; gap: 12px; font-family: var(--bjhunt-font-mono); font-size: 10px; color: var(--bjhunt-text-subtle); letter-spacing: 0.1em; text-align: right; }
+.hdr-meta span { display: flex; gap: 12px; justify-content: flex-end; }
+.hdr-meta b { color: var(--bjhunt-text-muted); font-weight: 400; }
+
+.section { margin-bottom: 112px; }
+.section-hdr {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding-bottom: 24px; margin-bottom: 40px;
+  border-bottom: 1px solid var(--bjhunt-border);
+}
+.section-hdr .num { font-family: var(--bjhunt-font-mono); font-size: 10px; color: var(--bjhunt-text-disabled); letter-spacing: 0.32em; margin-right: 20px; }
+.section-hdr h2 { font-size: 22px; font-weight: 300; letter-spacing: -0.015em; margin: 0; flex: 1; }
+.section-hdr .meta { font-family: var(--bjhunt-font-mono); font-size: 10px; color: var(--bjhunt-text-subtle); letter-spacing: 0.15em; text-transform: uppercase; }
+
+/* ═════════════════════════════════════════════════════════════════════
+   AgentTransition — core piece
+   ═════════════════════════════════════════════════════════════════════ */
+@keyframes agent-exit {
+  0%   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  100% { opacity: 0; transform: translateY(-6px) scale(0.98); filter: blur(6px); }
+}
+@keyframes agent-enter {
+  0%   { opacity: 0; transform: translateY(8px) scale(0.96); filter: blur(8px); }
+  60%  { opacity: 1; filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+@keyframes handoff-sweep {
+  0%   { transform: translateX(-100%); opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+@keyframes pulse-ring {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%      { opacity: 1; transform: scale(1.04); }
+}
+@keyframes rotate-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* Shared pill */
+.agent-pill {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 7px 14px 7px 10px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.008));
+  border: 1px solid var(--agent-border, rgba(255,255,255,0.1));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  font-family: var(--bjhunt-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--agent-color, var(--bjhunt-text));
+  white-space: nowrap;
+  position: relative;
+  transition: border-color var(--dur-base) var(--ease-apple), background var(--dur-base) var(--ease-apple);
+}
+.agent-pill .icon {
+  width: 14px; height: 14px;
+  color: var(--agent-color, var(--bjhunt-text));
+  flex-shrink: 0;
+}
+.agent-pill .lbl { color: var(--bjhunt-text); font-weight: 400; }
+.agent-pill .dot {
+  width: 5px; height: 5px; background: var(--agent-color); flex-shrink: 0;
+  box-shadow: 0 0 10px var(--agent-color);
+  animation: pulse-ring 1.8s var(--ease-apple) infinite;
+}
+
+/* Variant 01 — full banner */
+.banner {
+  position: relative;
+  background: linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.004));
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid var(--bjhunt-border);
+  padding: 32px 40px;
+  display: flex; align-items: center; gap: 40px;
+  overflow: hidden;
+  isolation: isolate;
+  min-height: 140px;
+}
+.banner::before {
+  content: ''; position: absolute; left: 0; top: 28px; bottom: 28px; width: 1px;
+  background: var(--agent-color, var(--bjhunt-brand-primary));
+  opacity: 0.5;
+  transition: background var(--dur-slow) var(--ease-apple);
+}
+.banner::after {
+  /* handoff sweep during transition */
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 0%, var(--agent-color, var(--bjhunt-brand-primary)) 50%, transparent 100%);
+  opacity: 0; pointer-events: none;
+  mix-blend-mode: overlay;
+}
+.banner.handing-off::after { animation: handoff-sweep var(--dur-slow) var(--ease-apple); }
+
+.banner-icon {
+  position: relative;
+  width: 72px; height: 72px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--agent-border, rgba(255,255,255,0.08));
+  color: var(--agent-color, var(--bjhunt-text));
+  transition: border-color var(--dur-slow) var(--ease-apple), color var(--dur-slow) var(--ease-apple);
+}
+.banner-icon::before {
+  content: ''; position: absolute; inset: -1px;
+  border: 1px solid var(--agent-color, transparent);
+  opacity: 0.3;
+  animation: pulse-ring 2.4s var(--ease-apple) infinite;
+}
+.banner-icon svg { width: 28px; height: 28px; }
+.banner-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.banner-eyebrow {
+  font-family: var(--bjhunt-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--bjhunt-text-subtle);
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.banner-eyebrow .prev {
+  color: var(--bjhunt-text-disabled);
+  text-decoration: line-through;
+  text-decoration-color: var(--bjhunt-text-disabled);
+}
+.banner-eyebrow .arrow { color: var(--bjhunt-text-disabled); }
+.banner-name {
+  font-size: 28px; font-weight: 200; letter-spacing: -0.02em;
+  color: var(--bjhunt-text);
+  display: flex; align-items: baseline; gap: 14px;
+}
+.banner-role {
+  font-family: var(--bjhunt-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--agent-color);
+  padding: 3px 10px;
+  border: 1px solid var(--agent-border, rgba(255,255,255,0.12));
+  background: var(--agent-soft, rgba(255,255,255,0.02));
+}
+.banner-desc {
+  color: var(--bjhunt-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 620px;
+  font-weight: 300;
+}
+.banner-aside {
+  margin-left: auto;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+  font-family: var(--bjhunt-font-mono);
+  font-size: 10px;
+  color: var(--bjhunt-text-subtle);
+  letter-spacing: 0.14em;
+  flex-shrink: 0;
+}
+.banner-aside .kv { display: inline-flex; gap: 10px; }
+.banner-aside .lbl { color: var(--bjhunt-text-disabled); text-transform: uppercase; letter-spacing: 0.24em; }
+.banner-aside .val { color: var(--bjhunt-text); font-variant-numeric: tabular-nums; }
+
+/* Animated content wrapper — exits/enters during transition */
+.agent-transition { position: relative; }
+.agent-transition.transitioning .agent-slot-exit { animation: agent-exit var(--dur-base) var(--ease-apple) forwards; }
+.agent-transition .agent-slot-enter { animation: agent-enter var(--dur-slow) var(--ease-spring); }
+
+/* Variant 02 — chat message header */
+.msg-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 0;
+}
+.msg-header .agent-pill { padding: 6px 12px 6px 8px; font-size: 10px; }
+.msg-header .timestamp {
+  font-family: var(--bjhunt-font-mono);
+  font-size: 10px;
+  color: var(--bjhunt-text-disabled);
+  letter-spacing: 0.1em;
+}
+
+/* Variant 03 — mini status (sidebar / status bar) */
+.mini {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 4px 10px 4px 8px;
+  border: 1px solid var(--agent-border, rgba(255,255,255,0.08));
+  background: rgba(255,255,255,0.02);
+  font-family: var(--bjhunt-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.mini .icon { width: 11px; height: 11px; color: var(--agent-color); }
+.mini .lbl { color: var(--bjhunt-text-muted); }
+
+/* Variant 04 — grid (agent directory) */
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1px;
+  background: var(--bjhunt-border);
+  border: 1px solid var(--bjhunt-border);
+}
+.agent-cell {
+  background: var(--bjhunt-bg);
+  padding: 24px 24px 20px;
+  display: flex; flex-direction: column; gap: 12px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background var(--dur-base) var(--ease-apple);
+}
+.agent-cell::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 1px;
+  background: var(--agent-color, transparent);
+  opacity: 0; transition: opacity var(--dur-base) var(--ease-apple);
+}
+.agent-cell:hover { background: var(--bjhunt-bg-secondary); }
+.agent-cell:hover::before { opacity: 0.6; }
+.agent-cell.active::before { opacity: 1; }
+.agent-cell.active { background: var(--bjhunt-bg-secondary); }
+
+.agent-cell-head { display: flex; align-items: center; gap: 12px; }
+.agent-cell-icon {
+  width: 36px; height: 36px;
+  border: 1px solid var(--agent-border, rgba(255,255,255,0.08));
+  color: var(--agent-color);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.agent-cell-icon svg { width: 16px; height: 16px; }
+.agent-cell-ident { min-width: 0; flex: 1; }
+.agent-cell-name {
+  font-size: 14px; font-weight: 400; color: var(--bjhunt-text);
+  letter-spacing: -0.01em; margin: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.agent-cell-role {
+  font-family: var(--bjhunt-font-mono);
+  font-size: 9px; letter-spacing: 0.24em; text-transform: uppercase;
+  color: var(--agent-color); margin-top: 2px;
+}
+.agent-cell-desc {
+  font-size: 12px; line-height: 1.55; color: var(--bjhunt-text-muted);
+  margin: 0; font-weight: 300;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* Demo controls */
+.demo-controls {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--bjhunt-border);
+}
+.demo-controls .lbl {
+  font-family: var(--bjhunt-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--bjhunt-text-subtle);
+}
+.demo-controls select {
+  background: var(--bjhunt-bg-secondary);
+  color: var(--bjhunt-text);
+  border: 1px solid var(--bjhunt-border-strong);
+  padding: 6px 10px;
+  font-family: var(--bjhunt-font-mono);
+  font-size: 11px;
+  outline: none;
+  cursor: pointer;
+}
+.demo-controls select:focus { border-color: var(--bjhunt-brand-primary); }
+.demo-btn {
+  padding: 8px 18px;
+  background: var(--bjhunt-brand-primary);
+  color: #fff;
+  border: none;
+  font-family: var(--bjhunt-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-apple);
+}
+.demo-btn:hover { background: #7379F3; }
+.demo-btn.ghost {
+  background: transparent;
+  border: 1px solid var(--bjhunt-border-strong);
+  color: var(--bjhunt-text-muted);
+}
+.demo-btn.ghost:hover { color: var(--bjhunt-text); border-color: var(--bjhunt-text-muted); }
+
+/* Variant 05 — stacked (chat stream context) */
+.stream {
+  background: linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.004));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--bjhunt-border);
+  padding: 24px 28px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+.stream-event {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--bjhunt-border);
+  font-family: var(--bjhunt-font-mono);
+  font-size: 11px;
+  color: var(--bjhunt-text-muted);
+}
+.stream-event:last-child { border-bottom: none; }
+.stream-event .ts { color: var(--bjhunt-text-disabled); letter-spacing: 0.12em; font-size: 10px; min-width: 70px; }
+.stream-event .arrow { color: var(--bjhunt-text-disabled); margin: 0 6px; }
+.stream-event.handoff { color: var(--bjhunt-text); }
+
+/* Tweaks */
+.tweaks {
+  position: fixed; right: 24px; bottom: 24px; width: 320px;
+  background: rgba(12,12,18,0.72);
+  backdrop-filter: blur(32px) saturate(160%);
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+  border: 1px solid var(--bjhunt-border-strong);
+  padding: 20px 24px;
+  z-index: 100; display: none;
+  box-shadow: 0 32px 64px rgba(0,0,0,0.6);
+}
+.tweaks.open { display: block; }
+.tweaks h3 { font-family: var(--bjhunt-font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.28em; color: var(--bjhunt-text-subtle); margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid var(--bjhunt-border); font-weight: 400; }
+.tweaks label { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; font-size: 11px; color: var(--bjhunt-text-muted); cursor: pointer; font-weight: 300; }
+.tweaks label:not(:last-child) { border-bottom: 1px solid var(--bjhunt-border); }
+.tw-switch { appearance: none; width: 28px; height: 16px; background: rgba(255,255,255,0.1); position: relative; cursor: pointer; transition: background var(--dur-fast) var(--ease-apple); }
+.tw-switch:checked { background: var(--bjhunt-brand-primary); }
+.tw-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; background: #fff; transition: left var(--dur-fast) var(--ease-apple); }
+.tw-switch:checked::after { left: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hdr">
+    <div>
+      <p class="eyebrow">W8 · Atomic · 03 / 05</p>
+      <h1>Agent<em>Transition.</em></h1>
+      <p class="lede">Seventeen specialists, one conversation. When the stream hands off, the old agent dissolves to blur while the next arrives on a spring. A sweep of the accent color marks the boundary.</p>
+    </div>
+    <div class="hdr-meta">
+      <span><b>source</b> lib/agent-labels</span>
+      <span><b>icons</b> lucide-react</span>
+      <span><b>i18n</b> components.agentTransition</span>
+      <span><b>sse</b> on agent_id change</span>
+    </div>
+  </header>
+
+  <section class="section">
+    <div class="section-hdr"><span class="num">01</span><h2>Full banner · stream header / audit detail</h2><span class="meta">Handoff animation on change</span></div>
+    <div class="demo-controls">
+      <span class="lbl">Simulate handoff</span>
+      <select id="demo-agent-1">
+        <option value="decepticon">Orchestrator → BJHUNT ALPHA 1.0</option>
+        <option value="soundwave">Planning → Planner</option>
+        <option value="recon" selected>Recon → Reconnaissance</option>
+        <option value="exploit">Offensive → Exploit</option>
+        <option value="postexploit">Offensive → Post-Exploitation</option>
+        <option value="analyst">Analysis → Analyst</option>
+        <option value="reverser">Analysis → Reverser</option>
+        <option value="contract_auditor">Analysis → Contract Auditor</option>
+        <option value="cloud_hunter">Offensive → Cloud Hunter</option>
+        <option value="ad_operator">Offensive → AD Operator</option>
+        <option value="vulnresearch">Pipeline → Vuln Research</option>
+        <option value="scanner">Pipeline → Scanner</option>
+        <option value="detector">Pipeline → Detector</option>
+        <option value="verifier">Pipeline → Verifier</option>
+        <option value="patcher">Pipeline → Patcher</option>
+        <option value="exploiter">Pipeline → Exploiter</option>
+        <option value="defender">Defensive → Defender</option>
+      </select>
+      <button class="demo-btn" onclick="triggerHandoff()">Trigger handoff</button>
+      <button class="demo-btn ghost" onclick="cycleAll()">Cycle all 17</button>
+    </div>
+    <div id="banner-host"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-hdr"><span class="num">02</span><h2>Chat message header · pill</h2><span class="meta">Inline with message bubble</span></div>
+    <div id="pills-host" style="display:flex;flex-direction:column;gap:14px"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-hdr"><span class="num">03</span><h2>Mini status · sidebar / status bar</h2><span class="meta">Condensed indicator</span></div>
+    <div id="minis-host" style="display:flex;flex-wrap:wrap;gap:10px"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-hdr"><span class="num">04</span><h2>Agent directory · picker grid</h2><span class="meta">All 17 agents</span></div>
+    <div class="agent-grid" id="grid-host"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-hdr"><span class="num">05</span><h2>Stream event log · handoff timeline</h2><span class="meta">Chronological record</span></div>
+    <div class="stream" id="stream-host"></div>
+  </section>
+</div>
+
+<div class="tweaks" id="tweaks">
+  <h3>Tweaks</h3>
+  <label>Cycle handoff every 2s <input type="checkbox" class="tw-switch" id="tw-autocycle"></label>
+  <label>Slow motion (2×) <input type="checkbox" class="tw-switch" id="tw-slow"></label>
+</div>
+
+<script>
+/*EDITMODE-BEGIN*/
+const TWEAK_DEFAULTS = {
+  "autocycle": false,
+  "slow": false
+}
+/*EDITMODE-END*/
+
+// Inline lucide-like icons (stroke 1.5 for Apple-sober feel)
+const ICONS = {
+  Workflow:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="8" x="3" y="3" rx="0"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="0"/></svg>',
+  ClipboardList: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="0"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>',
+  ScanSearch:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/><path d="m16 16-1.9-1.9"/></svg>',
+  Zap:           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>',
+  Crosshair:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/></svg>',
+  Microscope:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18h8"/><path d="M3 22h18"/><path d="M14 22a7 7 0 1 0 0-14h-1"/><path d="M9 14h2"/><path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2"/><path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"/></svg>',
+  Cpu:           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="0"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>',
+  FileCheck2:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m3 15 2 2 4-4"/></svg>',
+  Cloud:         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>',
+  Network:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="16" y="16" width="6" height="6" rx="0"/><rect x="2" y="16" width="6" height="6" rx="0"/><rect x="9" y="2" width="6" height="6" rx="0"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg>',
+  GitBranch:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>',
+  Radar:         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19.07 4.93A10 10 0 0 0 6.99 3.34"/><path d="M4 6h.01"/><path d="M2.29 9.62A10 10 0 1 0 21.31 8.35"/><path d="M16.24 7.76A6 6 0 1 0 17.29 14.83"/><path d="M12 12h0"/><path d="m15.5 6.5-4 4"/></svg>',
+  AlertTriangle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+  CheckCircle2:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>',
+  Wrench:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg>',
+  Swords:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></svg>',
+  ShieldCheck:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3Z"/><path d="m9 12 2 2 4-4"/></svg>',
+  Bot:           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>'
+};
+
+// Agent meta — mirrors lib/agent-labels.ts
+const AGENTS = {
+  decepticon:       { label: 'BJHUNT ALPHA 1.0',       role: 'Orchestrator', color: '#E4E4E7', icon: 'Workflow',      description: 'Coordinates the full engagement and delegates to all specialist agents.' },
+  soundwave:        { label: 'Planner',                role: 'Planning',     color: '#38BDF8', icon: 'ClipboardList', description: 'Builds the engagement plan: RoE, CONOPS, deconfliction, OPPLAN.' },
+  recon:            { label: 'Reconnaissance',         role: 'Offensive',    color: '#22D3EE', icon: 'ScanSearch',    description: 'OSINT, subdomain enumeration, port scanning, service detection.' },
+  exploit:          { label: 'Exploit',                role: 'Offensive',    color: '#FB923C', icon: 'Zap',           description: 'Active exploitation: SQLi, SSTI, Kerberoasting, credential abuse.' },
+  postexploit:      { label: 'Post-Exploitation',      role: 'Offensive',    color: '#F87171', icon: 'Crosshair',     description: 'Privilege escalation, lateral movement, C2 establishment.' },
+  analyst:          { label: 'Analyst',                role: 'Analysis',     color: '#A78BFA', icon: 'Microscope',    description: 'Code review, static analysis, CVE sweeps, fuzzing harness.' },
+  reverser:         { label: 'Reverser',               role: 'Analysis',     color: '#E879F9', icon: 'Cpu',           description: 'Binary triage (ELF, PE, firmware), ROP gadgets, Ghidra scripting.' },
+  contract_auditor: { label: 'Contract Auditor',       role: 'Analysis',     color: '#FBBF24', icon: 'FileCheck2',    description: 'Solidity / EVM audit: reentrancy, flash loans, Slither integration.' },
+  cloud_hunter:     { label: 'Cloud Hunter',           role: 'Offensive',    color: '#60A5FA', icon: 'Cloud',         description: 'Cloud privesc on AWS / Azure / GCP / Kubernetes.' },
+  ad_operator:      { label: 'AD Operator',            role: 'Offensive',    color: '#F472B6', icon: 'Network',       description: 'Active Directory: BloodHound, Kerberoast, ADCS ESC1-15, DCSync.' },
+  vulnresearch:     { label: 'Vuln Research Pipeline', role: 'Pipeline',     color: '#2DD4BF', icon: 'GitBranch',     description: 'Coordinates Scanner → Detector → Verifier → Patcher → Exploiter.' },
+  scanner:          { label: 'Scanner',                role: 'Pipeline',     color: '#34D399', icon: 'Radar',         description: 'Phase 1 — Sweep codebase for candidate weaknesses.' },
+  detector:         { label: 'Detector',               role: 'Pipeline',     color: '#A3E635', icon: 'AlertTriangle', description: 'Phase 2 — Promote candidates to vulnerabilities by reading nearby code.' },
+  verifier:         { label: 'Verifier',               role: 'Pipeline',     color: '#FACC15', icon: 'CheckCircle2',  description: 'Phase 3 — Craft PoCs and confirm vulnerabilities (zero false positive).' },
+  patcher:          { label: 'Patcher',                role: 'Pipeline',     color: '#4ADE80', icon: 'Wrench',        description: 'Phase 4 — Generate minimal diffs and verify the patch.' },
+  exploiter:        { label: 'Exploiter',              role: 'Pipeline',     color: '#F472B6', icon: 'Swords',        description: 'Phase 5 — Chain primitives into weaponized attack paths.' },
+  defender:         { label: 'Defender',               role: 'Defensive',    color: '#22C55E', icon: 'ShieldCheck',   description: 'Vaccine loop: applies defensive actions, then re-tests them.' }
+};
+
+function agentStyle(id) {
+  const a = AGENTS[id];
+  if (!a) return '';
+  const rgb = hexToRgb(a.color);
+  return `--agent-color: ${a.color}; --agent-border: rgba(${rgb},0.22); --agent-soft: rgba(${rgb},0.06);`;
+}
+function hexToRgb(hex) {
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2), 16);
+  const g = parseInt(h.substring(2,4), 16);
+  const b = parseInt(h.substring(4,6), 16);
+  return `${r},${g},${b}`;
+}
+
+// ═══ Banner ═══
+let currentBannerId = 'recon';
+let previousBannerId = null;
+
+function renderBanner(id, prevId) {
+  const a = AGENTS[id];
+  const prev = prevId ? AGENTS[prevId] : null;
+  return `
+    <div class="banner${prev ? ' handing-off' : ''}" style="${agentStyle(id)}">
+      <div class="banner-icon agent-slot-enter">${ICONS[a.icon] || ICONS.Bot}</div>
+      <div class="banner-body agent-slot-enter">
+        <div class="banner-eyebrow">
+          ${prev ? `<span class="prev">${prev.label}</span><span class="arrow">→</span>` : '<span>NOW ACTIVE</span>'}
+          <span>${a.role}</span>
+        </div>
+        <div class="banner-name">
+          ${a.label}
+          <span class="banner-role">${a.role}</span>
+        </div>
+        <p class="banner-desc">${a.description}</p>
+      </div>
+      <div class="banner-aside agent-slot-enter">
+        <div class="kv"><span class="lbl">Agent ID</span><span class="val">${id}</span></div>
+        <div class="kv"><span class="lbl">Color</span><span class="val">${a.color}</span></div>
+        <div class="kv"><span class="lbl">Status</span><span class="val" style="color:var(--agent-color)">● ACTIVE</span></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderBannerInto(host, id, prevId) {
+  host.innerHTML = `<div class="agent-transition${prevId ? ' transitioning' : ''}">${renderBanner(id, prevId)}</div>`;
+}
+
+function setBannerAgent(newId) {
+  const host = document.getElementById('banner-host');
+  if (!host) return;
+  if (newId === currentBannerId) return;
+  previousBannerId = currentBannerId;
+  currentBannerId = newId;
+
+  // exit animation phase
+  const wrapper = host.querySelector('.agent-transition');
+  if (wrapper) {
+    wrapper.classList.add('transitioning');
+    const slots = wrapper.querySelectorAll('.agent-slot-enter');
+    slots.forEach(s => { s.classList.remove('agent-slot-enter'); s.classList.add('agent-slot-exit'); });
+  }
+
+  setTimeout(() => {
+    renderBannerInto(host, currentBannerId, previousBannerId);
+    appendStreamEvent(previousBannerId, currentBannerId);
+  }, 220);
+}
+
+function triggerHandoff() {
+  const sel = document.getElementById('demo-agent-1');
+  setBannerAgent(sel.value);
+}
+
+let cycleTimer = null;
+function cycleAll() {
+  stopCycle();
+  const ids = Object.keys(AGENTS);
+  let i = ids.indexOf(currentBannerId);
+  cycleTimer = setInterval(() => {
+    i = (i + 1) % ids.length;
+    const sel = document.getElementById('demo-agent-1');
+    sel.value = ids[i];
+    setBannerAgent(ids[i]);
+  }, 2200);
+}
+function stopCycle() { if (cycleTimer) { clearInterval(cycleTimer); cycleTimer = null; } }
+
+// ═══ Pills ═══
+function renderPills() {
+  const samples = ['decepticon', 'recon', 'exploit', 'analyst', 'defender'];
+  return samples.map(id => {
+    const a = AGENTS[id];
+    return `
+      <div class="msg-header">
+        <div class="agent-pill" style="${agentStyle(id)}">
+          <span class="dot"></span>
+          <span class="icon">${ICONS[a.icon]}</span>
+          <span class="lbl">${a.label}</span>
+        </div>
+        <span class="timestamp">14:32:${String(10 + samples.indexOf(id)*7).padStart(2,'0')}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ═══ Minis ═══
+function renderMinis() {
+  return Object.keys(AGENTS).map(id => {
+    const a = AGENTS[id];
+    return `
+      <span class="mini" style="${agentStyle(id)}">
+        <span class="icon">${ICONS[a.icon] || ICONS.Bot}</span>
+        <span class="lbl">${a.label}</span>
+      </span>
+    `;
+  }).join('');
+}
+
+// ═══ Grid ═══
+function renderGrid() {
+  return Object.entries(AGENTS).map(([id, a], i) => `
+    <div class="agent-cell${id === 'recon' ? ' active' : ''}" style="${agentStyle(id)}" onclick="setBannerAgent('${id}'); document.getElementById('demo-agent-1').value='${id}';">
+      <div class="agent-cell-head">
+        <div class="agent-cell-icon">${ICONS[a.icon] || ICONS.Bot}</div>
+        <div class="agent-cell-ident">
+          <div class="agent-cell-name">${a.label}</div>
+          <div class="agent-cell-role">${a.role}</div>
+        </div>
+      </div>
+      <p class="agent-cell-desc">${a.description}</p>
+    </div>
+  `).join('');
+}
+
+// ═══ Stream ═══
+const streamEvents = [];
+function appendStreamEvent(fromId, toId) {
+  const ts = new Date();
+  streamEvents.unshift({
+    ts: `${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}:${String(ts.getSeconds()).padStart(2,'0')}`,
+    from: fromId, to: toId
+  });
+  if (streamEvents.length > 6) streamEvents.pop();
+  renderStream();
+}
+function renderStream() {
+  const host = document.getElementById('stream-host');
+  if (streamEvents.length === 0) {
+    // Seed with demo data
+    streamEvents.push(
+      { ts: '14:32:04', from: 'soundwave', to: 'recon' },
+      { ts: '14:38:17', from: 'recon', to: 'analyst' },
+      { ts: '14:42:53', from: 'analyst', to: 'exploit' },
+      { ts: '14:51:29', from: 'exploit', to: 'postexploit' },
+      { ts: '14:57:11', from: 'postexploit', to: 'defender' }
+    );
+  }
+  host.innerHTML = streamEvents.map(ev => {
+    const from = AGENTS[ev.from];
+    const to = AGENTS[ev.to];
+    return `
+      <div class="stream-event handoff">
+        <span class="ts">${ev.ts}</span>
+        <span class="agent-pill" style="${agentStyle(ev.from)}; padding: 4px 10px 4px 6px; font-size: 9px;">
+          <span class="icon">${ICONS[from.icon]}</span>
+          <span class="lbl">${from.label}</span>
+        </span>
+        <span class="arrow">→</span>
+        <span class="agent-pill" style="${agentStyle(ev.to)}; padding: 4px 10px 4px 6px; font-size: 9px;">
+          <span class="dot"></span>
+          <span class="icon">${ICONS[to.icon]}</span>
+          <span class="lbl">${to.label}</span>
+        </span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ═══ Mount ═══
+function mountAll() {
+  renderBannerInto(document.getElementById('banner-host'), currentBannerId, null);
+  document.getElementById('pills-host').innerHTML = renderPills();
+  document.getElementById('minis-host').innerHTML = renderMinis();
+  document.getElementById('grid-host').innerHTML = renderGrid();
+  renderStream();
+}
+
+// Tweaks wiring
+window.addEventListener('message', (e) => {
+  if (!e.data || typeof e.data !== 'object') return;
+  if (e.data.type === '__activate_edit_mode') document.getElementById('tweaks').classList.add('open');
+  if (e.data.type === '__deactivate_edit_mode') document.getElementById('tweaks').classList.remove('open');
+});
+window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+
+document.getElementById('tw-autocycle').checked = TWEAK_DEFAULTS.autocycle;
+document.getElementById('tw-slow').checked = TWEAK_DEFAULTS.slow;
+document.getElementById('tw-autocycle').addEventListener('change', (e) => e.target.checked ? cycleAll() : stopCycle());
+document.getElementById('tw-slow').addEventListener('change', (e) => {
+  document.documentElement.style.setProperty('--dur-fast', e.target.checked ? '360ms' : '180ms');
+  document.documentElement.style.setProperty('--dur-base', e.target.checked ? '720ms' : '360ms');
+  document.documentElement.style.setProperty('--dur-slow', e.target.checked ? '1280ms' : '640ms');
+});
+
+mountAll();
+</script>
+</body>
+</html>

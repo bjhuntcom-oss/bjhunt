@@ -393,7 +393,7 @@ export default function ToolPlaygroundPage() {
                 {tool.inputType === "textarea" ? "Ctrl+Enter to execute" : "Enter to execute"}
               </span>
               <Button
-                variant="success"
+                variant="state" state="success"
                 size="md"
                 onClick={execute}
                 disabled={loading || !inputValue.trim()}
