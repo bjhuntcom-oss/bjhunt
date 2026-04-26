@@ -317,7 +317,7 @@ services:
   # forbidden — a compromised LangGraph cannot create new containers,
   # mount host paths, or pull images.
   docker-proxy:
-    image: tecnativa/docker-socket-proxy:0.4.2
+    image: tecnativa/docker-socket-proxy:v0.4.2
     container_name: bjhunt-docker-proxy
     environment:
       CONTAINERS: 1

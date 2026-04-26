@@ -93,7 +93,7 @@ services:
     restart: unless-stopped
 
   promtail:
-    image: grafana/promtail:3.7.1
+    image: grafana/promtail:3.6.10
     container_name: bjhunt-promtail
     command: ["-config.file=/etc/promtail/promtail.yml"]
     volumes:
