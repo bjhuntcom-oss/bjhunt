@@ -7,27 +7,16 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { browserBackendFetch } from '@/lib/backend-client'
 
-const FIELD_STYLE: React.CSSProperties = {
-  width: '100%',
-  background: 'transparent',
-  border: 'none',
-  borderBottom: '1px solid var(--bjhunt-border)',
-  color: 'var(--bjhunt-text)',
-  padding: '12px 2px',
-  fontSize: 14,
-  fontWeight: 300,
-  outline: 'none',
-}
+const fieldClass =
+  'w-full bg-transparent border-0 border-b border-[var(--bjhunt-border)] ' +
+  'text-[var(--bjhunt-text)] text-[14px] font-normal py-3 px-0 outline-none ' +
+  'min-h-[44px] md:min-h-[40px] transition-colors ' +
+  'focus:border-[var(--success)] placeholder:text-[var(--bjhunt-text-subtle)] ' +
+  '[font-family:var(--bjhunt-font-sans)]'
 
-const LABEL_STYLE: React.CSSProperties = {
-  display: 'block',
-  marginBottom: 8,
-  fontFamily: 'var(--bjhunt-font-mono)',
-  fontSize: 9,
-  letterSpacing: '0.28em',
-  textTransform: 'uppercase',
-  color: 'var(--bjhunt-text-subtle)',
-}
+const labelClass =
+  'block mb-2 [font-family:var(--bjhunt-font-mono)] text-[12px] font-semibold ' +
+  'uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)]'
 
 export default function ResetPasswordPage() {
   const params = useParams<{ locale: string }>()
@@ -85,17 +74,9 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center px-6">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(99,102,241,0.06), transparent 55%)',
-        }}
-      />
-      <div className="relative z-10 w-full max-w-[420px]">
-        <div className="mb-12 flex justify-center">
+    <div className="relative flex min-h-screen items-center justify-center px-6 py-12">
+      <div className="relative z-10 w-full max-w-md mx-auto">
+        <div className="mb-10 flex justify-center">
           <Link href="/" className="flex items-center gap-2.5" aria-label="BJHUNT">
             <LogoSymbol size={22} />
             <LogoWordmark />
@@ -103,26 +84,32 @@ export default function ResetPasswordPage() {
         </div>
 
         <div
-          className="px-9 py-10"
+          className="px-6 md:px-8 py-8 md:w-[420px] md:mx-auto"
           style={{
             border: '1px solid var(--bjhunt-border)',
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.003))',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
+            background: 'var(--bjhunt-bg-secondary)',
           }}
         >
           <p
-            className="m-0 mb-5 font-mono uppercase"
-            style={{ fontSize: 10, letterSpacing: '0.32em', color: 'var(--bjhunt-text-subtle)' }}
+            className="m-0 mb-4 [font-family:var(--bjhunt-font-mono)] uppercase font-semibold"
+            style={{ fontSize: 12, letterSpacing: '0.18em', color: 'var(--bjhunt-text-muted)' }}
           >
-            New password
+            {isFr ? 'Nouveau mot de passe' : 'New password'}
           </p>
-          <h1 className="m-0 mb-3" style={{ fontSize: 32, fontWeight: 200, letterSpacing: '-0.02em' }}>
-            {isFr ? 'Nouveau mot de passe.' : 'New password.'}
+          <h1
+            className="m-0 mb-3 font-normal"
+            style={{
+              fontFamily: 'var(--bjhunt-font-sans)',
+              fontSize: 28,
+              letterSpacing: '-0.025em',
+              lineHeight: 1.11,
+            }}
+          >
+            {isFr ? 'Réinitialiser' : 'Reset password'}
           </h1>
           <p
-            className="m-0 mb-9"
-            style={{ fontSize: 13, fontWeight: 300, lineHeight: 1.55, color: 'var(--bjhunt-text-muted)' }}
+            className="m-0 mb-8 font-normal"
+            style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--bjhunt-text-muted)' }}
           >
             {isFr ? 'Choisissez votre nouveau mot de passe.' : 'Choose your new password.'}
           </p>
@@ -130,35 +117,39 @@ export default function ResetPasswordPage() {
           {success ? (
             <div className="flex flex-col gap-6">
               <div
-                className="px-4 py-3 text-[12px]"
+                role="status"
+                aria-live="polite"
+                className="px-4 py-3 text-[13px] font-normal"
                 style={{
-                  border: '1px solid rgba(48,209,88,0.30)',
-                  background: 'rgba(48,209,88,0.06)',
-                  color: '#7CE8A0',
-                  fontWeight: 300,
+                  border: '1px solid var(--success)',
+                  background: 'var(--success-dim)',
+                  color: 'var(--success)',
                 }}
               >
                 {isFr ? 'Mot de passe réinitialisé avec succès.' : 'Password reset successfully.'}
               </div>
               <Link
                 href="/login"
-                className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 font-mono uppercase"
+                className="inline-flex w-full items-center justify-center gap-2 px-5 [font-family:var(--bjhunt-font-mono)] uppercase tracking-[0.16em] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--success)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bjhunt-bg-secondary)]"
                 style={{
-                  fontSize: 11,
-                  letterSpacing: '0.22em',
-                  color: 'var(--bjhunt-text)',
-                  border: '1px solid var(--bjhunt-border-strong)',
-                  background: 'rgba(255,255,255,0.03)',
+                  fontSize: 12,
+                  color: 'var(--success)',
+                  border: '1px solid var(--success)',
+                  background: 'transparent',
+                  minHeight: 44,
                 }}
               >
-                {isFr ? 'Se connecter →' : 'Sign in →'}
+                {isFr ? 'Se connecter' : 'Sign in'}
               </Link>
             </div>
           ) : (
-            <form onSubmit={submit} className="flex flex-col gap-7">
+            <form onSubmit={submit} className="flex flex-col gap-6" noValidate>
               <div>
-                <label style={LABEL_STYLE}>{isFr ? 'Nouveau mot de passe' : 'New password'}</label>
+                <label htmlFor="newPassword" className={labelClass}>
+                  {isFr ? 'Nouveau mot de passe' : 'New password'}
+                </label>
                 <input
+                  id="newPassword"
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -166,12 +157,15 @@ export default function ResetPasswordPage() {
                   minLength={14}
                   autoComplete="new-password"
                   placeholder={isFr ? '14 caractères minimum' : '14 characters minimum'}
-                  style={FIELD_STYLE}
+                  className={fieldClass}
                 />
               </div>
               <div>
-                <label style={LABEL_STYLE}>{isFr ? 'Confirmer' : 'Confirm'}</label>
+                <label htmlFor="confirmPassword" className={labelClass}>
+                  {isFr ? 'Confirmer' : 'Confirm'}
+                </label>
                 <input
+                  id="confirmPassword"
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -179,17 +173,20 @@ export default function ResetPasswordPage() {
                   minLength={14}
                   autoComplete="new-password"
                   placeholder={isFr ? 'Retapez le mot de passe' : 'Re-enter password'}
-                  style={FIELD_STYLE}
+                  className={fieldClass}
                 />
               </div>
 
               {error && (
                 <div
-                  className="px-4 py-3 text-[12px]"
+                  role="alert"
+                  aria-live="polite"
+                  id="form-error"
+                  className="px-4 py-3 text-[13px] font-normal"
                   style={{
-                    border: '1px solid rgba(255,69,58,0.30)',
-                    background: 'rgba(255,69,58,0.06)',
-                    color: '#FF8A82',
+                    border: '1px solid var(--severity-critical)',
+                    background: 'var(--severity-critical-bg)',
+                    color: 'var(--severity-critical)',
                   }}
                 >
                   {error}
@@ -199,26 +196,37 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 font-mono uppercase disabled:cursor-not-allowed disabled:opacity-50"
+                aria-describedby={error ? 'form-error' : undefined}
+                className="inline-flex w-full items-center justify-center gap-2 mt-2 px-5 font-medium uppercase tracking-[0.16em] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--success)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bjhunt-bg-secondary)]"
                 style={{
-                  fontSize: 11,
-                  letterSpacing: '0.22em',
-                  color: 'var(--bjhunt-text)',
-                  border: '1px solid var(--bjhunt-border-strong)',
-                  background: 'rgba(255,255,255,0.03)',
+                  fontSize: 12,
+                  color: 'var(--success)',
+                  border: '1px solid var(--success)',
+                  background: 'transparent',
+                  minHeight: 44,
+                  fontFamily: 'var(--bjhunt-font-mono)',
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) e.currentTarget.style.background = 'var(--success-dim)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent'
                 }}
               >
                 {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                {loading ? (isFr ? 'Réinitialisation…' : 'Resetting…') : isFr ? 'Réinitialiser →' : 'Reset password →'}
+                {loading ? (isFr ? 'Réinitialisation…' : 'Resetting…') : isFr ? 'Réinitialiser' : 'Reset password'}
               </button>
             </form>
           )}
 
-          <div className="mt-9 pt-7 text-center" style={{ borderTop: '1px solid var(--bjhunt-border)' }}>
+          <div
+            className="mt-8 pt-6 text-center"
+            style={{ borderTop: '1px solid var(--bjhunt-border)' }}
+          >
             <Link
               href="/login"
-              className="font-mono uppercase transition-colors hover:text-white"
-              style={{ fontSize: 9, letterSpacing: '0.22em', color: 'var(--bjhunt-text-subtle)' }}
+              className="[font-family:var(--bjhunt-font-mono)] uppercase transition-colors hover:text-[var(--bjhunt-text)]"
+              style={{ fontSize: 12, letterSpacing: '0.18em', color: 'var(--bjhunt-text-muted)' }}
             >
               {isFr ? '← Retour à la connexion' : '← Back to sign in'}
             </Link>
