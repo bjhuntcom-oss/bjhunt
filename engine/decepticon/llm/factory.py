@@ -64,6 +64,7 @@ class LLMFactory:
             api_key=config.llm.proxy_api_key,
             timeout=config.llm.timeout,
             max_retries=config.llm.max_retries,
+            direct_ollama=config.llm.direct_ollama,
         )
 
     @staticmethod
@@ -113,9 +114,35 @@ class LLMFactory:
         return [self._create_chat_model(assignment.fallback, assignment.temperature)]
 
     def _create_chat_model(self, model: str, temperature: float) -> BaseChatModel:
-        """Create a ChatOpenAI instance routed through LiteLLM proxy."""
+        """Create a ChatOpenAI instance routed through LiteLLM proxy
+        OR direct to Ollama Cloud when proxy.direct_ollama=True.
+
+        In direct-Ollama mode model names are translated from the
+        LiteLLM-prefix form (``ollama-cloud/glm-5.1``) to Ollama Cloud's
+        native naming (``glm-5.1:cloud``). Anthropic / OpenAI model names
+        in this mode are NOT supported and would 404 against ollama.com —
+        the caller should pin the engine to the eco profile (which uses
+        only ollama-cloud/* primaries) when direct_ollama is on.
+        """
+        effective_model = model
+        if self._proxy.direct_ollama:
+            # Strip provider prefix and add :cloud suffix so the request
+            # reaches Ollama Cloud's OpenAI-compat endpoint correctly.
+            if effective_model.startswith("ollama-cloud/"):
+                base = effective_model[len("ollama-cloud/"):]
+                if not base.endswith(":cloud"):
+                    base = f"{base}:cloud"
+                effective_model = base
+            elif effective_model.startswith(("anthropic/", "openai/", "gemini/")):
+                log.warning(
+                    "direct_ollama=True but model '%s' is not Ollama Cloud — "
+                    "request will likely 404. Pin the engine to the eco "
+                    "profile or to ollama-cloud/* models.",
+                    effective_model,
+                )
+
         return ChatOpenAI(
-            model=model,
+            model=effective_model,
             base_url=self._proxy.url,
             api_key=self._proxy.api_key,
             temperature=temperature,
@@ -124,10 +151,21 @@ class LLMFactory:
         )
 
     async def health_check(self) -> bool:
-        """Check if the LiteLLM proxy is reachable."""
+        """Check if the LLM endpoint (LiteLLM or Ollama Cloud) is reachable.
+
+        - LiteLLM proxy: GET /health (returns 200 + JSON envelope).
+        - Ollama Cloud direct: GET /v1/models with bearer auth (returns
+          200 + the cloud models catalogue).
+        """
         try:
             async with httpx.AsyncClient(timeout=5) as client:
-                resp = await client.get(f"{self._proxy.url}/health")
+                if self._proxy.direct_ollama:
+                    resp = await client.get(
+                        f"{self._proxy.url}/models",
+                        headers={"Authorization": f"Bearer {self._proxy.api_key}"},
+                    )
+                else:
+                    resp = await client.get(f"{self._proxy.url}/health")
                 return resp.status_code == 200
         except Exception:
             return False

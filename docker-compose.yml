@@ -278,8 +278,14 @@ services:
     # but NOT create new privileged containers, mount host paths,
     # change the daemon config, etc. — the previous escape-to-host path.
     environment:
-      - BJHUNT_LLM__PROXY_URL=http://litellm:4000
-      - BJHUNT_LLM__PROXY_API_KEY=${LITELLM_MASTER_KEY}
+      # LLM routing: by default we bypass LiteLLM and talk straight to
+      # Ollama Cloud (OpenAI-compatible /v1/chat/completions). LiteLLM is
+      # kept running for spend-tracking / future multi-provider routing
+      # but the engine no longer goes through it. Flip BJHUNT_LLM__DIRECT_OLLAMA=false
+      # + point PROXY_URL back at http://litellm:4000 to re-enable LiteLLM.
+      - BJHUNT_LLM__PROXY_URL=${BJHUNT_LLM_PROXY_URL:-https://ollama.com/v1}
+      - BJHUNT_LLM__PROXY_API_KEY=${BJHUNT_LLM_PROXY_API_KEY:-${OLLAMA_CLOUD_API_KEY:?required}}
+      - BJHUNT_LLM__DIRECT_OLLAMA=${BJHUNT_LLM_DIRECT_OLLAMA:-true}
       - BJHUNT_DOCKER__SANDBOX_CONTAINER_NAME=bjhunt-sandbox
       - BJHUNT_NEO4J_URI=bolt://neo4j:7687
       - BJHUNT_NEO4J_USER=neo4j

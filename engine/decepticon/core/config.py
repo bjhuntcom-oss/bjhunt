@@ -23,12 +23,25 @@ def _project_root() -> Path:
 
 
 class LLMConfig(BaseModel):
-    """LLM proxy connection configuration."""
+    """LLM proxy connection configuration.
+
+    Two modes:
+      1. LiteLLM proxy (default) — engine talks to a LiteLLM proxy that
+         routes to multiple providers (Anthropic, OpenAI, Ollama Cloud,
+         etc.) with fallback chains, budget caps, spend tracking.
+      2. Ollama Cloud direct (``direct_ollama=True``) — engine talks
+         straight to ``https://ollama.com/v1`` (OpenAI-compatible
+         endpoint) using ``OLLAMA_CLOUD_API_KEY``. No fallback to
+         Anthropic/OpenAI, only models reachable via Ollama Cloud
+         (glm-5.1, kimi-k2.5, deepseek-v3.2 etc.).
+         Toggle: ``BJHUNT_LLM__DIRECT_OLLAMA=true``.
+    """
 
     proxy_url: str = "http://localhost:4000"
     proxy_api_key: str = ""  # REQUIRED — set via BJHUNT_LLM__PROXY_API_KEY env var
     timeout: int = 120
     max_retries: int = 2
+    direct_ollama: bool = False  # set via BJHUNT_LLM__DIRECT_OLLAMA=true
 
 
 class DockerConfig(BaseModel):

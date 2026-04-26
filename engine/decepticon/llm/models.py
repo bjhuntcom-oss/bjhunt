@@ -3,7 +3,7 @@
 Each agent role gets a primary model and optional fallback. Three profiles
 control the cost/performance tradeoff:
 
-  eco  — Balanced Anthropic-first ensemble (production engagements)
+  eco  — Ollama Cloud-first ensemble (production engagements)
   max  — Maximum performance, Opus everywhere (high-value targets)
   test — Haiku-only, cheapest possible (development and CI)
 
@@ -12,12 +12,12 @@ Profile selection: BJHUNT_MODEL_PROFILE=max (env var) or config.
 Profiles (April 2026):
 
   eco:
-    Orchestrator  Opus 4.6        → GPT-5.4         $5/$25
-    Planner       Opus 4.6        → GPT-5.4         $5/$25
-    Soundwave     Haiku 4.5       → Gemini 2.5 Flash $1/$5
-    Exploit       Sonnet 4.6      → GPT-4.1         $3/$15
-    Recon         Haiku 4.5       → Gemini 2.5 Flash $1/$5
-    PostExploit   Sonnet 4.6      → GPT-4.1         $3/$15
+    Orchestrator  GLM-5.1         → Opus 4.6
+    Planner       GLM-5.1         → Opus 4.6
+    Soundwave     Kimi K2.5       → GLM-5.1
+    Exploit       GLM-5.1         → Sonnet 4.6
+    Recon         GLM-5.1         → Haiku 4.5
+    PostExploit   GLM-5.1         → Sonnet 4.6
 
   max:
     Orchestrator  Opus 4.6        → GPT-5.4         $5/$25
@@ -62,12 +62,20 @@ KIMI_K2 = "ollama-cloud/kimi-k2.5"
 
 
 class ProxyConfig(BaseModel):
-    """LiteLLM proxy connection settings."""
+    """LLM proxy / direct connection settings.
+
+    When ``direct_ollama=True``, the factory bypasses any LiteLLM proxy
+    and talks straight to ``https://ollama.com/v1`` (OpenAI-compatible)
+    using ``OLLAMA_CLOUD_API_KEY``. Model names are translated from
+    LiteLLM-prefix form (e.g. ``ollama-cloud/glm-5.1``) to Ollama Cloud
+    native form (e.g. ``glm-5.1:cloud``) at create-time.
+    """
 
     url: str = "http://localhost:4000"
     api_key: str = ""  # REQUIRED — set via environment variable
     timeout: int = 120
     max_retries: int = 2
+    direct_ollama: bool = False
 
 
 class ModelAssignment(BaseModel):
@@ -269,7 +277,7 @@ class LLMModelMapping(BaseModel):
         """Create a model mapping from a named profile.
 
         Profiles:
-          eco  — Balanced Anthropic-first (Opus/Sonnet/Haiku mix)
+          eco  — Ollama Cloud-first (GLM/Kimi/DeepSeek with premium fallback)
           max  — Maximum performance (Opus + Sonnet everywhere)
           test — Cheapest possible (Haiku-only, no fallbacks)
         """
