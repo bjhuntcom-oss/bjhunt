@@ -462,6 +462,92 @@ ollamaRoutes.get("/models", async (c) => {
   }
 });
 
+// ── GET /cloud-models — List Ollama Cloud models (OpenAI /v1/models) ───
+// Hits https://ollama.com/v1/models with the configured OLLAMA_CLOUD_API_KEY.
+// Returns the canonical catalogue used by the admin chat-header model
+// switcher. Cached for 5 min to avoid hammering Ollama on every dropdown
+// open.
+let cloudModelsCache: { at: number; data: unknown[] } | null = null;
+const CLOUD_MODELS_TTL_MS = 5 * 60_000;
+
+ollamaRoutes.get("/cloud-models", async (c) => {
+  if (cloudModelsCache && Date.now() - cloudModelsCache.at < CLOUD_MODELS_TTL_MS) {
+    return c.json({ models: cloudModelsCache.data, cached: true });
+  }
+  const apiKey = process.env.OLLAMA_CLOUD_API_KEY;
+  if (!apiKey) {
+    return c.json({ models: [], error: "OLLAMA_CLOUD_API_KEY not set" }, 501);
+  }
+  try {
+    const res = await fetch("https://ollama.com/v1/models", {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) {
+      return c.json({ models: [], error: `Ollama Cloud HTTP ${res.status}` }, 502);
+    }
+    const body = (await res.json()) as {
+      data?: Array<{ id: string; created: number; owned_by: string }>;
+    };
+    const models = (body.data ?? []).map((m) => ({
+      id: m.id,
+      created: m.created,
+      ownedBy: m.owned_by,
+    }));
+    cloudModelsCache = { at: Date.now(), data: models };
+    return c.json({ models, cached: false });
+  } catch (err) {
+    return c.json(
+      { models: [], error: err instanceof Error ? err.message : "fetch_failed" },
+      502,
+    );
+  }
+});
+
+// ── GET /active-model — current platform-wide model override ────────────
+// Stored in platform_settings under key "active_ollama_cloud_model".
+// When set, the engine factory uses this model for ALL roles. Empty/null
+// means "use the per-role mapping from plans.ts".
+
+ollamaRoutes.get("/active-model", async (c) => {
+  const [row] = await sql`
+    SELECT value FROM platform_settings WHERE key = 'active_ollama_cloud_model'
+  `;
+  const v = row?.value as { model?: string } | null;
+  return c.json({ model: v?.model ?? null });
+});
+
+const setActiveModelSchema = z.object({
+  // Empty string = clear the override (revert to per-role mapping).
+  model: z.string().max(120),
+});
+
+ollamaRoutes.put("/active-model", zValidator("json", setActiveModelSchema), async (c) => {
+  const user = c.get("user") as { id: string; orgId: string; email: string };
+  const { model } = c.req.valid("json");
+  const trimmed = model.trim();
+
+  if (trimmed === "") {
+    await sql`DELETE FROM platform_settings WHERE key = 'active_ollama_cloud_model'`;
+  } else {
+    await sql`
+      INSERT INTO platform_settings (key, value)
+      VALUES ('active_ollama_cloud_model', ${JSON.stringify({ model: trimmed })})
+      ON CONFLICT (key) DO UPDATE SET
+        value = EXCLUDED.value,
+        updated_at = now()
+    `;
+  }
+
+  await sql`
+    INSERT INTO audit_logs (org_id, user_id, action, details)
+    VALUES (${user.orgId}, ${user.id}, 'admin.set_active_ollama_model',
+            ${JSON.stringify({ model: trimmed || null })})
+  `.catch(() => {});
+
+  return c.json({ ok: true, model: trimmed || null });
+});
+
 // ── DELETE /models/:name — Delete an Ollama model ───────────────────────
 
 ollamaRoutes.delete("/models/:name", async (c) => {

@@ -393,13 +393,33 @@ chatRoutes.get("/stream/:runId", async (c) => {
     // isn't reading yet the await blocks, freezing the rest of the handler.
     stream.write(": connected\n\n").catch(() => {});
 
+    // Read the optional platform-wide active Ollama Cloud model override
+    // (set by admins via PUT /api/admin/ollama/active-model). When present
+    // it is forwarded to the LangGraph run input so the engine factory
+    // can use it as the model for every agent role on this run.
+    let activeModelOverride: string | null = null;
+    try {
+      const [row] = await sql`
+        SELECT value FROM platform_settings WHERE key = 'active_ollama_cloud_model'
+      `;
+      const v = row?.value as { model?: string } | null;
+      if (v?.model) activeModelOverride = v.model;
+    } catch {
+      // platform_settings table missing or unreachable — fall through with no override
+    }
+
     let upstream: ReadableStream<Uint8Array>;
     let threadId = pending.threadId;
     try {
       upstream = await langgraphClient.streamRun(
         threadId,
         agentId,
-        { content: pending.message, user_id: userId, org_id: orgId },
+        {
+          content: pending.message,
+          user_id: userId,
+          org_id: orgId,
+          ...(activeModelOverride ? { model_override: activeModelOverride } : {}),
+        },
         abort.signal,
       );
     } catch (err: any) {
@@ -431,7 +451,12 @@ chatRoutes.get("/stream/:runId", async (c) => {
         upstream = await langgraphClient.streamRun(
           threadId,
           agentId,
-          { content: pending.message, user_id: userId, org_id: orgId },
+          {
+            content: pending.message,
+            user_id: userId,
+            org_id: orgId,
+            ...(activeModelOverride ? { model_override: activeModelOverride } : {}),
+          },
           abort.signal,
         );
       } catch (retryErr: any) {

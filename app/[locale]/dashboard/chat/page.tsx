@@ -9,6 +9,7 @@ import { SubAgentCard, type SubAgentSession } from "@/components/chat/sub-agent-
 import { OpplanPanel, type Objective } from "@/components/chat/opplan-panel";
 import { KnowledgeGraphPanel, type GraphNode, type GraphEdge, type GraphStats } from "@/components/chat/knowledge-graph-panel";
 import { ChatInput } from "@/components/chat/chat-input";
+import { AdminModelSelector } from "./admin-model-selector";
 import { type PendingFile } from "@/components/chat/file-upload-zone";
 import { ModelSettingsPanel, type ModelSettings } from "@/components/chat/model-settings-panel";
 import { PromptLibraryPanel } from "@/components/chat/prompt-library-panel";
@@ -1576,6 +1577,8 @@ export default function ChatPage() {
                 {AGENTS.find((a) => a.id === selectedAgent)?.description || "agent"}
               </span>
             </div>
+            {/* Admin-only Ollama Cloud model override (no-op for non-admins) */}
+            <AdminModelSelector />
           </div>
           <div className="flex items-center gap-3 text-[9px] uppercase tracking-wider">
             {/* Token counter */}
