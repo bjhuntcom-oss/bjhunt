@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition, useEffect } from 'react'
+import { Loader2 } from 'lucide-react'
 import { browserBackendFetch } from '@/lib/backend-client'
 import { useRouter } from 'next/navigation'
 
@@ -71,8 +72,9 @@ export function UserActionsPanel({ userId, isBlocked }: Props) {
         <button
           onClick={handleRevokeSessions}
           disabled={isPending}
-          className="text-[9px] font-mono text-[var(--text-muted)] hover:text-white uppercase tracking-widest transition-colors disabled:opacity-50"
+          className="text-[9px] font-mono text-[var(--text-muted)] hover:text-white uppercase tracking-widest transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
         >
+          {isPending && <Loader2 size={10} className="animate-spin" />}
           Révoquer sessions
         </button>
       )}
@@ -81,8 +83,9 @@ export function UserActionsPanel({ userId, isBlocked }: Props) {
           <button
             onClick={handleToggleBlock}
             disabled={isPending}
-            className="text-[9px] font-mono text-[var(--warning)] uppercase tracking-widest disabled:opacity-50"
+            className="text-[9px] font-mono text-[var(--warning)] uppercase tracking-widest disabled:opacity-50 inline-flex items-center gap-1.5"
           >
+            {isPending && <Loader2 size={10} className="animate-spin" />}
             {isBlocked ? 'Confirmer débloquer' : 'Confirmer bloquer'}
           </button>
           <button
@@ -110,8 +113,9 @@ export function UserActionsPanel({ userId, isBlocked }: Props) {
           <button
             onClick={handleDelete}
             disabled={isPending}
-            className="text-[9px] font-mono text-[var(--danger)] uppercase tracking-widest disabled:opacity-50"
+            className="text-[9px] font-mono text-[var(--danger)] uppercase tracking-widest disabled:opacity-50 inline-flex items-center gap-1.5"
           >
+            {isPending && <Loader2 size={10} className="animate-spin" />}
             Confirmer
           </button>
           <button
