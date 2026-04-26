@@ -5,11 +5,12 @@ import { useParams } from "next/navigation";
 import { browserBackendFetch } from "@/lib/backend-client";
 import { PlanGate } from "@/components/dashboard/plan-gate";
 import { usePlan } from "@/lib/use-plan";
+import { PageHero, Eyebrow, StatusDot } from "@/components/ui/page-hero";
+import { Button } from "@/components/ui/button";
 import {
   Database,
   Shield,
   Key,
-  Lock,
   Upload,
   Loader2,
   RefreshCw,
@@ -63,27 +64,56 @@ interface AssessmentResult {
   chains: AttackChain[];
 }
 
-// ── Constants ───────────────────────────────────────────────────────────
+// ── Tokens ──────────────────────────────────────────────────────────────
 
-const SEVERITY_COLORS: Record<string, string> = {
-  critical: "var(--severity-critical)",
-  high: "var(--severity-high)",
-  medium: "var(--severity-medium)",
-  low: "var(--severity-low)",
-  info: "var(--severity-info)",
+const SEVERITY_TONE: Record<string, "critical" | "warning" | "success" | "neutral"> = {
+  critical: "critical",
+  high: "critical",
+  medium: "warning",
+  low: "success",
+  info: "neutral",
 };
 
-const SEVERITY_BG: Record<string, string> = {
-  critical: "var(--severity-critical-bg)",
-  high: "var(--severity-high-bg)",
-  medium: "var(--severity-medium-bg)",
-  low: "var(--severity-low-bg)",
-  info: "var(--severity-info-bg)",
+const TONE_COLORS = {
+  critical: "var(--bjhunt-status-danger, #fb565b)",
+  warning: "var(--bjhunt-status-warning, #ffba00)",
+  success: "var(--bjhunt-status-success, #00d992)",
+  neutral: "var(--bjhunt-text-muted, #8b949e)",
 };
 
-const RISK_COLORS: Record<string, string> = {
-  HIGH: "var(--severity-high)",
-  CRITICAL: "var(--severity-critical)",
+const TONE_BG = {
+  critical: "var(--bjhunt-severity-critical-bg, rgba(255,69,58,0.12))",
+  warning: "var(--bjhunt-severity-medium-bg, rgba(255,186,0,0.12))",
+  success: "var(--bjhunt-severity-low-bg, rgba(0,217,146,0.12))",
+  neutral: "transparent",
+};
+
+const RISK_TONE: Record<string, "critical" | "warning"> = {
+  CRITICAL: "critical",
+  HIGH: "warning",
+};
+
+const CARD_STYLE: React.CSSProperties = {
+  background: "var(--bjhunt-bg-secondary, var(--surface, #101010))",
+  borderColor: "var(--bjhunt-border, #3d3a39)",
+  borderRadius: "var(--bjhunt-radius-md, 8px)",
+};
+
+const INPUT_STYLE: React.CSSProperties = {
+  fontFamily: "var(--bjhunt-font-mono)",
+  fontSize: 13,
+  color: "var(--bjhunt-text)",
+  background: "var(--bjhunt-bg, #050507)",
+  border: "1px solid var(--bjhunt-border, #3d3a39)",
+  borderRadius: "var(--bjhunt-radius, 6px)",
+  padding: "8px 12px",
+};
+
+const LABEL_STYLE: React.CSSProperties = {
+  fontFamily: "var(--bjhunt-font-sans)",
+  fontSize: 13,
+  fontWeight: 500,
+  color: "var(--bjhunt-text)",
 };
 
 const DEFAULT_TECHNIQUES: ADTechnique[] = [
@@ -139,7 +169,7 @@ const DEFAULT_TECHNIQUES: ADTechnique[] = [
     id: "bloodhound_path",
     name: "BloodHound Path",
     description: "Shortest path analysis to Domain Admin",
-    mitre: "\u2014",
+    mitre: "—",
     risk: "HIGH",
     enabled: true,
   },
@@ -157,7 +187,6 @@ export default function ADAssessmentPage() {
   const [bhDragOver, setBhDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Target config
   const [domainName, setDomainName] = useState("");
   const [dcHostname, setDcHostname] = useState("");
   const [adUsername, setAdUsername] = useState("");
@@ -171,22 +200,17 @@ export default function ADAssessmentPage() {
   const [isPending, startTransition] = useTransition();
   const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
 
-  // Cleanup polling on unmount
   useEffect(() => {
     return () => {
       if (pollInterval) clearInterval(pollInterval);
     };
   }, [pollInterval]);
 
-  // ── Technique toggle ───────────────────────────────────────────────────
-
   const toggleTechnique = useCallback((id: string) => {
     setTechniques((prev) =>
       prev.map((t) => (t.id === id ? { ...t, enabled: !t.enabled } : t))
     );
   }, []);
-
-  // ── BloodHound upload ──────────────────────────────────────────────────
 
   const handleFileUpload = useCallback(async (file: File) => {
     if (!file) return;
@@ -196,7 +220,7 @@ export default function ADAssessmentPage() {
       setLaunchError(
         ext === ""
           ? "Upload a BloodHound .zip or .json file."
-          : `Unsupported file type ${ext}. Only .zip and .json are accepted.`,
+          : `Unsupported file type ${ext}. Only .zip and .json are accepted.`
       );
       return;
     }
@@ -204,13 +228,6 @@ export default function ADAssessmentPage() {
     setBhUploading(true);
     setLaunchError(null);
     try {
-      // DASH-P0-1: previous implementation generated Math.random() counts
-      // and presented them as real BloodHound parse results. That's now
-      // replaced by an honest client-side count of objects in JSON files
-      // (we count top-level entries by type) and a "pending backend
-      // ingest" placeholder for .zip files. Full extraction lives on the
-      // backend `/api/engagements/:id/graph/ingest` endpoint and is
-      // wired at scan-launch time, not at upload.
       let summary: BloodhoundSummary = {
         usersCount: 0,
         groupsCount: 0,
@@ -227,12 +244,12 @@ export default function ADAssessmentPage() {
           const items: any[] = Array.isArray(json)
             ? json
             : Array.isArray(json.data)
-            ? json.data
-            : Array.isArray(json.users)
-            ? json.users
-            : Array.isArray(json.computers)
-            ? json.computers
-            : [];
+              ? json.data
+              : Array.isArray(json.users)
+                ? json.users
+                : Array.isArray(json.computers)
+                  ? json.computers
+                  : [];
           for (const it of items) {
             const t = (it?.Properties?.objecttype || it?.type || "").toLowerCase();
             if (t === "user") summary.usersCount += 1;
@@ -246,7 +263,6 @@ export default function ADAssessmentPage() {
           return;
         }
       }
-      // .zip files are kept as-is; backend will extract on ingest.
 
       setBloodhound(summary);
     } finally {
@@ -272,8 +288,6 @@ export default function ADAssessmentPage() {
   const handleDragLeave = useCallback(() => {
     setBhDragOver(false);
   }, []);
-
-  // ── Launch assessment ──────────────────────────────────────────────────
 
   const handleLaunch = () => {
     if (!domainName.trim()) return;
@@ -310,7 +324,6 @@ export default function ADAssessmentPage() {
         if (!createRes.ok) return;
         const { engagement } = await createRes.json();
 
-        // Launch
         await browserBackendFetch(`/api/engagements/${engagement.id}/launch`, {
           method: "POST",
         });
@@ -322,11 +335,12 @@ export default function ADAssessmentPage() {
           chains: [],
         });
 
-        // Poll for findings — surface failures so user knows to refresh
         let consecutiveFailures = 0;
         const interval = setInterval(async () => {
           try {
-            const findingsRes = await browserBackendFetch(`/api/engagements/${engagement.id}/findings`);
+            const findingsRes = await browserBackendFetch(
+              `/api/engagements/${engagement.id}/findings`
+            );
             if (findingsRes.ok) {
               const { findings } = await findingsRes.json();
               const chains = buildAttackChains(findings || []);
@@ -340,10 +354,12 @@ export default function ADAssessmentPage() {
             const engRes = await browserBackendFetch(`/api/engagements/${engagement.id}`);
             if (engRes.ok) {
               const { engagement: eng } = await engRes.json();
-              if (eng.status === "completed" || eng.status === "failed" || eng.status === "cancelled") {
-                setResult((prev) =>
-                  prev ? { ...prev, status: eng.status } : prev
-                );
+              if (
+                eng.status === "completed" ||
+                eng.status === "failed" ||
+                eng.status === "cancelled"
+              ) {
+                setResult((prev) => (prev ? { ...prev, status: eng.status } : prev));
                 clearInterval(interval);
                 setPollInterval(null);
               }
@@ -354,7 +370,9 @@ export default function ADAssessmentPage() {
             consecutiveFailures += 1;
             console.error("[ad-scan] poll failure", err);
             if (consecutiveFailures >= 3) {
-              setPollError("Connection to scan poller lost — results may be stale. Refresh the page if this persists.");
+              setPollError(
+                "Connection to scan poller lost — results may be stale. Refresh the page if this persists."
+              );
             }
           }
         }, 5000);
@@ -362,12 +380,12 @@ export default function ADAssessmentPage() {
         setPollInterval(interval);
       } catch (err) {
         console.error("[ad-scan] launch failed", err);
-        setLaunchError(err instanceof Error ? err.message : "Failed to launch AD scan. Please retry.");
+        setLaunchError(
+          err instanceof Error ? err.message : "Failed to launch AD scan. Please retry."
+        );
       }
     });
   };
-
-  // ── Build attack chains from findings ──────────────────────────────────
 
   function buildAttackChains(findings: Finding[]): AttackChain[] {
     if (findings.length === 0) return [];
@@ -378,7 +396,6 @@ export default function ADAssessmentPage() {
     );
 
     if (criticalHigh.length >= 2) {
-      // Build primary chain
       const steps = criticalHigh.map((f) => ({
         label: f.title,
         technique: f.mitreAttack?.[0] || "",
@@ -387,14 +404,17 @@ export default function ADAssessmentPage() {
       chains.push({ steps });
     }
 
-    // Individual critical findings as single-step chains
     findings
       .filter((f) => f.severity === "critical")
       .forEach((f) => {
         chains.push({
           steps: [
             { label: "Initial Access", technique: "", severity: "info" },
-            { label: f.title, technique: f.mitreAttack?.[0] || "", severity: f.severity },
+            {
+              label: f.title,
+              technique: f.mitreAttack?.[0] || "",
+              severity: f.severity,
+            },
             { label: "Domain Admin", technique: "", severity: "critical" },
           ],
         });
@@ -403,495 +423,781 @@ export default function ADAssessmentPage() {
     return chains;
   }
 
-  // ── Severity breakdown ─────────────────────────────────────────────────
-
-  const severityCounts = result?.findings.reduce(
-    (acc, f) => {
-      acc[f.severity] = (acc[f.severity] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>
-  ) || {};
+  const severityCounts =
+    result?.findings.reduce(
+      (acc, f) => {
+        acc[f.severity] = (acc[f.severity] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    ) || {};
 
   const enabledCount = techniques.filter((t) => t.enabled).length;
 
-  // ── Render ─────────────────────────────────────────────────────────────
-
   return (
     <PlanGate requiredPlan="enterprise" currentPlan={plan} featureName="Active Directory Assessment">
-    <div className="p-6 max-w-[1200px] mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-[14px] font-mono font-bold uppercase tracking-widest text-white">
-          Active Directory Scan
-        </h1>
-        <p className="text-[9px] font-mono text-[var(--text-subtle)] mt-1">
-          AD Operator agent — BloodHound, Kerberoast, ADCS abuse, DCSync, golden ticket
-        </p>
-      </div>
+      <div className="px-4 md:px-8 py-6 md:py-10 max-w-[1280px] mx-auto">
+        <PageHero
+          eyebrow="08 / ACTIVE DIRECTORY"
+          title={isFr ? "Audit Active Directory" : "Active Directory Scan"}
+          lede={
+            isFr
+              ? "Agent AD Operator — BloodHound, Kerberoast, ADCS abuse, DCSync, golden ticket."
+              : "AD Operator agent — BloodHound, Kerberoast, ADCS abuse, DCSync, golden ticket."
+          }
+        />
 
-      {(launchError || pollError) && (
-        <div
-          role="alert"
-          className="mb-4 border border-red-500/40 bg-red-500/10 px-3 py-2 text-[10px] font-mono text-red-300 flex items-center justify-between gap-3"
-        >
-          <span>{launchError ?? pollError}</span>
-          <button
-            type="button"
-            onClick={() => {
-              setLaunchError(null);
-              setPollError(null);
+        {(launchError || pollError) && (
+          <div
+            role="alert"
+            className="mb-6 px-4 py-3 flex items-center justify-between gap-3"
+            style={{
+              border: "1px solid var(--bjhunt-status-danger, #fb565b)",
+              background: "var(--bjhunt-severity-critical-bg, rgba(255,69,58,0.12))",
+              color: "var(--bjhunt-status-danger, #fb565b)",
+              fontFamily: "var(--bjhunt-font-sans)",
+              fontSize: 13,
+              borderRadius: "var(--bjhunt-radius, 6px)",
             }}
-            className="text-red-200 hover:text-white"
-            aria-label="Dismiss error"
           >
-            ×
-          </button>
-        </div>
-      )}
-
-      {/* Section 1: BloodHound Upload */}
-      <div className="border border-[var(--border)] mb-6">
-        <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--bg-card)]">
-          <h2 className="text-[11px] font-mono font-bold uppercase tracking-widest text-white">
-            BloodHound Data Upload
-          </h2>
-          <p className="text-[8px] font-mono text-[var(--text-subtle)] mt-0.5">
-            Upload BloodHound collection data for attack path analysis
-          </p>
-        </div>
-
-        <div className="p-4">
-          {!bloodhound ? (
-            <div
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onClick={() => fileInputRef.current?.click()}
-              className={cn(
-                "border-2 border-dashed p-8 text-center cursor-pointer transition-colors",
-                bhDragOver
-                  ? "border-white bg-[var(--bg-card)]"
-                  : "border-[var(--border)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-card)]"
-              )}
+            <span>{launchError ?? pollError}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setLaunchError(null);
+                setPollError(null);
+              }}
+              aria-label="Dismiss"
+              style={{ color: "currentColor" }}
             >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".zip,.json"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleFileUpload(file);
-                }}
-              />
-              {bhUploading ? (
-                <div className="flex flex-col items-center gap-2">
-                  <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
-                  <span className="text-[10px] font-mono text-[var(--text-muted)]">
-                    Parsing BloodHound data...
-                  </span>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2">
-                  <Upload className="w-6 h-6 text-[var(--text-muted)]" />
-                  <span className="text-[10px] font-mono text-[var(--text-muted)]">
-                    Drop BloodHound ZIP or JSON file here
-                  </span>
-                  <span className="text-[8px] font-mono text-[var(--text-subtle)]">
-                    or click to browse
-                  </span>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="border border-[var(--border)]">
-              <div className="px-4 py-2 border-b border-[var(--border)] bg-[var(--bg-card)] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-3 h-3 text-[var(--text-muted)]" />
-                  <span className="text-[10px] font-mono text-white">{bloodhound.fileName}</span>
-                </div>
-                <button
-                  onClick={() => setBloodhound(null)}
-                  className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors"
-                >
-                  Remove
-                </button>
-              </div>
-              <div className="grid grid-cols-5 divide-x divide-[var(--border)]">
-                {[
-                  { label: "Users", value: bloodhound.usersCount, icon: Users },
-                  { label: "Groups", value: bloodhound.groupsCount, icon: Network },
-                  { label: "Computers", value: bloodhound.computersCount, icon: Monitor },
-                  { label: "Domain Trusts", value: bloodhound.domainTrusts, icon: Shield },
-                  { label: "Paths to DA", value: bloodhound.pathsToDa, icon: Key },
-                ].map((stat) => {
-                  const Icon = stat.icon;
-                  return (
-                    <div key={stat.label} className="px-3 py-3 text-center">
-                      <Icon className="w-3 h-3 text-[var(--text-subtle)] mx-auto mb-1" />
-                      <div className="text-[14px] font-mono font-bold text-white">
-                        {stat.value.toLocaleString()}
-                      </div>
-                      <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)]">
-                        {stat.label}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Section 2: Attack Technique Selector */}
-      <div className="border border-[var(--border)] mb-6">
-        <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--bg-card)] flex items-center justify-between">
-          <div>
-            <h2 className="text-[11px] font-mono font-bold uppercase tracking-widest text-white">
-              Attack Techniques
-            </h2>
-            <p className="text-[8px] font-mono text-[var(--text-subtle)] mt-0.5">
-              Select techniques to include in the scan
-            </p>
+              ×
+            </button>
           </div>
-          <span className="text-[9px] font-mono text-[var(--text-muted)]">
-            {enabledCount}/{techniques.length} enabled
-          </span>
-        </div>
+        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 divide-x divide-[var(--border)]">
-          {techniques.map((tech) => (
-            <div
-              key={tech.id}
-              className={cn(
-                "border-b border-[var(--border)] p-3 transition-colors cursor-pointer",
-                tech.enabled ? "bg-[var(--bg-card)]" : "hover:bg-[var(--bg-card)]"
-              )}
-              onClick={() => toggleTechnique(tech.id)}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div
-                    className={cn(
-                      "w-3.5 h-3.5 border flex items-center justify-center flex-shrink-0 transition-colors",
-                      tech.enabled
-                        ? "border-[var(--success)] bg-[var(--success)]"
-                        : "border-[var(--border-strong)]"
-                    )}
-                  >
-                    {tech.enabled && <CheckCircle className="w-2.5 h-2.5 text-black" />}
-                  </div>
-                  <span
-                    className={cn(
-                      "text-[10px] font-mono font-bold uppercase tracking-wider truncate",
-                      tech.enabled ? "text-white" : "text-[var(--text-muted)]"
-                    )}
-                  >
-                    {tech.name}
-                  </span>
-                </div>
-                <span
-                  className="text-[7px] font-mono uppercase tracking-widest px-1 py-0.5 border flex-shrink-0 ml-2"
+        {/* Section 1: BloodHound Upload */}
+        <section className="mb-8">
+          <div className="mb-3">
+            <Eyebrow>BloodHound Data Upload</Eyebrow>
+          </div>
+          <div className="border" style={CARD_STYLE}>
+            <div className="p-6">
+              {!bloodhound ? (
+                <div
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border border-dashed p-10 text-center cursor-pointer transition-colors"
                   style={{
-                    borderColor: RISK_COLORS[tech.risk],
-                    color: RISK_COLORS[tech.risk],
+                    borderColor: bhDragOver
+                      ? "var(--bjhunt-status-success, #00d992)"
+                      : "var(--bjhunt-border, #3d3a39)",
+                    background: bhDragOver
+                      ? "var(--bjhunt-severity-low-bg, rgba(0,217,146,0.06))"
+                      : "transparent",
+                    borderRadius: "var(--bjhunt-radius-md, 8px)",
                   }}
                 >
-                  {tech.risk}
-                </span>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".zip,.json"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload(file);
+                    }}
+                  />
+                  {bhUploading ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2
+                        className="w-6 h-6 animate-spin"
+                        style={{ color: "var(--bjhunt-text-muted)" }}
+                      />
+                      <span
+                        style={{
+                          fontFamily: "var(--bjhunt-font-sans)",
+                          fontSize: 13,
+                          color: "var(--bjhunt-text-muted)",
+                        }}
+                      >
+                        Parsing BloodHound data...
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload
+                        className="w-6 h-6"
+                        style={{ color: "var(--bjhunt-text-muted)" }}
+                      />
+                      <span
+                        style={{
+                          fontFamily: "var(--bjhunt-font-sans)",
+                          fontSize: 14,
+                          color: "var(--bjhunt-text)",
+                        }}
+                      >
+                        Drop BloodHound ZIP or JSON file here
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: "var(--bjhunt-font-mono)",
+                          fontSize: 12,
+                          color: "var(--bjhunt-text-muted)",
+                        }}
+                      >
+                        or click to browse
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div
+                  className="border"
+                  style={{
+                    borderColor: "var(--bjhunt-border, #3d3a39)",
+                    borderRadius: "var(--bjhunt-radius-md, 8px)",
+                  }}
+                >
+                  <div
+                    className="px-4 py-3 flex items-center justify-between border-b"
+                    style={{ borderColor: "var(--bjhunt-border, #3d3a39)" }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText
+                        className="w-4 h-4"
+                        style={{ color: "var(--bjhunt-text-muted)" }}
+                      />
+                      <span
+                        style={{
+                          fontFamily: "var(--bjhunt-font-mono)",
+                          fontSize: 13,
+                          color: "var(--bjhunt-text)",
+                        }}
+                      >
+                        {bloodhound.fileName}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setBloodhound(null)}
+                      className="transition-colors"
+                      style={{
+                        fontFamily: "var(--bjhunt-font-mono)",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        letterSpacing: "0.18em",
+                        textTransform: "uppercase",
+                        color: "var(--bjhunt-status-danger, #fb565b)",
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-5">
+                    {[
+                      { label: "Users", value: bloodhound.usersCount, icon: Users },
+                      { label: "Groups", value: bloodhound.groupsCount, icon: Network },
+                      { label: "Computers", value: bloodhound.computersCount, icon: Monitor },
+                      { label: "Domain Trusts", value: bloodhound.domainTrusts, icon: Shield },
+                      { label: "Paths to DA", value: bloodhound.pathsToDa, icon: Key },
+                    ].map((stat, idx) => {
+                      const Icon = stat.icon;
+                      return (
+                        <div
+                          key={stat.label}
+                          className="px-4 py-4 text-center"
+                          style={{
+                            borderLeft:
+                              idx === 0
+                                ? "none"
+                                : "1px solid var(--bjhunt-border, #3d3a39)",
+                          }}
+                        >
+                          <Icon
+                            className="w-4 h-4 mx-auto mb-2"
+                            style={{ color: "var(--bjhunt-text-muted)" }}
+                          />
+                          <div
+                            style={{
+                              fontFamily: "var(--bjhunt-font-mono)",
+                              fontSize: 24,
+                              fontWeight: 600,
+                              color: "var(--bjhunt-text)",
+                            }}
+                          >
+                            {stat.value.toLocaleString()}
+                          </div>
+                          <Eyebrow>{stat.label}</Eyebrow>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Section 2: Attack Technique Selector */}
+        <section className="mb-8">
+          <div className="mb-3 flex items-center justify-between">
+            <Eyebrow>Attack Techniques</Eyebrow>
+            <span
+              style={{
+                fontFamily: "var(--bjhunt-font-mono)",
+                fontSize: 13,
+                color: "var(--bjhunt-text-muted)",
+              }}
+            >
+              {enabledCount}/{techniques.length} enabled
+            </span>
+          </div>
+          <div
+            className="border grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            style={CARD_STYLE}
+          >
+            {techniques.map((tech, idx) => {
+              const tone = RISK_TONE[tech.risk];
+              return (
+                <button
+                  key={tech.id}
+                  onClick={() => toggleTechnique(tech.id)}
+                  className="p-4 text-left transition-colors"
+                  style={{
+                    background: tech.enabled ? "var(--bjhunt-bg, #050507)" : "transparent",
+                    borderTop:
+                      idx >= 4
+                        ? "1px solid var(--bjhunt-border, #3d3a39)"
+                        : idx > 0 && idx < 4 && (idx === 1 || idx === 2 || idx === 3)
+                          ? "none"
+                          : "none",
+                    borderLeft:
+                      idx % 4 !== 0 ? "1px solid var(--bjhunt-border, #3d3a39)" : "none",
+                  }}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        aria-hidden
+                        className="inline-flex items-center justify-center shrink-0"
+                        style={{
+                          width: 16,
+                          height: 16,
+                          marginTop: 1,
+                          border: `1px solid ${tech.enabled ? "var(--bjhunt-status-success, #00d992)" : "var(--bjhunt-border-strong, #5a5654)"}`,
+                          background: tech.enabled
+                            ? "var(--bjhunt-status-success, #00d992)"
+                            : "transparent",
+                          borderRadius: "var(--bjhunt-radius-sm, 4px)",
+                        }}
+                      >
+                        {tech.enabled && (
+                          <CheckCircle className="w-2.5 h-2.5" style={{ color: "#000" }} />
+                        )}
+                      </span>
+                      <h4
+                        className="m-0 truncate"
+                        style={{
+                          fontFamily: "var(--bjhunt-font-sans)",
+                          fontWeight: 600,
+                          fontSize: 14,
+                          color: tech.enabled ? "var(--bjhunt-text)" : "var(--bjhunt-text-muted)",
+                        }}
+                      >
+                        {tech.name}
+                      </h4>
+                    </div>
+                    <span
+                      className="shrink-0"
+                      style={{
+                        fontFamily: "var(--bjhunt-font-mono)",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        letterSpacing: "0.18em",
+                        textTransform: "uppercase",
+                        color: TONE_COLORS[tone],
+                        border: `1px solid ${TONE_COLORS[tone]}`,
+                        borderRadius: "var(--bjhunt-radius-sm, 4px)",
+                        padding: "1px 5px",
+                      }}
+                    >
+                      {tech.risk}
+                    </span>
+                  </div>
+                  <p
+                    className="mb-2"
+                    style={{
+                      fontFamily: "var(--bjhunt-font-sans)",
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                      color: "var(--bjhunt-text-muted)",
+                      margin: 0,
+                    }}
+                  >
+                    {tech.description}
+                  </p>
+                  {tech.mitre !== "—" && (
+                    <span
+                      style={{
+                        fontFamily: "var(--bjhunt-font-mono)",
+                        fontSize: 11,
+                        color: "var(--bjhunt-text-muted)",
+                        border: "1px solid var(--bjhunt-border, #3d3a39)",
+                        borderRadius: "var(--bjhunt-radius-sm, 4px)",
+                        padding: "1px 5px",
+                      }}
+                    >
+                      {tech.mitre}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Section 3: Target Configuration */}
+        <section className="mb-8">
+          <div className="mb-3">
+            <Eyebrow>Target Configuration</Eyebrow>
+          </div>
+          <div className="border" style={CARD_STYLE}>
+            <div
+              className="p-6 space-y-5 border-b"
+              style={{ borderColor: "var(--bjhunt-border, #3d3a39)" }}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block mb-2" style={LABEL_STYLE}>
+                    Domain Name *
+                  </label>
+                  <input
+                    value={domainName}
+                    onChange={(e) => setDomainName(e.target.value)}
+                    style={{ ...INPUT_STYLE, width: "100%", height: 40 }}
+                    placeholder="corp.example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-2" style={LABEL_STYLE}>
+                    Domain Controller IP / Hostname
+                  </label>
+                  <input
+                    value={dcHostname}
+                    onChange={(e) => setDcHostname(e.target.value)}
+                    style={{ ...INPUT_STYLE, width: "100%", height: 40 }}
+                    placeholder="dc01.corp.example.com or 10.0.0.10"
+                  />
+                </div>
               </div>
-              <p className="text-[9px] font-mono text-[var(--text-muted)] leading-relaxed mb-2">
-                {tech.description}
+
+              <div>
+                <label className="block mb-2" style={LABEL_STYLE}>
+                  Credentials (Optional)
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    value={adUsername}
+                    onChange={(e) => setAdUsername(e.target.value)}
+                    style={{ ...INPUT_STYLE, width: "100%", height: 40 }}
+                    placeholder="CORP\username or user@corp.example.com"
+                  />
+                  <input
+                    type="password"
+                    value={adPassword}
+                    onChange={(e) => setAdPassword(e.target.value)}
+                    style={{ ...INPUT_STYLE, width: "100%", height: 40 }}
+                    placeholder="Password or NTLM hash"
+                  />
+                </div>
+                <p
+                  className="mt-2"
+                  style={{
+                    fontFamily: "var(--bjhunt-font-sans)",
+                    fontSize: 13,
+                    color: "var(--bjhunt-text-muted)",
+                  }}
+                >
+                  Provide domain credentials for authenticated enumeration. Supports password or NTLM hash.
+                </p>
+              </div>
+
+              <div>
+                <label className="block mb-2" style={LABEL_STYLE}>
+                  Scan Scope
+                </label>
+                <div
+                  className="inline-flex items-center mb-2 border overflow-hidden"
+                  style={{
+                    borderColor: "var(--bjhunt-border, #3d3a39)",
+                    borderRadius: "var(--bjhunt-radius, 6px)",
+                  }}
+                >
+                  {(["full", "specific"] as const).map((s, idx) => (
+                    <button
+                      key={s}
+                      onClick={() => setScope(s)}
+                      className="px-4 transition-colors"
+                      style={{
+                        height: 36,
+                        fontFamily: "var(--bjhunt-font-sans)",
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color:
+                          scope === s ? "var(--bjhunt-text)" : "var(--bjhunt-text-muted)",
+                        background:
+                          scope === s
+                            ? "var(--bjhunt-bg-secondary, var(--surface, #101010))"
+                            : "transparent",
+                        borderLeft:
+                          idx === 0 ? "none" : "1px solid var(--bjhunt-border, #3d3a39)",
+                      }}
+                    >
+                      {s === "full" ? "Full Domain" : "Specific OUs"}
+                    </button>
+                  ))}
+                </div>
+                {scope === "specific" && (
+                  <textarea
+                    value={specificOUs}
+                    onChange={(e) => setSpecificOUs(e.target.value)}
+                    rows={3}
+                    style={{ ...INPUT_STYLE, width: "100%", resize: "vertical" }}
+                    placeholder={
+                      "OU=Engineering,DC=corp,DC=example,DC=com\nOU=IT,DC=corp,DC=example,DC=com"
+                    }
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="px-6 py-4 flex items-center justify-between flex-wrap gap-3">
+              <p
+                style={{
+                  fontFamily: "var(--bjhunt-font-mono)",
+                  fontSize: 13,
+                  color: "var(--bjhunt-text-muted)",
+                  margin: 0,
+                }}
+              >
+                Agent: <span style={{ color: "var(--bjhunt-text)" }}>AD Operator</span> ·
+                Techniques: <span style={{ color: "var(--bjhunt-text)" }}>{enabledCount}</span>{" "}
+                · Scope:{" "}
+                <span style={{ color: "var(--bjhunt-text)" }}>
+                  {scope === "full" ? "Full Domain" : "Specific OUs"}
+                </span>
               </p>
-              {tech.mitre !== "\u2014" && (
-                <span className="text-[8px] font-mono px-1 py-0.5 bg-[var(--bg)] border border-[var(--border)] text-[var(--text-subtle)]">
-                  {tech.mitre}
+              <Button
+                variant="success"
+                size="md"
+                onClick={handleLaunch}
+                disabled={isPending || result?.status === "running" || !domainName.trim()}
+              >
+                {isPending || result?.status === "running" ? (
+                  <Loader2 className="w-3 h-3 animate-spin mr-2" />
+                ) : (
+                  <Database className="w-3 h-3 mr-2" />
+                )}
+                {result?.status === "running"
+                  ? isFr
+                    ? "Scan en cours..."
+                    : "Running..."
+                  : isFr
+                    ? "Lancer le scan AD"
+                    : "Start AD Scan"}
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* Results */}
+        {result && (
+          <section className="mb-8">
+            <div className="mb-3 flex items-center gap-3 flex-wrap">
+              <Eyebrow>{isFr ? "Resultats" : "Scan Results"}</Eyebrow>
+              <StatusDot
+                state={
+                  result.status === "completed"
+                    ? "success"
+                    : result.status === "running"
+                      ? "warning"
+                      : "critical"
+                }
+                label={
+                  <span
+                    style={{
+                      fontFamily: "var(--bjhunt-font-mono)",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      letterSpacing: "0.18em",
+                      textTransform: "uppercase",
+                      color:
+                        result.status === "completed"
+                          ? "var(--bjhunt-status-success, #00d992)"
+                          : result.status === "running"
+                            ? "var(--bjhunt-status-warning, #ffba00)"
+                            : "var(--bjhunt-status-danger, #fb565b)",
+                    }}
+                  >
+                    {result.status}
+                  </span>
+                }
+                pulse={result.status === "running"}
+              />
+              {result.status === "running" && (
+                <span
+                  className="inline-flex items-center gap-1.5"
+                  style={{
+                    fontFamily: "var(--bjhunt-font-sans)",
+                    fontSize: 13,
+                    color: "var(--bjhunt-status-warning, #ffba00)",
+                  }}
+                >
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  Polling for findings...
                 </span>
               )}
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Section 3: Target Configuration */}
-      <div className="border border-[var(--border)] mb-6">
-        <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--bg-card)]">
-          <h2 className="text-[11px] font-mono font-bold uppercase tracking-widest text-white">
-            Target Configuration
-          </h2>
-        </div>
-
-        <div className="p-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
-                Domain Name *
-              </label>
-              <input
-                value={domainName}
-                onChange={(e) => setDomainName(e.target.value)}
-                className="w-full bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--border-strong)]"
-                placeholder="corp.example.com"
-              />
-            </div>
-            <div>
-              <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
-                Domain Controller IP / Hostname
-              </label>
-              <input
-                value={dcHostname}
-                onChange={(e) => setDcHostname(e.target.value)}
-                className="w-full bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--border-strong)]"
-                placeholder="dc01.corp.example.com or 10.0.0.10"
-              />
-            </div>
-          </div>
-
-          {/* Credentials (optional) */}
-          <div>
-            <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
-              Credentials (Optional)
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                value={adUsername}
-                onChange={(e) => setAdUsername(e.target.value)}
-                className="w-full bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--border-strong)]"
-                placeholder="CORP\username or user@corp.example.com"
-              />
-              <input
-                type="password"
-                value={adPassword}
-                onChange={(e) => setAdPassword(e.target.value)}
-                className="w-full bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--border-strong)]"
-                placeholder="Password or NTLM hash"
-              />
-            </div>
-            <p className="text-[8px] font-mono text-[var(--text-subtle)] mt-1">
-              Provide domain credentials for authenticated enumeration. Supports password or NTLM hash.
-            </p>
-          </div>
-
-          {/* Scope */}
-          <div>
-            <label className="block text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
-              Scan Scope
-            </label>
-            <div className="flex gap-2 mb-2">
-              {(["full", "specific"] as const).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setScope(s)}
-                  className={cn(
-                    "px-3 py-1.5 text-[10px] font-mono border transition-colors uppercase tracking-wider",
-                    scope === s
-                      ? "border-white text-white bg-[var(--bg-card)]"
-                      : "border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-white"
-                  )}
+            <div className="border" style={CARD_STYLE}>
+              {result.findings.length > 0 && (
+                <div
+                  className="px-6 py-4 flex items-center gap-3 flex-wrap border-b"
+                  style={{ borderColor: "var(--bjhunt-border, #3d3a39)" }}
                 >
-                  {s === "full" ? "Full Domain" : "Specific OUs"}
-                </button>
-              ))}
-            </div>
-            {scope === "specific" && (
-              <textarea
-                value={specificOUs}
-                onChange={(e) => setSpecificOUs(e.target.value)}
-                rows={3}
-                className="w-full bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2 text-[10px] font-mono text-white focus:outline-none focus:border-[var(--border-strong)] resize-none"
-                placeholder={"OU=Engineering,DC=corp,DC=example,DC=com\nOU=IT,DC=corp,DC=example,DC=com"}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Launch */}
-        <div className="px-4 py-3 border-t border-[var(--border)] bg-[var(--bg-card)] flex items-center justify-between">
-          <div className="text-[9px] font-mono text-[var(--text-subtle)]">
-            Agent: <span className="text-white">AD Operator</span> |
-            Techniques: <span className="text-white">{enabledCount}</span> |
-            Scope: <span className="text-white">{scope === "full" ? "Full Domain" : "Specific OUs"}</span>
-          </div>
-          <button
-            onClick={handleLaunch}
-            disabled={isPending || result?.status === "running" || !domainName.trim()}
-            className="flex items-center gap-1.5 px-4 py-1.5 text-[10px] font-mono font-bold uppercase tracking-widest bg-white text-black hover:opacity-90 transition-opacity disabled:opacity-40"
-          >
-            {isPending || result?.status === "running" ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
-              <Database className="w-3 h-3" />
-            )}
-            {result?.status === "running"
-              ? isFr ? "Scan en cours..." : "Running..."
-              : isFr ? "Lancer le scan AD" : "Start AD Scan"}
-          </button>
-        </div>
-      </div>
-
-      {/* Results */}
-      {result && (
-        <div className="border border-[var(--border)]">
-          <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--bg-card)] flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h2 className="text-[11px] font-mono font-bold uppercase tracking-widest text-white">
-                Scan Results
-              </h2>
-              <span
-                className={cn(
-                  "text-[8px] font-mono uppercase tracking-widest px-1.5 py-0.5 border",
-                  result.status === "running"
-                    ? "border-[var(--warning)] text-[var(--warning)]"
-                    : result.status === "completed"
-                      ? "border-[var(--success)] text-[var(--success)]"
-                      : "border-[var(--danger)] text-[var(--danger)]"
-                )}
-              >
-                {result.status}
-              </span>
-            </div>
-            {result.status === "running" && (
-              <div className="flex items-center gap-1.5 text-[9px] font-mono text-[var(--warning)]">
-                <RefreshCw className="w-3 h-3 animate-spin" />
-                Polling for findings...
-              </div>
-            )}
-          </div>
-
-          {/* Severity summary */}
-          {result.findings.length > 0 && (
-            <div className="px-4 py-3 border-b border-[var(--border)] flex items-center gap-4">
-              <span className="text-[9px] font-mono text-[var(--text-muted)]">
-                {result.findings.length} finding{result.findings.length !== 1 ? "s" : ""}
-              </span>
-              {(["critical", "high", "medium", "low", "info"] as const).map((sev) => {
-                const count = severityCounts[sev] || 0;
-                if (count === 0) return null;
-                return (
                   <span
-                    key={sev}
-                    className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 border"
                     style={{
-                      borderColor: SEVERITY_COLORS[sev],
-                      color: SEVERITY_COLORS[sev],
-                      backgroundColor: SEVERITY_BG[sev],
+                      fontFamily: "var(--bjhunt-font-mono)",
+                      fontSize: 13,
+                      color: "var(--bjhunt-text-muted)",
                     }}
                   >
-                    {count} {sev}
+                    {result.findings.length} finding{result.findings.length !== 1 ? "s" : ""}
                   </span>
-                );
-              })}
-            </div>
-          )}
+                  {(["critical", "high", "medium", "low", "info"] as const).map((sev) => {
+                    const count = severityCounts[sev] || 0;
+                    if (count === 0) return null;
+                    const tone = SEVERITY_TONE[sev];
+                    return (
+                      <span
+                        key={sev}
+                        className="inline-flex items-center"
+                        style={{
+                          fontFamily: "var(--bjhunt-font-mono)",
+                          fontSize: 12,
+                          fontWeight: 600,
+                          letterSpacing: "0.18em",
+                          textTransform: "uppercase",
+                          color: TONE_COLORS[tone],
+                          background: TONE_BG[tone],
+                          border: `1px solid ${TONE_COLORS[tone]}`,
+                          borderRadius: "var(--bjhunt-radius-sm, 4px)",
+                          padding: "2px 6px",
+                        }}
+                      >
+                        {count} {sev}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
 
-          {/* Attack chains */}
-          {result.chains.length > 0 && (
-            <div className="px-4 py-3 border-b border-[var(--border)]">
-              <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-2">
-                Attack Chains
-              </div>
-              <div className="space-y-2">
-                {result.chains.map((chain, ci) => (
-                  <div key={ci} className="flex items-center gap-0 overflow-x-auto pb-1">
-                    {chain.steps.map((step, si) => (
-                      <div key={si} className="flex items-center flex-shrink-0">
-                        <div
-                          className="px-2.5 py-1.5 border text-[9px] font-mono max-w-[200px] truncate"
-                          style={{
-                            borderColor: SEVERITY_COLORS[step.severity] || "var(--border)",
-                            color: SEVERITY_COLORS[step.severity] || "var(--text-muted)",
-                            backgroundColor: SEVERITY_BG[step.severity] || "transparent",
-                          }}
-                          title={step.label}
-                        >
-                          <div className="truncate">{step.label}</div>
-                          {step.technique && (
-                            <div className="text-[7px] text-[var(--text-subtle)] mt-0.5">
-                              {step.technique}
+              {result.chains.length > 0 && (
+                <div
+                  className="px-6 py-4 border-b"
+                  style={{ borderColor: "var(--bjhunt-border, #3d3a39)" }}
+                >
+                  <Eyebrow>Attack Chains</Eyebrow>
+                  <div className="mt-3 space-y-3">
+                    {result.chains.map((chain, ci) => (
+                      <div key={ci} className="flex items-center gap-1 overflow-x-auto pb-1">
+                        {chain.steps.map((step, si) => {
+                          const tone = SEVERITY_TONE[step.severity] || "neutral";
+                          return (
+                            <div key={si} className="flex items-center shrink-0">
+                              <div
+                                className="px-3 py-2 max-w-[200px] truncate"
+                                style={{
+                                  border: `1px solid ${TONE_COLORS[tone]}`,
+                                  background: TONE_BG[tone],
+                                  borderRadius: "var(--bjhunt-radius, 6px)",
+                                }}
+                                title={step.label}
+                              >
+                                <div
+                                  className="truncate"
+                                  style={{
+                                    fontFamily: "var(--bjhunt-font-sans)",
+                                    fontSize: 13,
+                                    color: TONE_COLORS[tone],
+                                  }}
+                                >
+                                  {step.label}
+                                </div>
+                                {step.technique && (
+                                  <div
+                                    style={{
+                                      fontFamily: "var(--bjhunt-font-mono)",
+                                      fontSize: 11,
+                                      color: "var(--bjhunt-text-muted)",
+                                      marginTop: 2,
+                                    }}
+                                  >
+                                    {step.technique}
+                                  </div>
+                                )}
+                              </div>
+                              {si < chain.steps.length - 1 && (
+                                <ChevronRight
+                                  className="w-3 h-3 mx-1 shrink-0"
+                                  style={{ color: TONE_COLORS[tone] }}
+                                />
+                              )}
                             </div>
-                          )}
-                        </div>
-                        {si < chain.steps.length - 1 && (
-                          <ChevronRight
-                            className="w-3 h-3 flex-shrink-0 mx-1"
-                            style={{
-                              color: SEVERITY_COLORS[step.severity] || "var(--text-subtle)",
-                            }}
-                          />
-                        )}
+                          );
+                        })}
                       </div>
                     ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Findings list */}
-          {result.findings.length === 0 ? (
-            <div className="px-4 py-8 text-center text-[11px] font-mono text-[var(--text-muted)]">
-              {result.status === "running"
-                ? "Waiting for findings..."
-                : "No findings detected."}
-            </div>
-          ) : (
-            <div className="divide-y divide-[var(--border)]">
-              {result.findings.map((f) => (
-                <div key={f.id} className="px-4 py-3">
-                  <div className="flex items-start gap-3">
-                    <div
-                      className="w-1.5 h-1.5 flex-shrink-0 mt-1.5"
-                      style={{ backgroundColor: SEVERITY_COLORS[f.severity] }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[11px] font-mono text-white font-bold">
-                          {f.title}
-                        </span>
-                        <span
-                          className="text-[8px] font-mono uppercase tracking-widest px-1.5 py-0.5 border"
-                          style={{
-                            borderColor: SEVERITY_COLORS[f.severity],
-                            color: SEVERITY_COLORS[f.severity],
-                          }}
-                        >
-                          {f.severity}
-                        </span>
-                        {f.mitreAttack?.map((m) => (
-                          <span
-                            key={m}
-                            className="text-[8px] font-mono px-1 py-0.5 bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-subtle)]"
-                          >
-                            {m}
-                          </span>
-                        ))}
-                      </div>
-                      {f.description && (
-                        <p className="text-[10px] font-mono text-[var(--text-muted)] mt-1 leading-relaxed">
-                          {f.description}
-                        </p>
-                      )}
-                      {f.remediation && (
-                        <div className="mt-2 px-3 py-2 border-l-2 border-[var(--success)] bg-[var(--success-dim)]">
-                          <span className="text-[8px] font-mono uppercase tracking-widest text-[var(--success)] block mb-0.5">
-                            Remediation
-                          </span>
-                          <p className="text-[9px] font-mono text-[var(--text-muted)] leading-relaxed">
-                            {f.remediation}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
                 </div>
-              ))}
+              )}
+
+              {result.findings.length === 0 ? (
+                <div
+                  className="px-6 py-12 text-center"
+                  style={{
+                    fontFamily: "var(--bjhunt-font-sans)",
+                    fontSize: 14,
+                    color: "var(--bjhunt-text-muted)",
+                  }}
+                >
+                  {result.status === "running"
+                    ? "Waiting for findings..."
+                    : "No findings detected."}
+                </div>
+              ) : (
+                <div>
+                  {result.findings.map((f, idx) => {
+                    const tone = SEVERITY_TONE[f.severity];
+                    return (
+                      <div
+                        key={f.id}
+                        className="px-6 py-4"
+                        style={{
+                          borderTop:
+                            idx === 0
+                              ? "none"
+                              : "1px solid var(--bjhunt-border, #3d3a39)",
+                        }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span
+                            aria-hidden
+                            className="shrink-0 mt-2"
+                            style={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: "var(--bjhunt-radius-pill, 9999px)",
+                              background: TONE_COLORS[tone],
+                            }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4
+                                className="m-0"
+                                style={{
+                                  fontFamily: "var(--bjhunt-font-sans)",
+                                  fontWeight: 600,
+                                  fontSize: 14,
+                                  color: "var(--bjhunt-text)",
+                                }}
+                              >
+                                {f.title}
+                              </h4>
+                              <span
+                                style={{
+                                  fontFamily: "var(--bjhunt-font-mono)",
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  letterSpacing: "0.18em",
+                                  textTransform: "uppercase",
+                                  color: TONE_COLORS[tone],
+                                  border: `1px solid ${TONE_COLORS[tone]}`,
+                                  borderRadius: "var(--bjhunt-radius-sm, 4px)",
+                                  padding: "1px 5px",
+                                }}
+                              >
+                                {f.severity}
+                              </span>
+                              {f.mitreAttack?.map((m) => (
+                                <span
+                                  key={m}
+                                  style={{
+                                    fontFamily: "var(--bjhunt-font-mono)",
+                                    fontSize: 11,
+                                    color: "var(--bjhunt-text-muted)",
+                                    border: "1px solid var(--bjhunt-border, #3d3a39)",
+                                    borderRadius: "var(--bjhunt-radius-sm, 4px)",
+                                    padding: "1px 5px",
+                                  }}
+                                >
+                                  {m}
+                                </span>
+                              ))}
+                            </div>
+                            {f.description && (
+                              <p
+                                className="mt-1"
+                                style={{
+                                  fontFamily: "var(--bjhunt-font-sans)",
+                                  fontSize: 13,
+                                  lineHeight: 1.5,
+                                  color: "var(--bjhunt-text-muted)",
+                                  margin: 0,
+                                }}
+                              >
+                                {f.description}
+                              </p>
+                            )}
+                            {f.remediation && (
+                              <div
+                                className="mt-2 px-3 py-2"
+                                style={{
+                                  borderLeft:
+                                    "2px solid var(--bjhunt-status-success, #00d992)",
+                                  background:
+                                    "var(--bjhunt-severity-low-bg, rgba(0,217,146,0.12))",
+                                  borderRadius:
+                                    "0 var(--bjhunt-radius, 6px) var(--bjhunt-radius, 6px) 0",
+                                }}
+                              >
+                                <Eyebrow>Remediation</Eyebrow>
+                                <p
+                                  className="mt-1"
+                                  style={{
+                                    fontFamily: "var(--bjhunt-font-sans)",
+                                    fontSize: 13,
+                                    lineHeight: 1.5,
+                                    color: "var(--bjhunt-text)",
+                                    margin: 0,
+                                  }}
+                                >
+                                  {f.remediation}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      )}
-    </div>
+          </section>
+        )}
+      </div>
     </PlanGate>
   );
 }

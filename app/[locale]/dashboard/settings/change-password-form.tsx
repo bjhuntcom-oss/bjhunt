@@ -10,6 +10,18 @@ interface ChangePasswordFormProps {
   locale: string
 }
 
+const LABEL_STYLE: React.CSSProperties = {
+  fontFamily: 'var(--bjhunt-font-sans)',
+  fontSize: 13,
+  fontWeight: 500,
+  color: 'var(--bjhunt-text)',
+}
+
+const INPUT_STYLE: React.CSSProperties = {
+  height: 40,
+  borderRadius: 'var(--bjhunt-radius, 6px)',
+}
+
 export function ChangePasswordForm({ locale }: ChangePasswordFormProps) {
   const isFr = locale === 'fr'
   const [currentPassword, setCurrentPassword] = useState('')
@@ -32,8 +44,6 @@ export function ChangePasswordForm({ locale }: ChangePasswordFormProps) {
 
       if (!res.ok) {
         const body = await res.json().catch(() => null)
-        // Backend can return `error: "string"` (legacy) or `error: { code }`
-        // (new structured envelope). Cover both shapes.
         const code =
           (typeof body?.error === 'string' ? body.error : body?.error?.code) ??
           'CHANGE_PASSWORD_FAILED'
@@ -78,22 +88,25 @@ export function ChangePasswordForm({ locale }: ChangePasswordFormProps) {
   return (
     <form onSubmit={submit} className="p-6 flex flex-col gap-4">
       <div>
-        <label className="text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)] font-mono block mb-2">
+        <label htmlFor="current-password" className="block mb-2" style={LABEL_STYLE}>
           {isFr ? 'Mot de passe actuel' : 'Current password'}
         </label>
         <Input
+          id="current-password"
           type="password"
           value={currentPassword}
           onChange={(e) => setCurrentPassword(e.target.value)}
           required
           autoComplete="current-password"
+          style={INPUT_STYLE}
         />
       </div>
       <div>
-        <label className="text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)] font-mono block mb-2">
+        <label htmlFor="new-password" className="block mb-2" style={LABEL_STYLE}>
           {isFr ? 'Nouveau mot de passe' : 'New password'}
         </label>
         <Input
+          id="new-password"
           type="password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
@@ -101,24 +114,47 @@ export function ChangePasswordForm({ locale }: ChangePasswordFormProps) {
           minLength={14}
           placeholder={isFr ? '14 caracteres minimum' : '14 characters minimum'}
           autoComplete="new-password"
+          style={INPUT_STYLE}
         />
       </div>
 
       {error && (
-        <div className="border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+        <div
+          role="alert"
+          className="px-4 py-3"
+          style={{
+            border: '1px solid var(--bjhunt-status-danger, #fb565b)',
+            background: 'var(--bjhunt-severity-critical-bg, rgba(255,69,58,0.12))',
+            borderRadius: 'var(--bjhunt-radius, 6px)',
+            color: 'var(--bjhunt-status-danger, #fb565b)',
+            fontFamily: 'var(--bjhunt-font-sans)',
+            fontSize: 13,
+          }}
+        >
           {error}
         </div>
       )}
 
       {success && (
-        <div className="border border-[var(--success)]/25 bg-[var(--success)]/10 px-4 py-3 text-sm text-[var(--success)]">
+        <div
+          role="status"
+          className="px-4 py-3"
+          style={{
+            border: '1px solid var(--bjhunt-status-success, #00d992)',
+            background: 'var(--bjhunt-severity-low-bg, rgba(0,217,146,0.12))',
+            borderRadius: 'var(--bjhunt-radius, 6px)',
+            color: 'var(--bjhunt-status-success, #00d992)',
+            fontFamily: 'var(--bjhunt-font-sans)',
+            fontSize: 13,
+          }}
+        >
           {isFr ? 'Mot de passe mis a jour.' : 'Password updated.'}
         </div>
       )}
 
       <div className="flex justify-end">
-        <Button size="sm" type="submit" disabled={loading}>
-          {loading && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+        <Button variant="success" size="md" type="submit" disabled={loading}>
+          {loading && <Loader2 className="h-3 w-3 animate-spin mr-2" />}
           {isFr ? 'Sauvegarder' : 'Save'}
         </Button>
       </div>
