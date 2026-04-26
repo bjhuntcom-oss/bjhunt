@@ -70,15 +70,15 @@ export default async function AuditReportPage({
     <div className="p-6 md:p-10 max-w-5xl mx-auto">
       <Link
         href={`/dashboard/audits/${id}`}
-        className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)] hover:text-white transition-colors"
+        className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-[var(--bjhunt-text-muted)] hover:text-white transition-colors"
       >
         <ChevronLeft className="w-3 h-3" /> Back to engagement
       </Link>
 
       <header className="mt-6 mb-10">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)]">Reports</p>
+        <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--bjhunt-text-muted)]">Reports</p>
         <h1 className="text-3xl font-black mt-1 tracking-[-0.02em]">{engagement.name}</h1>
-        <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] text-[var(--text-muted)] font-mono">
+        <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] text-[var(--bjhunt-text-muted)] font-mono">
           <span>Target: <span className="text-white">{engagement.target ?? '—'}</span></span>
           <span>Status: <span className="text-white">{engagement.status}</span></span>
           <span>Findings: <span className="text-white">{engagement.findings_count ?? 0}</span></span>
@@ -123,21 +123,21 @@ export default async function AuditReportPage({
           const Icon = fmt.icon
           const href = `/api/proxy/reports/${id}/${fmt.id}`
           return (
-            <article key={fmt.id} className="bg-[var(--bg-card)] p-6 flex flex-col gap-4">
+            <article key={fmt.id} className="bg-[var(--bjhunt-bg-secondary)] p-6 flex flex-col gap-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 border border-[var(--border-strong)] flex items-center justify-center">
+                  <div className="w-10 h-10 border border-[var(--bjhunt-border-strong)] flex items-center justify-center">
                     <Icon className="w-5 h-5" />
                   </div>
                   <div>
                     <h2 className="text-sm font-bold tracking-wide">{fmt.label}</h2>
-                    <p className="text-[9px] uppercase tracking-[0.2em] text-[var(--text-subtle)] mt-0.5">
+                    <p className="text-[9px] uppercase tracking-[0.2em] text-[var(--bjhunt-text-muted)] mt-0.5">
                       .{fmt.extension} · {fmt.mediaType}
                     </p>
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-[var(--text-muted)] leading-relaxed flex-1">{fmt.description}</p>
+              <p className="text-xs text-[var(--bjhunt-text-muted)] leading-relaxed flex-1">{fmt.description}</p>
               <div className="flex gap-2">
                 <a
                   href={href}
@@ -151,7 +151,7 @@ export default async function AuditReportPage({
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-[var(--border-strong)] text-[10px] font-bold uppercase tracking-wider hover:bg-white/5 transition-colors"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-[var(--bjhunt-border-strong)] text-[10px] font-bold uppercase tracking-wider hover:bg-white/5 transition-colors"
                 >
                   Preview
                 </a>
@@ -161,7 +161,7 @@ export default async function AuditReportPage({
         })}
       </div>
 
-      <p className="mt-8 text-[10px] uppercase tracking-[0.2em] text-[var(--text-subtle)]">
+      <p className="mt-8 text-[10px] uppercase tracking-[0.2em] text-[var(--bjhunt-text-muted)]">
         Reports are AI-generated from the engagement record — see{' '}
         <Link href="/legal/ai-policy" className="underline hover:text-white">
           AI Acceptable Use Policy

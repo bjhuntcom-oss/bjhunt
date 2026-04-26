@@ -64,6 +64,16 @@
   --bjhunt-status-danger:      #EF4444;
   --bjhunt-status-info:        #3B82F6;
 
+  /* ── State (refonte 2026 — DESIGN-SYSTEM-2026.md §1) ─
+     The ONLY chromatic accents allowed. State-colored TEXT replaces pill
+     backgrounds in tables. Tints used as 12% fills only when needed. */
+  --state-success:             #00d992;   /* emerald — ok / running / verified */
+  --state-warning:             #ffba00;   /* amber  — degraded / pending */
+  --state-critical:            #fb565b;   /* coral  — failed / breached */
+  --state-success-tint:        rgba(0,217,146,0.12);
+  --state-warning-tint:        rgba(255,186,0,0.12);
+  --state-critical-tint:       rgba(251,86,91,0.12);
+
   /* ── Terminal block (per doc 17 §Terminal Block) ───── */
   --bjhunt-terminal-bg:        #08080C;
   --bjhunt-terminal-text:      #00FF41;
