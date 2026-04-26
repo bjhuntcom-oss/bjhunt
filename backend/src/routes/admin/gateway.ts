@@ -530,9 +530,14 @@ ollamaRoutes.put("/active-model", zValidator("json", setActiveModelSchema), asyn
   if (trimmed === "") {
     await sql`DELETE FROM platform_settings WHERE key = 'active_ollama_cloud_model'`;
   } else {
+    // postgres.js serialises objects to JSONB natively when the column
+    // type is jsonb. Passing JSON.stringify() yields a double-encoded
+    // string (a JSONB string scalar containing JSON text) which then
+    // can't be read as { model: string } on the GET side.
+    const payload = { model: trimmed };
     await sql`
       INSERT INTO platform_settings (key, value)
-      VALUES ('active_ollama_cloud_model', ${JSON.stringify({ model: trimmed })})
+      VALUES ('active_ollama_cloud_model', ${sql.json(payload)})
       ON CONFLICT (key) DO UPDATE SET
         value = EXCLUDED.value,
         updated_at = now()
