@@ -145,8 +145,26 @@ billingRoutes.post("/checkout", async (c) => {
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
     const body = await c.req.json().catch(() => ({}));
-    const priceId = (body as { priceId?: string }).priceId;
-    if (!priceId) return c.json({ error: "priceId required" }, 400);
+    const tierOrId = (body as { priceId?: string }).priceId;
+    if (!tierOrId) return c.json({ error: "priceId required" }, 400);
+    // Frontend posts a tier hint ("pro"/"enterprise") OR a raw price_*
+    // id. Translate the hint to the configured env var so the price
+    // catalog stays server-side.
+    const priceMap: Record<string, string | undefined> = {
+      pro: process.env.STRIPE_PRICE_PRO,
+      enterprise: process.env.STRIPE_PRICE_ENTERPRISE,
+    };
+    const priceId =
+      tierOrId.startsWith("price_") ? tierOrId : priceMap[tierOrId];
+    if (!priceId) {
+      return c.json(
+        {
+          error: "price_not_configured",
+          message: `No Stripe price id configured for tier '${tierOrId}'. Set STRIPE_PRICE_${tierOrId.toUpperCase()} in env.`,
+        },
+        501,
+      );
+    }
 
     const [org] = await sql`
       SELECT stripe_customer_id, name FROM organizations WHERE id = ${orgId}

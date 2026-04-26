@@ -25,6 +25,7 @@ import {
   Database,
   Terminal,
   HelpCircle,
+  CreditCard,
 } from "lucide-react";
 import { PlanBadge } from "@/components/dashboard/plan-badge";
 
@@ -56,6 +57,7 @@ const getUserNav = (locale: string): NavItem[] => [
   { href: "/dashboard/skills",       label: "Skills",                                           icon: BookOpen,     badge: "pro"        },
   { href: "/dashboard/tools",        label: "Tools",                                            icon: Terminal,     badge: "enterprise" },
   { href: "/dashboard/guide",        label: "Guide",                                            icon: HelpCircle    },
+  { href: "/dashboard/billing",      label: locale === "fr" ? "Facturation" : "Billing",        icon: CreditCard    },
   { href: "/dashboard/settings",      label: locale === "fr" ? "Paramètres" : "Settings",        icon: Settings      },
 ];
 
