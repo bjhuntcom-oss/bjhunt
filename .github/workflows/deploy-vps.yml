@@ -47,15 +47,28 @@ jobs:
             # Inject git commit + build time as build args (consumed by Dockerfile ARG → ENV)
             export GIT_COMMIT=$(git rev-parse --short HEAD)
             export BUILD_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-            docker compose build --no-cache \
+
+            # Detect optional observability overlay so --remove-orphans
+            # below doesn't wipe prometheus/grafana/loki/promtail
+            # whenever a deploy lands. Apply only if the overlay file
+            # exists AND its services are currently running.
+            COMPOSE_ARGS="-f docker-compose.yml"
+            if [ -f ops/observability/docker-compose.observability.yml ] && \
+               docker ps --format '{{.Names}}' | grep -q '^bjhunt-prometheus$'; then
+              COMPOSE_ARGS="$COMPOSE_ARGS -f ops/observability/docker-compose.observability.yml"
+            fi
+
+            docker compose $COMPOSE_ARGS build --no-cache \
               --build-arg GIT_COMMIT=$GIT_COMMIT \
               --build-arg BUILD_TIMESTAMP=$BUILD_TIMESTAMP \
               backend langgraph
 
-            # Rolling restart (zero downtime)
-            docker compose up -d --no-deps --remove-orphans backend
+            # Rolling restart (zero downtime). --no-deps preserves
+            # the rest of the stack; the COMPOSE_ARGS dance above
+            # ensures --remove-orphans doesn't kill the obs overlay.
+            docker compose $COMPOSE_ARGS up -d --no-deps --remove-orphans backend
             sleep 5
-            docker compose up -d --no-deps --remove-orphans langgraph
+            docker compose $COMPOSE_ARGS up -d --no-deps --remove-orphans langgraph
 
             # Health check loop (30 essais x 2s = 60s max)
             for i in {1..30}; do

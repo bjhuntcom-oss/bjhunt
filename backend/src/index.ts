@@ -5,6 +5,26 @@
  * engagements, and proxies chat streaming from LangGraph.
  */
 
+// W11 Sentry init — must run before any other code that might throw.
+// SENTRY_DSN unset → init is a no-op (the SDK handles that case).
+import * as Sentry from "@sentry/bun";
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.SENTRY_ENVIRONMENT || "production",
+    tracesSampleRate: 0.1,
+    // Strip auth + cookie headers from breadcrumbs / scope
+    beforeSend(event) {
+      if (event.request?.headers) {
+        delete event.request.headers["authorization"];
+        delete event.request.headers["cookie"];
+      }
+      return event;
+    },
+  });
+  console.log(`[sentry] initialised (env=${process.env.SENTRY_ENVIRONMENT || "production"})`);
+}
+
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";

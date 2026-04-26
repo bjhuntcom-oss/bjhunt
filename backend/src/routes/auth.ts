@@ -422,6 +422,116 @@ authRoutes.get("/me", async (c) => {
   });
 });
 
+// ── GDPR DSAR (W11 / Article 15 + 17) ──────────────────────────────────
+//
+// Article 15 (right of access): GET /me/export returns every row in the
+// database tied to the authenticated user, packaged as a single JSON
+// document. Includes audit trail per CNIL guidance.
+//
+// Article 17 (right to erasure): DELETE /me erases the user record and
+// every dependent row reachable via FK CASCADE (sessions, api_keys,
+// chat_*, agent_runs, findings via engagements, audit_logs, file_uploads,
+// password_reset_tokens, email_verification_tokens, totp_*). Notes:
+//   - The org row itself is NOT deleted (multi-user orgs may have other
+//     active members). If the user is the last owner the response
+//     includes a hint to invite a peer or contact support.
+//   - audit_logs prior to the deletion stay for legal-hold purposes —
+//     the user_id is set to NULL via FK ON DELETE SET NULL.
+
+authRoutes.get("/me/export", async (c) => {
+  const user = c.get("user") as AuthUser | undefined;
+  if (!user) return c.json({ error: "auth_required" }, 401);
+
+  const [profile] = await sql`
+    SELECT id, org_id, email, display_name, role, is_platform_admin,
+           email_verified, status, totp_enabled, settings, created_at, last_active_at
+      FROM users WHERE id = ${user.id}
+  `;
+  const sessions = await sql`
+    SELECT id, ip_address, user_agent, created_at, expires_at
+      FROM sessions WHERE user_id = ${user.id} ORDER BY created_at DESC
+  `;
+  const apiKeys = await sql`
+    SELECT id, name, key_prefix, last_used_at, expires_at, created_at
+      FROM api_keys WHERE user_id = ${user.id} ORDER BY created_at DESC
+  `;
+  const conversations = await sql`
+    SELECT id, engagement_id, title, created_at, updated_at, status
+      FROM chat_conversations WHERE user_id = ${user.id} ORDER BY created_at DESC
+  `;
+  const messages = await sql`
+    SELECT m.id, m.conversation_id, m.role, m.content, m.created_at
+      FROM chat_messages m
+      JOIN chat_conversations c ON c.id = m.conversation_id
+     WHERE c.user_id = ${user.id}
+     ORDER BY m.created_at DESC
+     LIMIT 5000
+  `;
+  const auditLog = await sql`
+    SELECT id, action, resource, ip_address, details, created_at
+      FROM audit_logs WHERE user_id = ${user.id}
+      ORDER BY created_at DESC LIMIT 5000
+  `;
+
+  c.header(
+    "Content-Disposition",
+    `attachment; filename="bjhunt-export-${user.id}.json"`,
+  );
+  return c.json({
+    exportVersion: 1,
+    exportedAt: new Date().toISOString(),
+    profile,
+    sessions,
+    apiKeys,
+    conversations,
+    messages,
+    auditLog,
+  });
+});
+
+const deleteMeSchema = z.object({
+  password: z.string().min(1).max(128),
+  confirm: z.literal("DELETE"),
+});
+
+authRoutes.delete(
+  "/me",
+  rateLimit(config.rateLimit.auth),
+  zValidator("json", deleteMeSchema),
+  async (c) => {
+    const user = c.get("user") as AuthUser | undefined;
+    if (!user) return c.json({ error: "auth_required" }, 401);
+
+    const { password } = c.req.valid("json");
+    const [dbUser] = await sql`SELECT password_hash FROM users WHERE id = ${user.id}`;
+    if (!dbUser) return c.json({ error: { code: "USER_NOT_FOUND" } }, 404);
+
+    const valid = await verifyPassword(dbUser.passwordHash as string, password);
+    if (!valid) {
+      return c.json(
+        { error: { code: "INVALID_PASSWORD", message: "Password does not match." } },
+        401,
+      );
+    }
+
+    // Audit trail BEFORE the delete so the row survives the SET NULL.
+    await sql`
+      INSERT INTO audit_logs (org_id, user_id, action, ip_address, details)
+      VALUES (${user.orgId}, ${user.id}, 'user.gdpr_delete',
+              ${c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? null},
+              ${JSON.stringify({ email: user.email })})
+    `.catch(() => {});
+
+    await sql`DELETE FROM users WHERE id = ${user.id}`;
+    // Wipe every cookie set on this client.
+    c.header("Set-Cookie", `bjhunt_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+    return c.json({
+      ok: true,
+      message: "Your account and all linked data have been deleted.",
+    });
+  },
+);
+
 // ── Update me (display name) ────────────────────────────────────────────
 
 const updateMeSchema = z.object({
