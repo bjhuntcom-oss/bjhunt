@@ -11,6 +11,13 @@ const SESSION_MAX_AGE = 60 * 60 * 24 * 30 // 30 days
 const SESSION_COOKIE_DOMAIN =
   process.env.NEXT_PUBLIC_COOKIE_DOMAIN ??
   (process.env.NODE_ENV === 'production' ? '.bjhunt.com' : undefined)
+const SESSION_COOKIE_SECURE =
+  process.env.SESSION_COOKIE_SECURE === 'true' ||
+  (process.env.SESSION_COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production')
+
+type AuthActionResult =
+  | { user: { email: string; role: string }; organization: { id: string }; requiresTwoFactor?: false }
+  | { requiresTwoFactor: true; tempToken: string }
 
 export async function loginAction(email: string, password: string) {
   // SECURITY (audit C-16 / F-003): reject cross-origin POSTs before any work.
@@ -40,7 +47,7 @@ export async function loginAction(email: string, password: string) {
   // material and the JSON body must not contain it.
   await applySessionCookieFromBackend(res)
 
-  return data as { user: { email: string; role: string }; organization: { id: string } }
+  return data as AuthActionResult
 }
 
 export async function registerAction(email: string, password: string, displayName: string) {
@@ -65,6 +72,30 @@ export async function registerAction(email: string, password: string, displayNam
 
   // SECURITY (audit C-13 / F-002 / #3-21): HttpOnly cookie only, no JS-readable
   // duplicate, no session id in JSON body.
+  await applySessionCookieFromBackend(res)
+
+  return data as { user: { email: string; role: string }; organization: { id: string } }
+}
+
+export async function verifyTwoFactorAction(code: string, tempToken: string) {
+  await assertOrigin()
+
+  const res = await serverBackendFetch(
+    '/api/auth/2fa/verify',
+    {
+      method: 'POST',
+      body: JSON.stringify({ code, tempToken }),
+    },
+    undefined,
+    process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.bjhunt.com'
+  )
+
+  const data = await res.json()
+
+  if (!res.ok) {
+    throw new Error(extractErrorCode(data))
+  }
+
   await applySessionCookieFromBackend(res)
 
   return data as { user: { email: string; role: string }; organization: { id: string } }
@@ -99,7 +130,7 @@ export async function logoutAction() {
   for (const legacyName of ['bjhunt_stream_token']) {
     cookieStore.set(legacyName, '', {
       httpOnly: false,
-      secure: true,
+      secure: SESSION_COOKIE_SECURE,
       sameSite: 'lax',
       path: '/',
       maxAge: 0,
@@ -164,7 +195,7 @@ async function applySessionCookieFromBackend(res: Response) {
   const cookieStore = await cookies()
   cookieStore.set(SESSION_COOKIE, sessionValue, {
     httpOnly: true,
-    secure: true,
+    secure: SESSION_COOKIE_SECURE,
     sameSite: 'lax',
     path: '/',
     maxAge: SESSION_MAX_AGE,
