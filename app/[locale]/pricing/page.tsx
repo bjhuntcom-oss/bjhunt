@@ -3,9 +3,10 @@
 
 import { motion } from "framer-motion";
 import { Link } from "@/i18n/routing";
-import * as Collapsible from "@radix-ui/react-collapsible";
-import { Fragment, useState } from "react";
+import { Fragment } from "react";
 import { ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { StatusDot } from "@/components/ui/status-dot";
 
 // ── Feature matrix data ──────────────────────────────────────────────────
 
@@ -83,20 +84,30 @@ const FEATURE_GROUPS: FeatureGroup[] = [
   },
 ];
 
-const FAQS = [
+interface FAQ {
+  slug: string;
+  q: string;
+  a: string;
+}
+
+const FAQS: FAQ[] = [
   {
+    slug: "free-plan",
     q: "Comment fonctionne le plan Free ?",
     a: "Le plan Free offre une session démo de 5 minutes pour découvrir l'interface BJHUNT avec 3 agents de base. Aucun scan, aucune API — juste un aperçu du chat IA.",
   },
   {
+    slug: "pro-vs-enterprise-api",
     q: "Quelle différence entre Pro et Enterprise pour l'API ?",
     a: "Le plan Pro permet de créer des clés API pour l'authentification dashboard. Seul le plan Enterprise donne accès à l'API REST v1 programmatique pour l'intégration CI/CD.",
   },
   {
+    slug: "upgrade-anytime",
     q: "Puis-je passer à Pro à tout moment ?",
     a: "Oui, la migration est instantanée. Vos données et historiques sont conservés.",
   },
   {
+    slug: "enterprise-details",
     q: "Comment fonctionne Enterprise ?",
     a: "Enterprise inclut 20 scans/mois, les 17 agents IA, l'accès API v1 complet, les webhooks, la configuration custom des agents, le format HackerOne, le résumé exécutif, et un support dédié avec Slack privé.",
   },
@@ -107,351 +118,706 @@ const fadeUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
 };
 
-function CellContent({ value }: { value: CellValue }) {
-  if (value === "check") {
-    return <span style={{ color: "#30D158" }}>✓</span>;
-  }
-  if (value === "--") {
-    return <span style={{ color: "var(--bjhunt-text-disabled)" }}>—</span>;
-  }
-  return <span style={{ color: "var(--bjhunt-text)" }}>{value}</span>;
+// ── Plan data ────────────────────────────────────────────────────────────
+
+interface Plan {
+  idx: string;
+  tier: "FREE" | "PRO" | "ENT";
+  name: string;
+  price: string;
+  period: string;
+  sub: string;
+  features: string[];
+  cta: string;
+  href: "/login" | "/contact" | "/beta";
+  featured: boolean;
 }
 
-function FAQItem({ q, a }: { q: string; a: string }) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Collapsible.Root open={open} onOpenChange={setOpen}>
-      <Collapsible.Trigger
-        className="group flex w-full items-center justify-between py-5 text-left"
-        style={{ borderBottom: "1px solid var(--bjhunt-border)" }}
-      >
-        <span style={{ fontSize: 15, fontWeight: 300, color: "var(--bjhunt-text)" }}>{q}</span>
-        <ChevronDown
-          className={`h-4 w-4 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
-          style={{ color: "var(--bjhunt-text-subtle)" }}
-        />
-      </Collapsible.Trigger>
-      <Collapsible.Content className="overflow-hidden py-4">
-        <p
-          className="m-0 max-w-2xl"
-          style={{ fontSize: 14, fontWeight: 300, lineHeight: 1.65, color: "var(--bjhunt-text-muted)" }}
-        >
-          {a}
-        </p>
-      </Collapsible.Content>
-    </Collapsible.Root>
-  );
-}
-
-const PLANS = [
+const PLANS: Plan[] = [
   {
     idx: "P0",
+    tier: "FREE",
     name: "Free",
-    price: "Gratuit",
-    sub: "Démo 5 min · 3 agents",
-    badge: null,
+    price: "$0",
+    period: "Démo 5 min",
+    sub: "Découvrir l'interface BJHUNT",
+    features: [
+      "Chat IA — 5 minutes",
+      "3 agents de base",
+      "Streaming temps réel",
+      "Findings (vue seule)",
+      "Support communautaire",
+    ],
     cta: "Essai gratuit",
-    href: "/login" as const,
+    href: "/login",
     featured: false,
-    accent: "99,102,241",
   },
   {
     idx: "P1",
+    tier: "PRO",
     name: "Pro",
-    price: "$200/mois",
-    sub: "5 scans · 10 agents · Chat illimité",
-    badge: "Populaire",
+    price: "$200",
+    period: "/ mois",
+    sub: "Équipes red team & pentesters",
+    features: [
+      "Chat IA illimité",
+      "10 agents IA",
+      "5 scans / mois",
+      "OPPLAN Tracker + Vaccine Loop",
+      "Export Markdown & CSV",
+      "Priority email support",
+    ],
     cta: "Demander un accès",
-    href: "/contact" as const,
+    href: "/contact",
     featured: true,
-    accent: "99,102,241",
   },
   {
     idx: "P2",
+    tier: "ENT",
     name: "Enterprise",
-    price: "$2,000/mois",
-    sub: "20 scans · 17 agents · API v1",
-    badge: "Entreprise",
+    price: "$2,000",
+    period: "/ mois",
+    sub: "Déploiement large échelle",
+    features: [
+      "Tout du plan Pro",
+      "17 agents IA",
+      "20 scans / mois",
+      "API v1 + Webhooks",
+      "Knowledge Graph & Tool Playground",
+      "Format HackerOne + Executive Summary",
+      "Slack dédié",
+    ],
     cta: "Contactez-nous",
-    href: "/contact" as const,
+    href: "/contact",
     featured: false,
-    accent: "100,210,255",
   },
 ];
+
+// ── Helpers ──────────────────────────────────────────────────────────────
+
+function MatrixCell({ value }: { value: CellValue }) {
+  if (value === "check") {
+    return (
+      <span className="inline-flex justify-center">
+        <StatusDot state="success" />
+      </span>
+    );
+  }
+  if (value === "--") {
+    return (
+      <span
+        className="font-mono"
+        style={{ color: "var(--bjhunt-text-disabled)" }}
+      >
+        ─
+      </span>
+    );
+  }
+  // Numeric or labeled value — mono, tabular-nums, white
+  return (
+    <span
+      className="font-mono tabular-nums"
+      style={{ color: "var(--bjhunt-text)" }}
+    >
+      {value}
+    </span>
+  );
+}
+
+function MobileMatrixCell({ value }: { value: CellValue }) {
+  if (value === "check") {
+    return <StatusDot state="success" />;
+  }
+  if (value === "--") {
+    return (
+      <span
+        className="font-mono"
+        style={{ color: "var(--bjhunt-text-disabled)" }}
+      >
+        ─
+      </span>
+    );
+  }
+  return (
+    <span
+      className="font-mono tabular-nums text-[12px]"
+      style={{ color: "var(--bjhunt-text)" }}
+    >
+      {value}
+    </span>
+  );
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────
 
 export default function PricingPage() {
   return (
     <div className="relative pt-14">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 40% at 80% 0%, rgba(99,102,241,0.06), transparent 55%)",
-        }}
-      />
-
-      {/* Hero */}
+      {/* ── Hero ──────────────────────────────────────────── */}
       <motion.section
-        className="relative z-10 px-8 py-24 md:px-12 lg:px-16"
+        className="relative z-10 px-6 py-20 md:px-12 md:py-24 lg:px-16"
         style={{ borderBottom: "1px solid var(--bjhunt-border)" }}
         initial="hidden"
         animate="visible"
         variants={fadeUp}
       >
         <p
-          className="m-0 mb-6 font-mono uppercase"
-          style={{ fontSize: 10, letterSpacing: "0.32em", color: "var(--bjhunt-text-subtle)" }}
-        >
-          04 / Pricing
-        </p>
-        <h1
-          className="m-0 max-w-4xl"
+          className="m-0 mb-6 font-mono font-semibold uppercase"
           style={{
-            fontSize: "clamp(48px, 8vw, 96px)",
-            fontWeight: 200,
-            letterSpacing: "-0.04em",
-            lineHeight: 0.95,
+            fontSize: 12,
+            letterSpacing: "0.18em",
+            color: "var(--bjhunt-text-muted)",
           }}
         >
-          Tarifs simples<em className="not-italic" style={{ color: "var(--bjhunt-text-muted)", fontWeight: 200 }}>.</em>
+          04 / Tarifs
+        </p>
+        <h1
+          className="m-0 max-w-4xl font-display font-normal"
+          style={{
+            fontSize: "clamp(40px, 5vw, 60px)",
+            lineHeight: 1.0,
+            letterSpacing: "-0.011em",
+            color: "var(--bjhunt-text)",
+          }}
+        >
+          Tarifs simples.
           <br />
-          <em className="not-italic" style={{ color: "var(--bjhunt-text-muted)", fontWeight: 200 }}>
+          <span style={{ color: "var(--bjhunt-text-muted)" }}>
             Sans surprise.
-          </em>
+          </span>
         </h1>
         <p
-          className="mt-6 max-w-xl"
-          style={{ fontSize: 17, fontWeight: 300, lineHeight: 1.6, color: "var(--bjhunt-text-muted)" }}
+          className="mt-6 font-sans"
+          style={{
+            fontSize: 16,
+            fontWeight: 400,
+            lineHeight: 1.6,
+            color: "var(--bjhunt-text-secondary)",
+            maxWidth: 560,
+          }}
         >
-          Un plan par stade : démo gratuite, équipe Pro, déploiement Enterprise. Migration instantanée entre les paliers.
+          Un plan par stade : démo gratuite, équipe Pro, déploiement Enterprise.
+          Migration instantanée entre les paliers.
         </p>
       </motion.section>
 
-      {/* Plans */}
-      <section className="relative z-10" style={{ borderBottom: "1px solid var(--bjhunt-border)" }}>
-        <div className="grid grid-cols-1 gap-px md:grid-cols-3" style={{ background: "var(--bjhunt-border)" }}>
+      {/* ── Plan grid ─────────────────────────────────────── */}
+      <section
+        className="relative z-10"
+        style={{ borderBottom: "1px solid var(--bjhunt-border)" }}
+      >
+        <div
+          className="grid grid-cols-1 gap-px md:grid-cols-3"
+          style={{ background: "var(--bjhunt-border)" }}
+        >
           {PLANS.map((plan) => (
             <article
               key={plan.name}
-              className="relative flex flex-col gap-7 p-10"
+              className="relative flex flex-col gap-6 p-8"
               style={{
-                background: plan.featured
-                  ? `linear-gradient(180deg, rgba(${plan.accent},0.04), rgba(${plan.accent},0.01)), var(--bjhunt-bg)`
-                  : "var(--bjhunt-bg)",
+                background: "var(--bjhunt-bg-surface)",
+                borderLeft: plan.featured
+                  ? "2px solid var(--state-success)"
+                  : undefined,
               }}
             >
               {plan.featured && (
-                <span
-                  aria-hidden
-                  className="absolute left-0 top-0 bottom-0 w-px"
-                  style={{ background: `rgb(${plan.accent})`, opacity: 0.7 }}
-                />
+                <span className="absolute right-6 top-6">
+                  <StatusDot state="success" label="POPULAIRE" />
+                </span>
               )}
-              <header>
+
+              <header className="flex flex-col gap-3">
                 <p
-                  className="m-0 mb-2 font-mono uppercase"
-                  style={{ fontSize: 9, letterSpacing: "0.32em", color: "var(--bjhunt-text-disabled)" }}
-                >
-                  {plan.idx} · {plan.name}
-                </p>
-                <p
-                  className="m-0"
+                  className="m-0 font-mono font-semibold uppercase"
                   style={{
-                    fontFamily: "var(--bjhunt-font-mono)",
-                    fontSize: 36,
-                    fontWeight: 300,
-                    letterSpacing: "-0.02em",
+                    fontSize: 12,
+                    letterSpacing: "0.18em",
+                    color: "var(--bjhunt-text-muted)",
+                  }}
+                >
+                  {plan.idx} / {plan.tier}
+                </p>
+                <h3
+                  className="m-0 font-sans font-semibold"
+                  style={{
+                    fontSize: 20,
+                    lineHeight: 1.4,
+                    letterSpacing: "-0.01em",
                     color: "var(--bjhunt-text)",
                   }}
                 >
-                  {plan.price}
-                </p>
+                  {plan.name}
+                </h3>
+                <div className="flex items-baseline gap-2">
+                  <span
+                    className="font-mono tabular-nums"
+                    style={{
+                      fontSize: 36,
+                      fontWeight: 400,
+                      lineHeight: 1.0,
+                      letterSpacing: "-0.02em",
+                      color: "var(--bjhunt-text)",
+                    }}
+                  >
+                    {plan.price}
+                  </span>
+                  <span
+                    className="font-sans"
+                    style={{
+                      fontSize: 13,
+                      color: "var(--bjhunt-text-muted)",
+                    }}
+                  >
+                    {plan.period}
+                  </span>
+                </div>
                 <p
-                  className="m-0 mt-2"
-                  style={{ fontSize: 12, fontWeight: 300, color: "var(--bjhunt-text-muted)" }}
+                  className="m-0 font-sans"
+                  style={{
+                    fontSize: 13,
+                    color: "var(--bjhunt-text-muted)",
+                  }}
                 >
                   {plan.sub}
                 </p>
               </header>
-              {plan.badge && (
-                <span
-                  className="inline-flex w-max font-mono uppercase"
-                  style={{
-                    fontSize: 9,
-                    letterSpacing: "0.22em",
-                    padding: "4px 10px",
-                    color: `rgb(${plan.accent})`,
-                    border: `1px solid rgba(${plan.accent},0.30)`,
-                    background: `rgba(${plan.accent},0.08)`,
-                  }}
-                >
-                  {plan.badge}
-                </span>
-              )}
-              <Link
-                href={plan.href}
-                className="mt-auto inline-flex items-center justify-center gap-2 px-5 py-3 font-mono uppercase transition-colors duration-200"
-                style={{
-                  fontSize: 10,
-                  letterSpacing: "0.22em",
-                  color: plan.featured ? "var(--bjhunt-text)" : "var(--bjhunt-text-muted)",
-                  border: plan.featured
-                    ? "1px solid var(--bjhunt-border-strong)"
-                    : "1px solid var(--bjhunt-border)",
-                  background: plan.featured ? "rgba(255,255,255,0.03)" : "transparent",
-                }}
-              >
-                {plan.cta}
-                <span aria-hidden>→</span>
-              </Link>
+
+              <ul className="flex flex-col gap-2 list-none p-0 m-0">
+                {plan.features.map((f) => (
+                  <li
+                    key={f}
+                    className="flex items-start gap-3"
+                  >
+                    <span
+                      aria-hidden
+                      className="font-mono shrink-0"
+                      style={{
+                        fontSize: 13,
+                        lineHeight: 1.5,
+                        color: "var(--bjhunt-text-disabled)",
+                      }}
+                    >
+                      ─
+                    </span>
+                    <span
+                      className="font-sans"
+                      style={{
+                        fontSize: 13,
+                        lineHeight: 1.5,
+                        color: "var(--bjhunt-text-muted)",
+                      }}
+                    >
+                      {f}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-auto pt-2">
+                {plan.featured ? (
+                  <Button
+                    asChild
+                    variant="state"
+                    state="success"
+                    size="md"
+                    className="w-full"
+                  >
+                    <Link href={plan.href}>{plan.cta}</Link>
+                  </Button>
+                ) : (
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="md"
+                    className="w-full"
+                  >
+                    <Link href={plan.href}>{plan.cta}</Link>
+                  </Button>
+                )}
+              </div>
             </article>
           ))}
         </div>
       </section>
 
-      {/* Feature matrix */}
+      {/* ── Feature matrix — desktop table (md+) ──────────── */}
       <section
-        className="relative z-10 overflow-x-auto"
+        className="relative z-10 hidden md:block"
         style={{ borderBottom: "1px solid var(--bjhunt-border)" }}
       >
-        <table className="w-full" style={{ fontSize: 13 }}>
-          <thead>
-            <tr style={{ borderBottom: "1px solid var(--bjhunt-border)" }}>
-              <th
-                className="px-8 py-5 text-left font-mono uppercase"
-                style={{
-                  fontSize: 9,
-                  letterSpacing: "0.32em",
-                  color: "var(--bjhunt-text-subtle)",
-                  fontWeight: 400,
-                  width: "40%",
-                }}
-              >
-                Fonctionnalité
-              </th>
-              <th
-                className="px-8 py-5 text-center font-mono uppercase"
-                style={{ fontSize: 9, letterSpacing: "0.32em", color: "var(--bjhunt-text-subtle)", fontWeight: 400 }}
-              >
-                Free
-              </th>
-              <th
-                className="px-8 py-5 text-center font-mono uppercase"
-                style={{ fontSize: 9, letterSpacing: "0.32em", color: "var(--bjhunt-text)", fontWeight: 400 }}
-              >
-                Pro
-              </th>
-              <th
-                className="px-8 py-5 text-center font-mono uppercase"
-                style={{ fontSize: 9, letterSpacing: "0.32em", color: "var(--bjhunt-text-subtle)", fontWeight: 400 }}
-              >
-                Enterprise
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {FEATURE_GROUPS.map((group) => (
-              <Fragment key={group.category}>
+        <div className="px-6 py-16 md:px-12 lg:px-16">
+          <p
+            className="m-0 mb-6 font-mono font-semibold uppercase"
+            style={{
+              fontSize: 12,
+              letterSpacing: "0.18em",
+              color: "var(--bjhunt-text-muted)",
+            }}
+          >
+            03 / Comparatif
+          </p>
+          <h2
+            className="m-0 mb-10 font-display font-semibold"
+            style={{
+              fontSize: "clamp(22px, 2.4vw, 24px)",
+              lineHeight: 1.33,
+              letterSpacing: "-0.025em",
+              color: "var(--bjhunt-text)",
+            }}
+          >
+            Comparatif détaillé
+          </h2>
+
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse" style={{ minWidth: 720 }}>
+              <thead>
                 <tr style={{ borderBottom: "1px solid var(--bjhunt-border)" }}>
-                  <td
-                    colSpan={4}
-                    className="px-8 py-3 font-mono uppercase"
+                  <th
+                    scope="col"
+                    className="text-left font-mono font-semibold uppercase"
                     style={{
-                      fontSize: 9,
-                      letterSpacing: "0.32em",
+                      padding: "12px 16px",
+                      fontSize: 12,
+                      letterSpacing: "0.18em",
                       color: "var(--bjhunt-text-muted)",
-                      background: "rgba(255,255,255,0.015)",
+                      width: "40%",
+                      position: "sticky",
+                      left: 0,
+                      background: "var(--bjhunt-bg)",
+                      zIndex: 1,
                     }}
                   >
-                    {group.category}
-                  </td>
-                </tr>
-                {group.rows.map((row) => (
-                  <tr
-                    key={row.feature}
-                    className="transition-colors hover:bg-white/[0.02]"
-                    style={{ borderBottom: "1px solid var(--bjhunt-border)" }}
+                    Fonctionnalité
+                  </th>
+                  <th
+                    scope="col"
+                    className="text-center font-mono font-semibold uppercase"
+                    style={{
+                      padding: "12px 16px",
+                      fontSize: 12,
+                      letterSpacing: "0.18em",
+                      color: "var(--bjhunt-text-muted)",
+                    }}
                   >
-                    <td
-                      className="px-8 py-3.5"
-                      style={{ fontSize: 13, fontWeight: 300, color: "var(--bjhunt-text-muted)" }}
+                    Free
+                  </th>
+                  <th
+                    scope="col"
+                    className="text-center font-mono font-semibold uppercase"
+                    style={{
+                      padding: "12px 16px",
+                      fontSize: 12,
+                      letterSpacing: "0.18em",
+                      color: "var(--state-success)",
+                    }}
+                  >
+                    Pro
+                  </th>
+                  <th
+                    scope="col"
+                    className="text-center font-mono font-semibold uppercase"
+                    style={{
+                      padding: "12px 16px",
+                      fontSize: 12,
+                      letterSpacing: "0.18em",
+                      color: "var(--bjhunt-text-muted)",
+                    }}
+                  >
+                    Enterprise
+                  </th>
+                </tr>
+              </thead>
+              {FEATURE_GROUPS.map((group) => (
+                <tbody key={group.category}>
+                  <tr style={{ borderBottom: "1px solid var(--bjhunt-border)" }}>
+                    <th
+                      scope="colgroup"
+                      colSpan={4}
+                      className="text-left font-mono font-semibold uppercase"
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: 12,
+                        letterSpacing: "0.18em",
+                        color: "var(--bjhunt-text-muted)",
+                        background: "var(--bjhunt-bg)",
+                        position: "sticky",
+                        left: 0,
+                      }}
                     >
-                      {row.feature}
-                    </td>
-                    <td className="px-8 py-3.5 text-center" style={{ fontSize: 12, fontWeight: 300 }}>
-                      <CellContent value={row.free} />
-                    </td>
-                    <td className="px-8 py-3.5 text-center" style={{ fontSize: 12, fontWeight: 300 }}>
-                      <CellContent value={row.pro} />
-                    </td>
-                    <td className="px-8 py-3.5 text-center" style={{ fontSize: 12, fontWeight: 300 }}>
-                      <CellContent value={row.enterprise} />
-                    </td>
+                      {group.category}
+                    </th>
                   </tr>
-                ))}
-              </Fragment>
-            ))}
-          </tbody>
-        </table>
+                  {group.rows.map((row) => (
+                    <tr
+                      key={row.feature}
+                      className="transition-colors hover:bg-white/[0.02]"
+                      style={{
+                        borderBottom: "1px solid var(--bjhunt-border)",
+                      }}
+                    >
+                      <td
+                        className="font-sans"
+                        style={{
+                          padding: "12px 16px",
+                          fontSize: 13,
+                          color: "var(--bjhunt-text-secondary)",
+                          position: "sticky",
+                          left: 0,
+                          background: "var(--bjhunt-bg)",
+                        }}
+                      >
+                        {row.feature}
+                      </td>
+                      <td
+                        className="text-center"
+                        style={{ padding: "12px 16px", fontSize: 13 }}
+                      >
+                        <MatrixCell value={row.free} />
+                      </td>
+                      <td
+                        className="text-center"
+                        style={{ padding: "12px 16px", fontSize: 13 }}
+                      >
+                        <MatrixCell value={row.pro} />
+                      </td>
+                      <td
+                        className="text-center"
+                        style={{ padding: "12px 16px", fontSize: 13 }}
+                      >
+                        <MatrixCell value={row.enterprise} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              ))}
+            </table>
+          </div>
+        </div>
       </section>
 
-      {/* Bottom CTA */}
-      <section className="relative z-10" style={{ borderBottom: "1px solid var(--bjhunt-border)" }}>
-        <div
-          className="grid grid-cols-1 gap-px md:grid-cols-3"
-          style={{ background: "var(--bjhunt-border)" }}
-        >
-          {[
-            { name: "Free",       cta: "Essai gratuit",     href: "/login"   as const, featured: false },
-            { name: "Pro",        cta: "Demander un accès", href: "/contact" as const, featured: true  },
-            { name: "Enterprise", cta: "Contactez-nous",    href: "/contact" as const, featured: false },
-          ].map((plan) => (
-            <div
-              key={plan.name}
-              className="flex items-center justify-center p-8"
-              style={{ background: "var(--bjhunt-bg)" }}
-            >
-              <Link
-                href={plan.href}
-                className="inline-flex items-center gap-2 px-5 py-3 font-mono uppercase transition-colors duration-200"
+      {/* ── Feature matrix — mobile stacked cards (<md) ──── */}
+      <section
+        className="relative z-10 md:hidden"
+        style={{ borderBottom: "1px solid var(--bjhunt-border)" }}
+      >
+        <div className="px-6 py-16">
+          <p
+            className="m-0 mb-6 font-mono font-semibold uppercase"
+            style={{
+              fontSize: 12,
+              letterSpacing: "0.18em",
+              color: "var(--bjhunt-text-muted)",
+            }}
+          >
+            03 / Comparatif
+          </p>
+          <h2
+            className="m-0 mb-8 font-display font-semibold"
+            style={{
+              fontSize: 22,
+              lineHeight: 1.33,
+              letterSpacing: "-0.025em",
+              color: "var(--bjhunt-text)",
+            }}
+          >
+            Comparatif détaillé
+          </h2>
+
+          <div className="flex flex-col gap-8">
+            {FEATURE_GROUPS.map((group) => (
+              <div
+                key={group.category}
+                className="flex flex-col"
                 style={{
-                  fontSize: 11,
-                  letterSpacing: "0.22em",
-                  color: plan.featured ? "var(--bjhunt-text)" : "var(--bjhunt-text-muted)",
-                  border: plan.featured
-                    ? "1px solid var(--bjhunt-border-strong)"
-                    : "1px solid var(--bjhunt-border)",
-                  background: plan.featured ? "rgba(255,255,255,0.03)" : "transparent",
+                  border: "1px solid var(--bjhunt-border)",
+                  borderRadius: "var(--bjhunt-radius-md)",
+                  background: "var(--bjhunt-bg-surface)",
                 }}
               >
-                {plan.cta}
-                <span aria-hidden>→</span>
-              </Link>
-            </div>
+                <p
+                  className="m-0 font-mono font-semibold uppercase"
+                  style={{
+                    padding: "12px 16px",
+                    fontSize: 12,
+                    letterSpacing: "0.18em",
+                    color: "var(--bjhunt-text-muted)",
+                    borderBottom: "1px solid var(--bjhunt-border)",
+                  }}
+                >
+                  {group.category}
+                </p>
+                {group.rows.map((row, idx) => (
+                  <div
+                    key={row.feature}
+                    style={{
+                      padding: "12px 16px",
+                      borderBottom:
+                        idx === group.rows.length - 1
+                          ? undefined
+                          : "1px solid var(--bjhunt-border)",
+                    }}
+                  >
+                    <p
+                      className="m-0 mb-3 font-sans"
+                      style={{
+                        fontSize: 13,
+                        color: "var(--bjhunt-text-secondary)",
+                      }}
+                    >
+                      {row.feature}
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["free", "pro", "enterprise"] as const).map((tier) => (
+                        <div
+                          key={tier}
+                          className="flex flex-col items-start gap-1.5"
+                          style={{
+                            padding: "8px 10px",
+                            border: "1px solid var(--bjhunt-border)",
+                            borderRadius: "var(--bjhunt-radius-sm)",
+                          }}
+                        >
+                          <span
+                            className="font-mono font-semibold uppercase"
+                            style={{
+                              fontSize: 10,
+                              letterSpacing: "0.18em",
+                              color: "var(--bjhunt-text-muted)",
+                            }}
+                          >
+                            {tier === "enterprise" ? "Ent" : tier}
+                          </span>
+                          <MobileMatrixCell value={row[tier]} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ───────────────────────────────────────────── */}
+      <section className="relative z-10 max-w-3xl px-6 py-20 md:px-12 md:py-24 lg:px-16">
+        <p
+          className="m-0 mb-6 font-mono font-semibold uppercase"
+          style={{
+            fontSize: 12,
+            letterSpacing: "0.18em",
+            color: "var(--bjhunt-text-muted)",
+          }}
+        >
+          04 / FAQ
+        </p>
+        <h2
+          className="m-0 mb-10 font-display font-semibold"
+          style={{
+            fontSize: "clamp(22px, 2.4vw, 24px)",
+            lineHeight: 1.33,
+            letterSpacing: "-0.025em",
+            color: "var(--bjhunt-text)",
+          }}
+        >
+          Questions fréquentes
+        </h2>
+
+        <div
+          style={{
+            borderTop: "1px solid var(--bjhunt-border)",
+            borderBottom: "1px solid var(--bjhunt-border)",
+          }}
+        >
+          {FAQS.map((faq, i) => (
+            <Fragment key={faq.slug}>
+              <details
+                id={`faq-${faq.slug}`}
+                className="group [&[open]_summary_svg]:rotate-180"
+                style={{
+                  borderBottom:
+                    i === FAQS.length - 1
+                      ? undefined
+                      : "1px solid var(--bjhunt-border)",
+                }}
+              >
+                <summary
+                  className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-sans font-semibold transition-colors hover:bg-white/[0.02]"
+                  style={{
+                    fontSize: 16,
+                    lineHeight: 1.5,
+                    color: "var(--bjhunt-text)",
+                  }}
+                >
+                  <span>{faq.q}</span>
+                  <ChevronDown
+                    aria-hidden
+                    className="h-4 w-4 shrink-0 transition-transform duration-300"
+                    style={{ color: "var(--bjhunt-text-muted)" }}
+                  />
+                </summary>
+                <p
+                  className="m-0 max-w-2xl font-sans"
+                  style={{
+                    padding: "0 0 16px 0",
+                    fontSize: 14,
+                    fontWeight: 400,
+                    lineHeight: 1.65,
+                    color: "var(--bjhunt-text-muted)",
+                  }}
+                >
+                  {faq.a}
+                </p>
+              </details>
+            </Fragment>
           ))}
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="relative z-10 max-w-3xl px-8 py-24 md:px-12 lg:px-16">
-        <p
-          className="m-0 mb-6 font-mono uppercase"
-          style={{ fontSize: 10, letterSpacing: "0.32em", color: "var(--bjhunt-text-subtle)" }}
-        >
-          08 / FAQ
-        </p>
-        <h2
-          className="m-0 mb-10"
-          style={{ fontSize: "clamp(32px, 5vw, 56px)", fontWeight: 200, letterSpacing: "-0.03em", lineHeight: 1.0 }}
-        >
-          Questions fréquentes<em className="not-italic" style={{ color: "var(--bjhunt-text-muted)", fontWeight: 200 }}>.</em>
-        </h2>
-        <div style={{ borderTop: "1px solid var(--bjhunt-border)" }}>
-          {FAQS.map((faq, i) => (
-            <FAQItem key={i} q={faq.q} a={faq.a} />
-          ))}
+      {/* ── Bottom support CTA ────────────────────────────── */}
+      <section
+        className="relative z-10 px-6 py-16 md:px-12 md:py-20 lg:px-16"
+        style={{ borderTop: "1px solid var(--bjhunt-border)" }}
+      >
+        <div className="flex flex-col items-start gap-4 max-w-2xl">
+          <p
+            className="m-0 font-mono font-semibold uppercase"
+            style={{
+              fontSize: 12,
+              letterSpacing: "0.18em",
+              color: "var(--bjhunt-text-muted)",
+            }}
+          >
+            05 / Support
+          </p>
+          <h2
+            className="m-0 font-display font-semibold"
+            style={{
+              fontSize: 24,
+              lineHeight: 1.33,
+              letterSpacing: "-0.025em",
+              color: "var(--bjhunt-text)",
+            }}
+          >
+            Une question ?
+          </h2>
+          <p
+            className="m-0 font-sans"
+            style={{
+              fontSize: 14,
+              lineHeight: 1.5,
+              color: "var(--bjhunt-text-muted)",
+            }}
+          >
+            L'équipe BJHUNT répond sous 24h ouvrées sur les questions de
+            tarification, de migration, et de déploiement Enterprise.
+          </p>
+          <div className="mt-2">
+            <Button asChild variant="ghost" size="md">
+              <Link href="/contact">Contactez-nous</Link>
+            </Button>
+          </div>
         </div>
       </section>
     </div>
