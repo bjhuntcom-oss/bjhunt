@@ -132,6 +132,34 @@ healthRoutes.get("/metrics", async (c) => {
   return c.body(lines.join("\n"));
 });
 
+// Public plan catalog (DASH-P2). Mounted under /api/health so it's reachable
+// without auth — used by /pricing + /dashboard/guide to keep the displayed
+// limits aligned with backend/src/plans.ts. Returns the same shape as
+// PLAN_LIMITS without internal flags that aren't user-facing.
+healthRoutes.get("/plans", async (c) => {
+  const { PLAN_LIMITS } = await import("../plans.js");
+  const publicView = Object.fromEntries(
+    Object.entries(PLAN_LIMITS).map(([key, p]) => [
+      key,
+      {
+        name: key,
+        price: p.price,
+        priceDisplay: p.priceDisplay,
+        scansPerMonth: p.scansPerMonth,
+        agents: p.agents.length,
+        chatUnlimited: p.chatUnlimited,
+        demoMinutes: p.demoMinutes,
+        apiKeyCreation: p.apiKeyCreation,
+        apiV1Access: p.apiV1Access,
+        webhookIntegrations: p.webhookIntegrations,
+        exportMarkdown: p.exportMarkdown,
+        exportCsv: p.exportCsv,
+      },
+    ]),
+  );
+  return c.json({ plans: publicView });
+});
+
 // Version — exposes the deployed git commit for `deploy-vps.yml` post-deploy verification.
 // GIT_COMMIT is injected at build time via Dockerfile ARG (or container env on VPS).
 healthRoutes.get("/version", (c) =>

@@ -162,6 +162,26 @@ export const langgraphClient = {
   },
 
   /**
+   * Explicitly cancel a running run (CHAT-P1-5 belt-and-suspenders for
+   * on_disconnect). LangGraph already cancels on TCP disconnect, but a
+   * direct cancel POST is more reliable on slow proxies that buffer.
+   * Returns true on success, false if the run is already terminal or
+   * unreachable. Never throws — caller is best-effort.
+   */
+  async cancelRun(threadId: string, runId: string): Promise<boolean> {
+    try {
+      const res = await fetch(`${BASE_URL}/threads/${threadId}/runs/${runId}/cancel`, {
+        method: "POST",
+        headers: HEADERS,
+        signal: AbortSignal.timeout(3000),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  /**
    * List available assistants (agent graphs).
    */
   async listAssistants(): Promise<unknown[]> {
