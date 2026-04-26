@@ -2,6 +2,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { serverBackendFetch } from '@/lib/backend-client'
 import { AgentsClient } from './agents-client'
+import { AdminHero } from '../_components/admin-primitives'
 
 export default async function AdminAgentsPage({
   params,
@@ -17,13 +18,12 @@ export default async function AdminAgentsPage({
   const data = { profiles: agentData.profiles ?? [] }
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-black tracking-tight">Agent Profiles</h1>
-        <p className="text-[11px] text-[var(--text-muted)] font-mono mt-1">
-          Gestion des profils SOUL.md / AGENTS.md — activer un profil le déploie dans le workspace gateway
-        </p>
-      </div>
+    <div className="p-6 md:p-10 max-w-[1280px] mx-auto">
+      <AdminHero
+        eyebrow="ADMIN / AGENTS"
+        title="Agent Profiles"
+        description="Profils SOUL.md / AGENTS.md déployés dans le workspace gateway. Un seul profil actif à la fois — l'activation propage en ~1s."
+      />
       <AgentsClient initialProfiles={data.profiles} />
     </div>
   )

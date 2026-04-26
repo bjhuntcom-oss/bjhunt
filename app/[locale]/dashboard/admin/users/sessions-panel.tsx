@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { browserBackendFetch } from '@/lib/backend-client'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
 
 interface Session {
   id: string
@@ -23,7 +23,9 @@ export function SessionsPanel({ userId }: { userId: string }) {
     setOpen(true)
     startTransition(async () => {
       try {
-        const res = await browserBackendFetch(`/api/admin/users/${userId}/sessions`)
+        const res = await browserBackendFetch(
+          `/api/admin/users/${userId}/sessions`,
+        )
         if (res.ok) {
           const data = await res.json()
           setSessions(data.sessions ?? [])
@@ -39,7 +41,10 @@ export function SessionsPanel({ userId }: { userId: string }) {
   const revokeAll = () => {
     if (!confirm('Révoquer toutes les sessions de cet utilisateur ?')) return
     startTransition(async () => {
-      await browserBackendFetch(`/api/admin/users/${userId}/revoke-sessions`, { method: 'POST' })
+      await browserBackendFetch(
+        `/api/admin/users/${userId}/revoke-sessions`,
+        { method: 'POST' },
+      )
       setSessions([])
     })
   }
@@ -49,28 +54,40 @@ export function SessionsPanel({ userId }: { userId: string }) {
       <button
         onClick={load}
         disabled={isPending}
-        className="flex items-center gap-1 text-[9px] font-mono text-[var(--text-muted)] hover:text-white transition-colors disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 font-mono text-[13px] text-[var(--bjhunt-text-muted)] hover:text-[var(--bjhunt-text)] transition-colors disabled:opacity-50"
       >
-        Sessions {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+        <span>{sessions === null ? 'Show' : sessions.length}</span>
+        {open ? (
+          <ChevronUp className="w-3.5 h-3.5" />
+        ) : (
+          <ChevronDown className="w-3.5 h-3.5" />
+        )}
       </button>
       {open && (
-        <div className="mt-2 border border-[var(--border)] bg-[var(--bg-input)] p-3">
+        <div className="mt-2 border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-tertiary)] p-3 min-w-[240px]">
           {isPending && sessions === null && (
-            <p className="text-[9px] font-mono text-[var(--text-muted)]">Chargement...</p>
+            <p className="font-mono text-[12px] text-[var(--bjhunt-text-muted)]">
+              Loading…
+            </p>
           )}
           {sessions !== null && sessions.length === 0 && (
-            <p className="text-[9px] font-mono text-[var(--text-muted)]">Aucune session active.</p>
+            <p className="font-mono text-[12px] text-[var(--bjhunt-text-muted)]">
+              No active sessions.
+            </p>
           )}
           {sessions !== null && sessions.length > 0 && (
             <>
               <div className="space-y-2 mb-3">
                 {sessions.map((s) => (
-                  <div key={s.id} className="flex justify-between text-[9px] font-mono">
-                    <span className="text-[var(--text-muted)]">
+                  <div
+                    key={s.id}
+                    className="flex justify-between font-mono text-[12px]"
+                  >
+                    <span style={{ color: 'var(--bjhunt-text-muted)' }}>
                       {new Date(s.createdAt).toLocaleString('fr-FR')}
                     </span>
-                    <span className="text-[var(--text-subtle)]">
-                      expire {new Date(s.expiresAt).toLocaleDateString('fr-FR')}
+                    <span style={{ color: 'var(--bjhunt-text-subtle)' }}>
+                      exp {new Date(s.expiresAt).toLocaleDateString('fr-FR')}
                     </span>
                   </div>
                 ))}
@@ -78,9 +95,12 @@ export function SessionsPanel({ userId }: { userId: string }) {
               <button
                 onClick={revokeAll}
                 disabled={isPending}
-                className="text-[9px] font-mono text-[var(--danger)] hover:opacity-80 disabled:opacity-50 transition-opacity"
+                className="inline-flex items-center gap-1.5 font-mono text-[12px] hover:opacity-80 disabled:opacity-50 transition-opacity"
+                style={{ color: 'var(--bjhunt-status-danger)' }}
+                title="Revoke all sessions"
               >
-                Révoquer toutes les sessions
+                <Trash2 className="w-3 h-3" />
+                Revoke all
               </button>
             </>
           )}

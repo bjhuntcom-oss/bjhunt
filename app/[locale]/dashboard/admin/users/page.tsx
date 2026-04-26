@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { serverBackendFetch } from '@/lib/backend-client'
 import { UserActionsPanel } from './user-actions-panel'
 import { SessionsPanel } from './sessions-panel'
+import { AdminHero, KpiCard, StatusDot } from '../_components/admin-primitives'
 
 type User = {
   id: string
@@ -10,6 +11,7 @@ type User = {
   displayName: string
   role: string
   status: string
+  twoFactorEnabled?: boolean
   sessions: { lastLoginAt: string | null; isOnline: boolean }
 }
 
@@ -32,202 +34,183 @@ export default async function AdminUsersPage({
     displayName: u.displayName || u.email.split('@')[0],
     role: u.isPlatformAdmin ? 'platform_admin' : u.role,
     status: u.role === 'viewer' ? 'blocked' : 'active',
+    twoFactorEnabled: u.twoFactorEnabled ?? false,
     sessions: {
       lastLoginAt: u.lastLogin || null,
-      isOnline: u.lastLogin ? (Date.now() - new Date(u.lastLogin).getTime() < 15 * 60 * 1000) : false,
+      isOnline: u.lastLogin
+        ? Date.now() - new Date(u.lastLogin).getTime() < 15 * 60 * 1000
+        : false,
     },
-    plan: u.plan || 'free',
   }))
   const counts = { users: cpData.total ?? 0 }
 
-  const total    = counts.users ?? users.length
-  const active   = users.filter((u: User) => u.status === 'active').length
-  const blocked  = users.filter((u: User) => u.status === 'blocked' || u.status === 'suspended').length
-  const admins   = users.filter((u: User) => u.role === 'platform_admin').length
+  const total = counts.users ?? users.length
+  const activeSessions = users.filter((u) => u.sessions?.isOnline).length
+  const twoFa = users.filter((u) => u.twoFactorEnabled).length
+  const admins = users.filter((u) => u.role === 'platform_admin').length
 
   return (
-    <div className="p-6 md:p-10">
-      <header className="mb-12 md:mb-16">
-        <div
-          className="mb-5 inline-flex items-center gap-2"
-          style={{
-            fontFamily: 'var(--bjhunt-font-mono)',
-            fontSize: 10,
-            letterSpacing: '0.32em',
-            textTransform: 'uppercase',
-            color: 'var(--bjhunt-text-subtle)',
-          }}
-        >
-          <span
-            aria-hidden
-            style={{
-              width: 6,
-              height: 6,
-              background: 'var(--bjhunt-brand-primary)',
-              boxShadow: '0 0 8px var(--bjhunt-brand-primary)',
-              display: 'inline-block',
-            }}
-          />
-          <span>Admin · Identity</span>
-        </div>
-        <h1
-          style={{
-            fontFamily: 'var(--bjhunt-font-sans)',
-            fontWeight: 200,
-            fontSize: 'clamp(48px, 7vw, 80px)',
-            letterSpacing: '-0.04em',
-            lineHeight: 1.0,
-            color: 'var(--bjhunt-text)',
-            margin: 0,
-          }}
-        >
-          Utilisateurs
-        </h1>
-        <p
-          className="mt-5 max-w-2xl"
-          style={{
-            fontFamily: 'var(--bjhunt-font-sans)',
-            fontWeight: 300,
-            fontSize: 17,
-            lineHeight: 1.5,
-            color: 'var(--bjhunt-text-muted)',
-          }}
-        >
-          Gestion des comptes, rôles et accès — sessions actives et statut de connexion en temps réel.
-        </p>
-      </header>
+    <div className="p-6 md:p-10 max-w-[1440px] mx-auto">
+      <AdminHero
+        eyebrow="ADMIN / USERS"
+        title="Identity"
+        description="Comptes, rôles et sessions actives. Mutations critiques : block / unblock / delete protégées par confirmation 2-step."
+      />
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[rgba(255,255,255,0.06)] mb-12">
-        {[
-          { label: 'Total',   value: total   },
-          { label: 'Actifs',  value: active  },
-          { label: 'Bloqués', value: blocked },
-          { label: 'Admins',  value: admins  },
-        ].map(({ label, value }) => (
-          <div key={label} className="bg-[var(--bjhunt-bg)] p-6">
-            <div
-              style={{
-                fontFamily: 'var(--bjhunt-font-sans)',
-                fontWeight: 200,
-                fontSize: 40,
-                letterSpacing: '-0.03em',
-                color: 'var(--bjhunt-text)',
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
-              {value}
-            </div>
-            <div
-              className="mt-2"
-              style={{
-                fontFamily: 'var(--bjhunt-font-mono)',
-                fontSize: 10,
-                letterSpacing: '0.22em',
-                textTransform: 'uppercase',
-                color: 'var(--bjhunt-text-subtle)',
-              }}
-            >
-              {label}
-            </div>
-          </div>
-        ))}
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-10">
+        <KpiCard eyebrow="Total Users" value={total} />
+        <KpiCard eyebrow="Active Now" value={activeSessions} state="success" />
+        <KpiCard eyebrow="2FA Enabled" value={twoFa} state="success" />
+        <KpiCard eyebrow="Platform Admins" value={admins} state="warning" />
       </div>
 
-      {/* Table */}
-      <div
-        style={{
-          borderTop: '1px solid rgba(255,255,255,0.06)',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-        }}
-      >
-        <div
-          className="grid grid-cols-6 px-4 py-3"
-          style={{
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            fontFamily: 'var(--bjhunt-font-mono)',
-            fontSize: 10,
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            color: 'var(--bjhunt-text-subtle)',
-          }}
-        >
-          {['Email', 'Rôle', 'Statut', 'Dernière activité', 'Sessions', 'Actions'].map((h) => (
-            <span key={h}>{h}</span>
-          ))}
-        </div>
-
-        {users.length === 0 && (
-          <div className="px-4 py-8 text-center text-[11px] font-mono text-[var(--text-muted)]">
-            Aucun utilisateur trouvé.
-          </div>
-        )}
-
-        {users.map((user) => {
-          const isBlocked = user.status === 'blocked' || user.status === 'suspended'
-          const lastSeen = user.sessions?.lastLoginAt
-            ? new Date(user.sessions.lastLoginAt).toLocaleDateString('fr-FR')
-            : '—'
-
-          return (
-            <div
-              key={user.id}
-              className="grid grid-cols-6 px-4 py-4 items-center transition-colors"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.012)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '' }}
+      {/* Users table */}
+      <div className="border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-secondary)]">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr
+              className="border-b border-[var(--bjhunt-border)]"
+              style={{
+                fontFamily: 'var(--bjhunt-font-mono)',
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color: 'var(--bjhunt-text-muted)',
+              }}
             >
-              <div className="min-w-0">
-                <div
-                  style={{
-                    fontFamily: 'var(--bjhunt-font-mono)',
-                    fontSize: 12,
-                    color: 'var(--bjhunt-text)',
-                  }}
-                  className="truncate"
+              <th className="px-4 py-3">User</th>
+              <th className="hidden md:table-cell px-4 py-3">Role</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="hidden lg:table-cell px-4 py-3">2FA</th>
+              <th className="hidden md:table-cell px-4 py-3">Last Login</th>
+              <th className="hidden lg:table-cell px-4 py-3">Sessions</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.length === 0 && (
+              <tr>
+                <td
+                  colSpan={7}
+                  className="px-4 py-12 text-center font-mono text-[13px] text-[var(--bjhunt-text-muted)]"
                 >
-                  {user.email}
-                </div>
-                {user.displayName && (
-                  <div
-                    style={{
-                      fontFamily: 'var(--bjhunt-font-sans)',
-                      fontSize: 12,
-                      fontWeight: 300,
-                      color: 'var(--bjhunt-text-muted)',
-                    }}
-                    className="truncate"
+                  Aucun utilisateur.
+                </td>
+              </tr>
+            )}
+            {users.map((user) => {
+              const isBlocked =
+                user.status === 'blocked' || user.status === 'suspended'
+              const lastSeen = user.sessions?.lastLoginAt
+                ? new Date(user.sessions.lastLoginAt).toLocaleString('fr-FR')
+                : '—'
+              const initials = (user.displayName || user.email)
+                .slice(0, 2)
+                .toUpperCase()
+              return (
+                <tr
+                  key={user.id}
+                  className="border-b border-[var(--bjhunt-border)] last:border-b-0 hover:bg-white/[0.02] transition-colors"
+                >
+                  <td className="px-4 py-3 align-middle">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className="w-7 h-7 flex-shrink-0 flex items-center justify-center border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-tertiary)]"
+                        style={{
+                          fontFamily: 'var(--bjhunt-font-mono)',
+                          fontSize: 11,
+                          color: 'var(--bjhunt-text-muted)',
+                        }}
+                      >
+                        {initials}
+                      </div>
+                      <div className="min-w-0">
+                        <div
+                          className="text-[14px] truncate"
+                          style={{ color: 'var(--bjhunt-text)' }}
+                        >
+                          {user.displayName}
+                        </div>
+                        <div
+                          className="font-mono truncate"
+                          style={{
+                            fontSize: 13,
+                            color: 'var(--bjhunt-text-muted)',
+                          }}
+                        >
+                          {user.email}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="hidden md:table-cell px-4 py-3 align-middle">
+                    <span
+                      className="font-mono"
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 500,
+                        letterSpacing: '0.12em',
+                        textTransform: 'uppercase',
+                        color:
+                          user.role === 'platform_admin'
+                            ? 'var(--bjhunt-status-warning)'
+                            : 'var(--bjhunt-text-muted)',
+                      }}
+                    >
+                      {user.role === 'platform_admin' ? 'PLATFORM_ADMIN' : 'USER'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 align-middle">
+                    <div className="flex items-center gap-2">
+                      <StatusDot
+                        state={
+                          isBlocked
+                            ? 'critical'
+                            : user.sessions?.isOnline
+                              ? 'success'
+                              : 'neutral'
+                        }
+                        pulse={user.sessions?.isOnline}
+                      />
+                      <span
+                        className="text-[13px]"
+                        style={{ color: 'var(--bjhunt-text)' }}
+                      >
+                        {isBlocked
+                          ? 'Blocked'
+                          : user.sessions?.isOnline
+                            ? 'Online'
+                            : 'Idle'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="hidden lg:table-cell px-4 py-3 align-middle">
+                    <StatusDot
+                      state={user.twoFactorEnabled ? 'success' : 'critical'}
+                    />
+                  </td>
+                  <td
+                    className="hidden md:table-cell px-4 py-3 align-middle font-mono"
+                    style={{ fontSize: 13, color: 'var(--bjhunt-text-muted)' }}
                   >
-                    {user.displayName}
-                  </div>
-                )}
-              </div>
-              <span
-                style={{
-                  fontFamily: 'var(--bjhunt-font-mono)',
-                  fontSize: 10,
-                  letterSpacing: '0.22em',
-                  textTransform: 'uppercase',
-                  color: 'var(--bjhunt-text-muted)',
-                }}
-              >
-                {user.role === 'platform_admin' ? 'Admin' : 'User'}
-              </span>
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-1.5 h-1.5 flex-shrink-0"
-                  style={{ background: isBlocked ? 'var(--bjhunt-status-danger)' : user.sessions?.isOnline ? 'var(--bjhunt-status-success)' : 'var(--bjhunt-text-subtle)' }}
-                />
-                <span className="text-[10px] font-mono text-[var(--text-muted)]">
-                  {isBlocked ? 'Bloqué' : user.sessions?.isOnline ? 'En ligne' : 'Actif'}
-                </span>
-              </div>
-              <span className="text-[10px] font-mono text-[var(--text-muted)]">{lastSeen}</span>
-              <SessionsPanel userId={user.id} />
-              <UserActionsPanel userId={user.id} isBlocked={isBlocked} />
-            </div>
-          )
-        })}
+                    {lastSeen}
+                  </td>
+                  <td className="hidden lg:table-cell px-4 py-3 align-middle">
+                    <SessionsPanel userId={user.id} />
+                  </td>
+                  <td className="px-4 py-3 align-middle text-right">
+                    <UserActionsPanel
+                      userId={user.id}
+                      isBlocked={isBlocked}
+                    />
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   )

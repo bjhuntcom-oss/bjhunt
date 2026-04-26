@@ -2,7 +2,17 @@
 
 import { useState, useTransition } from 'react'
 import { browserBackendFetch } from '@/lib/backend-client'
-import { Plus, Trash2, Zap, Edit2, Check } from 'lucide-react'
+import {
+  Plus,
+  Trash2,
+  Zap,
+  Edit2,
+  Check,
+  Bot,
+  Save,
+  X,
+} from 'lucide-react'
+import { Eyebrow, StatusDot } from '../_components/admin-primitives'
 
 interface AgentProfile {
   id: string
@@ -18,7 +28,10 @@ interface AgentProfile {
   updated_at: string
 }
 
-type AgentSummary = Pick<AgentProfile, 'id' | 'name' | 'description' | 'is_active' | 'is_default' | 'updated_at'>
+type AgentSummary = Pick<
+  AgentProfile,
+  'id' | 'name' | 'description' | 'is_active' | 'is_default' | 'updated_at'
+>
 
 const emptyForm = {
   name: '',
@@ -30,10 +43,23 @@ const emptyForm = {
   visible_to_users: false,
 }
 
-export function AgentsClient({ initialProfiles }: { initialProfiles: AgentSummary[] }) {
+const inputCls =
+  'w-full bg-[var(--bjhunt-bg-tertiary)] border border-[var(--bjhunt-border)] text-[var(--bjhunt-text)] font-mono text-[12px] px-3 h-10 focus:outline-none focus:border-[var(--bjhunt-status-success)] focus:ring-1 focus:ring-[var(--bjhunt-status-success)]/30 transition-colors'
+
+const labelCls =
+  'block mb-1.5 font-mono text-[11px] font-medium uppercase text-[var(--bjhunt-text-muted)]'
+
+const iconBtn =
+  'inline-flex items-center justify-center w-9 h-9 border border-transparent hover:bg-white/[0.04] text-[var(--bjhunt-text-muted)] hover:text-[var(--bjhunt-text)] transition-colors disabled:opacity-40 disabled:pointer-events-none'
+
+export function AgentsClient({
+  initialProfiles,
+}: {
+  initialProfiles: AgentSummary[]
+}) {
   const [profiles, setProfiles] = useState(initialProfiles)
   const [editingId, setEditingId] = useState<string | 'new' | null>(null)
-  const [fullProfile, setFullProfile] = useState<AgentProfile | null>(null)
+  const [, setFullProfile] = useState<AgentProfile | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -49,7 +75,7 @@ export function AgentsClient({ initialProfiles }: { initialProfiles: AgentSummar
     startTransition(async () => {
       const res = await browserBackendFetch(`/api/admin/agents/${p.id}`)
       if (!res.ok) {
-        setError(`Impossible de charger le profil : erreur ${res.status}`)
+        setError(`Failed to load profile: ${res.status}`)
         return
       }
       const { profile } = await res.json()
@@ -82,7 +108,6 @@ export function AgentsClient({ initialProfiles }: { initialProfiles: AgentSummar
         identity_emoji: form.identity_emoji || null,
         visible_to_users: form.visible_to_users,
       }
-
       const res = await browserBackendFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -90,15 +115,16 @@ export function AgentsClient({ initialProfiles }: { initialProfiles: AgentSummar
       })
       if (!res.ok) {
         const errBody = await res.json().catch(() => null)
-        setError(errBody?.error ?? `Erreur lors de la sauvegarde (${res.status})`)
+        setError(errBody?.error ?? `Save failed (${res.status})`)
         return
       }
       const { profile } = await res.json()
-
       if (isNew) {
         setProfiles((prev) => [profile, ...prev])
       } else {
-        setProfiles((prev) => prev.map((p) => (p.id === editingId ? { ...p, ...profile } : p)))
+        setProfiles((prev) =>
+          prev.map((p) => (p.id === editingId ? { ...p, ...profile } : p)),
+        )
       }
       setEditingId(null)
       setFullProfile(null)
@@ -106,15 +132,17 @@ export function AgentsClient({ initialProfiles }: { initialProfiles: AgentSummar
   }
 
   const handleDelete = (id: string) => {
-    if (!confirm('Supprimer ce profil ?')) return
+    if (!confirm('Delete this profile?')) return
     setError(null)
     startTransition(async () => {
-      const res = await browserBackendFetch(`/api/admin/agents/${id}`, { method: 'DELETE' })
+      const res = await browserBackendFetch(`/api/admin/agents/${id}`, {
+        method: 'DELETE',
+      })
       if (res.ok) {
         setProfiles((prev) => prev.filter((p) => p.id !== id))
       } else {
         const errBody = await res.json().catch(() => null)
-        setError(errBody?.error ?? `Erreur lors de la suppression (${res.status})`)
+        setError(errBody?.error ?? `Delete failed (${res.status})`)
       }
     })
   }
@@ -122,198 +150,314 @@ export function AgentsClient({ initialProfiles }: { initialProfiles: AgentSummar
   const handleActivate = (id: string) => {
     setError(null)
     startTransition(async () => {
-      const res = await browserBackendFetch(`/api/admin/agents/${id}/activate`, { method: 'POST' })
+      const res = await browserBackendFetch(
+        `/api/admin/agents/${id}/activate`,
+        { method: 'POST' },
+      )
       if (!res.ok) {
         const errBody = await res.json().catch(() => null)
-        setError(errBody?.error ?? `Erreur lors de l'activation (${res.status})`)
+        setError(errBody?.error ?? `Activation failed (${res.status})`)
         return
       }
-      setProfiles((prev) => prev.map((p) => ({ ...p, is_active: p.id === id })))
+      setProfiles((prev) =>
+        prev.map((p) => ({ ...p, is_active: p.id === id })),
+      )
     })
   }
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between mb-5">
+        <Eyebrow>{profiles.length} profile{profiles.length !== 1 ? 's' : ''}</Eyebrow>
         <button
           onClick={openNew}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-white text-[11px] font-mono font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
+          className="inline-flex items-center gap-1.5 h-9 px-3 border border-[var(--bjhunt-border)] hover:border-[var(--bjhunt-border-strong)] hover:bg-white/[0.04] font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)] hover:text-[var(--bjhunt-text)] transition-colors"
         >
-          <Plus size={12} />
-          Nouveau profil
+          <Plus className="w-3.5 h-3.5" />
+          New profile
         </button>
       </div>
 
       {/* Error banner */}
       {error && (
-        <div className="flex items-center justify-between border border-[var(--danger)] bg-[var(--danger)]/10 px-4 py-2 mb-4">
-          <span className="text-[11px] font-mono text-[var(--danger)]">{error}</span>
+        <div
+          className="flex items-center justify-between border bg-[var(--bjhunt-bg-secondary)] px-4 py-2.5 mb-5"
+          style={{
+            borderColor: 'var(--bjhunt-status-danger)',
+            background: 'rgba(239,68,68,0.08)',
+          }}
+        >
+          <span
+            className="font-mono"
+            style={{ fontSize: 12, color: 'var(--bjhunt-status-danger)' }}
+          >
+            {error}
+          </span>
           <button
             onClick={() => setError(null)}
-            className="text-[var(--danger)] text-[10px] font-mono ml-4 hover:opacity-70"
+            className="font-mono text-[11px] hover:opacity-70"
+            style={{ color: 'var(--bjhunt-status-danger)' }}
           >
-            Fermer
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
       {/* Edit / Create form */}
       {editingId !== null && (
-        <div className="border border-[var(--border)] bg-[var(--bg-card)] p-5 mb-6 space-y-4">
-          <h2 className="text-[11px] font-mono font-bold uppercase tracking-widest text-[var(--text-muted)]">
-            {editingId === 'new' ? 'Nouveau profil' : 'Modifier le profil'}
-          </h2>
-          <div className="grid grid-cols-2 gap-4">
+        <div className="border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-secondary)] p-5 md:p-6 mb-6 space-y-4">
+          <Eyebrow>
+            {editingId === 'new' ? 'New profile' : 'Edit profile'}
+          </Eyebrow>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1">Nom *</label>
+              <label className={labelCls}>Name *</label>
               <input
                 value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                className="w-full bg-transparent border border-[var(--border)] px-3 py-1.5 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--accent)]"
-                placeholder="Ex: Pentest Expert"
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
+                className={inputCls}
+                placeholder="ex: Pentest Expert"
               />
             </div>
             <div>
-              <label className="block text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1">Description</label>
+              <label className={labelCls}>Description</label>
               <input
                 value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                className="w-full bg-transparent border border-[var(--border)] px-3 py-1.5 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--accent)]"
-                placeholder="Description courte"
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, description: e.target.value }))
+                }
+                className={inputCls}
+                placeholder="Short description"
               />
             </div>
             <div>
-              <label className="block text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1">Nom identité</label>
+              <label className={labelCls}>Identity name</label>
               <input
                 value={form.identity_name}
-                onChange={(e) => setForm((f) => ({ ...f, identity_name: e.target.value }))}
-                className="w-full bg-transparent border border-[var(--border)] px-3 py-1.5 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--accent)]"
-                placeholder="Ex: BJHUNT"
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, identity_name: e.target.value }))
+                }
+                className={inputCls}
+                placeholder="ex: BJHUNT"
               />
             </div>
             <div>
-              <label className="block text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1">Emoji</label>
+              <label className={labelCls}>Emoji</label>
               <input
                 value={form.identity_emoji}
-                onChange={(e) => setForm((f) => ({ ...f, identity_emoji: e.target.value }))}
-                className="w-full bg-transparent border border-[var(--border)] px-3 py-1.5 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--accent)]"
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, identity_emoji: e.target.value }))
+                }
+                className={inputCls}
                 placeholder="🤖"
               />
             </div>
           </div>
+
           <div>
-            <label className="block text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1">SOUL.md</label>
+            <label className={labelCls}>SOUL.md</label>
             <textarea
               value={form.soul_md}
-              onChange={(e) => setForm((f) => ({ ...f, soul_md: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, soul_md: e.target.value }))
+              }
               rows={8}
-              className="w-full bg-transparent border border-[var(--border)] px-3 py-2 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--accent)] resize-y"
-              placeholder="Personnalité et directives de l'agent"
+              className={`${inputCls} h-auto py-2.5 resize-y`}
+              placeholder="Personality and directives"
             />
           </div>
           <div>
-            <label className="block text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)] mb-1">AGENTS.md</label>
+            <label className={labelCls}>AGENTS.md</label>
             <textarea
               value={form.agents_md}
-              onChange={(e) => setForm((f) => ({ ...f, agents_md: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, agents_md: e.target.value }))
+              }
               rows={8}
-              className="w-full bg-transparent border border-[var(--border)] px-3 py-2 text-[11px] font-mono text-white focus:outline-none focus:border-[var(--accent)] resize-y"
-              placeholder="Agents disponibles et leurs capacités"
+              className={`${inputCls} h-auto py-2.5 resize-y`}
+              placeholder="Available agents and their capabilities"
             />
           </div>
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-[11px] font-mono text-[var(--text-muted)] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.visible_to_users}
-                onChange={(e) => setForm((f) => ({ ...f, visible_to_users: e.target.checked }))}
-                className="accent-[var(--accent)]"
-              />
-              Visible aux utilisateurs
-            </label>
-          </div>
-          <div className="flex gap-3">
+
+          <label className="inline-flex items-center gap-2 font-mono text-[12px] cursor-pointer text-[var(--bjhunt-text-muted)] hover:text-[var(--bjhunt-text)]">
+            <input
+              type="checkbox"
+              checked={form.visible_to_users}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, visible_to_users: e.target.checked }))
+              }
+              className="accent-[var(--bjhunt-status-success)]"
+            />
+            Visible to users
+          </label>
+
+          <div className="flex items-center gap-2 pt-1">
             <button
               onClick={handleSave}
               disabled={isPending || !form.name.trim()}
-              className="px-4 py-1.5 bg-[var(--accent)] text-white text-[11px] font-mono font-bold uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 h-9 px-4 border font-mono text-[11px] uppercase tracking-[0.18em] transition-colors disabled:opacity-40 disabled:pointer-events-none"
+              style={{
+                borderColor: 'var(--bjhunt-status-success)',
+                color: 'var(--bjhunt-status-success)',
+                background: 'transparent',
+              }}
             >
-              {isPending ? 'Sauvegarde...' : 'Sauvegarder'}
+              <Save className="w-3.5 h-3.5" />
+              {isPending ? 'Saving…' : 'Save'}
             </button>
             <button
-              onClick={() => { setEditingId(null); setFullProfile(null) }}
-              className="px-4 py-1.5 border border-[var(--border)] text-[var(--text-muted)] text-[11px] font-mono uppercase tracking-widest hover:text-white transition-colors"
+              onClick={() => {
+                setEditingId(null)
+                setFullProfile(null)
+              }}
+              className="inline-flex items-center gap-1.5 h-9 px-4 border border-[var(--bjhunt-border)] hover:border-[var(--bjhunt-border-strong)] hover:bg-white/[0.04] font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)] hover:text-[var(--bjhunt-text)] transition-colors"
             >
-              Annuler
+              Cancel
             </button>
           </div>
         </div>
       )}
 
-      {/* Profiles list */}
+      {/* Profile cards grid */}
       {profiles.length === 0 ? (
-        <div className="border border-[var(--border)] px-4 py-8 text-center text-[11px] font-mono text-[var(--text-muted)]">
-          Aucun profil — créez-en un pour commencer.
+        <div className="border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-secondary)] p-8 text-center">
+          <Bot className="w-6 h-6 mx-auto mb-3 text-[var(--bjhunt-text-subtle)]" />
+          <p
+            className="font-mono"
+            style={{ fontSize: 13, color: 'var(--bjhunt-text-muted)' }}
+          >
+            No profile — create one to get started.
+          </p>
         </div>
       ) : (
-        <div className="border border-[var(--border)] divide-y divide-[var(--border)]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           {profiles.map((profile) => (
-            <div key={profile.id} className="flex items-center justify-between px-4 py-3 hover:bg-[var(--bg-card)] transition-colors">
-              <div className="flex items-center gap-3 min-w-0">
-                {profile.is_active && (
-                  <div className="w-1.5 h-1.5 flex-shrink-0 rounded-full" style={{ background: 'var(--success)' }} />
-                )}
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[12px] font-mono font-bold text-white truncate">{profile.name}</span>
-                    {profile.is_active && (
-                      <span className="text-[8px] font-mono uppercase tracking-widest px-1.5 py-0.5 border border-[var(--success)] text-[var(--success)]">ACTIF</span>
-                    )}
-                    {profile.is_default && (
-                      <span className="text-[8px] font-mono uppercase tracking-widest px-1.5 py-0.5 border border-[var(--text-muted)] text-[var(--text-muted)]">DÉFAUT</span>
-                    )}
-                  </div>
-                  {profile.description && (
-                    <div className="text-[10px] text-[var(--text-muted)] font-mono truncate mt-0.5">{profile.description}</div>
-                  )}
-                  <div className="text-[9px] text-[var(--text-subtle)] font-mono mt-0.5">
-                    Modifié le {new Date(profile.updated_at).toLocaleDateString('fr-FR')}
-                  </div>
+            <div
+              key={profile.id}
+              className="border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-secondary)] p-5 hover:border-[var(--bjhunt-border-strong)] transition-colors"
+              style={
+                profile.is_active
+                  ? { borderColor: 'var(--bjhunt-status-success)' }
+                  : undefined
+              }
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-9 h-9 flex items-center justify-center border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-tertiary)]">
+                  <Bot className="w-4 h-4 text-[var(--bjhunt-text-muted)]" />
+                </div>
+                <div className="flex items-center gap-1">
+                  {profile.is_active && <StatusDot state="success" pulse />}
                 </div>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
+
+              <div
+                className="truncate"
+                style={{
+                  fontFamily: 'var(--bjhunt-font-sans)',
+                  fontSize: 16,
+                  fontWeight: 600,
+                  color: 'var(--bjhunt-text)',
+                }}
+              >
+                {profile.name}
+              </div>
+              {profile.description && (
+                <p
+                  className="mt-1 line-clamp-2"
+                  style={{
+                    fontSize: 13,
+                    color: 'var(--bjhunt-text-muted)',
+                  }}
+                >
+                  {profile.description}
+                </p>
+              )}
+
+              <div className="flex items-center gap-2 mt-3 flex-wrap">
+                {profile.is_active && (
+                  <span
+                    className="font-mono"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: '0.18em',
+                      textTransform: 'uppercase',
+                      color: 'var(--bjhunt-status-success)',
+                    }}
+                  >
+                    Active
+                  </span>
+                )}
+                {profile.is_default && (
+                  <span
+                    className="font-mono"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: '0.18em',
+                      textTransform: 'uppercase',
+                      color: 'var(--bjhunt-text-muted)',
+                    }}
+                  >
+                    Default
+                  </span>
+                )}
+              </div>
+              <div
+                className="mt-2 font-mono"
+                style={{ fontSize: 12, color: 'var(--bjhunt-text-subtle)' }}
+              >
+                Updated {new Date(profile.updated_at).toLocaleDateString('fr-FR')}
+              </div>
+
+              <div className="flex items-center justify-end gap-1 mt-4 pt-4 border-t border-[var(--bjhunt-border)]">
                 {!profile.is_active && (
                   <button
                     onClick={() => handleActivate(profile.id)}
                     disabled={isPending}
-                    title="Activer ce profil"
-                    className="flex items-center gap-1 px-2 py-1 border border-[var(--border)] text-[var(--text-muted)] text-[10px] font-mono uppercase tracking-widest hover:border-[var(--success)] hover:text-[var(--success)] transition-colors disabled:opacity-40"
+                    title="Activate"
+                    className={iconBtn}
+                    style={{ color: 'var(--bjhunt-status-success)' }}
                   >
-                    <Zap size={10} />
-                    Activer
+                    <Zap className="w-3.5 h-3.5" />
                   </button>
                 )}
                 {profile.is_active && (
-                  <span className="flex items-center gap-1 px-2 py-1 text-[var(--success)] text-[10px] font-mono">
-                    <Check size={10} />
-                    Actif
+                  <span className={iconBtn} style={{ color: 'var(--bjhunt-status-success)' }}>
+                    <Check className="w-3.5 h-3.5" />
                   </span>
                 )}
                 <button
                   onClick={() => openEdit(profile)}
                   disabled={isPending}
-                  className="p-1.5 text-[var(--text-muted)] hover:text-white transition-colors disabled:opacity-40"
-                  title="Modifier"
+                  title="Edit"
+                  className={iconBtn}
                 >
-                  <Edit2 size={13} />
+                  <Edit2 className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => handleDelete(profile.id)}
                   disabled={isPending || profile.is_default || profile.is_active}
-                  className="p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors disabled:opacity-30"
-                  title={profile.is_active ? 'Impossible de supprimer un profil actif' : profile.is_default ? 'Impossible de supprimer le profil par défaut' : 'Supprimer'}
+                  title={
+                    profile.is_active
+                      ? 'Cannot delete an active profile'
+                      : profile.is_default
+                        ? 'Cannot delete the default profile'
+                        : 'Delete'
+                  }
+                  className={iconBtn}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.color = 'var(--bjhunt-status-danger)')
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.color = 'var(--bjhunt-text-muted)')
+                  }
                 >
-                  <Trash2 size={13} />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
