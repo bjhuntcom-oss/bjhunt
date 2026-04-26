@@ -36,12 +36,19 @@ export interface AgentDef {
 
 type AgentCategory = "orchestration" | "offensive" | "analysis" | "vulnresearch" | "defense";
 
+// Agent category → tri-state token mapping (refonte 2026 §1).
+// Categories collapse to 3-state instead of 5 hex codes:
+//   orchestration → neutral text (--bjhunt-text)  — coordinators are not "risky"
+//   offensive     → critical (coral)              — exploitation, post-exploit
+//   analysis      → warning (amber)               — code review, reverse, audit
+//   vulnresearch  → warning (amber)               — research pipeline
+//   defense       → success (emerald)             — defensive remediation
 const CATEGORY_META: Record<AgentCategory, { label: string; color: string }> = {
-  orchestration: { label: "ORCHESTRATION", color: "#ffffff" },
-  offensive:     { label: "OFFENSIVE",     color: "#ff4444" },
-  analysis:      { label: "ANALYSIS",      color: "#ff9900" },
-  vulnresearch:  { label: "VULN RESEARCH", color: "#60a5fa" },
-  defense:       { label: "DEFENSE",       color: "#00cc8a" },
+  orchestration: { label: "ORCHESTRATION", color: "var(--bjhunt-text)" },
+  offensive:     { label: "OFFENSIVE",     color: "var(--state-critical)" },
+  analysis:      { label: "ANALYSIS",      color: "var(--state-warning)" },
+  vulnresearch:  { label: "VULN RESEARCH", color: "var(--state-warning)" },
+  defense:       { label: "DEFENSE",       color: "var(--state-success)" },
 };
 
 export const AGENTS: AgentDef[] = [
@@ -221,135 +228,157 @@ export function AgentSelector({ selectedAgent, onSelect }: AgentSelectorProps) {
     return () => document.removeEventListener("keydown", handleKey);
   }, [open]);
 
+  // Agent list — shared between the dropdown (md+) and the drawer (<md).
+  // Active state uses a 2px state-success border-l per spec.
+  const agentList = (
+    <div className="max-h-[80vh] md:max-h-[400px] overflow-y-auto">
+      {groupedAgents().map(({ category, agents }) => {
+        const meta = CATEGORY_META[category];
+        return (
+          <div key={category}>
+            {/* Category header */}
+            <div className="px-3 py-2 flex items-center gap-2 bg-[var(--bjhunt-bg)] border-b border-[var(--bjhunt-border)]">
+              <span
+                className="w-1.5 h-1.5 flex-shrink-0 rounded-full"
+                style={{ backgroundColor: meta.color }}
+              />
+              <span className="font-mono font-semibold text-[10px] uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)]">
+                {meta.label}
+              </span>
+            </div>
+
+            {/* Agents in this category */}
+            {agents.map((agent) => {
+              const isSelected = agent.id === selectedAgent;
+              return (
+                <button
+                  key={agent.id}
+                  onClick={() => {
+                    onSelect(agent.id);
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 md:py-2 transition-colors text-left border-l-2",
+                    isSelected
+                      ? "bg-white/[0.04] border-l-[var(--state-success)]"
+                      : "border-l-transparent hover:bg-white/[0.04]"
+                  )}
+                >
+                  {/* Icon */}
+                  <span
+                    className={cn(
+                      "flex-shrink-0 transition-colors",
+                      isSelected ? "text-[var(--bjhunt-text)]" : "text-[var(--bjhunt-text-muted)]"
+                    )}
+                  >
+                    {agent.icon}
+                  </span>
+
+                  {/* Text */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "font-mono font-semibold text-[12px] uppercase tracking-[0.18em]",
+                          isSelected ? "text-[var(--bjhunt-text)]" : "text-[var(--bjhunt-text)]"
+                        )}
+                      >
+                        {agent.name}
+                      </span>
+                      {agent.id === "bjhunt" && (
+                        <span className="font-mono font-semibold text-[10px] uppercase tracking-[0.18em] px-1 py-px border border-[var(--bjhunt-border)] rounded-[var(--bjhunt-radius-xs)] text-[var(--bjhunt-text-muted)]">
+                          default
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-sans text-[12px] text-[var(--bjhunt-text-muted)] truncate mt-0.5">
+                      {agent.description}
+                    </div>
+                  </div>
+
+                  {/* Category dot */}
+                  <span
+                    className="w-1.5 h-1.5 flex-shrink-0 rounded-full"
+                    style={{ backgroundColor: meta.color, opacity: isSelected ? 1 : 0.4 }}
+                  />
+                </button>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div ref={containerRef} className="relative">
-      {/* Trigger button */}
+      {/* Trigger button — ghost variant per spec */}
       <button
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          "flex items-center gap-1.5 px-2 py-1.5 transition-all duration-200",
-          "text-[var(--text-muted)] hover:text-white hover:bg-white/[0.06]",
-          open && "text-white bg-white/[0.06]"
+          "flex items-center gap-1.5 h-9 md:h-8 px-3 transition-colors rounded-[var(--bjhunt-radius)] border",
+          "text-[var(--bjhunt-text)] border-[var(--bjhunt-border)]",
+          "hover:bg-white/[0.04] hover:border-[var(--bjhunt-border-strong)]",
+          open && "bg-white/[0.04] border-[var(--bjhunt-border-strong)]"
         )}
         title={`Agent: ${current.name}`}
       >
         <span
-          className="w-1.5 h-1.5 flex-shrink-0"
+          className="w-1.5 h-1.5 flex-shrink-0 rounded-full"
           style={{ backgroundColor: currentMeta.color }}
         />
-        <span className="text-[10px] font-mono uppercase tracking-wider">
+        <span className="font-mono font-semibold text-[12px] uppercase tracking-[0.18em]">
           {current.name}
         </span>
         <ChevronDown
           className={cn(
-            "w-3 h-3 transition-transform duration-150",
+            "w-3.5 h-3.5 transition-transform duration-150",
             open && "rotate-180"
           )}
         />
       </button>
 
-      {/* Dropdown */}
+      {/* Drawer (mobile <md) */}
+      {open && (
+        <>
+          <div
+            className="md:hidden fixed inset-0 z-40"
+            style={{ background: "var(--bjhunt-bg-overlay, rgba(0,0,0,0.7))" }}
+            onClick={() => setOpen(false)}
+            aria-hidden="true"
+          />
+          <div
+            className="md:hidden fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-hidden bg-[var(--bjhunt-bg-surface)] border-t border-[var(--bjhunt-border)] rounded-t-[var(--bjhunt-radius-lg)] shadow-[0_-8px_24px_rgba(0,0,0,0.5)]"
+          >
+            <div className="px-4 py-3 flex items-center justify-between border-b border-[var(--bjhunt-border)]">
+              <span className="font-mono font-semibold text-[12px] uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)]">
+                Select Agent
+              </span>
+              <span className="font-mono tabular-nums text-[11px] text-[var(--bjhunt-text-muted)]">
+                17 agents
+              </span>
+            </div>
+            {agentList}
+          </div>
+        </>
+      )}
+
+      {/* Dropdown (desktop md+) */}
       {open && (
         <div
-          className="absolute bottom-full left-0 mb-2 w-[320px] z-50 slash-menu-enter overflow-hidden"
-          style={{
-            background: "rgba(17, 17, 17, 0.9)",
-            backdropFilter: "blur(24px)",
-            WebkitBackdropFilter: "blur(24px)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
-            boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
-          }}
+          className="hidden md:block absolute bottom-full left-0 mb-2 w-[320px] z-50 overflow-hidden bg-[var(--bjhunt-bg-surface)] border border-[var(--bjhunt-border)] rounded-[var(--bjhunt-radius-md)] shadow-[0_8px_24px_rgba(0,0,0,0.5)]"
         >
           {/* Header */}
-          <div className="px-3 py-1.5 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)" }}>
-            <span className="text-[8px] uppercase tracking-[0.2em] text-[var(--text-muted)]">
+          <div className="px-3 py-2 flex items-center justify-between border-b border-[var(--bjhunt-border)]">
+            <span className="font-mono font-semibold text-[10px] uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)]">
               Select Agent
             </span>
-            <span className="text-[8px] text-[var(--text-subtle)]">
+            <span className="font-mono tabular-nums text-[11px] text-[var(--bjhunt-text-muted)]">
               17 agents available
             </span>
           </div>
-
-          {/* Agent list grouped by category */}
-          <div className="max-h-[400px] overflow-y-auto">
-            {groupedAgents().map(({ category, agents }) => {
-              const meta = CATEGORY_META[category];
-              return (
-                <div key={category}>
-                  {/* Category header */}
-                  <div className="px-3 py-1.5 flex items-center gap-2" style={{ background: "rgba(10, 10, 10, 0.5)", borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
-                    <span
-                      className="w-1.5 h-1.5 flex-shrink-0"
-                      style={{ backgroundColor: meta.color }}
-                    />
-                    <span className="text-[8px] uppercase tracking-[0.2em] text-[var(--text-subtle)]">
-                      {meta.label}
-                    </span>
-                  </div>
-
-                  {/* Agents in this category */}
-                  {agents.map((agent) => {
-                    const isSelected = agent.id === selectedAgent;
-                    return (
-                      <button
-                        key={agent.id}
-                        onClick={() => {
-                          onSelect(agent.id);
-                          setOpen(false);
-                        }}
-                        className={cn(
-                          "w-full flex items-center gap-3 px-3 py-2 transition-all duration-200 text-left",
-                          isSelected
-                            ? "border-l-2"
-                            : "hover:bg-white/[0.04] border-l-2 border-l-transparent"
-                        )}
-                        style={isSelected ? { background: "rgba(255, 255, 255, 0.06)", borderLeftColor: meta.color } : undefined}
-                      >
-                        {/* Icon */}
-                        <span
-                          className={cn(
-                            "flex-shrink-0 transition-colors",
-                            isSelected ? "text-white" : "text-[var(--text-muted)]"
-                          )}
-                        >
-                          {agent.icon}
-                        </span>
-
-                        {/* Text */}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={cn(
-                                "text-[10px] font-mono uppercase tracking-wider",
-                                isSelected ? "text-white" : "text-[var(--text-muted)]"
-                              )}
-                            >
-                              {agent.name}
-                            </span>
-                            {agent.id === "bjhunt" && (
-                              <span className="text-[7px] uppercase tracking-wider px-1 py-px bg-[var(--border)] text-[var(--text-subtle)]">
-                                default
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[9px] text-[var(--text-subtle)] truncate">
-                            {agent.description}
-                          </div>
-                        </div>
-
-                        {/* Category dot */}
-                        <span
-                          className="w-1.5 h-1.5 flex-shrink-0"
-                          style={{ backgroundColor: meta.color, opacity: isSelected ? 1 : 0.4 }}
-                        />
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
+          {agentList}
         </div>
       )}
     </div>

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { browserBackendFetch } from "@/lib/backend-client";
-import { cn } from "@/lib/utils";
 import {
   Shield,
   ShieldCheck,
@@ -16,6 +15,9 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
+import { Eyebrow, Body } from "@/components/ui/typography";
+import { StatusDot, type StatusDotState } from "@/components/ui/status-dot";
+import { Button } from "@/components/ui/button";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -63,20 +65,32 @@ const ACTION_TYPE_LABELS: Record<ActionType, string> = {
   CONFIG_CHANGE: "Config Change",
 };
 
+// Defense action type → tri-state mapping (refonte 2026 §1).
+// Document the rationale: destructive defenses (block / disable) are critical risk
+// to operations; revocations and firewall rules are warning (medium impact);
+// config changes are success (lowest impact, recoverable).
+const ACTION_TYPE_STATE: Record<ActionType, StatusDotState> = {
+  BLOCK_PORT:        "critical",
+  DISABLE_SERVICE:   "critical",
+  REVOKE_CREDENTIAL: "warning",
+  FIREWALL_RULE:     "warning",
+  CONFIG_CHANGE:     "success",
+};
+
 const ACTION_TYPE_COLORS: Record<ActionType, string> = {
-  BLOCK_PORT: "var(--danger)",
-  DISABLE_SERVICE: "#f97316",
-  REVOKE_CREDENTIAL: "var(--warning)",
-  FIREWALL_RULE: "#60a5fa",
-  CONFIG_CHANGE: "#a78bfa",
+  BLOCK_PORT:        "var(--state-critical)",
+  DISABLE_SERVICE:   "var(--state-critical)",
+  REVOKE_CREDENTIAL: "var(--state-warning)",
+  FIREWALL_RULE:     "var(--state-warning)",
+  CONFIG_CHANGE:     "var(--state-success)",
 };
 
 const STATUS_COLORS: Record<ActionStatus, string> = {
-  pending: "var(--warning)",
-  approved: "var(--success)",
-  rejected: "var(--text-subtle)",
-  applied: "#60a5fa",
-  verified: "var(--success)",
+  pending:  "var(--state-warning)",
+  approved: "var(--state-success)",
+  rejected: "var(--bjhunt-text-muted)",
+  applied:  "var(--state-warning)",
+  verified: "var(--state-success)",
 };
 
 const STATUS_LABELS: Record<ActionStatus, string> = {
@@ -87,12 +101,17 @@ const STATUS_LABELS: Record<ActionStatus, string> = {
   verified: "VERIFIED",
 };
 
+// Severity → tri-state token mapping (same as vaccine-monitor).
+//   critical/high → critical (coral)
+//   medium        → warning  (amber)
+//   low           → success  (emerald)
+//   info          → neutral  (steel slate)
 const SEVERITY_COLORS: Record<string, string> = {
-  critical: "var(--danger)",
-  high: "#f97316",
-  medium: "var(--warning)",
-  low: "#60a5fa",
-  info: "var(--text-muted)",
+  critical: "var(--state-critical)",
+  high:     "var(--state-critical)",
+  medium:   "var(--state-warning)",
+  low:      "var(--state-success)",
+  info:     "var(--bjhunt-text-muted)",
 };
 
 // ── Component ───────────────────────────────────────────────────────────
@@ -210,9 +229,9 @@ export function DefenseBriefPanel({ engagementId }: DefenseBriefPanelProps) {
 
   if (loading) {
     return (
-      <div className="border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 flex items-center justify-center">
-        <Loader2 className="w-3 h-3 animate-spin text-[var(--text-subtle)]" />
-        <span className="ml-2 text-[9px] font-mono text-[var(--text-subtle)]">
+      <div className="border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-surface)] rounded-[var(--bjhunt-radius-md)] px-4 py-3 flex items-center justify-center">
+        <Loader2 className="w-3 h-3 animate-spin text-[var(--bjhunt-text-muted)]" />
+        <span className="ml-2 font-mono text-[11px] text-[var(--bjhunt-text-muted)]">
           Loading defense brief...
         </span>
       </div>
@@ -226,88 +245,82 @@ export function DefenseBriefPanel({ engagementId }: DefenseBriefPanelProps) {
   // ── Render ──────────────────────────────────────────────────────────
 
   return (
-    <div className="border border-[var(--border)] bg-[var(--bg-card)]">
+    <div className="border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-surface)] rounded-[var(--bjhunt-radius-md)]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--border)]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--bjhunt-border)]">
         <div className="flex items-center gap-2">
-          <Shield className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-          <span className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-white">
-            Defense Brief
-          </span>
+          <Shield className="w-4 h-4 text-[var(--bjhunt-text-muted)]" />
+          <Eyebrow>Defense Brief</Eyebrow>
         </div>
         <div className="flex items-center gap-3">
           {stats.pending > 0 && (
-            <span className="text-[8px] font-mono uppercase tracking-wider" style={{ color: "var(--warning)" }}>
-              {stats.pending} pending
-            </span>
+            <StatusDot state="warning" label={`${stats.pending} pending`} mono />
           )}
           {stats.approved > 0 && (
-            <span className="text-[8px] font-mono uppercase tracking-wider" style={{ color: "var(--success)" }}>
-              {stats.approved} approved
-            </span>
+            <StatusDot state="success" label={`${stats.approved} approved`} mono />
           )}
           {stats.verified > 0 && (
-            <span className="text-[8px] font-mono uppercase tracking-wider" style={{ color: "var(--success)" }}>
-              {stats.verified} verified
-            </span>
+            <StatusDot state="success" label={`${stats.verified} verified`} mono />
           )}
-          <span className="text-[8px] font-mono text-[var(--text-subtle)]">
+          <span className="font-mono tabular-nums text-[11px] text-[var(--bjhunt-text-muted)]">
             {stats.total} total
           </span>
         </div>
       </div>
 
       {/* Actions list */}
-      <div className="divide-y divide-[var(--border)]">
+      <div className="divide-y divide-[var(--bjhunt-border)]">
         {actions.map((action) => {
           const isExpanded = expandedId === action.id;
           const isProcessing = processingId === action.id;
           const isEditing = editingId === action.id;
-          const typeColor = ACTION_TYPE_COLORS[action.type] || "var(--text-muted)";
-          const sevColor = SEVERITY_COLORS[action.findingSeverity] || "var(--text-muted)";
-          const statusColor = STATUS_COLORS[action.status] || "var(--text-muted)";
+          const typeColor = ACTION_TYPE_COLORS[action.type] || "var(--bjhunt-text-muted)";
+          const sevColor = SEVERITY_COLORS[action.findingSeverity] || "var(--bjhunt-text-muted)";
+          const statusColor = STATUS_COLORS[action.status] || "var(--bjhunt-text-muted)";
+          const typeDot = ACTION_TYPE_STATE[action.type] || "neutral";
 
           return (
             <div key={action.id}>
               {/* Action row */}
               <button
                 onClick={() => setExpandedId(isExpanded ? null : action.id)}
-                className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-[var(--bg-input)]/20 transition-colors"
+                className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-white/[0.02] transition-colors"
               >
                 {/* Expand chevron */}
-                <div className="w-3 flex-shrink-0 mt-0.5 text-[var(--text-subtle)]">
-                  {isExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+                <div className="w-3 flex-shrink-0 mt-1 text-[var(--bjhunt-text-muted)]">
+                  {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                </div>
+
+                {/* StatusDot per recommendation list spec — type-driven tri-state */}
+                <div className="flex-shrink-0 mt-1">
+                  <StatusDot state={typeDot} compact />
                 </div>
 
                 {/* Type badge */}
                 <div className="flex-shrink-0">
                   <span
-                    className="inline-block text-[7px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5 border"
-                    style={{
-                      color: typeColor,
-                      borderColor: typeColor + "40",
-                      background: typeColor + "08",
-                    }}
+                    className="inline-block font-mono font-semibold text-[10px] uppercase tracking-[0.18em] px-1.5 py-0.5 border rounded-[var(--bjhunt-radius-xs)]"
+                    style={{ color: typeColor, borderColor: typeColor }}
                   >
                     {ACTION_TYPE_LABELS[action.type] || action.type}
                   </span>
                 </div>
 
-                {/* Target */}
+                {/* Target + description */}
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] font-mono text-white truncate">
+                  <div className="font-mono text-[12px] text-[var(--bjhunt-text)] truncate">
                     {action.target}
                   </div>
-                  <div className="text-[9px] font-mono text-[var(--text-subtle)] truncate mt-0.5">
+                  <Body className="text-[var(--bjhunt-text-muted)] truncate mt-0.5">
                     {action.description}
-                  </div>
+                  </Body>
                 </div>
 
                 {/* Severity badge */}
                 <div className="flex-shrink-0">
                   <span
-                    className="text-[7px] font-mono font-bold uppercase tracking-widest px-1 py-0.5 border"
-                    style={{ color: sevColor, borderColor: sevColor + "40" }}
+                    className="font-mono font-semibold text-[10px] uppercase tracking-[0.18em] px-1.5 py-0.5 border rounded-[var(--bjhunt-radius-xs)]"
+                    style={{ color: sevColor, borderColor: sevColor }}
                   >
                     {action.findingSeverity}
                   </span>
@@ -316,8 +329,8 @@ export function DefenseBriefPanel({ engagementId }: DefenseBriefPanelProps) {
                 {/* Status badge */}
                 <div className="flex-shrink-0">
                   <span
-                    className="text-[7px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5 border"
-                    style={{ color: statusColor, borderColor: statusColor + "40" }}
+                    className="font-mono font-semibold text-[10px] uppercase tracking-[0.18em] px-1.5 py-0.5 border rounded-[var(--bjhunt-radius-xs)]"
+                    style={{ color: statusColor, borderColor: statusColor }}
                   >
                     {STATUS_LABELS[action.status]}
                   </span>
@@ -326,56 +339,55 @@ export function DefenseBriefPanel({ engagementId }: DefenseBriefPanelProps) {
 
               {/* Expanded detail */}
               {isExpanded && (
-                <div className="px-4 pb-4 border-t border-[var(--border)]/30">
+                <div className="px-4 pb-4 border-t border-[var(--bjhunt-border)]">
                   <div className="pt-3 space-y-3 pl-6">
                     {/* Description (editable) */}
                     <div>
-                      <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                        Description
-                      </div>
+                      <Eyebrow className="block mb-1">Description</Eyebrow>
                       {isEditing ? (
                         <div className="space-y-2">
                           <textarea
                             value={editDescription}
                             onChange={(e) => setEditDescription(e.target.value)}
                             rows={3}
-                            className="w-full bg-[var(--bg-input)] border border-[var(--border)] text-[10px] font-mono text-white px-2 py-1.5 outline-none resize-y min-h-[40px]"
+                            className="w-full bg-[var(--bjhunt-bg)] border border-[var(--bjhunt-border)] rounded-[var(--bjhunt-radius)] text-[12px] font-mono text-[var(--bjhunt-text)] px-2 py-1.5 outline-none resize-y min-h-[40px] focus:border-[var(--state-success)]"
                           />
                           <div className="flex items-center gap-2">
-                            <button
+                            <Button
+                              variant="state"
+                              state="success"
+                              size="sm"
                               onClick={() => saveEdit(action.id)}
-                              className="text-[8px] font-mono uppercase tracking-widest text-[var(--success)] px-2 py-1 border border-[var(--success)]/40 hover:border-[var(--success)] transition-colors"
                             >
                               Save
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={cancelEdit}
-                              className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] px-2 py-1 border border-[var(--border)] hover:text-white transition-colors"
                             >
                               Cancel
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       ) : (
-                        <p className="text-[10px] font-mono text-[var(--text-muted)] leading-relaxed">
+                        <Body className="text-[var(--bjhunt-text)] leading-relaxed">
                           {action.description}
-                        </p>
+                        </Body>
                       )}
                     </div>
 
                     {/* Finding reference */}
                     <div>
-                      <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                        Finding Reference
-                      </div>
+                      <Eyebrow className="block mb-1">Finding Reference</Eyebrow>
                       <div className="flex items-center gap-1.5">
-                        <Link2 className="w-2.5 h-2.5 text-[var(--text-subtle)]" />
-                        <span className="text-[9px] font-mono text-[var(--success)]">
+                        <Link2 className="w-3 h-3 text-[var(--bjhunt-text-muted)]" />
+                        <span className="font-mono text-[11px] text-[var(--state-success)]">
                           {action.findingId}
                         </span>
                         <span
-                          className="text-[7px] font-mono uppercase tracking-widest px-1 py-px border ml-1"
-                          style={{ color: sevColor, borderColor: sevColor + "40" }}
+                          className="font-mono font-semibold text-[10px] uppercase tracking-[0.18em] px-1 py-px border ml-1 rounded-[var(--bjhunt-radius-xs)]"
+                          style={{ color: sevColor, borderColor: sevColor }}
                         >
                           {action.findingSeverity}
                         </span>
@@ -385,34 +397,32 @@ export function DefenseBriefPanel({ engagementId }: DefenseBriefPanelProps) {
                     {/* Verification result (if applied) */}
                     {action.status === "applied" && action.verificationResult && (
                       <div>
-                        <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                          Verification
-                        </div>
+                        <Eyebrow className="block mb-1">Verification</Eyebrow>
                         <div className="flex items-center gap-2">
                           {action.verificationResult === "BLOCKED" ? (
                             <>
                               <ShieldCheck
-                                className="w-3 h-3"
-                                style={{ color: "var(--success)" }}
+                                className="w-3.5 h-3.5"
+                                style={{ color: "var(--state-success)" }}
                               />
-                              <span className="text-[9px] font-mono text-[var(--success)]">
+                              <span className="font-mono text-[11px] text-[var(--state-success)]">
                                 BLOCKED -- defense verified
                               </span>
                             </>
                           ) : (
                             <>
                               <ShieldX
-                                className="w-3 h-3"
-                                style={{ color: "var(--danger)" }}
+                                className="w-3.5 h-3.5"
+                                style={{ color: "var(--state-critical)" }}
                               />
-                              <span className="text-[9px] font-mono text-[var(--danger)]">
+                              <span className="font-mono text-[11px] text-[var(--state-critical)]">
                                 FAILED
                               </span>
                             </>
                           )}
                         </div>
                         {action.verificationDetails && (
-                          <p className="text-[9px] font-mono text-[var(--text-subtle)] mt-1">
+                          <p className="font-mono text-[11px] text-[var(--bjhunt-text-muted)] mt-1">
                             {action.verificationDetails}
                           </p>
                         )}
@@ -421,12 +431,10 @@ export function DefenseBriefPanel({ engagementId }: DefenseBriefPanelProps) {
 
                     {action.status === "verified" && (
                       <div>
-                        <div className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
-                          Verification
-                        </div>
+                        <Eyebrow className="block mb-1">Verification</Eyebrow>
                         <div className="flex items-center gap-2">
-                          <ShieldCheck className="w-3 h-3" style={{ color: "var(--success)" }} />
-                          <span className="text-[9px] font-mono text-[var(--success)]">
+                          <ShieldCheck className="w-3.5 h-3.5" style={{ color: "var(--state-success)" }} />
+                          <span className="font-mono text-[11px] text-[var(--state-success)]">
                             Defense verified and active
                           </span>
                         </div>
@@ -437,10 +445,8 @@ export function DefenseBriefPanel({ engagementId }: DefenseBriefPanelProps) {
                     <div className="flex items-center gap-4 flex-wrap">
                       {action.approvedAt && (
                         <div>
-                          <span className="text-[7px] font-mono uppercase tracking-widest text-[var(--text-subtle)]">
-                            Approved:{" "}
-                          </span>
-                          <span className="text-[8px] font-mono text-[var(--text-muted)]">
+                          <Eyebrow>Approved </Eyebrow>
+                          <span className="font-mono tabular-nums text-[11px] text-[var(--bjhunt-text)] ml-1">
                             {new Date(action.approvedAt).toLocaleString("en-US", {
                               month: "short",
                               day: "2-digit",
@@ -452,10 +458,8 @@ export function DefenseBriefPanel({ engagementId }: DefenseBriefPanelProps) {
                       )}
                       {action.appliedAt && (
                         <div>
-                          <span className="text-[7px] font-mono uppercase tracking-widest text-[var(--text-subtle)]">
-                            Applied:{" "}
-                          </span>
-                          <span className="text-[8px] font-mono text-[var(--text-muted)]">
+                          <Eyebrow>Applied </Eyebrow>
+                          <span className="font-mono tabular-nums text-[11px] text-[var(--bjhunt-text)] ml-1">
                             {new Date(action.appliedAt).toLocaleString("en-US", {
                               month: "short",
                               day: "2-digit",
@@ -470,75 +474,71 @@ export function DefenseBriefPanel({ engagementId }: DefenseBriefPanelProps) {
                     {/* Action buttons */}
                     {action.status === "pending" && (
                       <div className="flex items-center gap-2 pt-1">
-                        <button
+                        <Button
+                          variant="state"
+                          state="success"
+                          size="sm"
+                          disabled={isProcessing}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleApprove(action.id);
                           }}
-                          disabled={isProcessing}
-                          className={cn(
-                            "flex items-center gap-1 text-[8px] font-mono uppercase tracking-widest px-2.5 py-1.5 border transition-colors",
-                            isProcessing
-                              ? "opacity-50 cursor-not-allowed text-[var(--text-subtle)] border-[var(--border)]"
-                              : "text-[var(--success)] border-[var(--success)]/40 hover:border-[var(--success)] hover:bg-[var(--success)]/5",
-                          )}
                         >
                           {isProcessing ? (
-                            <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                            <Loader2 className="w-3 h-3 animate-spin" />
                           ) : (
-                            <Check className="w-2.5 h-2.5" />
+                            <Check className="w-3 h-3" />
                           )}
                           Approve
-                        </button>
+                        </Button>
 
-                        <button
+                        <Button
+                          variant="state"
+                          state="critical"
+                          size="sm"
+                          disabled={isProcessing}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleReject(action.id);
                           }}
-                          disabled={isProcessing}
-                          className={cn(
-                            "flex items-center gap-1 text-[8px] font-mono uppercase tracking-widest px-2.5 py-1.5 border transition-colors",
-                            isProcessing
-                              ? "opacity-50 cursor-not-allowed text-[var(--text-subtle)] border-[var(--border)]"
-                              : "text-[var(--danger)] border-[var(--danger)]/40 hover:border-[var(--danger)] hover:bg-[var(--danger)]/5",
-                          )}
                         >
-                          <X className="w-2.5 h-2.5" />
+                          <X className="w-3 h-3" />
                           Reject
-                        </button>
+                        </Button>
 
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={isProcessing}
                           onClick={(e) => {
                             e.stopPropagation();
                             startEdit(action);
                           }}
-                          disabled={isProcessing}
-                          className="flex items-center gap-1 text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] px-2.5 py-1.5 border border-[var(--border)] hover:text-white hover:border-[var(--border-strong)] transition-colors"
                         >
-                          <Pencil className="w-2.5 h-2.5" />
+                          <Pencil className="w-3 h-3" />
                           Modify
-                        </button>
+                        </Button>
                       </div>
                     )}
 
                     {/* Re-approve rejected */}
                     {action.status === "rejected" && (
                       <div className="flex items-center gap-2 pt-1">
-                        <AlertTriangle className="w-3 h-3 text-[var(--text-subtle)]" />
-                        <span className="text-[8px] font-mono text-[var(--text-subtle)]">
+                        <AlertTriangle className="w-3.5 h-3.5 text-[var(--bjhunt-text-muted)]" />
+                        <span className="font-mono text-[11px] text-[var(--bjhunt-text-muted)]">
                           This action was rejected.
                         </span>
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={isProcessing}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleApprove(action.id);
                           }}
-                          disabled={isProcessing}
-                          className="text-[8px] font-mono uppercase tracking-widest text-[var(--text-muted)] px-2 py-1 border border-[var(--border)] hover:text-white transition-colors ml-2"
                         >
                           Re-approve
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>

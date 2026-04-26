@@ -8,13 +8,13 @@ import {
   ShieldCheck,
   CheckCircle2,
   Loader2,
-  Circle,
-  AlertTriangle,
   Clock,
   Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { browserBackendFetch } from "@/lib/backend-client";
+import { Eyebrow, Micro } from "@/components/ui/typography";
+import { StatusDot } from "@/components/ui/status-dot";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -63,19 +63,24 @@ const PHASES = [
 
 type PhaseKey = (typeof PHASES)[number]["key"];
 
+// Severity → tri-state token mapping (refonte 2026 §1).
+//   critical/high  → critical (coral)
+//   medium         → warning  (amber)
+//   low            → success  (emerald)
+//   info           → neutral  (steel slate)
 const SEVERITY_COLORS: Record<string, string> = {
-  critical: "var(--danger)",
-  high: "#f97316",
-  medium: "var(--warning)",
-  low: "#60a5fa",
-  info: "var(--text-muted)",
+  critical: "var(--state-critical)",
+  high:     "var(--state-critical)",
+  medium:   "var(--state-warning)",
+  low:      "var(--state-success)",
+  info:     "var(--bjhunt-text-muted)",
 };
 
 const RESULT_COLORS: Record<string, string> = {
-  finding: "var(--warning)",
-  success: "var(--success)",
-  failure: "var(--danger)",
-  info: "var(--text-muted)",
+  finding: "var(--state-warning)",
+  success: "var(--state-success)",
+  failure: "var(--state-critical)",
+  info:    "var(--bjhunt-text-muted)",
 };
 
 const DEFAULT_STATUS: VaccineStatus = {
@@ -145,12 +150,12 @@ function PhaseBar({ status }: { status: VaccineStatus }) {
                 style={{
                   background:
                     state === "pending"
-                      ? "var(--border)"
-                      : "var(--success)",
+                      ? "var(--bjhunt-border)"
+                      : "var(--state-success)",
                   ...(state === "pending"
                     ? {
                         backgroundImage:
-                          "repeating-linear-gradient(90deg, var(--border) 0, var(--border) 3px, transparent 3px, transparent 6px)",
+                          "repeating-linear-gradient(90deg, var(--bjhunt-border) 0, var(--bjhunt-border) 3px, transparent 3px, transparent 6px)",
                         backgroundSize: "6px 1px",
                         backgroundColor: "transparent",
                       }
@@ -165,11 +170,11 @@ function PhaseBar({ status }: { status: VaccineStatus }) {
                 className={cn(
                   "w-6 h-6 flex items-center justify-center border transition-all",
                   state === "active" &&
-                    "border-[var(--warning)] bg-[var(--warning-dim)]",
+                    "border-[var(--state-warning)] bg-[var(--state-warning-tint)]",
                   state === "completed" &&
-                    "border-[var(--success)] bg-[var(--success-dim)]",
+                    "border-[var(--state-success)] bg-[var(--state-success-tint)]",
                   state === "pending" &&
-                    "border-[var(--border)] bg-[var(--bg-card)]"
+                    "border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-surface)]"
                 )}
                 style={
                   state === "active"
@@ -180,29 +185,29 @@ function PhaseBar({ status }: { status: VaccineStatus }) {
                 {state === "completed" ? (
                   <CheckCircle2
                     className="w-3 h-3"
-                    style={{ color: "var(--success)" }}
+                    style={{ color: "var(--state-success)" }}
                   />
                 ) : state === "active" ? (
                   <Loader2
                     className="w-3 h-3 animate-spin"
-                    style={{ color: "var(--warning)" }}
+                    style={{ color: "var(--state-warning)" }}
                   />
                 ) : (
                   <Icon
                     className="w-3 h-3"
-                    style={{ color: "var(--text-subtle)" }}
+                    style={{ color: "var(--bjhunt-text-muted)" }}
                   />
                 )}
               </div>
               <span
-                className="text-[7px] uppercase tracking-widest font-mono"
+                className="font-mono font-semibold text-[10px] uppercase tracking-[0.18em]"
                 style={{
                   color:
                     state === "active"
-                      ? "var(--warning)"
+                      ? "var(--state-warning)"
                       : state === "completed"
-                        ? "var(--success)"
-                        : "var(--text-subtle)",
+                        ? "var(--state-success)"
+                        : "var(--bjhunt-text-muted)",
                 }}
               >
                 {phase.label}
@@ -232,15 +237,13 @@ function StatsRow({
       <StatItem
         label="Iteration"
         value={`${status.iteration}/${status.maxIterations}`}
-        color="var(--text-muted)"
+        color="var(--bjhunt-text)"
       />
 
       {/* Findings */}
-      <div className="flex items-center gap-1">
-        <span className="text-[8px] uppercase tracking-widest text-[var(--text-subtle)] font-mono">
-          Findings
-        </span>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">
+      <div className="flex items-center gap-1.5">
+        <Eyebrow>Findings</Eyebrow>
+        <span className="font-mono tabular-nums text-[11px] font-medium text-[var(--bjhunt-text)]">
           {findings.total}
         </span>
         {findings.total > 0 && (
@@ -268,30 +271,26 @@ function StatsRow({
       <StatItem
         label="Defenses"
         value={String(defensesApplied)}
-        color="var(--text-muted)"
+        color="var(--bjhunt-text)"
       />
 
       {/* Verified */}
-      <div className="flex items-center gap-1">
-        <span className="text-[8px] uppercase tracking-widest text-[var(--text-subtle)] font-mono">
-          Verified
-        </span>
-        <span className="text-[10px] font-mono" style={{ color: "var(--success)" }}>
+      <div className="flex items-center gap-1.5">
+        <Eyebrow>Verified</Eyebrow>
+        <span className="font-mono tabular-nums text-[11px] font-medium" style={{ color: "var(--state-success)" }}>
           {defensesVerified}
         </span>
         {defensesFailed > 0 && (
-          <span className="text-[10px] font-mono" style={{ color: "var(--danger)" }}>
+          <span className="font-mono tabular-nums text-[11px] font-medium" style={{ color: "var(--state-critical)" }}>
             /{defensesFailed}
           </span>
         )}
       </div>
 
       {/* Duration */}
-      <div className="flex items-center gap-1 ml-auto">
-        <Clock className="w-2.5 h-2.5" style={{ color: "var(--text-subtle)" }} />
-        <span className="text-[9px] font-mono text-[var(--text-muted)]">
-          {elapsed}
-        </span>
+      <div className="flex items-center gap-1.5 ml-auto">
+        <Clock className="w-3 h-3" style={{ color: "var(--bjhunt-text-muted)" }} />
+        <Micro className="text-[var(--bjhunt-text-muted)]">{elapsed}</Micro>
       </div>
     </div>
   );
@@ -307,11 +306,9 @@ function StatItem({
   color: string;
 }) {
   return (
-    <div className="flex items-center gap-1">
-      <span className="text-[8px] uppercase tracking-widest text-[var(--text-subtle)] font-mono">
-        {label}
-      </span>
-      <span className="text-[10px] font-mono" style={{ color }}>
+    <div className="flex items-center gap-1.5">
+      <Eyebrow>{label}</Eyebrow>
+      <span className="font-mono tabular-nums text-[11px] font-medium" style={{ color }}>
         {value}
       </span>
     </div>
@@ -329,8 +326,8 @@ function SeverityPill({
 }) {
   return (
     <span
-      className="text-[7px] font-mono px-1 py-px border"
-      style={{ color, borderColor: color + "40" }}
+      className="font-mono tabular-nums text-[9px] font-semibold px-1 py-px border rounded-[var(--bjhunt-radius-xs)]"
+      style={{ color, borderColor: color }}
     >
       {count}{label}
     </span>
@@ -343,31 +340,31 @@ function CurrentActivity({ status }: { status: VaccineStatus }) {
   if (status.phase === "idle" || status.phase === "complete") return null;
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-input)] border border-[var(--border)]">
+    <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bjhunt-bg-surface)] border border-[var(--bjhunt-border)] rounded-[var(--bjhunt-radius-sm)]">
       <Activity
         className="w-3 h-3 flex-shrink-0"
-        style={{ color: "var(--warning)" }}
+        style={{ color: "var(--state-warning)" }}
       />
       <div className="min-w-0 flex-1">
         {status.currentFinding && (
-          <span className="text-[10px] font-mono text-[var(--text-muted)] truncate block">
+          <span className="font-mono text-[11px] text-[var(--bjhunt-text)] truncate block">
             {status.currentFinding}
           </span>
         )}
         {!status.currentFinding && (
-          <span className="text-[10px] font-mono text-[var(--text-subtle)] italic">
+          <span className="font-mono text-[11px] text-[var(--bjhunt-text-muted)] italic">
             Processing...
           </span>
         )}
       </div>
       {status.currentAgent && (
-        <span className="text-[8px] font-mono uppercase tracking-wider text-[var(--warning)] flex-shrink-0">
+        <span className="font-mono font-semibold text-[10px] uppercase tracking-[0.18em] flex-shrink-0" style={{ color: "var(--state-warning)" }}>
           {status.currentAgent}
         </span>
       )}
       <Loader2
-        className="w-2.5 h-2.5 animate-spin flex-shrink-0"
-        style={{ color: "var(--warning)" }}
+        className="w-3 h-3 animate-spin flex-shrink-0"
+        style={{ color: "var(--state-warning)" }}
       />
     </div>
   );
@@ -386,7 +383,7 @@ function HistoryLog({ history }: { history: VaccineHistoryEntry[] }) {
 
   if (history.length === 0) {
     return (
-      <div className="px-3 py-4 text-center text-[9px] font-mono text-[var(--text-subtle)]">
+      <div className="px-3 py-4 text-center font-mono text-[11px] text-[var(--bjhunt-text-muted)]">
         No activity yet
       </div>
     );
@@ -399,17 +396,17 @@ function HistoryLog({ history }: { history: VaccineHistoryEntry[] }) {
     >
       <table className="w-full">
         <thead>
-          <tr className="border-b border-[var(--border)]">
-            <th className="text-[7px] font-mono uppercase tracking-widest text-[var(--text-subtle)] text-left px-2 py-1">
+          <tr className="border-b border-[var(--bjhunt-border)]">
+            <th className="font-mono font-semibold text-[10px] uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)] text-left px-2 py-1">
               Time
             </th>
-            <th className="text-[7px] font-mono uppercase tracking-widest text-[var(--text-subtle)] text-left px-2 py-1">
+            <th className="font-mono font-semibold text-[10px] uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)] text-left px-2 py-1">
               Phase
             </th>
-            <th className="text-[7px] font-mono uppercase tracking-widest text-[var(--text-subtle)] text-left px-2 py-1">
+            <th className="font-mono font-semibold text-[10px] uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)] text-left px-2 py-1">
               Action
             </th>
-            <th className="text-[7px] font-mono uppercase tracking-widest text-[var(--text-subtle)] text-left px-2 py-1">
+            <th className="font-mono font-semibold text-[10px] uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)] text-left px-2 py-1">
               Result
             </th>
           </tr>
@@ -418,32 +415,32 @@ function HistoryLog({ history }: { history: VaccineHistoryEntry[] }) {
           {history.slice(-10).map((entry, idx) => (
             <tr
               key={idx}
-              className="border-b border-[var(--border)]/20 hover:bg-[var(--bg-card)] transition-colors"
+              className="border-b border-[var(--bjhunt-border)] hover:bg-white/[0.02] transition-colors"
             >
-              <td className="text-[8px] font-mono text-[var(--text-subtle)] px-2 py-1 whitespace-nowrap">
+              <td className="font-mono tabular-nums text-[10px] text-[var(--bjhunt-text-muted)] px-2 py-1 whitespace-nowrap">
                 {formatTime(entry.timestamp)}
               </td>
-              <td className="text-[8px] font-mono uppercase text-[var(--text-muted)] px-2 py-1 whitespace-nowrap">
+              <td className="font-mono text-[10px] uppercase text-[var(--bjhunt-text)] px-2 py-1 whitespace-nowrap">
                 {entry.phase.replace(/_/g, " ")}
               </td>
-              <td className="text-[9px] font-mono text-[var(--text-muted)] px-2 py-1 max-w-[200px] truncate">
+              <td className="font-mono text-[11px] text-[var(--bjhunt-text)] px-2 py-1 max-w-[200px] truncate">
                 {entry.action}
               </td>
               <td className="px-2 py-1">
                 <span
-                  className="text-[7px] font-mono uppercase tracking-wider px-1 py-px border"
+                  className="font-mono font-semibold text-[9px] uppercase tracking-[0.18em] px-1 py-px border rounded-[var(--bjhunt-radius-xs)]"
                   style={{
-                    color: RESULT_COLORS[entry.result] || "var(--text-muted)",
-                    borderColor: (RESULT_COLORS[entry.result] || "var(--text-muted)") + "40",
+                    color: RESULT_COLORS[entry.result] || "var(--bjhunt-text-muted)",
+                    borderColor: RESULT_COLORS[entry.result] || "var(--bjhunt-border)",
                   }}
                 >
                   {entry.result}
                 </span>
                 {entry.severity && (
                   <span
-                    className="text-[7px] font-mono uppercase ml-1"
+                    className="font-mono text-[9px] uppercase ml-1"
                     style={{
-                      color: SEVERITY_COLORS[entry.severity] || "var(--text-muted)",
+                      color: SEVERITY_COLORS[entry.severity] || "var(--bjhunt-text-muted)",
                     }}
                   >
                     {entry.severity}
@@ -510,50 +507,39 @@ export function VaccineMonitor({ engagementId, compact = false }: VaccineMonitor
   // Loading state
   if (loading) {
     return (
-      <div className="border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 flex items-center justify-center">
-        <Loader2 className="w-3 h-3 animate-spin text-[var(--text-subtle)]" />
-        <span className="ml-2 text-[9px] font-mono text-[var(--text-subtle)]">
+      <div className="border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-surface)] rounded-[var(--bjhunt-radius-md)] px-4 py-3 flex items-center justify-center">
+        <Loader2 className="w-3 h-3 animate-spin text-[var(--bjhunt-text-muted)]" />
+        <span className="ml-2 font-mono text-[11px] text-[var(--bjhunt-text-muted)]">
           Loading vaccine status...
         </span>
       </div>
     );
   }
 
+  // Phase → tri-state mapping for the header status pill.
+  //   idle      → neutral
+  //   complete  → success
+  //   anything else (running) → warning
+  const phaseDotState =
+    status.phase === "complete" ? "success"
+      : status.phase === "idle" ? "neutral"
+      : "warning";
+  const phaseLabel =
+    status.phase === "complete" ? "complete"
+      : status.phase === "idle" ? "idle"
+      : status.phase.replace(/_/g, " ");
+
   // ── Compact mode ─────────────────────────────────────────────────────
   if (compact) {
     return (
-      <div className="border border-[var(--border)] bg-[var(--bg-input)]">
+      <div className="border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-surface)] rounded-[var(--bjhunt-radius-md)]">
         {/* Header */}
-        <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--border)]">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--bjhunt-border)]">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-3 h-3 text-[var(--text-muted)]" />
-            <span className="text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)]">
-              Vaccine Loop
-            </span>
+            <ShieldCheck className="w-3.5 h-3.5 text-[var(--bjhunt-text-muted)]" />
+            <Eyebrow>Vaccine Loop</Eyebrow>
           </div>
-          <span
-            className="text-[8px] font-mono uppercase tracking-wider px-1 py-px border"
-            style={{
-              color:
-                status.phase === "complete"
-                  ? "var(--success)"
-                  : status.phase === "idle"
-                    ? "var(--text-subtle)"
-                    : "var(--warning)",
-              borderColor:
-                status.phase === "complete"
-                  ? "var(--success)"
-                  : status.phase === "idle"
-                    ? "var(--text-subtle)"
-                    : "var(--warning)",
-            }}
-          >
-            {status.phase === "complete"
-              ? "done"
-              : status.phase === "idle"
-                ? "idle"
-                : "running"}
-          </span>
+          <StatusDot state={phaseDotState} label={phaseDotState === "warning" ? "running" : phaseLabel} mono pulse={phaseDotState === "warning"} />
         </div>
 
         {/* Phase bar */}
@@ -562,7 +548,7 @@ export function VaccineMonitor({ engagementId, compact = false }: VaccineMonitor
         </div>
 
         {/* Stats */}
-        <div className="px-3 py-1.5 border-t border-[var(--border)]">
+        <div className="px-3 py-2 border-t border-[var(--bjhunt-border)]">
           <StatsRow status={status} elapsed={elapsed} />
         </div>
       </div>
@@ -571,62 +557,37 @@ export function VaccineMonitor({ engagementId, compact = false }: VaccineMonitor
 
   // ── Full mode ──────────────────────────────────────────────────────────
   return (
-    <div className="border border-[var(--border)] bg-[var(--bg-card)]">
+    <div className="border border-[var(--bjhunt-border)] bg-[var(--bjhunt-bg-surface)] rounded-[var(--bjhunt-radius-md)]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border)]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--bjhunt-border)]">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-          <span className="text-[10px] uppercase tracking-[0.15em] text-[var(--text-muted)]">
-            Vaccine Loop Monitor
-          </span>
+          <ShieldCheck className="w-4 h-4 text-[var(--bjhunt-text-muted)]" />
+          <Eyebrow>Vaccine Loop Monitor</Eyebrow>
         </div>
-        <div className="flex items-center gap-2">
-          {status.phase !== "idle" && status.phase !== "complete" && (
-            <span className="status-dot" />
-          )}
-          <span
-            className="text-[9px] font-mono uppercase tracking-wider"
-            style={{
-              color:
-                status.phase === "complete"
-                  ? "var(--success)"
-                  : status.phase === "idle"
-                    ? "var(--text-subtle)"
-                    : "var(--warning)",
-            }}
-          >
-            {status.phase === "complete"
-              ? "complete"
-              : status.phase === "idle"
-                ? "idle"
-                : status.phase.replace(/_/g, " ")}
-          </span>
-        </div>
+        <StatusDot state={phaseDotState} label={phaseLabel} mono pulse={phaseDotState === "warning"} />
       </div>
 
       {/* Phase progress bar */}
-      <div className="px-4 py-3 flex justify-center border-b border-[var(--border)]">
+      <div className="px-4 py-3 flex justify-center border-b border-[var(--bjhunt-border)]">
         <PhaseBar status={status} />
       </div>
 
       {/* Stats row */}
-      <div className="px-4 py-2 border-b border-[var(--border)]">
+      <div className="px-4 py-2 border-b border-[var(--bjhunt-border)]">
         <StatsRow status={status} elapsed={elapsed} />
       </div>
 
       {/* Current activity */}
       {status.phase !== "idle" && status.phase !== "complete" && (
-        <div className="px-4 py-2 border-b border-[var(--border)]">
+        <div className="px-4 py-2 border-b border-[var(--bjhunt-border)]">
           <CurrentActivity status={status} />
         </div>
       )}
 
       {/* History log */}
       <div>
-        <div className="px-4 py-1.5 border-b border-[var(--border)]">
-          <span className="text-[8px] uppercase tracking-widest text-[var(--text-subtle)] font-mono">
-            Activity Log
-          </span>
+        <div className="px-4 py-1.5 border-b border-[var(--bjhunt-border)]">
+          <Eyebrow>Activity Log</Eyebrow>
         </div>
         <HistoryLog history={status.history} />
       </div>

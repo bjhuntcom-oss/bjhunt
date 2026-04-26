@@ -100,81 +100,84 @@ export default function CookieConsentBanner() {
   return (
     <>
       {/* Backdrop */}
-      <div 
-        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998] transition-opacity duration-300 ${
+      <div
+        className={`fixed inset-0 backdrop-blur-sm z-[9998] transition-opacity duration-300 ${
           isAnimating ? 'opacity-100' : 'opacity-0'
         }`}
+        style={{ background: 'var(--bjhunt-bg-overlay, rgba(0,0,0,0.7))' }}
         onClick={() => setShowDetails(false)}
       />
 
       {/* Banner */}
-      <div 
+      <div
         className={`fixed bottom-0 left-0 right-0 z-[9999] p-4 md:p-6 transition-all duration-300 ${
           isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
         }`}
       >
         <div className="max-w-4xl mx-auto">
-          <div className="bg-black border border-white/20 backdrop-blur-xl shadow-2xl">
+          <div className="bg-[var(--bjhunt-bg-surface)] border border-[var(--bjhunt-border)] rounded-[var(--bjhunt-radius-md)] shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
             {/* Header */}
-            <div className="p-4 md:p-6 border-b border-white/10">
+            <div className="p-4 md:p-6 border-b border-[var(--bjhunt-border)]">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/10 border border-white/20 flex items-center justify-center">
-                    <Cookie className="w-5 h-5 text-white" />
+                  <div className="w-10 h-10 bg-[var(--bjhunt-bg)] border border-[var(--bjhunt-border-strong)] rounded-[var(--bjhunt-radius-sm)] flex items-center justify-center">
+                    <Cookie className="w-5 h-5 text-[var(--bjhunt-text)]" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold tracking-wider text-white uppercase">
+                    <h3 className="font-mono font-semibold text-[14px] uppercase tracking-[0.18em] text-[var(--bjhunt-text)]">
                       {t('title')}
                     </h3>
-                    <p className="text-[10px] text-white/50 tracking-widest uppercase mt-0.5">
+                    <p className="font-mono font-semibold text-[10px] tracking-[0.18em] uppercase text-[var(--bjhunt-text-muted)] mt-0.5">
                       {t('subtitle')}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={handleRejectAll}
-                  className="p-2 hover:bg-white/10 transition-colors"
+                  className="p-2 rounded-[var(--bjhunt-radius-sm)] hover:bg-white/[0.04] transition-colors"
                   aria-label={t('close')}
                 >
-                  <X className="w-4 h-4 text-white/50" />
+                  <X className="w-4 h-4 text-[var(--bjhunt-text-muted)]" />
                 </button>
               </div>
 
-              <p className="text-xs text-white/70 mt-4 leading-relaxed">
+              <p className="font-sans text-[14px] text-[var(--bjhunt-text-muted)] mt-4 leading-relaxed">
                 {t('intro')}
               </p>
             </div>
 
             {/* Options détaillées */}
             {showDetails && (
-              <div className="p-4 md:p-6 border-b border-white/10 space-y-3 max-h-[40vh] overflow-y-auto">
+              <div className="p-4 md:p-6 border-b border-[var(--bjhunt-border)] space-y-3 max-h-[40vh] overflow-y-auto">
                 {consentOptions.map((option) => (
                   <div
                     key={option.id}
-                    className={`flex items-center justify-between p-3 border transition-colors ${
-                      consent[option.id] 
-                        ? 'border-white/30 bg-white/5' 
-                        : 'border-white/10 hover:border-white/20'
+                    className={`flex items-center justify-between p-3 border rounded-[var(--bjhunt-radius)] transition-colors ${
+                      consent[option.id]
+                        ? 'border-[var(--bjhunt-border-strong)] bg-white/[0.04]'
+                        : 'border-[var(--bjhunt-border)] hover:border-[var(--bjhunt-border-strong)]'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 flex items-center justify-center border ${
-                        consent[option.id] ? 'border-white/40 text-white' : 'border-white/20 text-white/50'
+                      <div className={`w-8 h-8 flex items-center justify-center border rounded-[var(--bjhunt-radius-sm)] ${
+                        consent[option.id]
+                          ? 'border-[var(--bjhunt-border-strong)] text-[var(--bjhunt-text)]'
+                          : 'border-[var(--bjhunt-border)] text-[var(--bjhunt-text-muted)]'
                       }`}>
                         {option.icon}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-white uppercase tracking-wider">
+                          <span className="font-mono font-semibold text-[12px] text-[var(--bjhunt-text)] uppercase tracking-[0.18em]">
                             {t(`categories.${option.id}.name`)}
                           </span>
                           {option.required && (
-                            <span className="text-[8px] px-1.5 py-0.5 bg-white/10 text-white/50 uppercase tracking-widest">
+                            <span className="font-mono font-semibold text-[10px] px-1.5 py-0.5 border border-[var(--bjhunt-border)] rounded-[var(--bjhunt-radius-xs)] text-[var(--bjhunt-text-muted)] uppercase tracking-[0.18em]">
                               {t('required')}
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] text-white/50 mt-0.5 max-w-xs">
+                        <p className="font-sans text-[12px] text-[var(--bjhunt-text-muted)] mt-0.5 max-w-xs">
                           {t(`categories.${option.id}.description`)}
                         </p>
                       </div>
@@ -182,19 +185,19 @@ export default function CookieConsentBanner() {
                     <button
                       onClick={() => toggleOption(option.id)}
                       disabled={option.required}
-                      className={`w-12 h-6 relative transition-colors ${
+                      className={`w-12 h-6 relative transition-colors rounded-full ${
                         option.required ? 'cursor-not-allowed' : 'cursor-pointer'
-                      } ${consent[option.id] ? 'bg-white' : 'bg-white/20'}`}
+                      } ${consent[option.id] ? 'bg-[var(--state-success)]' : 'bg-[var(--bjhunt-border-strong)]'}`}
                     >
                       <div
-                        className={`absolute top-1 w-4 h-4 transition-all ${
-                          consent[option.id] 
-                            ? 'left-7 bg-black' 
-                            : 'left-1 bg-white/50'
+                        className={`absolute top-1 w-4 h-4 rounded-full transition-all ${
+                          consent[option.id]
+                            ? 'left-7 bg-[var(--bjhunt-bg)]'
+                            : 'left-1 bg-[var(--bjhunt-text-muted)]'
                         }`}
                       >
                         {consent[option.id] && (
-                          <Check className="w-4 h-4 text-white p-0.5" style={{ filter: 'invert(1)' }} />
+                          <Check className="w-4 h-4 p-0.5 text-[var(--state-success)]" />
                         )}
                       </div>
                     </button>
@@ -205,11 +208,12 @@ export default function CookieConsentBanner() {
 
             {/* Actions */}
             <div className="p-4 md:p-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* Customize / hide details — ghost variant */}
               <button
                 onClick={() => setShowDetails(!showDetails)}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 border border-white/20 text-[10px] font-bold tracking-wider uppercase hover:bg-white/5 transition-colors order-3 sm:order-1"
+                className="flex items-center justify-center gap-2 h-10 md:h-9 px-4 border border-[var(--bjhunt-border)] rounded-[var(--bjhunt-radius)] font-mono font-semibold text-[12px] tracking-[0.18em] uppercase text-[var(--bjhunt-text)] hover:bg-white/[0.04] hover:border-[var(--bjhunt-border-strong)] transition-colors order-3 sm:order-1"
               >
-                <Settings className="w-3 h-3" />
+                <Settings className="w-3.5 h-3.5" />
                 {showDetails ? t('hide') : t('customize')}
               </button>
 
@@ -219,24 +223,25 @@ export default function CookieConsentBanner() {
                 {showDetails ? (
                   <button
                     onClick={handleSavePreferences}
-                    className="flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-black text-[10px] font-bold tracking-wider uppercase hover:bg-white/90 transition-colors"
+                    className="flex items-center justify-center gap-2 h-10 md:h-9 px-6 border border-[var(--state-success)] bg-[var(--bjhunt-bg-surface)] rounded-[var(--bjhunt-radius)] font-mono font-semibold text-[12px] tracking-[0.18em] uppercase text-[var(--state-success)] hover:bg-[var(--state-success-tint)] transition-colors"
                   >
-                    <Check className="w-3 h-3" />
+                    <Check className="w-3.5 h-3.5" />
                     {t('save')}
                   </button>
                 ) : (
                   <>
                     {/* CNIL 2026 : "Refuser" aussi facile/visible/rapide qu'"Accepter".
-                        Mêmes styles, même taille, ordre Refuser → Accepter. */}
+                        Equal-prominence — both ghost variants, same height, same padding,
+                        same typography. NO bias toward Accept. Order Refuser -> Accepter. */}
                     <button
                       onClick={handleRejectAll}
-                      className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-black text-[10px] font-bold tracking-wider uppercase hover:bg-white/90 transition-colors"
+                      className="flex items-center justify-center gap-2 h-10 md:h-9 px-5 border border-[var(--bjhunt-border-strong)] bg-transparent rounded-[var(--bjhunt-radius)] font-mono font-semibold text-[12px] tracking-[0.18em] uppercase text-[var(--bjhunt-text)] hover:bg-white/[0.04] transition-colors"
                     >
                       {t('rejectAll')}
                     </button>
                     <button
                       onClick={handleAcceptAll}
-                      className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-black text-[10px] font-bold tracking-wider uppercase hover:bg-white/90 transition-colors"
+                      className="flex items-center justify-center gap-2 h-10 md:h-9 px-5 border border-[var(--bjhunt-border-strong)] bg-transparent rounded-[var(--bjhunt-radius)] font-mono font-semibold text-[12px] tracking-[0.18em] uppercase text-[var(--bjhunt-text)] hover:bg-white/[0.04] transition-colors"
                     >
                       {t('acceptAll')}
                     </button>
@@ -247,13 +252,13 @@ export default function CookieConsentBanner() {
 
             {/* Footer info */}
             <div className="px-4 md:px-6 pb-4 flex items-center justify-between">
-              <p className="text-[9px] text-white/30 tracking-widest uppercase">
+              <p className="font-mono font-semibold text-[10px] tracking-[0.18em] text-[var(--bjhunt-text-muted)] uppercase">
                 {t('footerLearnMore')}{' '}
-                <a href="/legal" className="underline hover:text-white/50">
+                <a href="/legal" className="underline hover:text-[var(--bjhunt-text)]">
                   {t('footerPolicy')}
                 </a>
               </p>
-              <div className="flex items-center gap-2 text-[9px] text-white/30">
+              <div className="flex items-center gap-2 font-mono font-semibold text-[10px] tracking-[0.18em] text-[var(--bjhunt-text-muted)] uppercase">
                 <Shield className="w-3 h-3" />
                 <span>{t('footerCompliance')}</span>
               </div>
