@@ -23,7 +23,7 @@
 
 services:
   prometheus:
-    image: prom/prometheus:v3.0.0
+    image: prom/prometheus:v3.11.2
     container_name: bjhunt-prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
@@ -46,7 +46,7 @@ services:
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:11.4.0
+    image: grafana/grafana:12.4.3
     container_name: bjhunt-grafana
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?required}
@@ -74,7 +74,7 @@ services:
     restart: unless-stopped
 
   loki:
-    image: grafana/loki:3.3.0
+    image: grafana/loki:3.7.1
     container_name: bjhunt-loki
     command: ["-config.file=/etc/loki/loki.yml"]
     volumes:
@@ -93,7 +93,7 @@ services:
     restart: unless-stopped
 
   promtail:
-    image: grafana/promtail:3.3.0
+    image: grafana/promtail:3.7.1
     container_name: bjhunt-promtail
     command: ["-config.file=/etc/promtail/promtail.yml"]
     volumes:

@@ -147,7 +147,7 @@ services:
 
   # ── LiteLLM Proxy ──────────────────────────────────────────────────
   litellm:
-    image: ghcr.io/berriai/litellm:main-v1.82.3-stable.patch.2
+    image: ghcr.io/berriai/litellm:main-v1.83.7-stable
     container_name: bjhunt-litellm
     volumes:
       - ./engine/config/litellm.yaml:/app/config.yaml:ro
@@ -192,7 +192,7 @@ services:
 
   # ── Neo4j (Attack Chain Graph) ─────────────────────────────────────
   neo4j:
-    image: neo4j:5.24-community
+    image: neo4j:5.26-community
     container_name: bjhunt-neo4j
     environment:
       NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?required}
@@ -317,7 +317,7 @@ services:
   # forbidden — a compromised LangGraph cannot create new containers,
   # mount host paths, or pull images.
   docker-proxy:
-    image: tecnativa/docker-socket-proxy:0.3.0
+    image: tecnativa/docker-socket-proxy:0.4.2
     container_name: bjhunt-docker-proxy
     environment:
       CONTAINERS: 1
