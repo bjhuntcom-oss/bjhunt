@@ -1,4 +1,8 @@
 // app/[locale]/_components/cta-section.tsx
+//
+// BJHUNT 2026 refonte — flat canvas, hero-style 2-line H1 60px system-ui,
+// single ghost button. NO ambient gradient.
+
 "use client";
 
 import { motion } from "framer-motion";
@@ -10,63 +14,75 @@ export function CTASection() {
 
   return (
     <section
-      className="relative overflow-hidden px-8 py-40 text-center"
-      style={{ borderTop: "1px solid var(--bjhunt-border)" }}
+      className="py-20 text-center sm:py-24 md:py-28"
+      style={{
+        background: "var(--bjhunt-2026-bg)",
+        borderTop: "1px solid var(--bjhunt-2026-border)",
+      }}
     >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 50% 50% at 50% 50%, rgba(99,102,241,0.08), transparent 60%),"
-            + "radial-gradient(ellipse 30% 20% at 50% 100%, rgba(100,210,255,0.04), transparent 60%)",
-        }}
-      />
       <motion.div
-        className="relative z-10 mx-auto flex max-w-3xl flex-col items-center gap-10"
-        initial={{ opacity: 0, y: 24 }}
+        className="mx-auto flex w-full max-w-[860px] flex-col items-center gap-8 px-6 md:px-8"
+        initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       >
         <p
           className="m-0 font-mono uppercase"
-          style={{ fontSize: 10, letterSpacing: "0.32em", color: "var(--bjhunt-text-subtle)" }}
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            letterSpacing: "0.18em",
+            color: "var(--bjhunt-2026-text-muted)",
+          }}
         >
           05 / Get started
         </p>
+
         <h2
           className="m-0"
           style={{
-            fontSize: "clamp(44px, 7vw, 80px)",
-            fontWeight: 200,
-            letterSpacing: "-0.04em",
-            lineHeight: 0.95,
+            fontFamily: "var(--bjhunt-2026-font-display)",
+            fontSize: "clamp(40px, 5vw, 60px)",
+            fontWeight: 400,
+            lineHeight: 1.0,
+            letterSpacing: "-0.025em",
+            color: "var(--bjhunt-2026-text)",
           }}
         >
           {t("title")}
           <br />
-          <em className="not-italic" style={{ color: "var(--bjhunt-text-muted)", fontWeight: 200 }}>
+          <em
+            className="not-italic"
+            style={{ color: "var(--bjhunt-2026-text-secondary)" }}
+          >
             {t("subtitle")}
           </em>
         </h2>
+
         <Link
           href="/beta"
-          className="inline-flex items-center gap-3 px-7 py-4 font-mono uppercase transition-colors duration-200"
+          className="inline-flex h-11 items-center gap-3 rounded-md border px-5 transition-colors"
           style={{
-            fontSize: 11,
-            letterSpacing: "0.22em",
-            color: "var(--bjhunt-text)",
-            border: "1px solid var(--bjhunt-border-strong)",
-            background: "rgba(255,255,255,0.03)",
+            fontSize: 13,
+            fontWeight: 500,
+            color: "var(--bjhunt-2026-text)",
+            borderColor: "var(--bjhunt-2026-border)",
+            background: "transparent",
           }}
         >
           {t("cta")}
           <span aria-hidden>→</span>
         </Link>
+
         <p
           className="m-0 font-mono uppercase"
-          style={{ fontSize: 9, letterSpacing: "0.22em", color: "var(--bjhunt-text-disabled)" }}
+          style={{
+            fontSize: 11,
+            fontWeight: 500,
+            letterSpacing: "0.18em",
+            color: "var(--bjhunt-2026-text-muted)",
+          }}
         >
           {t("note")}
         </p>
