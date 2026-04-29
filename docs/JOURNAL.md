@@ -1165,6 +1165,105 @@ nous) :
 
 **Cap repos** : 5 → 6.
 
+### Phase 2.5 — Cohérence design marketing ↔ app + lien Connexion ✅
+
+**Symptôme remonté** : `bjhunt.com` (dark `#050507` / texte blanc / accents
+states) et `app.bjhunt.com` (light `slate-50` / texte noir / accent rouge
+`#DC2626`) lisaient comme deux produits différents. Pas de lien marketing
+→ console pour utilisateurs existants : tous les CTAs pointaient `/fr/beta`.
+
+**Audit Playwright préalable** :
+- bjhunt.com header : 6 nav links + LangSwitch + bouton beta. `signIn`
+  inexistant.
+- app.bjhunt.com login + /chats + /chats/new : tout en `bg-slate-50` /
+  `text-slate-900` / boutons `bg-slate-900`. assistant-ui Thread sur
+  `bg-slate-50` — incohérent avec marketing.
+- `globals.css` côté app : 6 lignes (`@theme { --color-brand: #DC2626 }`
+  + system fonts). Aucun token brand ou state.
+
+**Fix marketing (`bjhunt-v2`, commit `eb8a728`)** :
+- Ajout clé i18n `nav.signIn` (FR « Connexion », EN « Sign in »).
+- `components/layout/header.tsx` : lien externe vers
+  `https://app.bjhunt.com/login` entre LanguageSwitcher et bouton beta,
+  styled comme les autres nav links (`text-[10px] uppercase tracking-[0.15em]
+  text-[var(--text-muted)] hover:text-white`). Mirroré dans le menu mobile.
+
+**Fix app (`bjhunt-app`, commit `c4788a1`)** : refonte complète.
+- `app/globals.css` réécrit avec les tokens refonte 2026 du marketing
+  (`bjhunt-bg #050507`, `bjhunt-bg-surface #101010`, `bjhunt-bg-elevated
+  #16161a`, `bjhunt-border #3d3a39` / `border-strong #5a5654`,
+  `bjhunt-text #f2f2f2` / `secondary #b8b3b0` / `muted #8b949e`,
+  `state-success #00d992` / `warning #ffba00` / `critical #fb565b`).
+- Bridge Tailwind 4 `@theme inline { --color-* : var(--*) }` pour exposer
+  les tokens en utilities (`bg-bjhunt-bg`, `text-state-success`, etc.).
+- `app/layout.tsx` : Inter + JetBrains Mono via `next/font/google` (pas
+  `@fontsource` : pas envie d'ajouter une dep), variables `--font-inter` /
+  `--font-jetbrains-mono` injectées sur `<html>`. Body `bg-bjhunt-bg
+  text-bjhunt-text antialiased`.
+- 5 pages refondues : `/`, `/login`, `/chats`, `/chats/new`,
+  `/chats/[chatId]`. Pattern uniforme :
+  - Eyebrow uppercase tracked (`text-[10px] uppercase tracking-[0.15em]
+    text-bjhunt-text-muted`)
+  - H1 sans serif tracking-tight `text-bjhunt-text`
+  - Cards : `border-bjhunt-border bg-bjhunt-bg-surface`
+  - CTAs primaires : `bg-bjhunt-text text-bjhunt-bg` (inverse, comme
+    marketing « Rejoindre la beta »)
+  - CTAs secondaires : `border-bjhunt-border` ghost
+  - Erreurs : `border-state-critical/40 bg-state-critical/10
+    text-state-critical`
+  - Status pills : `state-success` (running), `state-warning` (pending),
+    `state-critical` (failed/aborted)
+  - Checkboxes : `accent-state-success`
+- 3 composants assistant-ui refondus :
+  - `components/chat/thread.tsx` : `ThreadPrimitive.Root` `bg-bjhunt-bg`,
+    bulles user `bg-bjhunt-bg-elevated` / assistant `bg-bjhunt-bg-surface`,
+    welcome empty avec eyebrow uppercase, indicator running avec dot
+    `state-success` qui pulse.
+  - `components/chat/composer.tsx` : textarea `bg-bjhunt-bg
+    border-bjhunt-border focus:border-state-success`, bouton send inverse
+    primary.
+  - `components/chat/system-message.tsx` : bandeau `bg-bjhunt-bg-elevated`
+    mono, gardé sobre (un seul style, pas un par kind d'event — le
+    système avait 11 styles colorés différents qui cassaient le rendu).
+
+Typecheck `tsc --noEmit` passe des deux côtés. Bundles Vercel rebuild en
+~32s.
+
+**Audit Playwright post-deploy** (vérification par URL canonique) :
+- ✅ `bjhunt.com/fr` : header présente bien `Connexion → app.bjhunt.com/login`.
+- ✅ `app.bjhunt.com/login` : page dark `#050507`, formulaire sur surface,
+  inputs corrects, retour vers marketing présent.
+- ✅ Login `admin@bjhunt.com / BjhuntAdmin2026!` réussit (200 sur
+  `POST /api/auth/sign-in/email`), redirige `/chats`.
+- ✅ `/chats` : empty state propre (icône `MessageSquare` mutée, CTA
+  « Démarrer le premier »), header `Console BJHUNT V2.1` eyebrow + H1 +
+  email/logout discret + bouton inverse.
+- ✅ `/chats/new` : 4 cartes complètes (Cible, Scope, Compliances ×13,
+  Modèles & agents ×4 catégories) toutes sur dark surface, labels
+  uppercase tracked, error banner `state-critical` propre.
+- ❌ Création de chat 502 sur `POST /api/chats` — **pas un bug design** :
+  `E2B_API_KEY` env var manque dans `/data/bjhunt-stack/docker-compose.yml`
+  côté backend. Logs : `Error: E2B API 401: authorization header is missing`.
+  Tâche dédiée créée.
+- `/chats/[chatId]` non visuellement audité (bloqué par le 502 ci-dessus),
+  mais source code utilise les mêmes tokens — vérification visuelle dès
+  que E2B key est posée.
+
+**Identité graphique unifiée** : marketing et console se lisent comme un
+seul produit. Mêmes tokens, mêmes patterns typo (uppercase tracking-wide
+pour eyebrows), mêmes CTAs (primary inverse / secondary ghost / state
+indicators), même grille couleur (3 niveaux noir + 3 niveaux texte +
+3 states).
+
+**Commits** :
+- `bjhuntcom-oss/bjhunt` : `eb8a728` `feat(header): add Connexion link →
+  app.bjhunt.com/login`
+- `bjhuntcom-oss/bjhunt-app` : `c4788a1` `feat(design): align bjhunt-app
+  on marketing dark theme`
+
+**Reste** : configurer `E2B_API_KEY` côté VPS, puis 1 test E2E live chat
+pour visuel `/chats/[chatId]`.
+
 ### State final — récapitulatif
 
 6 repos posés et synchronisés :
