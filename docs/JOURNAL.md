@@ -389,7 +389,29 @@ BJHUNT V2.1 en mode "Dream Diary par engagement".
     acquise, vocabulaire SSE complet, posture ultra-offensif/curieux/parano
 - À exécuter en CI via `bun test`
 
-### Phase 1.8 — Backend Hono+Bun (squelette + RLS + SSE) ✅
+### Phase 1.9 — Engine spawn + bridge (en cours, step-by-step)
+
+**Repo** : `bjhuntcom-oss/bjhunt-backend` (privé) — branche `main` directe
+(repo neuf, pas encore de PR workflow strict ; PR pattern à partir de la
+Phase 2 quand ce sera shippé).
+
+#### Step 1.9.a — E2B client + SecretRegistry ✅ (commit `54a0763`)
+- `src/lib/e2b.ts` :
+  - `spawnEngagementSandbox()` POST `/sandboxes` E2B avec template
+    `bjhunt-kali`, env `BJHUNT_MODE=true`, hard cap 4h, metadata
+    `engagement_id`+`run_id` pour traçabilité.
+  - `terminateSandbox()` (kill-switch + grace period post-completion).
+  - `isSandboxAlive()` (poll status).
+  - EU plane only (E2B BYOC managed-EU plan, pas de fallback US).
+- `src/lib/secrets.ts` :
+  - HKDF-derived AES-256-GCM par engagement (clé jamais en DB)
+  - `enrollSecret()` retourne placeholder `{{SECRET_<ulid>}}` que
+    l'engine substitue à tool-call time (post-LLM)
+  - `buildHookSecretValues()` feed le hook redact-secrets pour stripper
+    les valeurs même quand le LLM ne les a jamais vues
+  - `revokeEngagementSecrets()` purge totale post-run
+
+#### Step 1.9.b — Engine bridge (events sandbox → Redis Streams) ⏳
 
 **Repo** : `bjhuntcom-oss/bjhunt-backend` (privé, créé 2026-04-29).
 **Working copy** : `D:\bjhunt-backend\`.
