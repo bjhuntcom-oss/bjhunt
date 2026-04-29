@@ -1081,6 +1081,48 @@ Refactor : `withTenant` ouvre maintenant `db.transaction(async tx => ...)` (Driz
 
 Si re-prepare 401 (session expirée) → `setError` affiché dans le slot loading.
 
+### Phase 2.4 — page chats sans CSS + active org fallback + globalMeta i18n ✅
+
+**Date** : 2026-04-30 (suite de session)
+
+#### Bug critique — `app.bjhunt.com/chats` rendu sans aucun style
+
+Le user a flaggé "la page est cassé sans rien". Screenshot via Playwright a confirmé : police Times New Roman, liens bleus underlined, **zéro CSS**. Le bundle déployé `0q0f8j~ronpfi.css` faisait **216 bytes** — uniquement les `@theme` tokens, aucune classe utilitaire générée.
+
+Cause : Tailwind 4 ne fonctionne PAS sans postcss config explicite. Next.js voit `@import "tailwindcss"` dans `globals.css` mais sans `postcss.config.mjs` n'invoque pas le plugin `@tailwindcss/postcss` — l'import est traité comme un CSS import classique qui résolve à rien. Toutes les classes Tailwind deviennent du dead code dans le HTML.
+
+Fix : `postcss.config.mjs` à la racine de `bjhunt-app/` :
+```js
+export default { plugins: { '@tailwindcss/postcss': {} } }
+```
+
+Le marketing `bjhunt-v2` avait déjà cette config — c'est pour ça que lui rendait correctement.
+
+Vercel rebuild → CSS bundle proprement généré → page chats stylisée.
+
+#### Bug parallèle — 409 `no active organization for session`
+
+Avant le bug CSS, l'E2E avait flaggé un 409 sur toutes les routes tenant. Cause : BetterAuth's `organization` plugin ne set pas auto `session.active_organization_id` au sign-in. Le seed avait inséré la row `member` mais aucune session n'existait à ce moment.
+
+Fix dans `authMiddleware` : si `session.active_organization_id` est null, lookup la plus ancienne membership de l'user et persist sur la session via `UPDATE session SET active_organization_id = ... WHERE token = ...`. Ça évite un roundtrip BetterAuth + cache pour les requêtes suivantes.
+
+Throw 409 garde une logique : si l'user n'a **aucune** membership (vraie misconfig).
+
+#### Bug cosmétique — `globalMeta.title` rendu littéralement
+
+Page title du site marketing affichait le i18n key path au lieu du texte traduit. Cause : `app/[locale]/layout.tsx:36` appelle `getTranslations({ namespace: 'globalMeta' })` mais ni `messages/fr.json` ni `messages/en.json` n'avaient ce namespace. next-intl tombe en fallback sur le path quand la clé n'existe pas.
+
+Fix : ajouter `globalMeta.{title,description}` dans les 2 fichiers JSON.
+
+#### Bilan Phase 2.4
+
+3 commits backend + 2 commits frontend :
+- `bjhunt-backend@8776256` — auth fallback membership
+- `bjhunt-app@566ddf2` — postcss config Tailwind 4
+- `bjhunt-v2@88c7713` — globalMeta i18n + .gitignore .playwright-mcp
+
+Tous live en prod. `app.bjhunt.com/chats` rend correctement, sign-in admin@bjhunt.com fonctionne, dashboard loadable.
+
 ### Phase 1.13.d — Fork privé `bjhunt-assistant-ui` ✅
 
 **Pourquoi** : le user a explicitement demandé un fork pour robustesse du chat
