@@ -222,9 +222,10 @@ Toutes les docs `docs/architecture/*.md` mises à jour pour refléter :
 - ⏳ NS migration full propagation 24-48h (déjà visible Google DNS)
 
 ### Repos GitHub
-- ✅ `bjhuntcom-oss/bjhunt` (public) — frontend Next.js
+- ✅ `bjhuntcom-oss/bjhunt` (public) — frontend Next.js (marketing + labs/audit POC)
 - ✅ `bjhuntcom-oss/bjhunt-legacy-engine` (privé) — archive Decepticon
-- ✅ `bjhuntcom-oss/bjhunt-engine` (privé) — fork openclaude (créé via mirror push)
+- ✅ `bjhuntcom-oss/bjhunt-engine` (privé) — fork openclaude + pack BJHUNT V2.1
+- ✅ `bjhuntcom-oss/bjhunt-backend` (privé) — Hono+Bun thin SaaS layer (créé 2026-04-29)
 
 ### Phase 1.3 — Brancher Ollama Cloud sur LiteLLM ✅
 
@@ -411,7 +412,136 @@ Phase 2 quand ce sera shippé).
     les valeurs même quand le LLM ne les a jamais vues
   - `revokeEngagementSecrets()` purge totale post-run
 
-#### Step 1.9.b — Engine bridge (events sandbox → Redis Streams) ⏳
+#### Step 1.9.b — Engine bridge (events sandbox → Redis Streams) ✅ (commit `ac3c03f`)
+- `src/lib/engine-bridge.ts`
+  - `startBridge(orgId, runId, engineEndpoint)` — long-poll
+    `GET <engine>/events?after=<ulid>&block_ms=15000`, parse JSONL,
+    valide chaque event contre la whitelist `TYPED_EVENTS` (12 typés +
+    `error.*`), forward vers `writeEvent()` (XADD MAXLEN ~10000 +
+    mirror Postgres)
+  - Cursor persisté dans Redis (`bridge:{org}:{run}:after` TTL 7j) →
+    backend restart resume au bon endroit
+  - Backoff exponentiel jusqu'à 10s sur erreur transitoire
+  - Events terminaux (`run.completed` / `run.failed`) ferment le bridge
+    proprement
+- `killEngine()` — POST `<engine>/control {action:"kill"}` puis stop bridge
+
+#### Step 1.9.c — Routes engagements (CRUD) + runs (spawn/kill) ✅ (commit `fafe5a8`)
+- `src/routes/engagements.ts`
+  - `GET /api/engagements` — list 50 dernières (RLS-scoped via
+    `withTenant`)
+  - `POST /api/engagements` — Zod-validated `scope` (in_scope/out_of_scope/
+    rules_of_engagement/max_rps/evasion), `compliances_required` enum
+    sur les 14 frameworks, status default `draft`, audit_log row
+  - `GET /api/engagements/:id` — single fetch
+  - `PATCH /api/engagements/:id` — partial update + audit_log row
+- `src/routes/runs.ts`
+  - `POST /api/engagements/:id/runs` — vérifie engagement signé
+    (`signedAt`) et non expiré, insert `runs` row (status pending),
+    `spawnEngagementSandbox()`, write `run.started` SSE event,
+    `startBridge()`, flip status `running`. Sur échec spawn, run row
+    passe `failed` avec error metadata. Retourne `{ run, sse_prepare_url }`
+  - `GET /api/runs/:id` — poll status
+  - `DELETE /api/runs/:id` — kill-switch :
+    `killEngine()` + `terminateSandbox()` + `run.completed outcome:aborted`
+    SSE + audit_log
+- `src/index.ts` — mount `/api/engagements` + `/api` (pour
+  `/engagements/:id/runs` et `/runs/:id`)
+
+#### Step 1.9.d — Image bjhunt-kali (Dockerfile + event relay + entrypoint) ✅ (commit `73c43bd` sur `feat/bjhunt-v2.1-pack`)
+- `bjhunt-engine/bjhunt/docker/bjhunt-kali.Dockerfile`
+  - Base `kalilinux/kali-rolling`
+  - Apt curated : nmap, masscan, dnsx, subfinder, amass, whatweb, ffuf,
+    gobuster, sqlmap, nikto, wapiti, crackmapexec, impacket, responder,
+    bloodhound.py, hashcat, john, hydra, medusa, binwalk, tcpdump...
+  - nuclei v3 latest from GitHub release + template update at build
+  - Bun 1.1, Node 20, Python 3 build-essential
+  - Typst (PDF rendering) + pyHanko (PKCS#7 PDF signing)
+  - Stage `/opt/bjhunt-engine` + `/root/.claude` via le script existant
+    `bjhunt/scripts/build-claude-agents.sh` → 38 personas + hooks +
+    settings.json wired-in à l'image
+  - Defaults : `BJHUNT_MODE=true`, sse socket `/run/bjhunt/sse.sock`,
+    evidence dir `/engagement/evidence`, workspace `/engagement/workspace`
+  - HEALTHCHECK contre relay `/healthz` sur :8090
+- `bjhunt-engine/bjhunt/docker/event-relay.cjs`
+  - Producer UNIX socket à `$BJHUNT_SSE_SOCKET` — engine + hooks y
+    écrivent JSONL `{ulid, event, data}`
+  - Ring buffer 50 000 events (last-N reachable via cursor)
+  - HTTP `/healthz`, `/events?after=<ulid>&block_ms=N` (long-poll
+    JSONL streaming, max block 30s), `/control` (kill-switch émet
+    `run.completed outcome:aborted` + exit 1s grace pour la lecture
+    du terminal event par le bridge)
+- `bjhunt-engine/bjhunt/docker/run-engagement.sh`
+  - Sanity-checks `BJHUNT_MODE/RUN_ID/ENGAGEMENT_ID`
+  - Persiste le scope JSON à `/engagement/scope.json`
+  - Boot relay + wait `/healthz`
+  - Source `/root/.claude/bjhunt.env` (BJHUNT_MODE et HOME)
+  - Initial prompt depuis `BJHUNT_INITIAL_PROMPT` ou
+    `/engagement/initial-prompt.txt` ou fallback FR (lance recon-osint)
+  - Hand-off `exec /opt/bjhunt-engine/bin/openclaude --print "$prompt"`
+- `bjhunt-engine/bjhunt/docker/README.md` — instructions build local
+  docker + register E2B template + diagramme couches + note
+  egress-filtering Phase 1.6
+
+### Phase 1.10 — Frontend POC labs/audit live SSE ✅ (commit `fbde44f`)
+- `hooks/use-engagement-stream.ts` — consumer SSE typé EventSource :
+  - 12 events typés + `error.scope_violation` + `error.runtime`
+  - Reducer dans une Map d'agents (id → {type, color, thinking
+    buffer 4KB rolling, toolCalls count, status})
+  - Findings sorted par sévérité (CVSS-banded auto), compliance
+    mappings (chips par framework), CVSS+EPSS+KEV inline
+  - Dream diary entries
+  - Evidence ledger (sha256 truncated, redactions tags)
+  - Scope violations
+  - Auto-close sur `run.completed`
+  - Resume via Last-Event-ID delegated au backend
+- `app/[locale]/labs/audit/page.tsx` — UI smoke test :
+  - 3 fields (backend URL / runId / ticket) → bouton Connect
+  - Status badge (idle/connecting/open/closed/error)
+  - Grid : Agents (avec thinking buffer scrollable monospace) ·
+    Findings (severity-banded, compliance chips) · Dream Diary
+  - Bottom : Evidence ledger · Scope violations
+  - Footer : Run outcome + report refs R2 quand `run.completed`
+  - Page **non-linkée** depuis la nav marketing publique → URL
+    directe seulement (`/labs/audit`)
+  - Pour tester : `bun run dev` sur backend (avec tunnel SSH vers
+    Hostinger pour PG/Redis/LiteLLM), `npm run dev` sur frontend,
+    POST `/api/chat/prepare` pour obtenir un ticket, paste ici
+
+### State final Phase 1.4 → 1.10 (cap atteint)
+
+3 repos posés et synchronisés :
+- `bjhunt-engine` (privé) — fork openclaude + pack BJHUNT V2.1 sur
+  branche `feat/bjhunt-v2.1-pack` (PR draft #1)
+- `bjhunt-backend` (privé) — Hono+Bun thin SaaS layer
+- `bjhunt` (public) — frontend marketing + labs/audit POC
+
+Cheminement E2E disponible localement :
+1. Tunnel SSH vers Hostinger : `ssh -L 5432:127.0.0.1:5432
+   -L 6379:127.0.0.1:6379 -L 4000:127.0.0.1:4000 bjhunt-vps -N`
+2. Backend `bun run dev` sur :8080 (Hono+Bun)
+3. Frontend `npm run dev` sur :3000 (Next.js 16)
+4. Build local de l'image : `docker build -f
+   bjhunt/docker/bjhunt-kali.Dockerfile -t bjhunt-kali:latest
+   D:\bjhunt-engine\` (test relay/hooks sans E2B)
+5. Pour POC end-to-end avec vrai E2B : registrer template via
+   `e2b template build --name bjhunt-kali` puis lancer un run via
+   API.
+
+### Reste à faire (Phase 1.6/1.7/1.9.e/1.11)
+- [ ] **Phase 1.6** Wireguard mesh Fly.io ↔ Hostinger (pour que le
+  backend prod en CDG/AMS atteigne Postgres/Redis/LiteLLM en LT sans
+  exposer Postgres au public)
+- [ ] **Phase 1.7** Caddy/TLS ou Cloudflare Tunnel devant Coolify
+  (port 8000 actuellement public — known issue Docker bypass UFW)
+- [ ] **Phase 1.9.e** BetterAuth réel (placeholder JWT cookie en
+  attendant) + WebAuthn + TOTP + 2FA obligatoire owner/admin
+- [ ] **Phase 1.11** Test E2E réel : engagement Juice Shop / DVWA
+  → findings → rapport PCI-DSS PDF signé visible dans labs/audit
+- [ ] **Phase 1.12** Vrai dashboard `app.bjhunt.com` (Next.js dédié)
+  remplaçant labs/audit POC — RBAC, multi-engagement view, replay,
+  download PDFs presigned URL R2
+
 
 **Repo** : `bjhuntcom-oss/bjhunt-backend` (privé, créé 2026-04-29).
 **Working copy** : `D:\bjhunt-backend\`.
