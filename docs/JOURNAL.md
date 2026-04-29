@@ -389,6 +389,76 @@ BJHUNT V2.1 en mode "Dream Diary par engagement".
     acquise, vocabulaire SSE complet, posture ultra-offensif/curieux/parano
 - À exécuter en CI via `bun test`
 
+### Phase 1.8 — Backend Hono+Bun (squelette + RLS + SSE) ✅
+
+**Repo** : `bjhuntcom-oss/bjhunt-backend` (privé, créé 2026-04-29).
+**Working copy** : `D:\bjhunt-backend\`.
+**Stack** : Bun 1.1+ · Hono 4 · Drizzle ORM (postgres-js) · ioredis · jose
+JWT · zod · ulid · @aws-sdk/client-s3 (R2).
+
+#### Squelette projet
+- `package.json` (scripts dev/start/build/test/typecheck/db:migrate/db:seed/db:studio)
+- `tsconfig.json` (strict, noUncheckedIndexedAccess, ESNext, Bun types)
+- `Dockerfile` multi-stage `oven/bun:1.1.42-alpine` (deps → build typecheck →
+  runtime tini + curl healthcheck)
+- `fly.toml` (org bjhunt-com, primary `cdg`, fallback `ams`, 2 machines min,
+  `auto_stop_machines=off` pour SSE long-lived, healthcheck `/api/health`,
+  metrics port 9091)
+- `drizzle.config.ts`, `.env.example`, `.gitignore`, `README.md`
+
+#### Schéma Postgres (`migrations/0001_init.sql`) — multi-tenant strict
+- 9 tables : `orgs`, `users`, `org_members`, `engagements`, `runs`,
+  `findings`, `evidence`, `stream_events`, `audit_log`
+- **RLS FORCE** sur chaque table tenant-scopée (engagements, runs, findings,
+  evidence, stream_events, audit_log, org_members + orgs self-scope)
+- Helper functions `app_current_org()` / `app_current_user()` lisent les GUCs
+  `app.org_id` / `app.user_id` (set par middleware tenant)
+- **Append-only** triggers sur `evidence` (immutabilité chain-of-custody) et
+  `audit_log` (immutabilité audit trail)
+- Rôle `bjhunt_app` NOINHERIT créé pour exécution avec RLS active
+- Extensions : `pgcrypto`, `pgvector`, `pg_trgm` (déjà installées sur VPS)
+
+#### Lib core
+- `lib/db.ts` — postgres-js pool (max 20) + Drizzle + `withTenant(orgId,
+  userId, fn)` qui wrap chaque transaction avec `SELECT set_config('app.org_id', ...)`
+- `lib/redis.ts` — ioredis singleton, helpers `streamKey(org, run)`,
+  `ticketKey(jti)`
+- `lib/jwt.ts` — HS256 SSE tickets, **TTL hard cap 300s**, audience
+  `bjhunt-sse`, scope `sse`, ULID jti
+- `lib/sse.ts` — `writeEvent()` (XADD MAXLEN ~10000 + mirror Postgres) +
+  `streamEventsToResponse()` (replay PG si Last-Event-ID, puis tail Redis
+  XREAD BLOCK 15s, ping comment toutes les 15s pour proxies, close auto sur
+  `run.completed`)
+- `lib/logger.ts` — JSON lines structuré, level-filtered
+
+#### Middleware
+- `auth.ts` — parse cookie `bjhunt_session` (JWT BETTERAUTH_SECRET), inject
+  `session` dans context (placeholder, swap BetterAuth réel Phase 1.9)
+- `tenant.ts` — extrait `orgId/userId` de la session, expose `tenant`
+  ContextVariableMap, throw 401 si manquant
+
+#### Routes
+- `GET /api/health` — db+redis ping avec timeout 700ms each, 503 si down,
+  no auth
+- `POST /api/chat/prepare` — auth+tenant, vérifie que le `run_id` appartient
+  à l'org via `withTenant`, refuse si run finalisé, émet ticket JWT 5min,
+  retourne `{ ticket, expires_in, sse_url }`
+- `GET /api/chat/stream/:runId?ticket=...` — pas d'auth cookie (le ticket
+  est l'auth), verify ticket, check `runId === claims.run_id`, stream SSE
+  depuis Redis avec replay PG si `Last-Event-ID` envoyé
+
+#### Tests
+- `tests/health.test.ts` — smoke (skip si POSTGRES_URL absent)
+- `tests/sse-jwt.test.ts` — invariants JWT (round-trip ok, audience rejet,
+  TTL capé à 300s)
+
+#### Sécurité boundary
+- `secureHeaders()` Hono — CSP strict (`default-src 'self'`,
+  `frame-ancestors 'none'`), HSTS preload 2 ans, Referrer-Policy
+- `cors()` whitelist : `bjhunt.com`, `app.bjhunt.com`, `localhost:3000` dev
+- `compress()` désactivé sur `/api/chat/stream/*` (incompat SSE)
+- 404 + onError handlers JSON propres
+
 ### Stack opérationnelle sur VPS
 - ✅ Coolify v4 (orchestrator) — `http://82.25.117.79:8000`
 - ✅ Postgres 17 + pgvector 0.8.2 (port `127.0.0.1:5432`)
