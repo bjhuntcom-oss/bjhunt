@@ -888,6 +888,89 @@ provisionnés).
 
 (GitHub Actions ssh-deploy workflow → Phase 2.1, pas encore wired.)
 
+### Phase 2.1 — CI/CD auto-deploy + Sentry + E2B template + chat-only paths ✅
+
+**Date** : 2026-04-29 (suite de session)
+
+#### CI/CD auto-deploy backend → VPS
+
+- `.github/workflows/deploy-vps.yml` créé sur `bjhunt-backend` (trigger
+  `workflow_run` après CI green sur `main`, + `workflow_dispatch` manuel)
+- Tarball ship → SSH (clé dédiée `VPS_DEPLOY_KEY` repo secret) → swap
+  atomique `bjhunt-backend.new` → `bjhunt-backend` avec `.old` rollback
+- Probe `/api/health` 60s ; rollback auto si échec
+- Smoke check final via `https://api.bjhunt.com`
+- Premier run vert : `25132219544` (post-merge CF Tunnel) ; second run
+  vert : `25134502937` (post-Sentry wire)
+
+#### Sentry observability (free tier, EU data)
+
+- Org `bjhunt` créée via Google OAuth (Playwright MCP, le mail Google
+  était déjà connecté dans le session)
+- 2 projets : `backend-node` (DSN `SENTRY_DSN_BACKEND`) et
+  `frontend-nextjs` (DSN `SENTRY_DSN_FRONTEND`)
+- DSNs persistés `D:\bjhunt-v2\.env.local` (gitignored)
+
+**Backend (`bjhunt-backend`)** :
+- `@sentry/node@10.51.0` ajouté ; `src/lib/sentry.ts` (init no-op si
+  DSN unset, `tracesSampleRate` 0.05 en prod / 0 en dev,
+  `ignoreTransactions: ['GET /api/health']`)
+- `src/index.ts` : `initSentry()` avant tous les imports à effets de
+  bord ; `app.onError` relaie `captureHonoError(err, { path, method,
+  userAgent })` (`requestId` retiré : pas de middleware qui le set)
+- `/data/bjhunt-stack/.env` : ajout `SENTRY_DSN_BACKEND=...`
+- `/data/bjhunt-stack/docker-compose.yml` : `SENTRY_DSN_BACKEND` +
+  `GIT_SHA` ajoutés à `environment:` du service `bjhunt-backend`
+  (sinon le whitelist du runtime Bun ignore le `.env`)
+
+**Frontend (`bjhunt-app`)** :
+- `@sentry/nextjs@10.51.0` (déjà dans deps Phase 2.0)
+- `sentry.{client,server,edge}.config.ts` + `instrumentation.ts`
+  (Next.js 16 entrypoint dispatchant sur `NEXT_RUNTIME`) — minimal,
+  pas de Replay (lourd), pas de `withSentryConfig` (source maps =
+  Phase 3 avec sentry-cli + auth token)
+- Vercel : `NEXT_PUBLIC_SENTRY_DSN` set en production
+
+#### E2B template `bjhunt-kali` (en cours)
+
+- Template ID `o8ck6cwwuralcm11u3tb` (alias `bjhunt-kali`) créé Phase
+  1.9 mais resté en statut "build failed" car la verif `start command`
+  d'E2B échouait sur des problèmes de permission après le `USER user`
+  switch
+- 4 builds échec puis fix appliqué :
+  - `BJHUNT_SSE_SOCKET=/tmp/bjhunt/sse.sock` (au lieu de
+    `/run/bjhunt/sse.sock` — `/run` est tmpfs-wiped et root-only)
+  - Dockerfile : `chown -R 1000:1000` sur `/chat` + `/opt/bjhunt-engine`
+    + `/root/.claude` ; `chmod 755 /root /root/.bun /root/.bun/bin`
+    pour traversabilité (uid 1000 = `user` dans la base E2B)
+  - `run-engagement.sh` : `BJHUNT_CHAT_ID` default à un placeholder
+    pour que la verif start-command d'E2B atteigne `/healthz` même
+    sans env runtime ; le backend set la vraie valeur au spawn
+  - `BJHUNT_RUN_ID` legacy alias → `BJHUNT_CHAT_ID` (Phase 1.13.c
+    chat-only collapse)
+
+#### Rename `/engagement/*` → `/chat/*` (cohérence Phase 1.13.c)
+
+Phase 1.13.c avait collapsé `engagements`+`runs` en table `chats`
+unique côté backend, mais les paths INTERNES au sandbox E2B (mounts,
+fichiers, env vars) gardaient le nom legacy. 10 fichiers touchés :
+
+- `bjhunt-engine/bjhunt/docker/{bjhunt-kali.Dockerfile,run-engagement.sh,
+  egress-filter.sh,event-relay.cjs,README.md}`
+- `bjhunt-engine/bjhunt/hooks/{scope-guard.cjs,evidence-capture.cjs}`
+  (le ledger `engagement_id` field renommé `chat_id` aussi)
+- `bjhunt-engine/bjhunt/scripts/build-claude-agents.sh`
+- `bjhunt-engine/bjhunt/HOOKS.md`
+- `bjhunt-engine/.github/workflows/bjhunt-pack-ci.yml`
+- `bjhunt-backend/tests/smoke/docker-compose.smoke.yml`
+
+Backend `src/lib/{e2b,sandbox,engine-bridge}.ts` utilisaient déjà
+`BJHUNT_CHAT_ID` (Phase 1.13.c) — pas de touche nécessaire là.
+
+Variables renommées : `BJHUNT_ENGAGEMENT_ID` → `BJHUNT_CHAT_ID`,
+`BJHUNT_ENGAGEMENT_SCOPE[_JSON]` → `BJHUNT_CHAT_SCOPE[_JSON]`,
+`BJHUNT_ENGAGEMENT_WORKSPACE` → `BJHUNT_CHAT_WORKSPACE`.
+
 ### Phase 1.13.d — Fork privé `bjhunt-assistant-ui` ✅
 
 **Pourquoi** : le user a explicitement demandé un fork pour robustesse du chat
