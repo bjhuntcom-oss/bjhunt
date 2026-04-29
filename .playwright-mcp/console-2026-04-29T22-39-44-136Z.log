@@ -1,2 +1,0 @@
-[     843ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ https://app.bjhunt.com/login:0
-[   15024ms] [ERROR] Failed to load resource: the server responded with a status of 409 () @ https://app.bjhunt.com/api/chats:0

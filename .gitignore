@@ -67,3 +67,4 @@ yarn-error.log*
 # deleted from Windows (locked by Windows Defender on cache files); ignore
 # it so it doesn't clutter `git status`.
 engine/
+.playwright-mcp/
