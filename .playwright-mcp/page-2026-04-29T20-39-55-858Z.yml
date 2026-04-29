@@ -1,0 +1,48 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - text: Seer now catches issues in PRs, explains what broke in prod, and fixes what you missed.
+    - link "Learn More" [ref=e5] [cursor=pointer]:
+      - /url: https://blog.sentry.io/seer-debug-with-ai-at-every-stage-of-development/?utm_source=website
+  - generic [ref=e9]:
+    - link "" [ref=e11] [cursor=pointer]:
+      - /url: https://sentry.io/welcome/
+      - generic [ref=e12]: 
+    - generic [ref=e13]:
+      - generic [ref=e14]:
+        - heading "Connectez-vous pour continuer." [level=3] [ref=e15]
+        - list [ref=e16]:
+          - listitem [ref=e17]:
+            - link "Sign In" [ref=e18] [cursor=pointer]:
+              - /url: "#login"
+          - listitem [ref=e19]:
+            - link "Identification unique" [ref=e20] [cursor=pointer]:
+              - /url: "#sso"
+      - generic [ref=e21]:
+        - generic [ref=e23]:
+          - generic [ref=e25]:
+            - generic [ref=e26]:
+              - generic [ref=e27]: Compte [required]
+              - textbox "Compte [required]" [ref=e29]:
+                - /placeholder: nom d'utilisateur ou email
+            - generic [ref=e30]:
+              - generic [ref=e31]: Mot de passe [required]
+              - textbox "Mot de passe [required]" [ref=e33]:
+                - /placeholder: mot  de passe
+            - generic [ref=e34]:
+              - button "Continuer" [ref=e35] [cursor=pointer]
+              - link "Mot de passe perdu ?" [ref=e36] [cursor=pointer]:
+                - /url: /account/recover/
+          - generic [ref=e37]:
+            - paragraph [ref=e38]:
+              - link "Sign in with Google" [ref=e39] [cursor=pointer]:
+                - /url: /identity/login/google/?referrer=login&href=http%3A%2F%2Fsentry.io%2Fauth%2Flogin%2F
+                - text: Sign in with Google
+            - paragraph [ref=e41]:
+              - link "Sign in with GitHub" [ref=e42] [cursor=pointer]:
+                - /url: /identity/login/github/?referrer=login&href=http%3A%2F%2Fsentry.io%2Fauth%2Flogin%2F
+                - text: Sign in with GitHub
+            - paragraph [ref=e44]:
+              - link "Sign in with Azure DevOps" [ref=e45] [cursor=pointer]:
+                - /url: /identity/login/vsts/?referrer=login&href=http%3A%2F%2Fsentry.io%2Fauth%2Flogin%2F
+                - text: Sign in with Azure DevOps
+        - text: "[required]"

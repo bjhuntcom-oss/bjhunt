@@ -1,0 +1,73 @@
+- main [ref=e4]:
+  - generic [ref=e5]:
+    - img [ref=e6]
+    - generic [ref=e15]:
+      - generic [ref=e17] [cursor=pointer]:
+        - generic [ref=e18]: Trial is Active
+        - generic [ref=e19]: 14 Days Left
+      - button "Upgrade Now" [ref=e20] [cursor=pointer]:
+        - generic [ref=e21]:
+          - img [ref=e23]
+          - text: Upgrade Now
+  - generic [ref=e25]:
+    - generic:
+      - img
+      - img
+      - img
+      - img
+    - generic [ref=e28]:
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic [ref=e31]:
+            - heading "Welcome to Sentry" [level=1] [ref=e33]
+            - generic [ref=e34]: Your code is probably broken. Let's fix it faster.
+          - generic [ref=e35]:
+            - generic [ref=e36]:
+              - img [ref=e38]
+              - generic [ref=e40]: You've got 14 days of Business with unlimited access to everything below.
+            - generic [ref=e41]: We'll walk you through setup next. Start with what matters now, add the rest when you're ready.
+        - generic [ref=e42]:
+          - generic [ref=e44]:
+            - img [ref=e46]
+            - generic [ref=e49]: Error monitoring
+            - paragraph [ref=e52]: Automatically capture exceptions and stack traces
+          - generic [ref=e54]:
+            - img [ref=e56]
+            - generic [ref=e59]: Logging
+            - paragraph [ref=e62]: See logs in context with errors and performance issues
+          - generic [ref=e64]:
+            - img [ref=e66]
+            - generic [ref=e69]: Session replay
+            - paragraph [ref=e72]: Watch real user sessions to see what went wrong
+          - generic [ref=e74]:
+            - img [ref=e76]
+            - generic [ref=e79]: Tracing
+            - paragraph [ref=e82]: Find bottlenecks, broken requests, and understand application flow end-to-end.
+          - generic [ref=e84]:
+            - img [ref=e86]
+            - generic [ref=e89]: Application Metrics
+            - paragraph [ref=e92]: Track application performance and usage over time with custom metrics.
+          - generic [ref=e94]:
+            - img [ref=e96]
+            - generic [ref=e99]: Profiling
+            - paragraph [ref=e102]: Pinpoint the functions and lines of code responsible for performance issues.
+          - generic [ref=e104]:
+            - img [ref=e106]
+            - generic [ref=e109]: Agent monitoring
+            - paragraph [ref=e112]: Track all agent runs, error rates, LLM calls, tokens used, and tool executions.
+          - generic [ref=e114]:
+            - img [ref=e116]
+            - generic [ref=e118]:
+              - generic [ref=e119]: "Seer: AI Debugging Agent"
+              - generic [ref=e120]: new
+            - generic [ref=e121]:
+              - paragraph [ref=e123]: Catch breaking changes, automatically root cause issues in production, and fix what you missed.
+              - generic [ref=e124]:
+                - img [ref=e125]
+                - generic [ref=e127]: Requires additional setup
+        - generic [ref=e128]: After the trial ends, you'll move to our free plan. You will not be charged for any usage, promise.
+      - generic [ref=e129]:
+        - button "Skip onboarding" [ref=e131] [cursor=pointer]:
+          - generic [ref=e132]: Skip onboarding
+        - button "Begin setup" [ref=e134] [cursor=pointer]:
+          - generic [ref=e135]: Begin setup

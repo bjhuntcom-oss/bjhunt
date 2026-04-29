@@ -1,4 +1,8 @@
 {
+  "globalMeta": {
+    "title": "BJHUNT — AI-driven offensive security audit",
+    "description": "BJHUNT V2.1 — the AI-driven continuous pentest platform. 317+ orchestrated tools, PCI-DSS / ISO 27001 / OWASP / NIS2 / DORA compliance reporting, signed deliverables."
+  },
   "nav": {
     "home": "Home",
     "technology": "Technology",

@@ -1,0 +1,59 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - progressbar [ref=e6]
+    - main [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e18]:
+          - img [ref=e20]
+          - generic [ref=e25]: Se connecter avec Google
+        - generic [ref=e26]:
+          - heading "Connectez-vous à sentry.io" [level=1] [ref=e27]
+          - 'link "Identifiant de compte sélectionné : bjhuntcom@gmail.com. Changer de compte" [ref=e29] [cursor=pointer]':
+            - generic [ref=e32]: bjhuntcom@gmail.com
+            - img [ref=e34]
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - heading "Google autorisera sentry.io à accéder à l'information suivante vous concernant" [level=2] [ref=e46]:
+            - generic [ref=e47]: Google autorisera sentry.io à accéder à l'information suivante vous concernant
+          - list [ref=e51]:
+            - listitem [ref=e52]:
+              - generic [ref=e53]:
+                - img [ref=e55]
+                - generic [ref=e57]:
+                  - generic [ref=e58]: bjhuntcom@gmail.com
+                  - generic [ref=e59]: Adresse e-mail
+        - generic [ref=e62]:
+          - generic [ref=e63]:
+            - text: Consultez les
+            - link "règles de confidentialité" [ref=e64] [cursor=pointer]:
+              - /url: https://sentry.io/privacy/
+            - text: et les
+            - link "Conditions d'utilisation" [ref=e65] [cursor=pointer]:
+              - /url: https://sentry.io/terms/
+            - text: de sentry.io pour comprendre comment sentry.io traitera et protégera vos données.
+          - generic [ref=e66]:
+            - text: Pour apporter des modifications à tout moment, accédez à votre
+            - link "compte Google" [ref=e67] [cursor=pointer]:
+              - /url: https://myaccount.google.com/connections#filter=4
+            - text: .
+          - link "En savoir plus sur Se connecter avec Google" [ref=e69] [cursor=pointer]:
+            - /url: https://support.google.com/accounts/answer/12921417?sjid=1919169284593837430-NC
+      - generic [ref=e72]:
+        - button "Annuler" [ref=e76]: Annuler
+        - button "Continuer" [ref=e82]: Continuer
+  - contentinfo [ref=e88]:
+    - combobox "Changer de langue Français (France)" [ref=e92] [cursor=pointer]:
+      - generic:
+        - generic: Français (France)
+      - generic:
+        - img
+    - list [ref=e94]:
+      - listitem [ref=e95]:
+        - link "Aide" [ref=e96] [cursor=pointer]:
+          - /url: https://support.google.com/accounts?hl=fr&p=account_iph
+      - listitem [ref=e97]:
+        - link "Confidentialité" [ref=e98] [cursor=pointer]:
+          - /url: https://accounts.google.com/TOS?loc=BJ&hl=fr&privacy=true
+      - listitem [ref=e99]:
+        - link "Conditions" [ref=e100] [cursor=pointer]:
+          - /url: https://accounts.google.com/TOS?loc=BJ&hl=fr

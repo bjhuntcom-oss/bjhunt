@@ -1,0 +1,14 @@
+- generic [active] [ref=e1]:
+  - alert [ref=e10]
+  - main [ref=e20]:
+    - generic [ref=e21]:
+      - heading "Mes chats" [level=1] [ref=e22]
+      - generic [ref=e23]:
+        - generic [ref=e24]:
+          - text: admin@bjhunt.com ·
+          - button "Logout" [ref=e25]
+        - link "Nouveau chat" [ref=e26] [cursor=pointer]:
+          - /url: /chats/new
+          - img [ref=e27]
+          - text: Nouveau chat
+    - paragraph [ref=e28]: Chargement…
