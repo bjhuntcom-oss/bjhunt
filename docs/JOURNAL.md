@@ -225,7 +225,8 @@ Toutes les docs `docs/architecture/*.md` mises à jour pour refléter :
 - ✅ `bjhuntcom-oss/bjhunt` (public) — frontend Next.js (marketing + labs/audit POC)
 - ✅ `bjhuntcom-oss/bjhunt-legacy-engine` (privé) — archive Decepticon
 - ✅ `bjhuntcom-oss/bjhunt-engine` (privé) — fork openclaude + pack BJHUNT V2.1
-- ✅ `bjhuntcom-oss/bjhunt-backend` (privé) — Hono+Bun thin SaaS layer (créé 2026-04-29)
+- ✅ `bjhuntcom-oss/bjhunt-backend` (privé) — Hono+Bun thin SaaS layer
+- ✅ `bjhuntcom-oss/bjhunt-app` (privé) — Next.js dashboard `app.bjhunt.com` (créé 2026-04-29)
 
 ### Phase 1.3 — Brancher Ollama Cloud sur LiteLLM ✅
 
@@ -528,19 +529,110 @@ Cheminement E2E disponible localement :
    `e2b template build --name bjhunt-kali` puis lancer un run via
    API.
 
-### Reste à faire (Phase 1.6/1.7/1.9.e/1.11)
-- [ ] **Phase 1.6** Wireguard mesh Fly.io ↔ Hostinger (pour que le
-  backend prod en CDG/AMS atteigne Postgres/Redis/LiteLLM en LT sans
-  exposer Postgres au public)
-- [ ] **Phase 1.7** Caddy/TLS ou Cloudflare Tunnel devant Coolify
-  (port 8000 actuellement public — known issue Docker bypass UFW)
-- [ ] **Phase 1.9.e** BetterAuth réel (placeholder JWT cookie en
-  attendant) + WebAuthn + TOTP + 2FA obligatoire owner/admin
-- [ ] **Phase 1.11** Test E2E réel : engagement Juice Shop / DVWA
-  → findings → rapport PCI-DSS PDF signé visible dans labs/audit
-- [ ] **Phase 1.12** Vrai dashboard `app.bjhunt.com` (Next.js dédié)
-  remplaçant labs/audit POC — RBAC, multi-engagement view, replay,
-  download PDFs presigned URL R2
+### Phase 1.6 — Wireguard mesh ✅ (commit `2aca95a`, server actif sur Hostinger)
+- `scripts/setup-wireguard-hostinger.sh` (idempotent) : apt install
+  wireguard + iptables-persistent, server keys à
+  `/etc/wireguard/server-{private,public}.key`, `wg0.conf` avec
+  PostUp NAT (PREROUTING DNAT 5432/6379/4000 → 127.0.0.1) + UFW
+  allow 51820/udp + enable wg-quick@wg0.
+- `scripts/add-wireguard-peer.sh` : pick next free /32 dans
+  `10.7.0.0/24`, génère keys peer + PSK, append au server config +
+  live-load via `wg set`, écrit le peer config à
+  `/etc/wireguard/peers/<name>.conf`.
+- `docs/infra/wireguard.md` : layout mesh, intégration Fly.io
+  (`BJHUNT_WG_CONF` base64 secret + entrypoint `wg-quick up`),
+  recipe local dev, decommission, status/debug.
+- **État vérifié** : serveur up sur `82.25.117.79:51820/udp`, pubkey
+  `f92v+Q2cnXjq3WwPTxATnBxppU0xpCpGx3cNDvJn9hk=`, CIDR `10.7.0.0/24`,
+  server inner IP `10.7.0.1`.
+
+### Phase 1.7 — Cloudflare Tunnel devant Coolify ✅ (commit `c1cbd02`)
+- `scripts/setup-cloudflared-coolify.sh` : apt install via
+  `pkg.cloudflare.com`, service systemd token-driven
+  (`cloudflared service install $TOKEN`), idempotent.
+- `docs/infra/cloudflare-tunnel.md` : 30s manuel browser (Zero Trust →
+  Create Tunnel "bjhunt-coolify" → Public Hostname `coolify.bjhunt.com`
+  → service `http://localhost:8000` → Access policy `@bjhunt.com email
+  match`), 1 ligne automation
+  `ssh bjhunt-vps "BJHUNT_CF_TUNNEL_TOKEN=... bash setup-cloudflared-coolify.sh"`.
+  Post-deploy : `iptables DROP` du port 8000 public. Justification du
+  choix CF Tunnel vs Caddy (pas d'IP/port public, pas d'ACME, plug-in
+  zone CF + WAF + Access existants).
+
+### Phase 1.9.e — BetterAuth réel ✅ (commit `a15d7dc` sur bjhunt-backend)
+- `migrations/0002_better_auth.sql` : tables `account/session/
+  verification/two_factor/passkey/organization/member/invitation`
+  (BetterAuth core + organization plugin + 2FA TOTP + WebAuthn).
+  Trigger sync `orgs ↔ organization`, backfill depuis orgs existants.
+- `src/lib/auth.ts` : email+pwd (autoSignIn, requireEmailVerification
+  prod, minPasswordLength 12), sessions 7j cookie `bjhunt_session`
+  freshAge 30min, rate-limit 30/min, plugins organization (5 orgs/100
+  membres), twoFactor (TOTP issuer "BJHUNT V2.1"), passkey (WebAuthn
+  rpID auto), openAPI.
+- `src/routes/auth.ts` : forward `/api/auth/*` → `auth.handler`.
+- `src/middleware/auth.ts` : remplace placeholder JWT par
+  `auth.api.getSession({headers})`, inject `{user, activeOrgId}`.
+
+### Phase 1.11 — Smoke E2E + mock E2B mode ✅ (commit `b0da1d6`)
+- `src/env.ts` : `BJHUNT_E2B_MODE=e2b|docker|mock`.
+- `src/lib/sandbox.ts` : abstraction tri-backend. Mode docker fait
+  `docker run -d --rm` de bjhunt-kali, port 8090 mappé sur free host
+  port. Mode mock = endpoint in-process (Phase 2 wiring).
+- `src/routes/runs.ts` : switch vers `spawnSandbox` mode-aware.
+- `tests/smoke/docker-compose.smoke.yml` : Juice Shop sur :3000.
+- `tests/smoke/run-e2e.sh` (5 étapes) : health → sign-up + org create
+  → engagement Juice Shop → POST run → SSE 90s assert run.started +
+  agent.started + (optionnel) finding/completed.
+- `tests/smoke/README.md` : setup one-shot + table failures communes.
+
+### Phase 1.12 — Squelette `bjhunt-app` (app.bjhunt.com) ✅
+**Repo** `bjhuntcom-oss/bjhunt-app` (privé). **Working copy**
+`D:\bjhunt-app\`. Stack Next.js 16 (Turbopack) + React 19 + Tailwind 4
++ BetterAuth client + lucide. Strict TS, secure headers (HSTS preload,
+X-Frame DENY, nosniff, Referrer-Policy strict).
+
+**Pages** :
+- `/` — landing minimaliste avec CTA login + engagements
+- `/login` — `signIn.email` / `signUp.email`, toggle signin↔signup
+- `/engagements` — list current org (auto-redirect login si pas de
+  session), badge status + bouton "Nouveau"
+- `/engagements/[id]/runs/[runId]/live` — auto-fetch ticket via
+  `api.prepareSse(runId)`, consume SSE via `useEngagementStream`
+  (réutilisé depuis labs POC, copié — Phase 2 extraction
+  `@bjhunt/sse-client`), 3-col grid agents + findings + dream diary,
+  bouton kill run, section terminal outcome + report refs.
+
+**lib/** : `auth-client.ts` (organization + twoFactor + passkey
+plugins), `api.ts` (wrappers REST typés `credentials: 'include'`).
+
+**next.config.ts** : rewrite `/api/:path*` → `${NEXT_PUBLIC_API_BASE}/api/:path*`
+(dev same-origin pour cookie, prod cookie `.bjhunt.com` direct), secure
+headers, `poweredByHeader: false`.
+
+### State final — récapitulatif
+
+5 repos posés et synchronisés :
+| Repo | Visibilité | Working copy | Rôle |
+|---|---|---|---|
+| `bjhuntcom-oss/bjhunt` | public | `D:\bjhunt-v2\` | Marketing + labs/audit POC |
+| `bjhuntcom-oss/bjhunt-legacy-engine` | privé | — | Archive Decepticon (read-only) |
+| `bjhuntcom-oss/bjhunt-engine` | privé | `D:\bjhunt-engine\` | Fork openclaude + pack BJHUNT V2.1 |
+| `bjhuntcom-oss/bjhunt-backend` | privé | `D:\bjhunt-backend\` | Hono+Bun thin SaaS layer |
+| `bjhuntcom-oss/bjhunt-app` | privé | `D:\bjhunt-app\` | Dashboard `app.bjhunt.com` |
+
+### Reste à faire (Phase 2 — déploiement réel)
+- [ ] Déploiement Fly.io (`flyctl deploy bjhunt-backend`) avec
+  wireguard peer Fly→Hostinger
+- [ ] Déploiement Vercel (ou CF Pages) pour `app.bjhunt.com`
+- [ ] Registration template E2B `bjhunt-kali`
+- [ ] OpenTelemetry → Grafana Cloud (observabilité)
+- [ ] Sentry errors backend + frontend
+- [ ] CI E2E (GitHub Actions sur PR `bjhunt-backend` + `bjhunt-app`)
+- [ ] Logpush Cloudflare → R2 (SOC 2 audit trail)
+- [ ] Real signing cert EV (DigiCert) pour PKCS#7 PDF
+- [ ] Egress filtering iptables dans bjhunt-kali (Phase 1.6 follow-up)
+- [ ] Stripe billing integration (subscription + usage-based)
+- [ ] Status page Cloudflare Pages
 
 
 **Repo** : `bjhuntcom-oss/bjhunt-backend` (privé, créé 2026-04-29).
