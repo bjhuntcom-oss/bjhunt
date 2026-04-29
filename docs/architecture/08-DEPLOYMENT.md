@@ -85,7 +85,7 @@ Deploy via `flyctl deploy --image ghcr.io/bjhuntcom-oss/bjhunt-backend:{sha}` :
 - Rollback automatique si <80% des instances passent health check après 60s
 - Environnements : `production` (cdg + ams), `staging` (cdg only)
 
-### Hetzner pour les DBs
+### Hostinger (Phase 1-2) / Hetzner (Phase 3+) pour les DBs
 Pas de "deploy" automatique — schéma migrations via outil dédié.
 
 ```bash
@@ -125,8 +125,8 @@ Usage :
 
 | Env | URL frontend | URL backend | DB |
 |---|---|---|---|
-| **Production** | `bjhunt.com` | `api.bjhunt.com` | Hetzner Falkenstein prod |
-| **Staging** | `staging.bjhunt.com` | `staging-api.bjhunt.com` | Hetzner Falkenstein staging instance |
+| **Production** | `bjhunt.com` | `api.bjhunt.com` | Hostinger LT prod (Phase 1-2) → Hetzner DE (Phase 3+) |
+| **Staging** | `staging.bjhunt.com` | `staging-api.bjhunt.com` | Hostinger staging DB (Phase 1-2) — Hostinger devient staging post-migration Hetzner |
 | **Preview** (Vercel) | `bjhunt-git-<branch>-...vercel.app` | (pointe vers staging API) | (mock ou staging) |
 | **Local dev** | `localhost:3000` | `localhost:3001` | Postgres local Docker |
 
@@ -156,7 +156,7 @@ Usage :
 ### Logs
 - Frontend : Vercel logs (UI) + drain vers Better Stack
 - Backend : Fly.io logs → drain vers Loki (Grafana Cloud) ou Better Stack
-- DBs : Postgres logs accessibles via SSH Hetzner, rotated 30j
+- DBs : Postgres logs accessibles via SSH Hostinger (`bjhunt-vps`) — Hetzner post-migration, rotated 30j
 
 ### Metrics
 - Fly.io built-in : RPS, latency p50/p95/p99, RAM, CPU per instance
@@ -178,7 +178,7 @@ Usage :
 |---|---|---|
 | Vercel down | StatusPage notif, attendre fix Vercel ou switch DNS to Cloudflare Pages | 4h |
 | Fly.io region cdg down | Auto-failover ams (multi-region deploy) | <5 min |
-| Hetzner DB down | Restore last R2 backup vers nouvelle instance | 2h |
+| Hostinger/Hetzner DB down | Restore last R2 backup vers nouvelle instance (Hostinger en standby ou nouvelle Hetzner) | 2h |
 | `KMS_MASTER_KEY` compromise | Rotate clé + re-encrypt all data + force logout all + audit logs review | 24h |
 | Repo GitHub compromis | Restore from local clones + rotate all GHA secrets | 1h |
 | Domain hijack | Registrar lock + 2FA, recovery via WHOIS escalation | 24-72h |

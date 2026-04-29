@@ -116,26 +116,30 @@
 
 ---
 
-## ADR-006 — DBs : Hetzner Cloud Falkenstein self-host
+## ADR-006 — DBs : Hostinger KVM 8 (Phase 1-2) → Hetzner Cloud Falkenstein (Phase 3+ optionnel)
 **Date** : 2026-04-29
-**Statut** : Accepté
+**Statut** : Accepté (phasé)
 
-**Contexte** : Souveraineté EU pure pour données client (vulnérabilités, evidence, findings). Cloud Act US = risque commercial enterprise.
+**Contexte** : Souveraineté EU pour données client (vulnérabilités, evidence, findings). Cloud Act US = risque commercial enterprise. Mais Phase 1-2 = aucun client payant → l'argument souveraineté pure n'a pas encore de valeur commerciale.
 
-**Décision** : VPS CCX43 Hetzner Falkenstein DE (~€100/mo). Postgres 17 + Redis 7 + LiteLLM proxy + Caddy via Coolify (orchestration locale, OSS Apache). Backups vers Cloudflare R2 + Backblaze B2.
+**Décision Phase 1-2** : utiliser le **VPS Hostinger KVM 8 déjà acheté** (`82.25.117.79`, 8 vCPU / 32 GB / 400 GB NVMe, datacenter EU Lithuania, abonnement déjà payé). Postgres 17 + Redis 7 + LiteLLM proxy + Caddy via Coolify. Backups vers Cloudflare R2 + Backblaze B2. Société Hostinger = chypriote (UE), RGPD applicable, pas de Cloud Act US.
+
+**Décision Phase 3+ (déclencheur : 1er prospect enterprise EU sensible)** : migration vers VPS CCX43 Hetzner Falkenstein DE (~€100/mo, 16 vCPU / 64 GB / 2 TB SSD, juridiction allemande stricte). Effort ~1 jour (`pg_dump` + DNS swap wireguard).
 
 **Alternatives écartées** :
 - *AWS RDS Paris* : 4-5× prix, US-owner (Cloud Act)
 - *Supabase* : US-owner, EU regions OK, mais lock-in plateforme
 - *Neon* : serverless Postgres, EU regions, US-owner, racheté Databricks
-- *Aiven (Finlande)* : EU souverain, mais 3× prix Hetzner self-host
-- *Self-host Hostinger VPS* : déjà testé legacy, downtime/uptime variable, abandonné
+- *Aiven (Finlande)* : EU souverain, mais 3× prix self-host
+- *Hetzner immédiat Phase 1* : engagement €100/mo non nécessaire tant qu'aucun client n'exige la souveraineté pure DE
 
 **Conséquences** :
-- ✅ Souveraineté EU pure (DE jurisdiction)
-- ✅ Prix imbattable
-- ❌ Ops nous-mêmes (backup, patches, upgrades)
-- ❌ Single-region (acceptable <5k users, multi-region Phase 5)
+- ✅ Phase 1-2 : €0 marginal (Hostinger déjà payé) → cash conservé pour produit
+- ✅ Souveraineté UE au sens RGPD dès Phase 1 (Lithuania = EU)
+- ✅ Migration Hetzner documentée et planifiée (1j) si déclencheur business
+- ✅ Hostinger reste utile post-migration : staging / dev / second backup
+- ⚠️ Souveraineté DE pure repoussée à Phase 3+ (acceptable car pas de pitch enterprise avant)
+- ❌ Ops nous-mêmes (backup, patches, upgrades) — déjà le cas pre-purge
 
 ---
 
@@ -175,9 +179,12 @@
 
 ## ADR-009 — Souveraineté EU & RGPD natif (avec exception LLM)
 **Date** : 2026-04-29
-**Statut** : Accepté
+**Statut** : Accepté (phasé)
 
-**Décision** : Toutes les données tenant (PG, Redis, R2 EU jurisdiction) hébergées en EU. **Exception LLM** : Ollama Cloud (US) reçoit des prompts dont les secrets sont masqués via SecretRegistry. À terme RunPod EU regions (Romania/Czech/Iceland) pour modèle propriétaire = full EU.
+**Décision** : Toutes les données tenant (PG, Redis, R2 EU jurisdiction) hébergées en EU.
+- **Phase 1-2** : Hostinger Lithuania (UE, RGPD natif, société chypriote = UE — pas Cloud Act US)
+- **Phase 3+** : migration optionnelle Hetzner Falkenstein DE pour souveraineté pure (juridiction allemande stricte) si déclencheur enterprise
+- **Exception LLM** : Ollama Cloud (US) reçoit des prompts dont les secrets sont masqués via SecretRegistry. À terme RunPod EU regions (Romania/Czech/Iceland) pour modèle propriétaire = full EU.
 
 **Alternatives écartées** :
 - *Tout US* : disqualifie marché EU enterprise

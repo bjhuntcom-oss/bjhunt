@@ -8,7 +8,7 @@
 - [x] Engine archivé dans `bjhunt-legacy-engine` privé
 - [x] Vercel envs nettoyées
 - [x] GitHub branches/secrets nettoyés
-- [x] Stack cible décidée (fork openclaude + Fly.io + E2B + Hetzner + Cloudflare)
+- [x] Stack cible décidée (fork openclaude + Fly.io + E2B + Hostinger Phase 1-2 → Hetzner Phase 3+ + Cloudflare)
 - [x] Documentation architecture v1
 
 ## Phase 1 — POC backend (4-6 semaines)
@@ -17,9 +17,9 @@
 
 | # | Task | Durée | Bloqué par |
 |---|---|---|---|
-| 1.1 | Setup comptes Fly.io + E2B + Hetzner Cloud + Cloudflare | 0.5j | Toi (paiements) |
-| 1.2 | Provisionner Hetzner CCX43 + Coolify + Postgres 17 + Redis 7 + LiteLLM proxy | 1j | 1.1 |
-| 1.3 | Wireguard mesh privé Fly.io ↔ Hetzner | 0.5j | 1.2 |
+| 1.1 | Setup comptes Fly.io + E2B + Cloudflare (Hostinger déjà actif) | 0.5j | Toi (paiements) |
+| 1.2 | Provisionner **Hostinger KVM 8** (déjà acheté, `82.25.117.79`) + Coolify + Postgres 17 + Redis 7 + LiteLLM proxy | 1j | 1.1 |
+| 1.3 | Wireguard mesh privé Fly.io ↔ Hostinger | 0.5j | 1.2 |
 | 1.4 | Fork openclaude → `bjhuntcom-oss/bjhunt-engine` privé | 0.5j | — |
 | 1.5 | Modifier prompts système openclaude pour cybersec (BJHUNT Coordinator + Recon + Reporter) | 2j | 1.4 |
 | 1.6 | Adapter tools : retirer git/npm, ajouter nmap (wrapper E2B SDK) | 2j | 1.4, 1.1 |
@@ -102,6 +102,7 @@
 | **Reliability** | Multi-region failover, daily restore tests, on-call rotation |
 | **Performance** | LLM cache (Redis pour repeated tool prompts), image cosign+SLSA L3, p95 first token <2s |
 | **Compliance** | GDPR DPIA, AUP signing au signup, EU AI Act art.50 disclosure |
+| **Souveraineté** | Migration Hostinger LT → Hetzner Falkenstein DE si déclencheur enterprise (~1j, `pg_dump` + DNS) |
 
 ## Phase 6 — Modèle propriétaire BJHUNT (12-18 mois)
 

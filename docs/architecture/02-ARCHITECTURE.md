@@ -38,7 +38,7 @@
                                         ▼                 ▼
                             ┌──────────────────┐  ┌──────────────────┐
                             │ E2B.dev          │  │ LiteLLM proxy    │
-                            │ Firecracker      │  │   (Hetzner)      │
+                            │ Firecracker      │  │   (Hostinger)    │
                             │ Kali sandboxes   │  └─────────┬────────┘
                             │ per-tenant TTL   │            │
                             │ 30min idle       │            ▼
@@ -51,10 +51,12 @@
                                                   └──────────────────┘
                                         │
                                         │ wireguard private mesh
+                                        │ (Phase 1-2: Hostinger / Phase 3+: Hetzner)
                                         ▼
                   ┌────────────────────────────────────────┐
-                  │  Hetzner Cloud Falkenstein (DE)        │
-                  │  CCX43 — 16 vCPU / 64 GB / 2 To        │
+                  │  Phase 1-2 : Hostinger KVM 8 (LT)      │
+                  │  Phase 3+  : Hetzner CCX43 (DE) option │
+                  │  8-16 vCPU / 32-64 GB / NVMe           │
                   │  ┌──────────────────────────────────┐  │
                   │  │ Postgres 17 (RLS FORCE)          │  │
                   │  │ - users, orgs, runs, messages    │  │
@@ -163,11 +165,20 @@ Le frontend appelle le backend via :
 
 **Migration future** : si scale dépasse $5k/mo de sandbox usage, migration vers **Daytona self-host** (OSS, Firecracker, sub-90 ms cold start) sur Hetzner. Effort migration estimé 1 sem (changer `e2b.create()` → `daytona.create()`).
 
-### 5. Databases — Hetzner Cloud Falkenstein
+### 5. Databases — Hostinger KVM 8 (Phase 1-2) → Hetzner Cloud Falkenstein (Phase 3+)
 
-**Hosting** : VPS CCX43 chez Hetzner (16 vCPU, 64 GB RAM, 2 TB SSD, ~€100/mo)
-- Région : Falkenstein DE (souveraineté EU pure)
+**Hosting Phase 1-2 (déjà en place)** : VPS Hostinger KVM 8 (`82.25.117.79`, srv1295179)
+- Spec : 8 vCPU AMD EPYC, 32 GB RAM, 400 GB NVMe
+- Région : datacenter EU (Lithuania), souveraineté UE au sens RGPD
+- Coût marginal : **€0** (abonnement déjà payé, ressource purgée et dispo)
 - Orchestration locale via **Coolify** (Apache 2.0, OSS, alternative Heroku auto-deploy)
+- SSH : alias `bjhunt-vps`, clé `bjhunt-vps-2026-04-29` ed25519
+
+**Migration future Hetzner CCX43 (Phase 3+ optionnelle)** :
+- Déclencheur : 1er prospect enterprise EU exige souveraineté DE pure (juridiction allemande stricte vs chypriote)
+- Spec cible : CCX43 (16 vCPU / 64 GB / 2 TB SSD, ~€100/mo)
+- Région : Falkenstein DE
+- Effort migration : ~1 jour (`pg_dump` + DNS swap wireguard)
 
 **Postgres 17** :
 - 1 instance principale + Postgres 17 PITR vers Cloudflare R2
@@ -187,7 +198,7 @@ Le frontend appelle le backend via :
 
 ### 6. LLM inference — LiteLLM + Ollama Cloud / RunPod
 
-**LiteLLM proxy** : self-host sur le VPS Hetzner (Docker)
+**LiteLLM proxy** : self-host sur le VPS DB (Hostinger Phase 1-2, Hetzner Phase 3+) (Docker)
 - Endpoint OpenAI-compat `https://litellm.bjhunt.internal/v1`
 - Master key + virtual keys per-org (budget caps)
 - Logs spend per-org dans Postgres
@@ -230,7 +241,7 @@ Le frontend appelle le backend via :
 | `www.bjhunt.com` | Vercel | Redirect → apex |
 | `api.bjhunt.com` | Fly.io load balancer | Backend HTTP API |
 | `chat.bjhunt.com` | Fly.io | SSE streaming endpoint (sous-domaine séparé pour timeouts longs) |
-| `litellm.bjhunt.internal` | wireguard mesh → Hetzner | Endpoint LiteLLM (privé) |
+| `litellm.bjhunt.internal` | wireguard mesh → Hostinger (Phase 1-2) → Hetzner (Phase 3+) | Endpoint LiteLLM (privé) |
 | `cdn.bjhunt.com` | R2 custom domain | Assets statiques |
 | `status.bjhunt.com` | Better Stack | Status page publique |
 

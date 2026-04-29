@@ -9,7 +9,7 @@
 | Frontend marketing + chat UI | **Vercel** Hobby | Edge global | Déjà déployé, edge SSR Next.js, deploy-from-git |
 | Backend API + orchestrator | **Fly.io** | cdg + ams | Firecracker microVM = isolation hardware-level + SSE long-lived sans timeout |
 | Sandbox Kali per-engagement | **E2B.dev** managed BYOC | EU | Firecracker SaaS, 150ms cold start, $0.05/h base |
-| Postgres + Redis + LiteLLM | **Hetzner Cloud** | Falkenstein DE | Souveraineté EU pure (pas Cloud Act US), prix 5–10× moins cher que RDS |
+| Postgres + Redis + LiteLLM | **Hostinger KVM 8** (Phase 1-2) → **Hetzner Cloud** Falkenstein DE (Phase 3+ si client EU enterprise le demande) | EU (Lithuania) → DE | Hostinger déjà acheté = €0 marginal Phase 1. Hetzner = souveraineté EU pure pour pitch enterprise plus tard |
 | Object storage | **Cloudflare R2** | EU jurisdiction | Pas d'egress fees, S3-compatible |
 | DNS + WAF + Bot detection | **Cloudflare** | Edge | Anti-DDoS, Turnstile |
 | Email transactional | **Resend** | EU | Beta + contact + audit reports |
@@ -43,22 +43,22 @@
                           ┌────────────────┼─────────────────┐
                           │                │                 │
                           ▼                ▼                 ▼
-                  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-                  │ E2B.dev      │  │ LiteLLM      │  │ Hetzner      │
-                  │ Firecracker  │  │ self-host    │  │ Cloud        │
-                  │ Kali sandbox │  │ (Hetzner)    │  │ Falkenstein  │
-                  │ per-engmt    │  │              │  │ ┌──────────┐ │
-                  │ BYOC EU      │  │  ↓ routes    │  │ │ Postgres │ │
-                  └──────────────┘  │              │  │ │ 17       │ │
-                                    │              │  │ ├──────────┤ │
-                                    │              │  │ │ Redis 7  │ │
-                                    │              │  │ ├──────────┤ │
-                                    │              │  │ │ LiteLLM  │ │
-                                    │              │  │ │ proxy    │ │
-                                    │              │  │ └──────────┘ │
-                                    │              │  │              │
-                                    │              │  │ Coolify mgmt │
-                                    │              │  └──────────────┘
+                  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐
+                  │ E2B.dev      │  │ LiteLLM      │  │ Hostinger KVM 8  │
+                  │ Firecracker  │  │ self-host    │  │ (Phase 1-2)      │
+                  │ Kali sandbox │  │ (Hostinger)  │  │  → Hetzner CCX43 │
+                  │ per-engmt    │  │              │  │  Falkenstein DE  │
+                  │ BYOC EU      │  │  ↓ routes    │  │  (Phase 3+)      │
+                  └──────────────┘  │              │  │ ┌──────────────┐ │
+                                    │              │  │ │ Postgres 17  │ │
+                                    │              │  │ ├──────────────┤ │
+                                    │              │  │ │ Redis 7      │ │
+                                    │              │  │ ├──────────────┤ │
+                                    │              │  │ │ LiteLLM      │ │
+                                    │              │  │ │ proxy        │ │
+                                    │              │  │ └──────────────┘ │
+                                    │              │  │ Coolify mgmt     │
+                                    │              │  └──────────────────┘
                                     ▼
                             ┌────────────────┐
                             │ Ollama Cloud   │ (US) — GLM-5.1, DeepSeek, Kimi
@@ -111,18 +111,27 @@
 
 **Migration future** : si scale > $5k/mo de sandbox → bascule **Daytona self-host** (OSS Apache, Firecracker, sub-90 ms cold) sur Hetzner. Effort migration ~1 semaine (changer `e2b.create()` → `daytona.create()`, héberger Daytona control plane).
 
-### Databases — Hetzner Cloud Falkenstein
-**Pourquoi Hetzner plutôt qu'AWS RDS / Supabase / Neon** :
-- **Souveraineté EU pure** : Hetzner = société allemande sans Cloud Act exposure
-- **Prix 5–10× moins cher** : CCX43 (16 vCPU / 64 GB / 2 TB SSD) ~€100/mo vs €400-600/mo AWS RDS db.r6g.xlarge équivalent
-- **Latence Fly.io cdg → Hetzner Falkenstein** ~15-25 ms acceptable (Postgres queries asynchrones)
-- **Pas de lock-in** : Postgres standard, peut migrer ailleurs en 2 jours
+### Databases — Hostinger KVM 8 (Phase 1-2) → Hetzner Cloud Falkenstein (Phase 3+)
 
-**Configuration VPS** :
-- 1× CCX43 (16 vCPU, 64 GB RAM, 2 TB SSD) — ~€100/mo
-- Ubuntu 24.04 LTS minimal
+**Phasage** : on utilise le **VPS Hostinger KVM 8 déjà acheté** (`82.25.117.79`, srv1295179) pour Phase 1-2. Migration éventuelle vers Hetzner Falkenstein dès que le pitch souveraineté EU pure devient un argument commercial concret (Phase 3+).
+
+**Pourquoi Hostinger d'abord** :
+- **€0 marginal** : abonnement déjà payé, ressource dormante depuis la purge 2026-04-29
+- **Spec suffisante MVP** : 8 vCPU AMD EPYC / 32 GB RAM / 400 GB NVMe — largement assez pour Postgres + Redis + LiteLLM avec <500 users
+- **Ubuntu 24.04 prêt**, SSH via clé `bjhunt-vps-2026-04-29` ed25519 (alias `bjhunt-vps`)
+- **Souveraineté EU au sens RGPD** : datacenters Hostinger en Lithuania (EU). Société chypriote (UE) — RGPD applicable, pas de Cloud Act US
+
+**Pourquoi Hetzner plus tard** :
+- **Souveraineté EU pure** (juridiction allemande stricte vs chypriote) — argument différenciant à signer un client enterprise EU sensible
+- **Spec supérieure** : CCX43 (16 vCPU dédiés / 64 GB / 2 TB) si scale dépasse Hostinger KVM 8
+- **Prix raisonnable** : ~€100/mo vs €400-600/mo AWS RDS db.r6g.xlarge équivalent
+- **Pas de lock-in** : Postgres standard, migration Hostinger → Hetzner en 1 journée (`pg_dump` + DNS swap)
+
+**Configuration VPS Hostinger KVM 8 (Phase 1-2)** :
+- 8 vCPU, 32 GB RAM, 400 GB NVMe, IP `82.25.117.79`
+- Ubuntu 24.04 LTS
 - Coolify (Apache 2.0, OSS) pour orchestration locale
-- Wireguard mesh privé entre Fly.io et Hetzner (latence + sécurité)
+- Wireguard mesh privé entre Fly.io et Hostinger (latence + sécurité)
 - Backups : `pg_basebackup` quotidien + WAL streaming → R2
 
 **Services co-hébergés (Coolify)** :
@@ -132,7 +141,13 @@
 - Caddy reverse proxy avec TLS auto
 - Health check ping toutes les 5 min vers Better Stack
 
-**Trade-off** : nous gérons backups/patches/upgrades nous-mêmes. Acceptable solo dev avec runbooks. Migration vers managed (Aiven Finlande, Neon EU) possible quand $$ permettent.
+**Trade-off Phase 1-2** : nous gérons backups/patches/upgrades nous-mêmes (déjà le cas avant la purge). Acceptable solo dev avec runbooks.
+
+**Plan migration Hostinger → Hetzner (Phase 3+, ~1 jour)** :
+1. Provisionner CCX43 Falkenstein, installer Coolify identique
+2. `pg_dump` Hostinger → import Hetzner (downtime ~15 min en heure creuse)
+3. Bascule wireguard mesh + DNS interne `litellm.bjhunt.internal`
+4. Hostinger reste en standby ou sert de staging
 
 ### Object storage — Cloudflare R2
 **Pourquoi R2 plutôt qu'AWS S3 / Backblaze B2** :
@@ -176,7 +191,7 @@
 | `www.bjhunt.com` | Vercel | Redirect → apex |
 | `api.bjhunt.com` | Fly.io LB | Backend HTTP API |
 | `chat.bjhunt.com` | Fly.io | SSE streaming endpoint |
-| `litellm.bjhunt.internal` | wireguard → Hetzner | LiteLLM proxy (privé) |
+| `litellm.bjhunt.internal` | wireguard → Hostinger (Phase 1-2) → Hetzner (Phase 3+) | LiteLLM proxy (privé) |
 | `cdn.bjhunt.com` | R2 custom domain | Assets statiques |
 | `status.bjhunt.com` | Better Stack | Status page publique |
 
@@ -184,20 +199,22 @@
 
 | Phase | Users actifs | Coût mensuel | Per-user |
 |---|---|---|---|
-| Pre-launch | 0–10 (beta) | ~€80 (Vercel free + Hetzner CCX13 + E2B Hobby) | n/a |
-| Bootstrap | 10–500 | ~€450 | €0.90 |
-| Scale | 500–5 000 | ~€2 500 | €0.50 |
+| Pre-launch (Phase 1-2) | 0–10 (beta) | **~€0 marginal** (Vercel free + Hostinger déjà payé + Fly.io free tier + E2B trial) | n/a |
+| Bootstrap (Phase 3) | 10–500 | ~€450 (Hostinger conservé) ou ~€550 (si migration Hetzner) | €0.90 |
+| Scale (Phase 4-5) | 500–5 000 | ~€2 500 | €0.50 |
 | Mature | 5 000–50 000 | ~€18 000 | €0.36 |
 
-**Détail Bootstrap (~500 users actifs)** :
+**Détail Bootstrap (~500 users actifs, Hostinger conservé)** :
 - Vercel Pro : €20
 - Fly.io perf-2x × 2 instances : €100
 - E2B Pro $150/mo + ~€100 sandbox usage : €230
-- Hetzner CCX43 + R2 backup egress : €110
+- Hostinger KVM 8 + R2 backup egress : ~€40 (KVM 8 ~€30/mo + R2 €10)
 - Cloudflare Pro + Resend : €30
 - Ollama Cloud LLM tokens : €100 (variable selon usage)
 - Sentry + Better Stack : €30
-- **Total : ~€620**, target marge brute Pro $200/mo = **75 %**
+- **Total : ~€550**, target marge brute Pro $200/mo = **80 %**
+
+**Si migration Hetzner Phase 3** : +€60-80/mo (CCX43 €100 vs KVM 8 €30, gain perf + souveraineté pure).
 
 ## Backups & disaster recovery
 
@@ -210,7 +227,7 @@
 | User-uploaded files | Versionning R2 natif | R2 | Indéfini |
 | E2B sandbox snapshots | Final-of-engagement | R2 | 90j |
 
-**Recovery target** : RTO 2h (pull last dump, spin Hetzner instance, restore), RPO 24h.
+**Recovery target** : RTO 2h (pull last dump, spin Hostinger ou Hetzner instance, restore), RPO 24h.
 
 ## Monitoring + alerting (Phase 2)
 

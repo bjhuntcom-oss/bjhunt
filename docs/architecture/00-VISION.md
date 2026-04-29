@@ -21,7 +21,7 @@ C'est ChatGPT, mais l'agent en face est un pentesteur autonome qui orchestre 300
 2. **Streaming live** — token-par-token + tool calls + tool results visibles en temps réel (UX type Claude Code / Cursor Agent / Devin).
 3. **Findings actionables** — chaque vulnérabilité = card structurée (sévérité, CVE, evidence, reproduction, remédiation, export PDF).
 4. **Isolation hardware** — chaque tenant tourne dans son propre microVM Firecracker. Zéro fuite cross-tenant.
-5. **Souveraineté EU** — données stockées en Allemagne (Hetzner Falkenstein), pas de Cloud Act US.
+5. **Souveraineté EU** — données stockées en EU (Hostinger Lithuania Phase 1-2 → Hetzner Falkenstein DE Phase 3+ pour souveraineté pure), pas de Cloud Act US.
 
 ## Ce que BJHUNT n'est PAS
 
@@ -56,6 +56,6 @@ C'est ChatGPT, mais l'agent en face est un pentesteur autonome qui orchestre 300
 
 1. **Streaming-first** — chaque réponse est un événement live, jamais un "spinner pendant 30min"
 2. **Isolation > performance** — un container compromis ne doit JAMAIS contaminer un autre tenant
-3. **Souveraineté EU** — RGPD natif, data residency Hetzner DE par défaut
+3. **Souveraineté EU** — RGPD natif, data residency EU dès Phase 1 (Hostinger Lithuania), bascule Hetzner DE en option Phase 3+
 4. **Coût marginal proche de zéro** — scale-to-zero sur l'inference, ephemeral sandboxes, pay-per-audit
 5. **Open weights friendly** — Ollama Cloud aujourd'hui, modèle propriétaire entraîné sur RunPod demain

@@ -24,7 +24,7 @@
 |---|---|
 | Frontend marketing (Vercel) | ✅ En production |
 | Formulaires beta + contact | ✅ Fonctionnels |
-| Stack rebuild backend | ✅ Décidée (fork openclaude + Fly.io + E2B + Hetzner) |
+| Stack rebuild backend | ✅ Décidée (fork openclaude + Fly.io + E2B + Hostinger Phase 1-2 → Hetzner Phase 3+) |
 | POC audit nmap streamé | ⏳ Phase 1 (4-6 sem) |
 | Audit OWASP Top 10 + rapport | ⏳ Phase 2 |
 | Beta publique 100 users | ⏳ Phase 3 |
@@ -44,7 +44,7 @@
 
 **Sandbox Kali** : **E2B.dev** managed (Firecracker, BYOC EU, $0.05/h)
 
-**DBs** : **Hetzner Cloud Falkenstein DE** self-host (Postgres 17 + Redis 7 + Coolify)
+**DBs** : **Hostinger KVM 8** déjà acheté (Phase 1-2, EU Lithuania) → migration optionnelle **Hetzner Falkenstein DE** (Phase 3+ pour souveraineté pure). Postgres 17 + Redis 7 + Coolify
 
 **LLM** :
 - Aujourd'hui : **Ollama Cloud** (GLM-5.1, DeepSeek, Kimi) via **LiteLLM proxy**
