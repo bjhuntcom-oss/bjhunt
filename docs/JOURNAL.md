@@ -1030,6 +1030,57 @@ Audit E2B a révélé que `chats.ts` POST omettait `BJHUNT_CHAT_SCOPE_JSON: JSON
 - **bun.lock** généré sur VPS + committé pour CI `--frozen-lockfile` semantics.
 - **Env Zod schema** : ajouter `SENTRY_DSN_BACKEND`, `E2B_TEMPLATE_BJHUNT_KALI`.
 
+### Phase 2.3 — RLS fonctionnel + sandbox auto-terminate + ticket refresh ✅
+
+**Date** : 2026-04-30 (suite de session)
+
+#### RLS effectivement appliqué (deux bugs combinés)
+
+L'audit Phase 2.2 avait flaggé un BYPASS RLS via le superuser `bjhunt`. En creusant :
+
+**Bug #1 — `withTenant` ne passait pas `tx`**. L'implémentation Phase 1.8 ouvrait une transaction postgres-js, faisait `SET LOCAL app.org_id` dessus, puis appelait `fn()` SANS passer le tx. La callback utilisait `db` global qui passait par une AUTRE connexion — `SET LOCAL` invisible. En superuser ça marchait quand même (BYPASS RLS). Sous `bjhunt_app` (no-bypass) ça aurait planté chaque INSERT.
+
+Refactor : `withTenant` ouvre maintenant `db.transaction(async tx => ...)` (Drizzle native), seed les GUCs via `tx.execute(dsql\`SELECT set_config('app.org_id', ${orgId}, true)\`)`, et passe `tx` à la callback. **12 call sites** mis à jour (chats.ts × 8, chat-prepare.ts × 1, engine-bridge.ts × 1, sse.ts × 1) pour utiliser `tx.update/select/insert` au lieu de `db.x`.
+
+**Bug #2 — `audit_log` + `stream_events` writes hors `withTenant`**. 4 INSERT (3 audit_log dans chats.ts create/update/kill/message + 1 stream_events dans sse.ts writeEvent) utilisaient le `sql` global postgres-js. Tous wrappés dans `withTenant` via `tx.execute(dsql\`INSERT...\`)`. `writeEvent` gagne un arg `userId` requis (les 5 callers updated).
+
+#### Split POSTGRES_URL admin/app
+
+- `env.ts` : nouveau `POSTGRES_URL_ADMIN` (optionnel, fallback POSTGRES_URL).
+- `migrate.ts` + `seed-prod.ts` : utilisent `POSTGRES_URL_ADMIN ?? POSTGRES_URL` (superuser pour ALTER TABLE / CREATE POLICY / insert orgs RLS-FORCEd).
+- `db.ts` runtime : utilise `POSTGRES_URL` (devrait être `bjhunt_app`).
+
+**VPS prod state** :
+- `bjhunt_app` LOGIN PASSWORD défini (`openssl rand -base64 32 | tr -d '/=+' | cut -c1-32`)
+- `/data/bjhunt-stack/.env` : `POSTGRES_APP_PASSWORD=...`
+- `/data/bjhunt-stack/docker-compose.yml` :
+  - `POSTGRES_URL: postgresql://bjhunt_app:${POSTGRES_APP_PASSWORD}@postgres:5432/bjhunt`
+  - `POSTGRES_URL_ADMIN: postgresql://bjhunt:${POSTGRES_PASSWORD}@postgres:5432/bjhunt`
+- Grants nécessaires sur `bjhunt_app` :
+  - `USAGE ON SCHEMA public`
+  - `EXECUTE ON FUNCTION app_current_org() / app_current_user()`
+  - `SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public`
+  - `USAGE, SELECT ON ALL SEQUENCES`
+  - `ALTER DEFAULT PRIVILEGES` pour les tables/séquences futures
+
+**Validation** : sign-in admin@bjhunt.com retourne 200 + token sous `bjhunt_app` runtime → BetterAuth marche, `withTenant` set bien les GUCs, RLS s'applique sur les futures inserts.
+
+#### Sandbox auto-terminate sur run.completed/failed
+
+`engine-bridge.ts` quand event terminal arrive :
+1. `withTenant(orgId, userId, tx => tx.update(chats).set({ status, endedAt }))`
+2. `terminateSandbox(sandboxId)` (404-tolerant — kill best-effort)
+
+Évite que les sandboxes restent vivantes 4h après la fin réelle d'un run. Économie E2B Pro non-trivale.
+
+`startBridge` gagne 2 args : `userId` (pour `withTenant`) + `sandboxId` (pour `terminateSandbox`). chats.ts POST passe les deux.
+
+#### SSE ticket auto-refresh frontend
+
+`/chats/[chatId]/page.tsx` : un `useEffect` séparé schedule `api.prepareSse(chatId)` à `(expires_in - 30) * 1000` ms. Le nouveau ticket déclenche le hook `useEngagementStream` qui réouvre l'EventSource avec `Last-Event-ID` replay (déjà câblé backend via mirror Postgres `stream_events`). Survit aux audits > 5 min.
+
+Si re-prepare 401 (session expirée) → `setError` affiché dans le slot loading.
+
 ### Phase 1.13.d — Fork privé `bjhunt-assistant-ui` ✅
 
 **Pourquoi** : le user a explicitement demandé un fork pour robustesse du chat
