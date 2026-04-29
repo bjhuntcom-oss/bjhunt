@@ -68,6 +68,12 @@ export function Header() {
           <div className="hidden md:block">
             <LanguageSwitcher />
           </div>
+          <a
+            href="https://app.bjhunt.com/login"
+            className="hidden md:inline-block px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] font-medium text-[var(--text-muted)] hover:text-white transition-colors"
+          >
+            {t("signIn") || "Connexion"}
+          </a>
           <Button asChild size="sm">
             <Link href="/beta">{t("joinBeta") || "Rejoindre la beta"} →</Link>
           </Button>
@@ -104,6 +110,12 @@ export function Header() {
               {t(link.labelKey)}
             </Link>
           ))}
+          <a
+            href="https://app.bjhunt.com/login"
+            className="block px-6 py-3 text-[10px] uppercase tracking-[0.15em] border-b border-[var(--border)] text-[var(--text-muted)] hover:text-white transition-colors"
+          >
+            {t("signIn") || "Connexion"}
+          </a>
           <div className="px-6 py-3">
             <LanguageSwitcher />
           </div>
