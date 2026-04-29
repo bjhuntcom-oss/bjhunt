@@ -32,7 +32,9 @@ Phases livrées le **2026-04-29** (1 journée intensive) :
 - **1.12** — Squelette `bjhunt-app` (Next.js 16) : `/`, `/login`, `/engagements`, `/engagements/[id]/runs/[runId]/live`.
 - **1.13** — **Catalogues backend + chat assistant-ui full-screen** :
   - Backend : `GET /api/catalog/{agents,compliances,models}`, `POST /api/runs/:id/messages` → relay E2B `inject_message`, engagement schema étendu (`agents_enabled`, `default_model`, `agent_models`, `asvs_target_level`).
-  - Frontend : **assistant-ui** (`@assistant-ui/react`) avec `ExternalStoreRuntime` mappant les 12 SSE events en `ThreadMessageLike[]`, page `/chat/[runId]` plein écran 3 colonnes, formulaire `/engagements/new` exposant **tous** les réglages backend (scope, compliances groupées, agents multi-select × 12 catégories avec override modèle par agent, ASVS conditionnel), page `/engagements/[id]` detail + edit inline.
+  - Frontend : **assistant-ui** (`@assistant-ui/react`) avec `ExternalStoreRuntime` mappant les 12 SSE events en `ThreadMessageLike[]`, page chat plein écran 3 colonnes, formulaire complet exposant **tous** les réglages backend (scope, compliances groupées, agents multi-select × 12 catégories avec override modèle par agent, ASVS conditionnel).
+- **1.13.b** — wiring engine BJHUNT_AGENTS_ENABLED / BJHUNT_AGENT_MODELS dans `run-engagement.sh`, GitHub Actions CI sur 3 repos (typecheck + build + tests + gitleaks), egress filtering iptables dans bjhunt-kali.
+- **1.13.c** — **chat-only end-to-end** : tables `engagements` + `runs` collapsed en une seule table `chats` (migration 0004 DROP CASCADE + CREATE), routes consolidées en `/api/chats` (1 POST = insert + sign + spawn + bridge), routes `/engagements/*` + `/chat/[runId]` supprimées côté frontend (URL canonique `/chats/[chatId]`).
 
 ## Stack frontend de **ce repo** (`bjhunt-v2`)
 

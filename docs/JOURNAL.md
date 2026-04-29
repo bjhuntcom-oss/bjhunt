@@ -700,6 +700,51 @@ headers, `poweredByHeader: false`.
   `@assistant-ui/react-markdown`, `remark-gfm`,
   `@radix-ui/react-tooltip`, `class-variance-authority`.
 
+### Phase 1.13.c — UI chat-only (frontend) + backend refactor `chats` table ✅
+
+**Trigger** : feedback opérateur — "il ne faut que le chat niveau backend
+aussi". L'arborescence engagement → run → chat introduisait trois
+concepts pour ce qui est, du point de vue utilisateur, un seul audit.
+
+**Frontend (`bjhunt-app`)** — commits `b1601f8` + `cc08719` + `2dbec7d` :
+- Routes : `/engagements*` → `/chats*` (liste, création, detail).
+- `/engagements/[id]` (page detail séparée) supprimée — les settings
+  vivent désormais en read-only dans la sidebar gauche du chat.
+- `/chats/new` form fait un POST unique → redirect direct
+  `/chats/[chatId]`. Plus de cascade frontend.
+- `/chats/[runId]` → `/chats/[chatId]` (route param renommé).
+- Wording "engagement" → "chat" partout (titres, boutons, confirms).
+
+**Backend (`bjhunt-backend`)** — commit `e3a47ab` :
+- Migration `0004_chats.sql` : `DROP CASCADE` engagements + runs +
+  findings + evidence + stream_events ; `CREATE chats` (fusion des 2
+  tables) + RLS FORCE + recréation findings/evidence/stream_events
+  avec FK `chat_id`. Trigger append-only conservé sur evidence.
+- Schema Drizzle `src/db/schema.ts` : table unique `chats` carrying
+  scope + compliances + agents + lifecycle.
+- Route unique `src/routes/chats.ts` :
+  - `GET /api/chats` — liste tenant-scoped, RLS via `withTenant`
+  - `POST /api/chats` — single call : insert + sign server-side +
+    spawn sandbox + bridge + audit_log (1 commit transactionnel pour
+    l'opérateur)
+  - `GET /api/chats/:id`, `PATCH /api/chats/:id`,
+    `DELETE /api/chats/:id` (kill-switch),
+    `POST /api/chats/:id/messages`
+- `engagements.ts` + `runs.ts` + `messages.ts` supprimés.
+- `lib/jwt.ts` : ticket SSE bound à `chat_id` (au lieu de `run_id`).
+- `lib/sse.ts` : `writeEvent({ chatId })`, stream key `stream:{org}:{chat}`.
+- `lib/sandbox.ts` + `lib/e2b.ts` : spawn signature `{ chatId,
+  envOverrides }`. Le sandbox reçoit `BJHUNT_CHAT_ID` au lieu de
+  `BJHUNT_ENGAGEMENT_ID + BJHUNT_RUN_ID`.
+- `lib/engine-bridge.ts` : bridge map keyée sur chatId.
+- `routes/chat-prepare.ts` + `routes/chat-stream.ts` : params
+  `chat_id` / `chatId` au lieu de `run_id` / `runId`.
+- `tests/sse-jwt.test.ts` + `tests/smoke/run-e2e.sh` + `seed.ts`
+  alignés.
+
+**Typecheck + build** : clean (`npm run typecheck` + `npm run build`
+exit 0 sur frontend ; CI valide le backend).
+
 ### Phase 1.13.b — wiring 1.13 + typecheck clean ✅
 
 **Backend (`bjhunt-backend`, commit `3042d64`)**
@@ -760,18 +805,27 @@ headers, `poweredByHeader: false`.
 | `bjhuntcom-oss/bjhunt-app` | privé | `D:\bjhunt-app\` | Dashboard `app.bjhunt.com` |
 
 ### Reste à faire (Phase 2 — déploiement réel)
-- [ ] Déploiement Fly.io (`flyctl deploy bjhunt-backend`) avec
-  wireguard peer Fly→Hostinger
-- [ ] Déploiement Vercel (ou CF Pages) pour `app.bjhunt.com`
-- [ ] Registration template E2B `bjhunt-kali`
-- [ ] OpenTelemetry → Grafana Cloud (observabilité)
-- [ ] Sentry errors backend + frontend
-- [ ] CI E2E (GitHub Actions sur PR `bjhunt-backend` + `bjhunt-app`)
-- [ ] Logpush Cloudflare → R2 (SOC 2 audit trail)
-- [ ] Real signing cert EV (DigiCert) pour PKCS#7 PDF
-- [ ] Egress filtering iptables dans bjhunt-kali (Phase 1.6 follow-up)
-- [ ] Stripe billing integration (subscription + usage-based)
-- [ ] Status page Cloudflare Pages
+
+- [x] CI E2E (GitHub Actions sur PR `bjhunt-backend` + `bjhunt-app` +
+  `bjhunt-engine` BJHUNT Pack CI) — Phase 1.13.b
+- [x] Egress filtering iptables dans bjhunt-kali — Phase 1.13.b
+- [ ] **Déploiement Fly.io** (`flyctl deploy bjhunt-backend`) avec
+  wireguard peer Fly→Hostinger. `fly.toml` prêt, secrets à set via
+  `flyctl secrets set` (POSTGRES_URL, REDIS_URL via wg, BETTERAUTH_SECRET,
+  JWT_SECRET_TICKET, LITELLM_*, E2B_API_KEY, R2_*).
+- [ ] **Déploiement Vercel** pour `app.bjhunt.com` : `vercel deploy
+  bjhunt-app` avec env `NEXT_PUBLIC_API_BASE=https://api.bjhunt.com`.
+- [ ] **Registration template E2B `bjhunt-kali`** : `e2b template build
+  --name bjhunt-kali` depuis `bjhunt-engine/` après que la PR #1 (pack)
+  soit mergée sur main.
+- [ ] **DNS** : `api.bjhunt.com` → Fly.io app (CNAME), `app.bjhunt.com`
+  → Vercel (CNAME).
+- [ ] OpenTelemetry → Grafana Cloud (observabilité — backend + bridges).
+- [ ] Sentry errors backend + frontend.
+- [ ] Logpush Cloudflare → R2 (SOC 2 audit trail).
+- [ ] Real signing cert EV (DigiCert) pour PKCS#7 PDF (Phase 3).
+- [ ] Stripe billing integration (subscription + usage-based) — Phase 3.
+- [ ] Status page Cloudflare Pages.
 
 
 **Repo** : `bjhuntcom-oss/bjhunt-backend` (privé, créé 2026-04-29).
