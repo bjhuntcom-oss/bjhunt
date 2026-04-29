@@ -971,6 +971,65 @@ Variables renommées : `BJHUNT_ENGAGEMENT_ID` → `BJHUNT_CHAT_ID`,
 `BJHUNT_ENGAGEMENT_SCOPE[_JSON]` → `BJHUNT_CHAT_SCOPE[_JSON]`,
 `BJHUNT_ENGAGEMENT_WORKSPACE` → `BJHUNT_CHAT_WORKSPACE`.
 
+### Phase 2.2 — BetterAuth fonctionnel en prod + seed admin/user + 8 audits parallèles ✅
+
+**Date** : 2026-04-30 (suite de session)
+
+#### BetterAuth backend rendu fonctionnel
+
+Phase 1.9.e avait laissé un commentaire trompeur : « Names match the BetterAuth defaults so the lib finds them without remapping ». En réalité **chaque appel d'auth retournait 500**. Stack de fix sur 6 commits :
+
+1. **`db.selectFrom is not a function`** — `{ type: 'postgres', db: sql }` n'est pas un format reconnu par better-auth 1.1.10 ; passe `pg.Pool` direct ne suffit pas non plus pour le casing. Solution : installer `pg` + `kysely`, wrapper la Pool dans `PostgresDialect` et passer `{ dialect, type: 'postgres' }` au champ `database`.
+2. **`relation "user" does not exist`** — BetterAuth attend `user` singulier ; remap `user.modelName: 'users'`.
+3. **`column "emailVerified" of relation "users" does not exist`** — `casing: 'snake'` n'existe **pas** dans better-auth 1.1.10 (option ignorée silencieusement). Énumérer chaque mapping camelCase→snake_case sur user/session/account/verification + plugins organization/twoFactor/invitation : ~40 fields à la main.
+4. **`column "twoFactorEnabled" of relation "users" does not exist`** — le top-level `user.fields` ne couvre pas les colonnes ajoutées par les plugins. Le mapping doit être sur `twoFactor({ schema: { user: { fields: { twoFactorEnabled: 'two_factor_enabled' } } } })`.
+5. **`invalid input syntax for type uuid: "p8hA2..."`** — BetterAuth génère des IDs base32 32-char incompat avec `uuid` natif Postgres. Override `advanced.database.generateId: () => crypto.randomUUID()`.
+6. **`invalid input syntax for type inet: ""`** — BetterAuth envoie une string vide pour `ip_address` quand l'IP client n'est pas détectable (CF Tunnel). Migration `0005_session_ip_address_text.sql` change `inet` → `text`.
+
+**Résultat** : `POST /api/auth/sign-in/email` retourne 200 + JSON `{ token, user: { id, email, emailVerified, name, twoFactorEnabled, createdAt, updatedAt } }` en 169ms.
+
+#### Dockerfile + CI fixes
+
+- `Dockerfile` : drop `--frozen-lockfile` (pas de `bun.lock` committé — Phase 3 wirera bun sur le VPS pour générer le lockfile)
+- Sentry agent avait wiré `c.get('requestId')` qui n'existe pas dans `ContextVariableMap` Hono → remplacé par `userAgent` lu depuis le header (commit `3c72850`)
+
+#### Seed prod exécutable
+
+Nouveau script `src/db/seed-prod.ts` (idempotent) crée :
+- `admin@bjhunt.com` (mdp `BjhuntAdmin2026!`, role `owner` du demo org)
+- `user@bjhunt.com` (mdp `BjhuntUser2026!`, role `member`)
+- Org `demo` (BJHUNT Demo Org, plan `pro`)
+- `email_verified=true` forcé en SQL (pas de SMTP wired)
+
+Exécution : `ssh bjhunt-vps 'docker exec bjhunt-backend bun run src/db/seed-prod.ts'`. Logs `seed-prod OK` + IDs en JSON.
+
+#### Sandbox spawn — `BJHUNT_CHAT_SCOPE_JSON` propagé
+
+Audit E2B a révélé que `chats.ts` POST omettait `BJHUNT_CHAT_SCOPE_JSON: JSON.stringify(chat.scope)` dans `envOverrides`. Sans ça, le hook `scope-guard.cjs` fail-close — toute action engine refusée. Fix `dd200f3`.
+
+#### 8 agents d'audit parallèles (3 + 3 + 3 par batch suite à rate-limit)
+
+| # | Audit | Verdict |
+|---|---|---|
+| 1 | Frontend repo `bjhunt-app` | ✅ structure pages + assistant-ui + auth client + Sentry tous corrects, 0 legacy `/engagements` |
+| 2 | Backend repo `bjhunt-backend` | ✅ routes/middleware/RLS/Sentry alignés ; 2 env Zod manquantes (cosmetic) |
+| 3 | Engine repo `bjhunt-engine` | ✅ Dockerfile + run-engagement.sh + 38 personas + 12 events + 3 hooks + 0 occurrence legacy |
+| 4 | Front↔Back API contracts | ✅ tous endpoints alignés (12 contracts) ; `e2b_sandbox_id` snake_case dans une seule réponse (cosmetic) |
+| 5 | SSE pipeline | ✅ cohérent ; cosmetic : ticket refresh > 5min (Phase 3), `error.*` not in `TYPED_EVENTS` mais accepté par préfixe |
+| 6 | E2B sandbox lifecycle | ⚠️ scope JSON pas propagé (fix `dd200f3`) ; auto-terminate sandbox sur run.completed pas appelé (coût Phase 3) ; reportLanguages/compliances envoyées mais non lues côté engine |
+| 7 | Docker prod containers | ✅ 4 services bjhunt healthy + 4 connexions cloudflared QUIC + 18 env vars ; ufw absent (firewall via Hostinger panel — non-bloquant) |
+| 8 | DB schema + RLS + seed data | ✅ 4 migrations + 17 tables + RLS FORCE sur 6 tables tenant + helpers + triggers append-only ; **seed effectué post-fix** |
+| 8b | RLS enforcement audit | 🚨 **Backend connecte en `bjhunt` superuser BYPASS RLS** — RLS effectivement off au runtime ; `audit_log` + `stream_events` writes hors `withTenant` planteraient sous un user non-superuser. **Phase 3 fix urgent** : créer un user `bjhunt_app` connection string distincte de l'admin pour migrations |
+
+#### Reste Phase 3 (différé — issues non-bloquantes Phase 2)
+
+- **RLS effectif** : POSTGRES_URL_APP (bjhunt_app) au runtime + POSTGRES_URL_ADMIN (bjhunt) pour migrations/seeds. Wrap `audit_log` + `stream_events` writes dans `withTenant`.
+- **SSE ticket auto-refresh** avant expiration 5min côté frontend.
+- **Sandbox auto-terminate** sur run.completed (coût E2B Pro).
+- **Engine reportLanguages/compliances reading** dans run-engagement.sh.
+- **bun.lock** généré sur VPS + committé pour CI `--frozen-lockfile` semantics.
+- **Env Zod schema** : ajouter `SENTRY_DSN_BACKEND`, `E2B_TEMPLATE_BJHUNT_KALI`.
+
 ### Phase 1.13.d — Fork privé `bjhunt-assistant-ui` ✅
 
 **Pourquoi** : le user a explicitement demandé un fork pour robustesse du chat
