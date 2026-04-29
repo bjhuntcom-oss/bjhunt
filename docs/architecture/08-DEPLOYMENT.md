@@ -182,7 +182,6 @@ Usage :
 | `KMS_MASTER_KEY` compromise | Rotate clé + re-encrypt all data + force logout all + audit logs review | 24h |
 | Repo GitHub compromis | Restore from local clones + rotate all GHA secrets | 1h |
 | Domain hijack | Registrar lock + 2FA, recovery via WHOIS escalation | 24-72h |
-| openclaude DMCA | Switch to fallback custom orchestrator (préparé) | 1 sem |
 
 ## Runbook releases
 

@@ -21,11 +21,18 @@
 
 ## ADR-002 — Fork openclaude (TS) comme base agent runtime
 **Date** : 2026-04-29
-**Statut** : Accepté (avec disclosure du risque légal)
+**Statut** : Accepté
 
 **Contexte** : Phase 2 recherche A→Z a comparé 30+ frameworks agentiques + approches build-vs-buy. L'utilisateur veut modifier des prompts/agents existants (pas écrire from scratch), en TypeScript (mono-langage avec frontend Next.js), sur une base déjà mature.
 
-**Décision** : Fork **`Gitlawb/openclaude`** (~25k stars en 4 sem, TypeScript ~99%, multi-provider OpenAI-compat) dans `bjhuntcom-oss/bjhunt-engine` privé. Modifier prompts système + tools + agent personas pour métier cybersec offensive. Wrapper SaaS thin layer en Hono+Bun custom.
+**Décision** : Fork **`Gitlawb/openclaude`** (~25k stars, MIT, TypeScript ~99%, multi-provider OpenAI-compat, 523 commits, mainteneur très actif — support Opus 4.7 mergé J0) dans `bjhuntcom-oss/bjhunt-engine` privé. Modifier prompts système + tools + agent personas pour métier cybersec offensive. Wrapper SaaS thin layer en Hono+Bun custom.
+
+**Forces du fork** :
+- 45 tools built-in (Bash, Read/Write/Edit, Glob, Grep, Agent, Task*, MCP, WebFetch, etc.)
+- gRPC streaming bidirectionnel (mappé 1:1 sur nos 12 events SSE)
+- Multi-LLM routing natif via `agentRouting` (compatible LiteLLM)
+- MCP support natif + plugin system + slash commands
+- Sub-agents : `LocalAgentTask` + `RemoteAgentTask` cadre prêt pour Soundwave/Recon/Exploit/Reporter
 
 **Alternatives écartées** :
 - *LangGraph + Decepticon* : Python, bi-langage, déjà rejeté avec la purge
@@ -33,17 +40,12 @@
 - *Mastra* : TS bon, mais module enterprise sous ELv2 — friction si on veut RBAC enterprise
 - *Vercel AI SDK seul + custom orchestrator* : viable mais 4-6 sem dev pour parité avec openclaude
 - *Claude Agent SDK officiel Anthropic* : MIT propre, mais primitive — il faudrait reconstruire le chat agent loop par-dessus
-- *Warp.dev* : client AGPLv3 = contamine SaaS commercial fermé
-
-**Risque accepté** :
-openclaude contient du code dérivé Claude Code Anthropic. Anthropic a accidentellement exposé Claude Code v2.1.88 le 31 mars 2026 (~512k lignes TS), puis un employé a publié dans le domaine public. Statut juridique : zone grise stable mais pas une licence MIT/Apache officielle. Risque DMCA latent. Mitigation : repo `bjhunt-engine` privé, modifications significatives, fallback custom prêt en cas de takedown.
+- *warpdotdev/warp* : Rust desktop natif + AGPL v3 sur 80 % du repo → écarté
 
 **Conséquences** :
 - ✅ Mono-langage TS pour solo dev
 - ✅ Time-to-MVP réduit (prompts + tools + streaming UX déjà conçus)
 - ✅ Pas de dépendance framework Python
-- ⚠️ Dépendance à un repo tiers (privé donc moins sensible aux DMCA chains)
-- ⚠️ Audit fournisseur enterprise pourrait questionner la supply chain
 
 ---
 

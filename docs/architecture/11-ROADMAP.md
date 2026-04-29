@@ -136,7 +136,6 @@
 
 | Risque | Probabilité | Mitigation |
 |---|---|---|
-| openclaude DMCA Anthropic | Faible-moyenne | Repo privé, modifications significatives, fallback custom prêt en parallèle |
 | Fly.io pricing increase | Faible-moyenne | Plan migration Hetzner k8s prêt |
 | E2B Pricing increase | Moyenne | Plan migration Daytona self-host |
 | Concurrent (PentAGI, Cobalt next-gen IA) lance avant nous | Moyenne | Différentiation = isolation hardware + souveraineté EU + UX chat |

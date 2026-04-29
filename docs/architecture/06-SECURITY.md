@@ -15,7 +15,6 @@
 | DDoS volumétrique | Bots / botnets | Indispo | Cloudflare WAF + rate limit edge |
 | LLM prompt injection (data exfil via cible) | User-controlled output dans tools | Faire fuiter secrets de l'env vers attaquant | SecretRegistry mask + SecurityAnalyzer cmd severity + tool budget |
 | Cible scannée se défend (counter-attack) | Réponses HTTP malicieuses | RCE dans sandbox via response | Sandbox isolation E2B + outbound network policy (whitelist target only) |
-| Anthropic DMCA sur openclaude fork | Légal | Forcer takedown du repo engine | Repo `bjhunt-engine` privé, code modifié significativement, fallback custom prêt |
 
 ## Couches de défense
 
