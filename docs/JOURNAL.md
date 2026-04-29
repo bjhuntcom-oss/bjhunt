@@ -226,14 +226,30 @@ Toutes les docs `docs/architecture/*.md` mises à jour pour refléter :
 - ✅ `bjhuntcom-oss/bjhunt-legacy-engine` (privé) — archive Decepticon
 - ✅ `bjhuntcom-oss/bjhunt-engine` (privé) — fork openclaude (créé via mirror push)
 
+### Phase 1.3 — Brancher Ollama Cloud sur LiteLLM ✅
+
+**Endpoint** : `https://ollama.com/v1` (OpenAI-compatible, vérifié via curl direct)
+**Auth** : `Authorization: Bearer <OLLAMA_CLOUD_API_KEY>` (clé dans `.env.local` + VPS `/data/bjhunt-stack/.env`)
+
+**Modèles déclarés dans `litellm/config.yaml`** (provider `openai/` avec `api_base` Ollama) :
+- `glm-5.1` (Zhipu AI — défaut pour reasoning + français)
+- `deepseek-v3.2`
+- `kimi-k2-thinking`
+- `qwen3-coder` (qwen3-coder:480b)
+
+**Tests end-to-end via LiteLLM proxy** :
+- `GET /v1/models` → 4 modèles listés ✅
+- `POST /v1/chat/completions` model=`glm-5.1` → réponse correcte (`"4"` à `2+2 ?`), 149 tokens total ✅
+
+**Note** : `drop_params: true` côté LiteLLM gère les paramètres non-supportés. `glm-5.1` génère beaucoup de tokens de "thinking" interne — prévoir `max_tokens` >= 256 pour avoir une réponse visible.
+
 ### Stack opérationnelle sur VPS
 - ✅ Coolify v4 (orchestrator) — `http://82.25.117.79:8000`
 - ✅ Postgres 17 + pgvector 0.8.2 (port `127.0.0.1:5432`)
 - ✅ Redis 7-alpine (port `127.0.0.1:6379`)
-- ✅ LiteLLM 1.82.3 (port `127.0.0.1:4000`, db+cache OK)
+- ✅ LiteLLM 1.82.3 (port `127.0.0.1:4000`, db+cache OK, 4 modèles Ollama Cloud)
 
 ### Prochaines étapes
-- [ ] Configurer modèles LiteLLM (Ollama Cloud : GLM-5.1, DeepSeek, Kimi)
 - [ ] Wireguard mesh Fly.io ↔ Hostinger (quand Fly.io app existera)
 - [ ] Caddy/TLS ou Cloudflare Tunnel devant Coolify (sécuriser port 8000)
 - [ ] Modifier prompts système openclaude pour cybersec offensive
