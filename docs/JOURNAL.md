@@ -793,6 +793,101 @@ exit 0 sur frontend ; CI valide le backend).
     par `better-auth/client/plugins` en 1.6.x ; helper retiré
     (les endpoints serveur continuent de tourner).
 
+### Phase 2.0 — Backend en ligne sur VPS + Cloudflare Tunnel + Vercel app ✅
+
+**Date** : 2026-04-29 (suite de session)
+
+**Décision pivot** : pas de Fly.io en prod (trial 7j puis CB obligatoire,
+~10€/mo pour Postgres+Redis+backend). Tout passe par l'infra **déjà payée** :
+- VPS Hostinger (`82.25.117.79`) : héberge Postgres+Redis+LiteLLM+**bjhunt-backend**
+- Cloudflare Tunnel (free) : route `api.bjhunt.com` → VPS:8080
+- Vercel (free team `bjhunts-projects`) : héberge `app.bjhunt.com`
+
+#### Backend sur VPS via docker-compose
+
+`/data/bjhunt-stack/docker-compose.yml` étendu avec service `bjhunt-backend` :
+- Build context = `./bjhunt-backend/` (code scp depuis `D:\bjhunt-backend\`
+  via tarball, le poste Windows n'a pas rsync)
+- depends_on: postgres+redis healthy + litellm started
+- env vars : POSTGRES_URL → `postgres:5432`, REDIS_URL → `redis:6379`,
+  LITELLM_URL → `http://litellm:4000` (tous internal docker network
+  `bjhunt-net`)
+- entrypoint: `["tini", "--", "sh", "-c"]`, command: `["bun run
+  src/db/migrate.ts && exec bun run src/index.ts"]` — migrations idempotentes
+  au boot
+- ports: `127.0.0.1:8080:8080` (loopback only — exposé via tunnel)
+- healthcheck: curl `/api/health` 20s/5s/5×
+
+#### Secrets prod générés
+
+`/data/bjhunt-stack/.env` complété avec :
+- `JWT_SECRET_TICKET` + `BETTERAUTH_SECRET` (384-bit base64url, distincts
+  des dev secrets locaux)
+- `E2B_API_KEY` (Pro plan déjà payé Phase 1.1)
+- `R2_*` (4 buckets déjà provisionnés Phase 1.1)
+- `PUBLIC_BASE_URL=https://api.bjhunt.com`
+
+#### Bugs résolus
+
+1. **`bun run src/db/migrate.ts && exec bun run src/index.ts` parsé comme
+   tokens** : Docker compose splittait la string en tokens passés à
+   `sh -c`. Fix : passer `command:` comme **liste YAML à un seul
+   élément** : `command: ["bun run … && exec bun run …"]`. Sinon `sh -c`
+   reçoit juste `bun` sans args et affiche son help en boucle.
+2. **`ReferenceError: Can't find variable: CompressionStream`** :
+   `oven/bun:1.1.42-alpine` n'expose pas `CompressionStream` global, que
+   `hono/compress` utilise. Fix : drop le middleware `compress()` (CF
+   compresse à l'edge, redondant). Commit `bjhunt-backend@3410617`.
+
+#### Cloudflare Tunnel `bjhunt-prod`
+
+- Tunnel ID : `68d75d7f-c39e-415f-ab0e-0b87414ac66c`
+- Créé via dashboard CF (Playwright MCP — `dash.cloudflare.com/.../tunnels`,
+  pas `one.dash` qui a 404, et pas `/networks/tunnels` non plus)
+- Token install récupéré en monkey-patchant `navigator.clipboard.writeText`
+  via `page.evaluate()` puis click sur le bouton Copy (le token est masqué
+  dans le DOM, ne s'expose qu'à la copie)
+- Service `cloudflared.service` actif sur VPS via
+  `/root/setup-cloudflared-coolify.sh BJHUNT_CF_TUNNEL_TOKEN=…` (script de
+  Phase 1.7, exécuté pour la première fois ici)
+- Public hostname route : `api.bjhunt.com` → `http://localhost:8080`
+- DNS CNAME `api.bjhunt.com` → `68d75d7f-….cfargotunnel.com` (proxied=true,
+  créé auto par CF)
+
+#### Frontend sur Vercel
+
+- `vercel link --yes --project bjhunt-app --scope bjhunts-projects`
+- Env `NEXT_PUBLIC_API_BASE=https://api.bjhunt.com` set en production+preview
+- `vercel deploy --prod` → `https://bjhunt-app.vercel.app` ready
+- `vercel domains add app.bjhunt.com` + DNS CNAME `app` →
+  `cname.vercel-dns.com` (proxied=false côté Cloudflare, Vercel gère SSL)
+- SSL Vercel provisioné en ~25s
+
+#### Vérifications
+
+- `https://api.bjhunt.com/api/health` → `{"ok":true,"db":"ok","redis":"ok"}`
+- `https://app.bjhunt.com/` → 200 OK Next.js
+- `https://app.bjhunt.com/api/health` → 200 (rewrite Next → tunnel → backend)
+
+#### Coût total Phase 2.0
+
+**0 €/mo** au-dessus de l'infra déjà payée (VPS Hostinger annuel +
+Vercel/CF/GitHub free tiers + E2B Pro / Ollama Cloud / Resend déjà
+provisionnés).
+
+#### Procédure de redeploy backend (manuelle pour l'instant)
+
+1. Local : `cd /d/bjhunt-backend && tar --exclude=node_modules
+   --exclude=.env.local --exclude=.git --exclude='*.tsbuildinfo' -czf
+   /tmp/bjhunt-backend.tgz .`
+2. `scp /tmp/bjhunt-backend.tgz bjhunt-vps:/tmp/`
+3. SSH : `cd /data/bjhunt-stack && rm -rf bjhunt-backend && mkdir -p
+   bjhunt-backend && tar -xzf /tmp/bjhunt-backend.tgz -C bjhunt-backend &&
+   docker compose build bjhunt-backend && docker compose up -d
+   bjhunt-backend`
+
+(GitHub Actions ssh-deploy workflow → Phase 2.1, pas encore wired.)
+
 ### Phase 1.13.d — Fork privé `bjhunt-assistant-ui` ✅
 
 **Pourquoi** : le user a explicitement demandé un fork pour robustesse du chat
