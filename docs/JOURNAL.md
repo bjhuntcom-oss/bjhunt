@@ -129,6 +129,70 @@
 
 **Working copy locale** : `D:\bjhunt-engine\` (à côté de `D:\bjhunt-v2\`)
 
+### Phase 1.2 — Provisionner Hostinger VPS (Coolify + Postgres + Redis + LiteLLM) ✅
+
+#### Coolify v4 (orchestrator UI)
+- Installation officielle : `curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash`
+- Containers : `coolify`, `coolify-db` (Postgres), `coolify-redis`, `coolify-realtime` (tous healthy)
+- URL : `http://82.25.117.79:8000` (HTTP plain port pour l'instant — TLS via Caddy ou Cloudflare Tunnel à venir)
+- Credentials root :
+  - User : `bjhunt-admin`
+  - Email : `bjhuntcom@gmail.com`
+  - Password : stocké dans `.env.local`
+- Backup `.env` Coolify : `/tmp/coolify-env-backup.txt` (local + serveur `/data/coolify/source/.env`)
+
+#### Stack `bjhunt` (direct docker-compose)
+**Décision** : provisionner Postgres/Redis/LiteLLM directement via `docker compose` dans `/data/bjhunt-stack/` (bootstrap plus rapide que Coolify UI ; import dans Coolify pour management futur). Ports liés à **127.0.0.1 uniquement** sur le VPS — accès depuis Fly.io via wireguard mesh (Phase 2). Pour le dev local : tunnels SSH (`ssh -L 5432:127.0.0.1:5432 bjhunt-vps`).
+
+**Fichiers créés sur VPS** :
+- `/data/bjhunt-stack/docker-compose.yml` (3 services + 1 réseau bridge `bjhunt-net`)
+- `/data/bjhunt-stack/litellm/config.yaml` (config minimale, modèles ajoutés au fur et à mesure)
+- `/data/bjhunt-stack/.env` (chmod 600, contient les passwords)
+
+**Postgres 17 + pgvector 0.8.2** :
+- Image : `pgvector/pgvector:pg17`
+- Container : `bjhunt-postgres`
+- Port : `127.0.0.1:5432`
+- DB : `bjhunt` · User : `bjhunt` · Encoding : UTF8 / Locale : C
+- Extension `vector` installée et vérifiée (`SELECT extname, extversion FROM pg_extension`)
+- Volume persistant : `bjhunt_bjhunt-postgres-data`
+- Healthcheck : `pg_isready` toutes les 10s
+- Status : **healthy**
+
+**Redis 7-alpine** :
+- Container : `bjhunt-redis`
+- Port : `127.0.0.1:6379`
+- Auth : `requirepass` activé (password fort, dans `.env.local`)
+- Persistence : AOF (`appendonly yes`)
+- Eviction : `maxmemory 2gb` + `allkeys-lru`
+- Volume persistant : `bjhunt_bjhunt-redis-data`
+- Healthcheck : `redis-cli PING` toutes les 10s
+- Status : **healthy** (PONG vérifié)
+
+**LiteLLM proxy 1.82.3** :
+- Image : `ghcr.io/berriai/litellm:main-stable`
+- Container : `bjhunt-litellm`
+- Port : `127.0.0.1:4000`
+- Backend DB : Postgres `bjhunt` (table proxy modèles, `STORE_MODEL_IN_DB=true`)
+- Cache : Redis (succès/échec callbacks vides pour l'instant)
+- Master key : stockée dans `.env.local`
+- 2 workers, timeout 600s, retries 2
+- Healthcheck : `GET /health/liveliness` (port interne 4000)
+- Status : **healthy** — `/health/readiness` confirme `db:connected, cache:redis`
+- `model_list` vide pour l'instant — Ollama Cloud (GLM-5.1, DeepSeek, Kimi) à brancher plus tard
+
+#### Sécurité réseau
+- UFW : 22/80/443 uniquement ouverts publiquement
+- Coolify port 8000 : exposé publiquement (Docker bypass UFW iptables — known issue)
+  - À sécuriser Phase 2 via Caddy/TLS ou Cloudflare Tunnel
+- bjhunt-stack ports : `127.0.0.1` only (pas exposés depuis l'extérieur)
+
+#### Credentials .env.local ajoutées
+- `POSTGRES_URL`, `POSTGRES_PASSWORD`
+- `REDIS_URL`, `REDIS_PASSWORD`
+- `LITELLM_URL`, `LITELLM_MASTER_KEY`
+- `COOLIFY_*`
+
 ### Mise à jour docs
 
 Toutes les docs `docs/architecture/*.md` mises à jour pour refléter :
@@ -162,8 +226,16 @@ Toutes les docs `docs/architecture/*.md` mises à jour pour refléter :
 - ✅ `bjhuntcom-oss/bjhunt-legacy-engine` (privé) — archive Decepticon
 - ✅ `bjhuntcom-oss/bjhunt-engine` (privé) — fork openclaude (créé via mirror push)
 
+### Stack opérationnelle sur VPS
+- ✅ Coolify v4 (orchestrator) — `http://82.25.117.79:8000`
+- ✅ Postgres 17 + pgvector 0.8.2 (port `127.0.0.1:5432`)
+- ✅ Redis 7-alpine (port `127.0.0.1:6379`)
+- ✅ LiteLLM 1.82.3 (port `127.0.0.1:4000`, db+cache OK)
+
 ### Prochaines étapes
-- [ ] **#27** Provisionner Hostinger : Docker + Coolify + Postgres 17 + Redis 7 + LiteLLM proxy
+- [ ] Configurer modèles LiteLLM (Ollama Cloud : GLM-5.1, DeepSeek, Kimi)
+- [ ] Wireguard mesh Fly.io ↔ Hostinger (quand Fly.io app existera)
+- [ ] Caddy/TLS ou Cloudflare Tunnel devant Coolify (sécuriser port 8000)
 - [ ] Modifier prompts système openclaude pour cybersec offensive
 - [ ] Adapter tools : retirer git/npm, ajouter wrappers nmap/nuclei/sqlmap (E2B SDK)
 - [ ] Stub backend Hono+Bun : `/api/health`, `/api/chat/prepare`, `/api/chat/stream/:runId`
