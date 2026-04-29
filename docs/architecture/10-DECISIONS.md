@@ -1,204 +1,230 @@
 # 10 — Décisions d'architecture (ADR)
 
-> Une ADR par décision structurante. Format minimaliste : contexte, décision, alternatives écartées, conséquences.
+> Une ADR par décision structurante. Format : contexte, décision, alternatives écartées, conséquences.
 
 ## ADR-001 — Purge totale du backend legacy
 **Date** : 2026-04-29
 **Statut** : Accepté
 
-**Contexte** : Le repo monorepo BJHUNT contenait un backend Hono+Bun custom + un fork Decepticon (17 agents IA en Python LangGraph) + un VPS Hostinger avec 12 services Docker. État : ~50 findings d'audit sécurité non résolus, dette technique W4-W11 estimée à 13-15 jours de dev, pas de monétisation effective, pas d'utilisateurs payants. Le rebuild from-scratch sur un framework agentique mature (OpenHands SDK V1) coûterait ≤ ce que coûterait combler la dette.
+**Contexte** : Le repo monorepo contenait un backend Hono+Bun custom + un fork Decepticon (17 agents Python LangGraph) + un VPS Hostinger avec 12 services Docker. ~50 findings audit non résolus, dette W4-W11 estimée 13-15j. Pas de monétisation effective. Le rebuild from-scratch coûte ≤ combler la dette.
 
-**Décision** : Purger backend, engine, ops, dashboard du repo. Garder uniquement le frontend marketing public. Archiver l'engine dans repo privé `bjhunt-legacy-engine` pour mémoire.
+**Décision** : Purger backend, engine, ops, dashboard. Garder uniquement frontend marketing public. Archiver l'engine dans `bjhunt-legacy-engine` privé.
 
-**Alternatives écartées** :
-- *Continuer la dette* : ROI négatif, équipe solo dev sous-eau
-- *Maintenir backend, refonte progressive* : trop lent, pas de momentum
-- *Vendre/fork to community OSS* : pas pertinent à ce stade
+**Alternatives écartées** : continuer la dette (ROI négatif), refonte progressive (trop lent).
 
 **Conséquences** :
-- ✅ Repo propre, frontend deploy-able sur Vercel sans backend
-- ✅ VPS Hostinger libéré (peut être resilié ou recyclé)
-- ❌ Aucun produit fonctionnel temporairement (4-8 semaines rebuild)
-- ❌ Beta signups en attente (pas de risque produit livré → différer le launch)
+- ✅ Repo propre
+- ✅ VPS Hostinger libéré (2.9 GB / 387 GB)
+- ❌ Aucun produit fonctionnel temporairement (4-8 sem rebuild)
 
 ---
 
-## ADR-002 — Backend rebuild sur OpenHands SDK V1 + LangGraph hybride
+## ADR-002 — Fork openclaude (TS) comme base agent runtime
 **Date** : 2026-04-29
-**Statut** : Accepté (sous-réserve POC validation)
+**Statut** : Accepté (avec disclosure du risque légal)
 
-**Contexte** : Phase 2 recherche a comparé 9 frameworks agentiques. OpenHands V1 (arxiv:2511.03690 nov 2025) est conçu *by design* pour SaaS multi-tenant agentique : `DockerWorkspace` per-engagement built-in + `SecurityAnalyzer` typé (LOW/MED/HIGH par command). LangGraph reste mature pour orchestration multi-agent + checkpointing Postgres natif.
+**Contexte** : Phase 2 recherche A→Z a comparé 30+ frameworks agentiques + approches build-vs-buy. L'utilisateur veut modifier des prompts/agents existants (pas écrire from scratch), en TypeScript (mono-langage avec frontend Next.js), sur une base déjà mature.
 
-**Décision** : Hybride — LangGraph pour graph state machine + checkpointing, OpenHands pour le runtime workspace + security analyzer.
+**Décision** : Fork **`Gitlawb/openclaude`** (~25k stars en 4 sem, TypeScript ~99%, multi-provider OpenAI-compat) dans `bjhuntcom-oss/bjhunt-engine` privé. Modifier prompts système + tools + agent personas pour métier cybersec offensive. Wrapper SaaS thin layer en Hono+Bun custom.
 
 **Alternatives écartées** :
-- *LangGraph seul* : sandbox + multi-tenant à coder à la main (coût équivalent à la dette legacy)
-- *CrewAI* : excellent role-based, pas de sandbox natif → même problème
-- *Warp/Oz* : client AGPLv3 contamine SaaS commercial
-- *Goose* : agent desktop, pas SaaS
-- *AutoGen / MAF Microsoft* : split AutoGen v0.7 / AG2 / MAF en avril 2026, adoption incertaine
-- *smolagents* : excellent CodeAgent paradigm mais 26k★ moins mature pour prod
-- *Vercel AI SDK 5* : front/edge focus, pas un orchestrateur backend
+- *LangGraph + Decepticon* : Python, bi-langage, déjà rejeté avec la purge
+- *CrewAI / Pydantic AI / smolagents / OpenHands SDK* : Python, idem
+- *Mastra* : TS bon, mais module enterprise sous ELv2 — friction si on veut RBAC enterprise
+- *Vercel AI SDK seul + custom orchestrator* : viable mais 4-6 sem dev pour parité avec openclaude
+- *Claude Agent SDK officiel Anthropic* : MIT propre, mais primitive — il faudrait reconstruire le chat agent loop par-dessus
+- *Warp.dev* : client AGPLv3 = contamine SaaS commercial fermé
+
+**Risque accepté** :
+openclaude contient du code dérivé Claude Code Anthropic. Anthropic a accidentellement exposé Claude Code v2.1.88 le 31 mars 2026 (~512k lignes TS), puis un employé a publié dans le domaine public. Statut juridique : zone grise stable mais pas une licence MIT/Apache officielle. Risque DMCA latent. Mitigation : repo `bjhunt-engine` privé, modifications significatives, fallback custom prêt en cas de takedown.
 
 **Conséquences** :
-- ✅ DockerWorkspace built-in = isolation hardware-level sans coder
-- ✅ SecurityAnalyzer typé > legacy SafeCommandMiddleware blacklist (fragile)
-- ✅ LiteLLM commun aux deux → switch provider = 1 ligne config
-- ❌ Hybride = 2 frameworks à apprendre (mais leur intégration est documentée)
-- ⚠️ OpenHands V1 toujours jeune (papier nov 2025) — risque d'API breaking
-
-**POC validation requis avant lock-in** : 1 endpoint Fly.io qui spawn DockerWorkspace, exécute `nmap`, stream SSE → 2-3j effort.
+- ✅ Mono-langage TS pour solo dev
+- ✅ Time-to-MVP réduit (prompts + tools + streaming UX déjà conçus)
+- ✅ Pas de dépendance framework Python
+- ⚠️ Dépendance à un repo tiers (privé donc moins sensible aux DMCA chains)
+- ⚠️ Audit fournisseur enterprise pourrait questionner la supply chain
 
 ---
 
-## ADR-003 — Hosting cible Fly.io + Modal + Hetzner
+## ADR-003 — Mono-langage TypeScript / Bun pour le backend
 **Date** : 2026-04-29
 **Statut** : Accepté
 
-**Contexte** : Phase 2 recherche a comparé 13 plateformes hosting. BJHUNT exécute des outils Kali réels = exigence isolation hardware-level (Firecracker microVM). SSE long-lived 30min audits.
+**Contexte** : Le legacy avait 2 langages (TS frontend + Python engine). Pour solo dev, maintenir 2 toolchains = surcoût (build, tests, deps, refactor, on-call).
 
-**Décision** : Fly.io (backbone API + sandboxes Firecracker) + Modal (AI inference scale-to-zero, futur replacement Ollama Cloud) + Hetzner Cloud Falkenstein DE (Postgres + Neo4j + Redis, souveraineté EU pure).
+**Décision** : Tout TypeScript. Backend Hono sur Bun 2.0+. Orchestrator (fork openclaude modifié) en TS. Pas de Python.
 
 **Alternatives écartées** :
-- *AWS Fargate* : 3x prix, lock-in maximal, pas de réelle souveraineté EU (Cloud Act)
-- *GCP Cloud Run* : gVisor seul, **insuffisant** pour exec exploits
-- *Lambda + SFN* : 15min cap incompatible avec audits 30min
-- *Coolify+Hetzner seul* : containers shared kernel, disqualifié pour Kali sandbox
-- *Vercel pour le backend* : 60-300s timeout incompatible SSE long
-- *Modal pour tout* : SDK propriétaire = lock-in
-- *Self-host k8s Hetzner* : ops 24/7 impossible solo dev
-
-**Plan bootstrap** : Hetzner CCX43 + Coolify + Modal (~$1.5k/mo) jusqu'à ~1 000 users payants, puis migration Fly.io.
+- *Bi-langage TS+Python* : surcoût solo dev
+- *Tout Rust* : courbe d'apprentissage trop raide
+- *Tout Go* : abandonner l'expertise frontend équipe
 
 **Conséquences** :
-- ✅ Migration sortie cheap (Docker partout, Modal SDK encapsulable)
-- ✅ Souveraineté EU pure pour DBs (Hetzner DE)
-- ✅ Coût 5-10× moins cher qu'AWS équivalent
-- ❌ Multi-vendor = ops un peu plus complexe que tout-AWS
-- ❌ Hetzner DBs = nous gérons les backups/patches/upgrades
+- ✅ Toolchain unique (bun, tsc, biome)
+- ✅ Type sharing frontend/backend possible (Zod schemas)
+- ✅ Embauche junior TS facile
+- ❌ Écosystème ML/IA Python (LangChain, etc.) inaccessible — mais on n'en a pas besoin si openclaude couvre
 
 ---
 
-## ADR-004 — Streaming SSE + Redis Streams + JWT ticket
+## ADR-004 — Hosting backend : Fly.io (cdg + ams)
 **Date** : 2026-04-29
 **Statut** : Accepté
 
-**Contexte** : Phase 2 recherche a comparé SSE / WebSocket / gRPC-web / HTTP/3. SSE est le standard de fait 2025-2026 (OpenAI, Anthropic, Vercel AI SDK 5, LangGraph). Audits 30min nécessitent resume after disconnect.
+**Contexte** : BJHUNT exécute des outils Kali (`nmap -sS` raw socket, sqlmap exploit chain). Container shared kernel = ÉLIMINATOIRE. SSE long-lived 5-30 min nécessaire.
 
-**Décision** : SSE primary transport, JWT ticket court (5min) pour auth, Redis Streams par tenant pour live tail + Postgres `stream_events` table pour persistence 7j.
+**Décision** : Fly.io régions cdg (Paris) + ams (Amsterdam). Firecracker microVM = isolation hardware-level. Pas de timeout proxy SSE.
 
 **Alternatives écartées** :
-- *WebSocket* : bidi pas nécessaire (POST séparé pour user message), reconnect non natif, sticky-session lourd
-- *gRPC-web* : overhead schema proto pas justifié pour texte
-- *HTTP/2 push* : deprecated Chrome 2022
-- *Cookies + EventSource* : CORS cross-subdomain fragile en 2025+ (Chrome SameSite changes)
-- *Long polling* : moins efficace, pas de stream natif
+- *AWS Fargate* : Firecracker OK mais 3× prix, lock-in IAM, Cloud Act US-owner
+- *GCP Cloud Run* : gVisor seul, NET_RAW bloqué = `nmap -sS` KO
+- *Lambda / Vercel Edge / Cloudflare Workers* : timeouts SSE incompatibles audits 30 min
+- *Coolify+Hetzner seul pour backend* : containers shared kernel, disqualifié pour exec exploits sandboxes
+- *Modal* : gVisor partiel, Python SDK lock-in
 
 **Conséquences** :
-- ✅ Compatible avec tous proxies/CDN
-- ✅ Auto-reconnect natif EventSource via `Last-Event-ID`
-- ✅ Pattern signed ticket = stateless + tenant-safe + courte durée
-- ❌ EventSource ne supporte pas custom headers (mitigé par ticket sur URL)
+- ✅ Migration sortie facile (Docker)
+- ✅ EU hardware (cdg + ams) pour latence + souveraineté partielle
+- ❌ Fly.io = US-owner (pas total souverain mais hardware EU + SOC2 + GDPR)
+- ❌ Fly GPU déprécie août 2026 (mais on n'utilise pas Fly GPU)
 
 ---
 
-## ADR-005 — Multi-tenancy via Postgres RLS FORCE + 1 sandbox par engagement
+## ADR-005 — Sandbox : E2B.dev managed BYOC EU
 **Date** : 2026-04-29
-**Statut** : Accepté (déjà appliqué dans le legacy, à reprendre)
+**Statut** : Accepté (avec plan migration Daytona à scale)
 
-**Contexte** : 6 couches d'isolation (cf 04-MULTI-TENANCY.md). Tenant isolation est non négociable.
+**Contexte** : 1 sandbox Kali per-engagement. Solo dev veut managed (pas coder le runtime sandbox).
 
-**Décision** : 
-- App layer : `withOrg(orgId, fn)` wrapper obligatoire
-- DB layer : Postgres RLS `FORCE` sur toutes les tables tenant + role `bjhunt_app` NOSUPERUSER NOBYPASSRLS
-- Knowledge graph : 1 Neo4j DB par tenant
-- Sandbox : 1 OpenHands DockerWorkspace per-engagement (long-running, TTL 30min idle)
-- Streaming : Redis Streams `stream:{org_id}:{run_id}` + cancel channel séparé
-- Secrets : AES-GCM chiffrement avec clé per-tenant dérivée HKDF
+**Décision** : E2B.dev avec BYOC sur région EU. Plan Pro $150/mo + $0.05/h base. Image custom `bjhunt-kali`.
 
 **Alternatives écartées** :
-- *Schema-per-tenant Postgres* : explose le nombre de schémas, migrations cauchemar
-- *DB-per-tenant Postgres* : trop coûteux pour <10k tenants
-- *Sandbox shared cluster + namespacing* : insuffisant pour exec exploits
-- *Cypher namespace label* : moins safe que DB séparée
+- *Modal sandboxes* : gVisor partiel, Python SDK
+- *Replit / CodeSandbox* : containers shared kernel, KO Kali
+- *Daytona* : excellent OSS Apache mais self-host coûte 1 sem ops setup
+- *Firecracker direct* (ignite, fly machines) : 2-3 sem dev pour spawn-orchestration robuste
+
+**Migration future** : >$5k/mo sandbox usage → bascule Daytona self-host (1 sem migration)
 
 **Conséquences** :
-- ✅ Defense-in-depth — un bug seul ne casse pas l'isolation
-- ✅ Audit logs append-only montrent toute violation tentée
-- ❌ Performance overhead Postgres RLS ~5-10% (acceptable)
-- ❌ Coût : 1 sandbox par engagement actif = peut grimper avec scale (mitigation : TTL idle 30min)
+- ✅ Time-to-MVP <2 sem pour sandbox-ready
+- ✅ Firecracker isolation hardware
+- ❌ Vendor managed cost (acceptable jusqu'à scale)
 
 ---
 
-## ADR-006 — Souveraineté EU & RGPD natif
+## ADR-006 — DBs : Hetzner Cloud Falkenstein self-host
 **Date** : 2026-04-29
 **Statut** : Accepté
 
-**Contexte** : Cible client : startups EU + équipes sécurité internes EU + consultants pentest EU. RGPD non-compliance = risque légal majeur. Cloud Act US = leak potentiel données client US-pos vers gouv US.
+**Contexte** : Souveraineté EU pure pour données client (vulnérabilités, evidence, findings). Cloud Act US = risque commercial enterprise.
 
-**Décision** : Toutes les données tenant (PG, Neo4j, Redis, R2 EU jurisdiction) hébergées en Allemagne / France. Modal (US) ne reçoit QUE les prompts LLM de-PII (personally-identifiable info masquée par SecretRegistry avant envoi). DPO dédié. AUP visible. EU AI Act art.50 (badge AI), EAA accessibility, CNIL ePrivacy 2026.
+**Décision** : VPS CCX43 Hetzner Falkenstein DE (~€100/mo). Postgres 17 + Redis 7 + LiteLLM proxy + Caddy via Coolify (orchestration locale, OSS Apache). Backups vers Cloudflare R2 + Backblaze B2.
 
 **Alternatives écartées** :
-- *AWS eu-west-3 Paris* : owned by Amazon US → Cloud Act applicable
-- *GCP europe-west1* : idem
-- *Azure France Central* : idem
-- *Tout US uniquement* : disqualifie marché EU enterprise
+- *AWS RDS Paris* : 4-5× prix, US-owner (Cloud Act)
+- *Supabase* : US-owner, EU regions OK, mais lock-in plateforme
+- *Neon* : serverless Postgres, EU regions, US-owner, racheté Databricks
+- *Aiven (Finlande)* : EU souverain, mais 3× prix Hetzner self-host
+- *Self-host Hostinger VPS* : déjà testé legacy, downtime/uptime variable, abandonné
 
 **Conséquences** :
-- ✅ Pitch souveraineté différenciant pour Enterprise EU
-- ✅ Compliance prête pour SOC2 Type II + ISO 27001 future
-- ❌ Coûts un peu plus élevés que AWS spot
-- ❌ Latence Modal (US-east) ~80ms aller-retour Europe (acceptable pour LLM async)
+- ✅ Souveraineté EU pure (DE jurisdiction)
+- ✅ Prix imbattable
+- ❌ Ops nous-mêmes (backup, patches, upgrades)
+- ❌ Single-region (acceptable <5k users, multi-region Phase 5)
 
 ---
 
-## ADR-007 — Frontend marketing reste sur Vercel
+## ADR-007 — Streaming : SSE typé + Redis Streams + JWT ticket
 **Date** : 2026-04-29
 **Statut** : Accepté
 
-**Contexte** : Frontend Next.js 16 marketing site est gratuit (Hobby) sur Vercel, déjà branché à GitHub auto-deploy. Performance edge top.
+**Décision** : SSE primary transport, JWT ticket court (5 min) pour auth, Redis Streams par tenant pour live tail + Postgres `stream_events` table pour persistence 7j. 12 events typés.
+
+**Alternatives écartées** : WebSocket (overkill bidi pas requis), gRPC-web (overhead proto), HTTP/2 push (deprecated), cookies + EventSource (CORS cross-subdomain fragile).
+
+**Conséquences** :
+- ✅ Standard 2026 (OpenAI, Anthropic, Vercel AI SDK)
+- ✅ Auto-reconnect natif
+- ✅ Multi-tenant safe via channel naming + JWT verify
+
+---
+
+## ADR-008 — Multi-tenancy : Postgres RLS FORCE + 1 sandbox per engagement + pgvector (pas Neo4j)
+**Date** : 2026-04-29
+**Statut** : Accepté
+
+**Décision** : 6 couches isolation. Postgres RLS FORCE + role app NOSUPERUSER NOBYPASSRLS + 1 E2B sandbox per engagement + SecretRegistry per-tenant + pgvector pour knowledge graph (au lieu de Neo4j separate-DB-per-tenant).
+
+**Pourquoi pgvector au lieu de Neo4j** :
+- 1 DB technology de moins à opérer (Hetzner self-host)
+- RLS unifié avec le reste
+- Suffit pour MVP (recursive CTEs Postgres pour attack chains)
+- Migration possible plus tard si Cypher devient bloquant
+
+**Conséquences** :
+- ✅ Defense-in-depth
+- ✅ Simplicité ops
+- ❌ Performance graph queries < Neo4j (acceptable MVP)
+
+---
+
+## ADR-009 — Souveraineté EU & RGPD natif (avec exception LLM)
+**Date** : 2026-04-29
+**Statut** : Accepté
+
+**Décision** : Toutes les données tenant (PG, Redis, R2 EU jurisdiction) hébergées en EU. **Exception LLM** : Ollama Cloud (US) reçoit des prompts dont les secrets sont masqués via SecretRegistry. À terme RunPod EU regions (Romania/Czech/Iceland) pour modèle propriétaire = full EU.
+
+**Alternatives écartées** :
+- *Tout US* : disqualifie marché EU enterprise
+- *Tout EU strict (incluant LLM)* : LLM EU souverain coûteux + catalogue limité (Mistral, Scaleway), accepter Ollama Cloud US comme compromis temporaire avec mitigation SecretRegistry
+
+**Conséquences** :
+- ✅ Pitch souveraineté différenciant pour EU enterprise
+- ✅ Compliance prête pour SOC2 + ISO 27001 future
+- ⚠️ Disclosure obligatoire dans AUP que les prompts transitent par US
+
+---
+
+## ADR-010 — Auth : BetterAuth (TS, OSS)
+**Date** : 2026-04-29
+**Statut** : Accepté
+
+**Décision** : BetterAuth (TS, sessions DB-backed Postgres, support 2FA TOTP, plugins extensibles). Self-host sur le backend Fly.io.
+
+**Alternatives écartées** :
+- *Auth.js v5 (NextAuth)* : très intégré Next mais sessions JWT par défaut (faiblesse pour révocation immédiate)
+- *Clerk* : managed, top UX, mais $25/mo + lock-in cloud + data US
+- *Custom* : surface attaque trop large pour solo dev ; déjà tenté legacy
+
+**Conséquences** :
+- ✅ Mono-langage TS
+- ✅ Sessions DB-backed = révocation immédiate possible
+- ✅ Self-host = data EU
+- ❌ Moins mature que Clerk (acceptable, pourrait migrer plus tard)
+
+---
+
+## ADR-011 — Frontend marketing reste sur Vercel
+**Date** : 2026-04-29
+**Statut** : Accepté
 
 **Décision** : Garder Vercel pour le marketing site. Le futur dashboard authentifié peut soit rester sur Vercel (preview deploys + edge SSR) soit basculer sur Fly.io selon les besoins SSE long.
 
-**Alternatives écartées** :
-- *Auto-host Caddy + Next.js sur Hetzner* : pas justifié à ce stade (gratuit Vercel)
-- *Cloudflare Pages* : OK mais pas de avantage net vs Vercel
-- *AWS Amplify* : pricing unfavorable
+**Alternatives écartées** : Auto-host Caddy + Next.js sur Hetzner (pas justifié vs gratuit Vercel), Cloudflare Pages (pas d'avantage net), AWS Amplify (pricing).
 
 **Conséquences** :
 - ✅ Zero-effort deploy + preview branches
 - ❌ Vendor lock-in léger (mitigation : stack standard Next.js portable)
-- ❌ Si on dépasse le free tier (1TB bandwidth/mo), monter en Pro $20/mo
-
----
-
-## ADR-008 — Auth provider à décider (Phase POC)
-**Date** : 2026-04-29
-**Statut** : Ouvert — décision Phase POC
-
-**Contexte** : Le backend rebuild aura besoin d'un système d'auth (login, signup, sessions, 2FA, RBAC).
-
-**Candidats** :
-- **BetterAuth** (TS, self-host, sessions DB-backed) — moderne, full-control
-- **Auth.js v5** (NextAuth) — très intégré Next, bon pour le frontend
-- **Clerk** (managed) — paye, mais zéro setup, top UX
-- **Custom** (comme le legacy) — full control mais maintenance
-
-**Critères pour décider** :
-- Coût à scale (1k users → 10k users)
-- 2FA TOTP + Yubikey support
-- RBAC org_owner / admin / operator / viewer
-- Compliance EU data residency
-- Migration depuis le legacy (table users existante en schéma)
-
-À trancher au moment du POC backend. Probablement BetterAuth ou Auth.js v5 (open source + EU-host facile).
 
 ---
 
 ## Comment ajouter une nouvelle ADR
 
-1. Numéro suivant (ADR-009, etc.)
-2. Format : Date + Statut (Proposé / Accepté / Déprécié / Remplacé par ADR-XXX)
+1. Numéro suivant
+2. Date + Statut (Proposé / Accepté / Déprécié / Remplacé par ADR-XXX)
 3. Sections : Contexte, Décision, Alternatives écartées, Conséquences
 4. PR avec discussion préalable si décision majeure
 5. Update `docs/README.md` index
