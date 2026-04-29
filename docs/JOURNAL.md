@@ -324,6 +324,71 @@ BJHUNT V2.1 en mode "Dream Diary par engagement".
 - **PKCS#7 detached signature + RFC 3161 timestamp** sur tous les PDF via
   `bjhunt/scripts/sign-pdf.sh` (à coder Phase 1.5).
 
+### Phase 1.5 — Runtime layer BJHUNT V2.1 (hooks + identity + signing) ✅
+
+**PR draft** : https://github.com/bjhuntcom-oss/bjhunt-engine/pull/1
+(commit `60e31c0` sur `feat/bjhunt-v2.1-pack`).
+
+#### Injection identité (`src/constants/bjhuntIdentity.ts` + patch `prompts.ts`)
+- `getBjhuntIdentitySection()` — retourne le body identité condensé si
+  `BJHUNT_MODE=true`, sinon `null`
+- Patch chirurgical sur `getSimpleIntroSection()` : si BJHUNT_MODE → identité
+  BJHUNT V2.1 prend la place du "You are an interactive agent that helps
+  users with software engineering tasks" upstream
+- Anti-leak : enumération explicite des marques interdites (Claude, Anthropic,
+  OpenClaude, GPT, GLM, DeepSeek, Kimi, Ollama)
+- Off par défaut → openclaude se comporte exactement comme upstream sans
+  modification visible
+
+#### 3 hooks `.cjs` standalone Node (`bjhunt/hooks/*`)
+- **scope-guard.cjs** (PreToolUse, fail-closed) :
+  - Parse URLs/IPs/CIDRs/hosts/fs paths depuis le tool input
+  - Cross-check `engagement.scope.in_scope` vs `out_of_scope` (CIDR contain,
+    wildcard *.host, URL prefix)
+  - Vérifie `expires_at`
+  - Bloque via `hookSpecificOutput.permissionDecision: "deny"`
+  - Émet `error.scope_violation` SSE side channel
+  - Fail-closed sur parse error / engagement absent
+- **evidence-capture.cjs** (PostToolUse, matcher `Bash|PowerShell|WebFetch`) :
+  - sha256 de la sortie + redactions (Authorization Bearer/Basic, JWT,
+    Set-Cookie, AWS AKID, Slack, JSON secrets, PEM private keys)
+  - Match aussi les `BJHUNT_SECRET_VALUES` du SecretRegistry (sub par
+    placeholder `{{REDACTED:SECRET_<id>}}`)
+  - Ledger append-only JSONL avec dedup sha256 (32 dernières lignes)
+  - Cap à 10 MB par evidence
+  - Émet `evidence.captured` SSE
+- **redact-secrets.cjs** (UserPromptSubmit) :
+  - 15+ patterns détectés : AWS AKID, AWS secret, GCP private key, JWT,
+    Slack token, GitHub PAT/OAuth, Cloudflare token, Fly.io token, E2B
+    token, OpenAI key, Anthropic key, Stripe key, PEM private, Basic auth,
+    Bearer
+  - Surface un `additionalContext` redaction note (le LLM est notifié que
+    des secrets ont été redactés, sans qu'il les voie)
+  - Append au transcript redaction log
+
+#### Settings + scripts
+- `bjhunt/settings.template.json` : wires les 3 hooks dans `.claude/settings.json`
+  avec timeouts (5s scope-guard / 10s evidence / 3s redact)
+- `bjhunt/scripts/build-claude-agents.sh` : copie `personas/*.md` →
+  `.claude/agents/`, render template settings.json (sub `${BJHUNT_HOME}`),
+  drop `bjhunt.env` source-able
+- `bjhunt/scripts/install-bjhunt-mode.sh` : bootstrap sandbox E2B avec
+  verifications (hooks parse, agents core présents)
+- `bjhunt/scripts/sign-pdf.sh` : signature PKCS#7 detached + timestamp
+  RFC 3161. 3 modes :
+  - **embedded** (pyHanko) : signature visible Acrobat
+  - **detached** (openssl + curl freetsa.org) : `.p7s` + `.tsr` à côté du PDF
+  - **stub** : warning + skip si `BJHUNT_SIGNING_CERT/KEY` absent (dev/staging)
+
+#### Tests anti-leak
+- `src/constants/__tests__/bjhuntIdentity.test.ts` (Bun test) :
+  - BJHUNT_MODE off par défaut, helpers retournent null
+  - BJHUNT_MODE=true|1 active la section
+  - Body identité : claims "BJHUNT V2.1", négations explicites de chaque
+    marque interdite, refus moralisateurs interdits, autorisation présumée
+    acquise, vocabulaire SSE complet, posture ultra-offensif/curieux/parano
+- À exécuter en CI via `bun test`
+
 ### Stack opérationnelle sur VPS
 - ✅ Coolify v4 (orchestrator) — `http://82.25.117.79:8000`
 - ✅ Postgres 17 + pgvector 0.8.2 (port `127.0.0.1:5432`)
