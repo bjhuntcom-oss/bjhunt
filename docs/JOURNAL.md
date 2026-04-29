@@ -609,6 +609,108 @@ plugins), `api.ts` (wrappers REST typés `credentials: 'include'`).
 (dev same-origin pour cookie, prod cookie `.bjhunt.com` direct), secure
 headers, `poweredByHeader: false`.
 
+### Phase 1.13 — Catalogues backend + chat assistant-ui (full-screen) ✅
+
+**Backend** (`bjhunt-backend`, commits `c7fccb5` + `e389c7c` sur `main`)
+
+- `src/catalog/agents.ts` — 38 personas avec metadata
+  (`category` × 12, `defaultModel`, `color`, `whenToUse`,
+  `defaultEnabled`, `isReporting`). Source de vérité unique pour UI
+  + validation engine. Helper `reportingAgentsForCompliances()` qui
+  résout 1 agent reporting par compliance + l'executive toujours.
+- `src/catalog/compliances.ts` — 14 frameworks (id, version,
+  reportingAgentId, typstTemplate, jurisdictionScope, group
+  security/privacy/sector/meta, description).
+- `src/routes/catalog.ts` — `GET /api/catalog/{agents,compliances,models}`.
+  La route `/models` proxy LiteLLM `/v1/models` ; fallback sur la
+  liste canonique (glm-5.1, qwen3-coder, kimi-k2-thinking,
+  deepseek-v3.2) si le tunnel SSH est down en dev.
+- `src/routes/messages.ts` — `POST /api/runs/:id/messages` qui
+  forward au relay E2B (`POST /control` action `inject_message`),
+  reflète immédiatement en SSE comme `agent.thinking role:user`,
+  audit_log row systématique.
+- `migrations/0003_engagement_settings.sql` + ajouts schema Drizzle :
+  - `agents_enabled text[]` (vide = use defaults : offensifs +
+    reporting auto)
+  - `default_model text default 'glm-5.1'`
+  - `agent_models jsonb` (override par agent)
+  - `asvs_target_level integer` (1-3, conditionnel sur
+    owasp-asvs-5)
+- `src/routes/engagements.ts` — Zod CreateBody/PATCH étendus pour
+  les 4 nouveaux fields, insert/update au passage.
+- `src/routes/runs.ts` — résout l'`effectiveAgents` au moment du
+  spawn (sélection explicite ∪ reporting des compliances ; sinon
+  defaults offensifs ∪ reporting des compliances), pousse les 4
+  envOverrides `BJHUNT_AGENTS_ENABLED / BJHUNT_DEFAULT_MODEL /
+  BJHUNT_AGENT_MODELS / BJHUNT_ASVS_TARGET_LEVEL` au sandbox.
+- `src/index.ts` — mount `/api/catalog` et `/api/runs/:id/messages`.
+
+**Frontend** (`bjhunt-app`, commit `a996a01` sur `main`)
+
+- Choix lib chat : **assistant-ui** (`@assistant-ui/react`, MIT,
+  ~200k DL/mois, ExternalStoreRuntime adapté à un backend SSE
+  custom) — décision après recherche web (vs Vercel AI SDK plus
+  opinionated, vs Tambo/Athena). Aucun rendu propre à recoder, on
+  branche le runtime sur nos events.
+- `lib/bjhunt-runtime.ts` — `useBjhuntRuntime({ runId, ticket })`
+  consomme `useEngagementStream` (déjà dans `hooks/`), projette les
+  12 events en `ThreadMessageLike[]` :
+  - `agent.started/thinking` accumulent par agent dans un message
+    assistant streamé (Map agentId → messageId)
+  - `agent.tool_call/result`, `agent.finding`, `agent.handoff`,
+    `evidence.captured`, `dream.diary_entry`, `error.scope_violation`,
+    `run.started/completed` deviennent des messages `system` inline
+    en chronologique
+  - `onNew` (composer submit) → `POST /api/runs/:id/messages`
+- `components/chat/{thread,composer,system-message}.tsx` —
+  primitives `ThreadPrimitive` / `MessagePrimitive` /
+  `ComposerPrimitive` stylées Tailwind/BJHUNT (bubbles user-noir,
+  assistant-blanc, system-mono inline, autoscroll, isRunning gate
+  sur le send).
+- `app/chat/[runId]/page.tsx` — chat **full-screen h-screen**, 3
+  colonnes :
+  - **Gauche (18rem)** : engagement summary + run status pill +
+    Stop button + agents actifs (status + tool count) + footer
+    "Identité injectée : BJHUNT V2.1"
+  - **Centre (1fr)** : `<AssistantRuntimeProvider>` + `<Thread/>`
+  - **Droite (22rem)** : findings (sortées par sévérité, chips
+    compliance) + dream diary + evidence (sha256 + bytes) + scope
+    violations + report refs au terminal event
+- `app/engagements/new/page.tsx` — form **complet** exposant
+  *tous* les réglages backend :
+  1. Client + dates + retention (30-2555j) + langues (FR/EN)
+  2. Scope (in_scope/out_of_scope textareas, RoE, max_rps,
+     evasion, no_destructive, allowed_hours)
+  3. Compliances multi-select groupées
+     (security/privacy/sector/meta) + ASVS level conditionnel
+  4. Modèle défaut dropdown + agents multi-select grouped par
+     catégorie (12 catégories) avec **override modèle par agent**.
+     Toggle "Utiliser les defaults" ⇄ "Personnaliser la sélection".
+  Submit → POST /api/engagements → redirect `/engagements/[id]`.
+- `app/engagements/[id]/page.tsx` — detail view + edit inline
+  (compliances, default_model, retention, langues, ASVS) + résolu
+  des agents effectifs affichés avec leur modèle effectif. Actions :
+  Modifier / Signer & activer / Démarrer un run (qui redirect
+  vers `/chat/[runId]`).
+- `lib/api.ts` — wrappers ajoutés : `listAgents`, `listCompliances`,
+  `listModels`, `sendMessage`, `Engagement` étendu avec les 4
+  nouveaux fields, `CreateEngagementBody` complet.
+- `package.json` — deps ajoutées (npm install à la prochaine
+  itération du dev/CI) : `@assistant-ui/react ^0.10`,
+  `@assistant-ui/react-markdown`, `remark-gfm`,
+  `@radix-ui/react-tooltip`, `class-variance-authority`.
+
+**Reste pour Phase 1.13.b (next)** :
+- `npm install` côté `bjhunt-app` (vérifier les versions
+  d'assistant-ui — la 0.10 est la branche stable courante)
+- Brancher la sélection d'agents/compliances **dans l'engine** :
+  `bjhunt-engine/bjhunt/docker/run-engagement.sh` doit lire
+  `BJHUNT_AGENTS_ENABLED` et filtrer le `loadAgentsDir.ts` pour ne
+  charger que ces personas + `BJHUNT_AGENT_MODELS` doit driver
+  l'agentRouting d'openclaude
+- Ajouter `GET /api/engagements/:id/runs` côté backend pour lister
+  les runs précédents dans la page detail (Phase 1.13.c)
+
 ### State final — récapitulatif
 
 5 repos posés et synchronisés :
