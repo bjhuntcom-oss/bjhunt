@@ -700,16 +700,53 @@ headers, `poweredByHeader: false`.
   `@assistant-ui/react-markdown`, `remark-gfm`,
   `@radix-ui/react-tooltip`, `class-variance-authority`.
 
-**Reste pour Phase 1.13.b (next)** :
-- `npm install` côté `bjhunt-app` (vérifier les versions
-  d'assistant-ui — la 0.10 est la branche stable courante)
-- Brancher la sélection d'agents/compliances **dans l'engine** :
-  `bjhunt-engine/bjhunt/docker/run-engagement.sh` doit lire
-  `BJHUNT_AGENTS_ENABLED` et filtrer le `loadAgentsDir.ts` pour ne
-  charger que ces personas + `BJHUNT_AGENT_MODELS` doit driver
-  l'agentRouting d'openclaude
-- Ajouter `GET /api/engagements/:id/runs` côté backend pour lister
-  les runs précédents dans la page detail (Phase 1.13.c)
+### Phase 1.13.b — wiring 1.13 + typecheck clean ✅
+
+**Backend (`bjhunt-backend`, commit `3042d64`)**
+- `GET /api/engagements/:id/runs` — historique des runs (newest
+  first, capped 50, RLS-scoped via `withTenant`).
+
+**Engine (`bjhunt-engine`, commit `2f6ffbe` sur `feat/bjhunt-v2.1-pack`)**
+- `bjhunt/docker/run-engagement.sh` — section 2.a ajoutée pour
+  appliquer la sélection d'agents et les overrides de modèles
+  poussés par le backend dans le sandbox :
+  - **`BJHUNT_AGENTS_ENABLED` (csv)** : les personas dont le
+    `name:` du frontmatter n'est pas dans la liste sont déplacés
+    vers `/root/.claude/agents-disabled/` avant le boot openclaude.
+    Le loader `loadAgentsDir` ne lit que `/root/.claude/agents/`
+    donc les disabled disparaissent du runtime.
+  - **`BJHUNT_AGENT_MODELS` (JSON map)** : python3 inline parse le
+    JSON et fait un `re.subn` sur la ligne `model:` du frontmatter
+    de chaque persona ciblé.
+  - **`BJHUNT_DEFAULT_MODEL`** : appliqué à tous les personas qui
+    n'ont pas d'override spécifique (priorité
+    `AGENT_MODELS[id] > DEFAULT_MODEL > persona default`).
+  - **`BJHUNT_ASVS_TARGET_LEVEL`** : déjà exporté par le shell,
+    lu directement par le persona `report-owasp-asvs-5.md` à
+    génération du rapport.
+
+**Frontend (`bjhunt-app`, commits `cc08719` + `2d821fa`)**
+- `lib/api.ts` : `listRuns(engagementId)` wrapper, `Run` type
+  étendu avec `createdAt`.
+- `app/engagements/[id]/page.tsx` : panel "Historique des runs"
+  sous les cards detail, chaque ligne lien vers `/chat/[runId]`,
+  affiche kind/status/outcome + timestamps.
+- `npm install` lancé : `@assistant-ui/react@0.10`, peer deps
+  installées, `package-lock.json` committé.
+- **Typecheck clean** (`npm run typecheck` exit 0) après 4
+  correctifs :
+  - `lib/api.ts` — arrow expressions reformatées (TS rejette le
+    newline avant `=>`).
+  - `lib/bjhunt-runtime.ts` — `useExternalStoreRuntime` requiert
+    `convertMessage` quand on lui feed un `ThreadMessageLike[]`
+    (identity fn ici, on produit déjà le canonical shape).
+  - `components/chat/thread.tsx` — `MessagePrimitive.If
+    hasCustomMetadata` n'existe pas dans 0.x ; remplacé par un
+    badge statique. À wirer plus tard avec `useMessage()` pour
+    des labels par-agent (couleur catalogue).
+  - `lib/auth-client.ts` — `passkeyClient` n'est plus exporté
+    par `better-auth/client/plugins` en 1.6.x ; helper retiré
+    (les endpoints serveur continuent de tourner).
 
 ### State final — récapitulatif
 
