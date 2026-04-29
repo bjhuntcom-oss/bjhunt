@@ -2,7 +2,7 @@
 
 Marketing site (Next.js 16, App Router, next-intl FR/EN) for the BJHUNT cybersecurity platform.
 
-This repo contains **only the public frontend**. The backend, agent engine, and infrastructure that previously lived here were purged on 2026-04-29 in preparation for a rebuild on a new agentic backend (OpenHands / equivalent).
+This repo contains **only the public frontend** (`bjhunt.com` marketing site + `/labs/audit` SSE consumer POC). The legacy backend (Hono+Bun) and agent engine (Decepticon Python LangGraph) were purged on 2026-04-29 and rebuilt on a fork of [openclaude](https://github.com/Gitlawb/openclaude) (Bun + TypeScript, MIT). The new SaaS lives on 4 private repos under `bjhuntcom-oss/`: `bjhunt-engine` (forked openclaude + BJHUNT V2.1 persona pack), `bjhunt-backend` (thin Hono+Bun layer for auth, RLS multi-tenancy, SSE), `bjhunt-app` (Next.js dashboard at `app.bjhunt.com`), and `bjhunt-legacy-engine` (read-only archive).
 
 ## Stack
 
