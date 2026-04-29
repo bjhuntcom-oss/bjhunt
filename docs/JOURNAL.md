@@ -243,6 +243,87 @@ Toutes les docs `docs/architecture/*.md` mises à jour pour refléter :
 
 **Note** : `drop_params: true` côté LiteLLM gère les paramètres non-supportés. `glm-5.1` génère beaucoup de tokens de "thinking" interne — prévoir `max_tokens` >= 256 pour avoir une réponse visible.
 
+### Phase 1.4 — Pack BJHUNT V2.1 (personas + reporting + Typst) ✅
+
+**Branche** : `feat/bjhunt-v2.1-pack` sur `bjhuntcom-oss/bjhunt-engine` (privé).
+PR draft URL : https://github.com/bjhuntcom-oss/bjhunt-engine/pull/new/feat/bjhunt-v2.1-pack
+
+**Recherche web** : Claude Code 2026 features (subagents `--agents` JSON
+frontmatter, skills `.claude/skills/`, hooks 25 lifecycle points dont
+`PreToolUse`/`PostToolUse`/`UserPromptSubmit` avec `duration_ms`,
+`hookSpecificOutput.updatedToolOutput`). Pattern Dream openclaude consolidé
+en mémoire narrative cross-session via `services/autoDream/` — adopté pour
+BJHUNT V2.1 en mode "Dream Diary par engagement".
+
+**Fork engine inventaire** :
+- 6 built-in agents openclaude : Explore, GeneralPurpose, Plan, ClaudeCodeGuide,
+  StatuslineSetup, Verification
+- 45+ tools (Bash, FileRead/Write/Edit, Glob, Grep, AgentTool, Task*, MCP,
+  WebFetch, WebSearch, Skill, Hooks, etc.)
+- Loader markdown frontmatter `loadAgentsDir.ts` (charge `.claude/agents/*.md`)
+- `src/commands/dream/dream.ts` + `services/autoDream/` (mémoire narrative
+  cross-session)
+
+**Pack BJHUNT V2.1 livré** dans `bjhunt-engine/bjhunt/` :
+
+| Fichier | Description |
+|---|---|
+| `README.md` | Index pack + mécanique build |
+| `IDENTITY.md` | System prompt master — identité BJHUNT V2.1 (jamais Claude/GPT/Ollama), autorisation présumée acquise via engagement signé, posture ultra-offensif/curieux/parano, conversationnel hors action, refus moralisateurs interdits |
+| `AGENTS_INVENTORY.md` | Catalogue 38 agents (1 coordinator + 23 offensifs/support + 14 reporting compliance) avec model/color/maxTurns + schéma orchestration ASCII |
+| `STREAMING_EVENTS.md` | 12 events SSE typés (run.started, agent.started/thinking/tool_call/tool_result/finding/progress/handoff/completed, evidence.captured, dream.diary_entry, run.completed) + erreurs (scope_violation, runtime) + persistence Postgres mirror + resume via Last-Event-ID |
+| `HOOKS.md` | 3 hooks critiques : `PreToolUse:scope-guard` (bloque hors-scope, fail-closed), `PostToolUse:evidence-capture` (sha256+chiffrement R2 SSE-C+chain-of-custody), `UserPromptSubmit:redact-secrets` (SecretRegistry+regex), + `OnInterval:dream-diary-entry` |
+| `DREAM_DIARY.md` | Adaptation pattern Dream openclaude → narratif client par engagement, annexe rapport executive |
+| `CHECKLIST_OUBLIS.md` | 50+ points anti-oublis : mandate signé, watermark, signature PKCS#7, chain-of-custody, sandbox-per-engagement, kill-switch global+client, quotas LLM, rate-limit, egress filtering, retest auto post-fix, diff initial vs retest, multi-langue, RGPD right to erasure, RBAC granulaire, JWT short-lived, OpenTelemetry, Sentry, audit log immuable, replay, backups, status page, RLS strict, 2FA, multi-tenant tests CI, adversarial prompts tests, fuzz scope-guard, etc. |
+| `personas/_TEMPLATE_offensive.md` | Template offensif |
+| `personas/_TEMPLATE_reporting.md` | Template reporting |
+
+**38 personas (`personas/*.md`) — frontmatter YAML compatible loader openclaude** :
+
+5 personas complets (system prompt détaillé) :
+- `coordinator` (lead red-team, orchestre tout)
+- `recon-osint` (OSINT externe : sublist3r/amass/crt.sh/leaked-creds)
+- `web-pentester` (OWASP Top 10 / ASVS, chaining, JWT, SSTI, SSRF...)
+- `ad-internal` (BloodHound, Kerberoast, ADCS ESC1-15, NTLM relay, DCSync)
+- `report-pci-dss-v4` (rapport PCI-DSS v4.0 complet avec sections détaillées)
+
+33 personas stubs fonctionnels (frontmatter complet + role + tools + playbook concis) :
+- Offensifs/support : recon-web, network-scanner, api-pentester, auth-pentester,
+  cloud-aws/gcp/azure, kubernetes-pentester, mobile-android/ios, wireless,
+  social-engineering, exploit-dev, post-exploit, password-cracker,
+  forensics-passive, vuln-researcher, evidence-collector, risk-scorer,
+  dream-keeper
+- Reporting (1 par compliance) : iso-27001-2022, soc2, nist-csf-2,
+  nist-800-53, owasp-asvs-5, owasp-top10, hipaa, gdpr, nis2, dora,
+  cis-benchmarks, mitre-attck, executive
+
+**15 templates Typst (`compliance-templates/*.typ`)** :
+- `_common.typ` : utilitaires partagés (couleurs BJHUNT, fonts Inter+JetBrains
+  Mono, severity-badge, cover-page, finding-card, compliance-matrix,
+  watermark rotated 60pt rouge alpha)
+- `pci-dss-v4.typ` : template PCI-DSS v4.0 **complet** (cover, ToC, exec
+  summary auto-généré depuis findings.json, methodology 12 reqs, scope, CDE,
+  matrice conformité, findings par sévérité, TRA items, remediation roadmap
+  J+30/Q+1/1an, evidence index, glossaire, attestation)
+- 13 templates compliance scaffolded : iso-27001-2022, soc2, nist-csf-2,
+  nist-800-53r5, owasp-asvs-5, owasp-top10-2024, hipaa, gdpr, nis2, dora,
+  cis-benchmarks, mitre-attck, executive-summary
+- `diary-annex.typ` : template littéraire pour le Dream Diary (layout
+  aéré, justification, indent first-line, fonts plus chaleureuses)
+
+**Choix techniques** :
+- **Pas de wrappers TS pour nmap/nuclei/sqlmap** — tout passe par `Bash`
+  dans la sandbox E2B Kali (Firecracker per-engagement). Le toolkit Kali
+  natif suffit + simplifie maintenance.
+- **Format markdown frontmatter YAML** (pas JSON inline) — chargé par
+  `loadAgentsDir.ts` natif d'openclaude.
+- **Identité hardcodée dans IDENTITY.md** + à injecter en tête du system
+  prompt par modification ciblée de `src/constants/prompts.ts` (Phase 1.5).
+- **Rendu PDF via Typst** vs LaTeX/WeasyPrint — choisi pour : déterminisme,
+  syntaxe simple, rendu pixel-perfect, pas de dépendances LaTeX.
+- **PKCS#7 detached signature + RFC 3161 timestamp** sur tous les PDF via
+  `bjhunt/scripts/sign-pdf.sh` (à coder Phase 1.5).
+
 ### Stack opérationnelle sur VPS
 - ✅ Coolify v4 (orchestrator) — `http://82.25.117.79:8000`
 - ✅ Postgres 17 + pgvector 0.8.2 (port `127.0.0.1:5432`)
@@ -250,10 +331,13 @@ Toutes les docs `docs/architecture/*.md` mises à jour pour refléter :
 - ✅ LiteLLM 1.82.3 (port `127.0.0.1:4000`, db+cache OK, 4 modèles Ollama Cloud)
 
 ### Prochaines étapes
-- [ ] Wireguard mesh Fly.io ↔ Hostinger (quand Fly.io app existera)
-- [ ] Caddy/TLS ou Cloudflare Tunnel devant Coolify (sécuriser port 8000)
-- [ ] Modifier prompts système openclaude pour cybersec offensive
-- [ ] Adapter tools : retirer git/npm, ajouter wrappers nmap/nuclei/sqlmap (E2B SDK)
-- [ ] Stub backend Hono+Bun : `/api/health`, `/api/chat/prepare`, `/api/chat/stream/:runId`
-- [ ] Image sandbox Kali : Dockerfile `bjhunt-kali`
-- [ ] Frontend POC chat UI : EventSource + render des 12 SSE events
+- [x] ~~Modifier prompts système openclaude pour cybersec offensive~~ → pack `bjhunt/IDENTITY.md` livré sur `feat/bjhunt-v2.1-pack`
+- [x] ~~Adapter tools : ajouter wrappers cybersec~~ → décision : Bash + sandbox Kali E2B suffit (pas de wrappers TS)
+- [ ] **Phase 1.5** Modifier `src/constants/prompts.ts` du fork pour injecter `IDENTITY.md` en tête du system prompt master + tests anti-leak (jamais "I'm Claude")
+- [ ] **Phase 1.5** Implémenter les 3 hooks critiques (`scope-guard.cjs`, `evidence-capture.cjs`, `redact-secrets.cjs`) + script `sign-pdf.sh` PKCS#7
+- [ ] **Phase 1.6** Wireguard mesh Fly.io ↔ Hostinger
+- [ ] **Phase 1.7** Caddy/TLS ou Cloudflare Tunnel devant Coolify (sécuriser port 8000)
+- [ ] **Phase 1.8** Stub backend Hono+Bun : `/api/health`, `/api/chat/prepare`, `/api/chat/stream/:runId` + auth BetterAuth + Postgres RLS FORCE multi-tenant
+- [ ] **Phase 1.9** Image sandbox Kali : Dockerfile `bjhunt-kali` + intégration E2B Pro per-engagement
+- [ ] **Phase 1.10** Frontend POC chat UI : EventSource + render des 12 SSE events
+- [ ] **Phase 1.11** Test end-to-end : engagement minimal sur Juice Shop / DVWA / DVNA dans sandbox → findings → rapport PCI-DSS PDF signé
