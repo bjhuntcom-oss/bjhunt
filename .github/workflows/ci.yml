@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -11,10 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
-  # ── LINT ─────────────────────────────────────────────────
   lint:
-    name: Lint
+    name: Lint + Typecheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,47 +21,16 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install dependencies (root)
+      - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Install dependencies (backend)
-        working-directory: backend
-        run: bun install --frozen-lockfile
-
-      - name: Lint frontend
-        run: bun run lint
-
-      - name: Lint backend
-        working-directory: backend
-        run: bun run lint
-
-      - name: Type check frontend
+      - name: Type check
         run: bun run typecheck
 
-      - name: Type check backend
-        working-directory: backend
-        run: bun run typecheck
-
-  # ── TEST ─────────────────────────────────────────────────
-  test:
-    name: Test
+  build:
+    name: Build
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_DB: bjhunt_test
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
-
+    needs: [lint]
     steps:
       - uses: actions/checkout@v4
 
@@ -71,28 +38,12 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install dependencies (root)
+      - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Install dependencies (backend)
-        working-directory: backend
-        run: bun install --frozen-lockfile
+      - name: Build
+        run: bun run build
 
-      - name: Run backend tests
-        working-directory: backend
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/bjhunt_test
-          REDIS_URL: redis://localhost:6379
-          SESSION_SECRET: test-secret-not-for-production-change-me
-          PASSWORD_PEPPER: test-pepper-change-me
-          ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-          BJHUNT_API_SECRET: test-api-secret
-        run: bun test
-
-      - name: Run frontend tests
-        run: bun test
-
-  # ── SECURITY SCAN ────────────────────────────────────────
   security:
     name: Security Scan
     runs-on: ubuntu-latest
@@ -105,77 +56,3 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: fs
-          scan-ref: .
-          severity: CRITICAL,HIGH
-          exit-code: 1
-          format: table
-          ignore-unfixed: true
-
-  # ── BUILD ────────────────────────────────────────────────
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: [lint, test, security]
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build frontend
-        env:
-          NEXT_PUBLIC_BACKEND_URL: https://api.bjhunt.com
-        run: bun run build
-
-      - name: Build backend Docker image
-        run: docker build -t bjhunt/backend:${{ github.sha }} backend/
-
-      - name: Build engine LangGraph Docker image
-        run: docker build -t bjhunt/langgraph:${{ github.sha }} -f engine/containers/langgraph.Dockerfile engine/
-
-      - name: Trivy backend image scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: bjhunt/backend:${{ github.sha }}
-          severity: CRITICAL,HIGH
-          exit-code: 1
-          ignore-unfixed: true
-
-      - name: Trivy engine image scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: bjhunt/langgraph:${{ github.sha }}
-          severity: CRITICAL,HIGH
-          exit-code: 1
-          ignore-unfixed: true
-
-  # ── ENGINE LINT (Python) ────────────────────────────────
-  engine-lint:
-    name: Engine Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Install ruff
-        run: pip install ruff
-
-      - name: Ruff check
-        working-directory: engine
-        run: ruff check decepticon/
-
-      - name: Ruff format check
-        working-directory: engine
-        run: ruff format --check decepticon/

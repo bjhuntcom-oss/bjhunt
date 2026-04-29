@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/admin/', '/dashboard/', '/_next/'],
+        disallow: ['/api/', '/_next/'],
       },
     ],
     sitemap: 'https://www.bjhunt.com/sitemap.xml',

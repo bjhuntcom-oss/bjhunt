@@ -1,10 +1,4 @@
 // app/[locale]/_components/pricing-teaser.tsx
-//
-// BJHUNT 2026 refonte — 3 plan cards in `gap-px` hairline grid,
-// featured Pro plan distinguished by `border-2 var(--state-success)` (NOT
-// a tinted background), price mono 36px, plan badge → StatusDot.
-//
-// Source of truth: backend/src/plans.ts. Keep in sync with /pricing.
 
 "use client";
 

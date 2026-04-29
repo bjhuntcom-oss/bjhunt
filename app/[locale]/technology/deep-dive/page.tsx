@@ -585,7 +585,7 @@ function CTASection() {
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button asChild variant="ghost" size="md">
-            <Link href="/login">Commencer gratuitement</Link>
+            <Link href="/beta">Rejoindre la beta</Link>
           </Button>
           <Button asChild variant="ghost" size="md">
             <Link href="/contact">Contacter l&apos;equipe →</Link>

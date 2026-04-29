@@ -1,9 +1,0 @@
-{
-  "name": "@bjhunt/engine",
-  "private": true,
-  "workspaces": ["clients/cli"],
-  "scripts": {
-    "cli": "npm run start --workspace=@bjhunt/cli",
-    "cli:dev": "npm run dev --workspace=@bjhunt/cli"
-  }
-}

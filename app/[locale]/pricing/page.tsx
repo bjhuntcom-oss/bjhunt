@@ -129,7 +129,7 @@ interface Plan {
   sub: string;
   features: string[];
   cta: string;
-  href: "/login" | "/contact" | "/beta";
+  href: "/beta" | "/contact" | "/beta";
   featured: boolean;
 }
 
@@ -149,7 +149,7 @@ const PLANS: Plan[] = [
       "Support communautaire",
     ],
     cta: "Essai gratuit",
-    href: "/login",
+    href: "/beta",
     featured: false,
   },
   {
