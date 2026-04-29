@@ -1,8 +1,8 @@
-# BJHUNT — multi-repo (état 2026-04-29 — Phase 1.13 livrée)
+# BJHUNT — multi-repo (état 2026-04-29 — Phase 1.13.d livrée)
 
-Ce repo (`bjhuntcom-oss/bjhunt`, public) est le **frontend marketing** + un POC `/labs/audit` de consommation SSE. Le projet BJHUNT V2.1 vit en réalité sur **5 repos GitHub** working ensemble.
+Ce repo (`bjhuntcom-oss/bjhunt`, public) est le **frontend marketing** + un POC `/labs/audit` de consommation SSE. Le projet BJHUNT V2.1 vit en réalité sur **6 repos GitHub** working ensemble.
 
-## 5 repos — vue d'ensemble
+## 6 repos — vue d'ensemble
 
 | Repo | Visibilité | Working copy | Rôle |
 |---|---|---|---|
@@ -11,6 +11,7 @@ Ce repo (`bjhuntcom-oss/bjhunt`, public) est le **frontend marketing** + un POC 
 | `bjhuntcom-oss/bjhunt-engine` | privé | `D:\bjhunt-engine\` | **Fork openclaude** (Gitlawb/openclaude, MIT, TS/Bun) + pack BJHUNT V2.1 sur branche `feat/bjhunt-v2.1-pack` (PR #1 draft) |
 | `bjhuntcom-oss/bjhunt-backend` | privé | `D:\bjhunt-backend\` | Thin SaaS layer Hono+Bun (auth, RLS, SSE, sandbox spawn, catalogues) |
 | `bjhuntcom-oss/bjhunt-app` | privé | `D:\bjhunt-app\` | Dashboard `app.bjhunt.com` (Next.js 16, BetterAuth client, assistant-ui chat) |
+| `bjhuntcom-oss/bjhunt-assistant-ui` | privé | `D:\bjhunt-assistant-ui\` | **Fork assistant-ui** (assistant-ui/assistant-ui, MIT) sur branche `feat/bjhunt-pack` ancrée `@assistant-ui/react@0.10.50`. Insurance + bench de patches ; bjhunt-app reste sur npm pinned |
 
 ## État après Phase 1.13 (2026-04-29)
 
@@ -35,6 +36,7 @@ Phases livrées le **2026-04-29** (1 journée intensive) :
   - Frontend : **assistant-ui** (`@assistant-ui/react`) avec `ExternalStoreRuntime` mappant les 12 SSE events en `ThreadMessageLike[]`, page chat plein écran 3 colonnes, formulaire complet exposant **tous** les réglages backend (scope, compliances groupées, agents multi-select × 12 catégories avec override modèle par agent, ASVS conditionnel).
 - **1.13.b** — wiring engine BJHUNT_AGENTS_ENABLED / BJHUNT_AGENT_MODELS dans `run-engagement.sh`, GitHub Actions CI sur 3 repos (typecheck + build + tests + gitleaks), egress filtering iptables dans bjhunt-kali.
 - **1.13.c** — **chat-only end-to-end** : tables `engagements` + `runs` collapsed en une seule table `chats` (migration 0004 DROP CASCADE + CREATE), routes consolidées en `/api/chats` (1 POST = insert + sign + spawn + bridge), routes `/engagements/*` + `/chat/[runId]` supprimées côté frontend (URL canonique `/chats/[chatId]`).
+- **1.13.d** — **Fork privé `bjhunt-assistant-ui`** : bare-clone + mirror push d'`assistant-ui/assistant-ui` (MIT) → `bjhuntcom-oss/bjhunt-assistant-ui` privé. Branche `feat/bjhunt-pack` ancrée sur tag `@assistant-ui/react@0.10.50`. Doc `BJHUNT-PACK.md` (purpose, sync workflow, future GH Packages publish). bjhunt-app pinné exact `0.10.50` + `0.10.9` (sans `^`). Le fork = supply-chain insurance + bench de patches ; consommé comme dep seulement quand on patche.
 
 ## Stack frontend de **ce repo** (`bjhunt-v2`)
 
@@ -57,7 +59,7 @@ Phases livrées le **2026-04-29** (1 journée intensive) :
 
 ## GitHub
 
-- 5 repos `bjhuntcom-oss/*` (cf. tableau plus haut). Tous sur branche `main` directe sauf `bjhunt-engine` qui a `feat/bjhunt-v2.1-pack` (PR #1 draft).
+- 6 repos `bjhuntcom-oss/*` (cf. tableau plus haut). Tous sur branche `main` directe sauf `bjhunt-engine` (`feat/bjhunt-v2.1-pack`, PR #1 draft) et `bjhunt-assistant-ui` (`feat/bjhunt-pack` ancré sur tag upstream `@assistant-ui/react@0.10.50`).
 - Workflows : `bjhunt` (`ci.yml` lint+build+gitleaks frontend) ; `bjhunt-backend`/`bjhunt-app`/`bjhunt-engine` à wirer Phase 2.
 - gh CLI authentifiée (`bjhuntcom-oss`)
 

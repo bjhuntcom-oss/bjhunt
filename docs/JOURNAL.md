@@ -793,9 +793,51 @@ exit 0 sur frontend ; CI valide le backend).
     par `better-auth/client/plugins` en 1.6.x ; helper retiré
     (les endpoints serveur continuent de tourner).
 
+### Phase 1.13.d — Fork privé `bjhunt-assistant-ui` ✅
+
+**Pourquoi** : le user a explicitement demandé un fork pour robustesse du chat
+(« il faut le fork, ça a trop de truc utile, notre chat doit être robuste »).
+Même pattern qu'`openclaude` → `bjhunt-engine` : on owne le source pour pouvoir
+patcher les internes (runtime, primitives, types) sans dépendre d'upstream
+ni risquer une breaking change pendant un deploy.
+
+**Procédure** (parce que `gh repo fork` crée du public, pas utilisable pour
+nous) :
+1. `git clone --bare https://github.com/assistant-ui/assistant-ui.git
+   assistant-ui.bare` (35+ packages, 1 GB, ~2 min)
+2. `gh repo create bjhuntcom-oss/bjhunt-assistant-ui --private` (description
+   pointant l'upstream)
+3. `cd assistant-ui.bare && git push --mirror
+   https://github.com/bjhuntcom-oss/bjhunt-assistant-ui.git` (toutes branches +
+   tous tags)
+4. Working copy normale : `cd /d && git clone
+   https://github.com/bjhuntcom-oss/bjhunt-assistant-ui.git
+   bjhunt-assistant-ui` → `D:\bjhunt-assistant-ui\`
+5. `git remote add upstream https://github.com/assistant-ui/assistant-ui.git`
+6. Ancrage : `git checkout '@assistant-ui/react@0.10.50'` (la version exacte
+   que `bjhunt-app/node_modules` a installée), puis `git checkout -B
+   feat/bjhunt-pack` à HEAD ce tag, push.
+7. `BJHUNT-PACK.md` documente : purpose, branch model, sync workflow,
+   future GH Packages publish, license preservation MIT.
+8. `bjhunt-app/package.json` : `^0.10.0` → exact `0.10.50` (et
+   react-markdown : `^0.10.0` → `0.10.9`, qui est la version installée).
+   `npm install` regénère lockfile, `tsc --noEmit` clean.
+
+**État final** :
+- Repo `bjhuntcom-oss/bjhunt-assistant-ui` privé, `feat/bjhunt-pack` poussé
+  (commits `47a1af9a3` doc fork + `c0c741b74` pin react-markdown 0.10.9).
+- bjhunt-app pinné exact, lockfile rafraîchi, typecheck OK.
+- Le fork **n'est pas encore consommé comme dep** — on reste sur npm public
+  tant qu'on n'a pas de patch à apporter. Quand le 1er patch landera : bump
+  `0.10.50` → `0.10.50-bjhunt.1`, publish via `pnpm publish` à GitHub
+  Packages registry `@bjhuntcom-oss/assistant-ui-react`, swap dep dans
+  `bjhunt-app`.
+
+**Cap repos** : 5 → 6.
+
 ### State final — récapitulatif
 
-5 repos posés et synchronisés :
+6 repos posés et synchronisés :
 | Repo | Visibilité | Working copy | Rôle |
 |---|---|---|---|
 | `bjhuntcom-oss/bjhunt` | public | `D:\bjhunt-v2\` | Marketing + labs/audit POC |
@@ -803,6 +845,7 @@ exit 0 sur frontend ; CI valide le backend).
 | `bjhuntcom-oss/bjhunt-engine` | privé | `D:\bjhunt-engine\` | Fork openclaude + pack BJHUNT V2.1 |
 | `bjhuntcom-oss/bjhunt-backend` | privé | `D:\bjhunt-backend\` | Hono+Bun thin SaaS layer |
 | `bjhuntcom-oss/bjhunt-app` | privé | `D:\bjhunt-app\` | Dashboard `app.bjhunt.com` |
+| `bjhuntcom-oss/bjhunt-assistant-ui` | privé | `D:\bjhunt-assistant-ui\` | Fork assistant-ui — insurance + bench de patches |
 
 ### Reste à faire (Phase 2 — déploiement réel)
 
