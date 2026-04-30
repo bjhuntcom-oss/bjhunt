@@ -1264,6 +1264,304 @@ indicators), même grille couleur (3 niveaux noir + 3 niveaux texte +
 **Reste** : configurer `E2B_API_KEY` côté VPS, puis 1 test E2E live chat
 pour visuel `/chats/[chatId]`.
 
+### Phase 2.6 — Chat workspace = pure assistant-ui Shadcn (refonte UX) ✅
+
+**Symptôme** : la première itération de `bjhunt-app/components/chat/` était
+3 wrappers Tailwind manuels autour des `*Primitive` (composer cassé, pas
+de markdown, pas d'edit composer, pas de branch picker, pas d'action bar).
+Le user a explosé : « c'est quoi ce chat de merde ce n'est pas ce qu'on
+doit fork et modifier… c'est assistant ui qui doit être cloné et modifié ».
+
+Plus : la page `/chats/[id]` portait des panels custom Findings / Dream
+Diary / Evidence / Agents en flanc droit, alors que la cible voulue
+(« comme assistant-ui.com Shadcn ») = sidebar history + Thread plein
+largeur, rien d'autre.
+
+**Plan exécuté en 4 vagues**.
+
+#### 1. Suppression du wizard `/chats/new` (commit `29a4939` `8d2a005`)
+- Page `/chats/new` supprimée du routeur.
+- Page `/chats` devient un thin client redirect : `api.listChats()` →
+  redirige vers `/chats/[mostRecent.id]` ; si vide → `api.createChat({})`
+  → redirige vers le nouveau id.
+- Backend : `POST /api/chats` accepte un body vide (`Zod .default({})` sur
+  toutes les sous-clés). Defaults : client `'Nouveau chat'`, scope.in_scope
+  `[]`, no_destructive `true`, retention 365 j, langue `['fr']`,
+  default_model `glm-5.1`, agents `[]`. Le coordinator collecte le scope
+  via NL ensuite.
+- Backend : `PATCH /api/chats/:id` posé pour update partiel scope /
+  compliances / agents / model / asvs_target_level — body `Zod .partial()`,
+  `withTenant`, audit_log `chat.patched`, et tentative best-effort de
+  live-reload via `engine-bridge.sendSettingsUpdate()` (TODO côté event-relay
+  pour que le coordinator pick up le nouveau engagement.json sans restart).
+- Page `/chats/[chatId]` : 3 colonnes initiales (sidebar history + Thread +
+  panel Findings/Dream/Evidence/Agents) et SettingsDrawer + OnboardingOverlay
+  ajoutés. Plus tard épurée (vague 4).
+
+#### 2. Bascule sur la registry Shadcn assistant-ui (commit `c6e3c6e`)
+- Le fork `bjhunt-assistant-ui` est anchoré au tag `@assistant-ui/react@0.10.50`,
+  alors que les composants registry (variante Shadcn polished) vivent sur
+  `main` à 0.12.x. Bumped le pin npm de `bjhunt-app` :
+  `@assistant-ui/react ^0.10.50` → `^0.12.27`, idem markdown package.
+- Pulled depuis `D:\bjhunt-assistant-ui\apps\registry\components\assistant-ui\` :
+  `thread.tsx` (373L), `markdown-text.tsx` (132L), `tool-fallback.tsx`,
+  `tooltip-icon-button.tsx`, `attachment.tsx` (stubbed, pas d'uploads V2.1),
+  `thread-list.tsx`, `shiki-highlighter.tsx`. Les classes `aui-*` du registry
+  sont résolues par les CSS Tailwind `@apply` du package `styles` →
+  4 fichiers copiés sous `D:\bjhunt-app\styles\aui\` : `base-components.css`,
+  `thread.css`, `modal.css`, `markdown.css`, importés en tête de
+  `app/globals.css`.
+- Tokens shadcn → BJHUNT brand : `globals.css` réécrit avec OKLCH, `:root,
+  .dark` mappent `--background #050507` (canvas), `--card #101010` (surfaces,
+  bulles user, sidebar items), `--popover/--muted #16161a` (composer, code
+  blocks, drawer), `--primary #f2f2f2` (CTA inverse), `--border #3d3a39`
+  (warm charcoal), `--ring #00d992` (state-success focus), `--destructive
+  #fb565b`. Mode dark hard-codé via `<html className="dark">` (no light).
+- Customizations BJHUNT : welcome motion staggered « BJHUNT V2.1 » + « Décris
+  l'audit en langage naturel. », 2 suggestions FR (Audit web app.acme.com
+  pour OWASP+PCI / Recon non-destructive 10.0.0.0/16), placeholder composer
+  FR avec hint trigger chars.
+- Deps installées : `motion` (framer-motion alt), `react-shiki`, `mermaid`,
+  `react-syntax-highlighter`, `@assistant-ui/react-syntax-highlighter`,
+  `zustand`, `@radix-ui/react-slot`, `tailwind-merge`, `tw-animate-css`.
+
+#### 3. Strip des panels — pure Shadcn workspace (commit `29a4939`)
+Le user : « la page chat doit être exactement ça [assistant-ui.com Shadcn]
+juste modif pour correspondre aux styles et couleurs de bjhunt, c'est moche
+ce qui est là avec machin evidence là, pas besoin de ça ».
+
+- `app/chats/[chatId]/page.tsx` réécrit (357L → 191L). Layout 2-col
+  `[16rem_1fr]` :
+  - **Gauche** : sidebar history (BJHUNT V2.1 logo tile + modèle en label,
+    bouton `+ Nouveau chat`, liste de chats avec actif highlighted +
+    pulse vert, footer Paramètres ⚙ + Déconnexion ↪). Tokens
+    `bg-sidebar` / `text-sidebar-foreground` / `bg-sidebar-accent` /
+    `border-sidebar-border` mappés sur la palette brand.
+  - **Centre** : `<Thread />` plein-bleed, rien autour. Pas de header bar,
+    pas de status pill, pas de Stop button (Stop reste accessible via
+    `/stop` slash command).
+- Findings / Dream / Evidence / Agents / Scope violations **continuent
+  d'arriver** depuis le runtime SSE — `lib/bjhunt-runtime.ts` les map
+  toujours en `role:'system'` sur `ThreadMessageLike[]`. Le Thread les
+  rend inline dans le fil via le composant `SystemMessage` ajouté à la
+  registry Thread. Aucun signal perdu, juste plus de panel permanent.
+- Onboarding overlay réduit à 3 étapes (history / composer / settings) ;
+  step `findings` supprimée.
+
+#### 4. Slash commands `/` + mentions `@` (commits `bf71741`, `57aa1b2`)
+
+Recherche en parallèle (3 agents forks) :
+- **Web + docs assistant-ui** : la primitive cible est
+  `ComposerPrimitive.Unstable_TriggerPopover` (livrée 0.12.24+) avec
+  hooks `unstable_useSlashCommandAdapter` + `unstable_useMentionAdapter`.
+  Variante `.Action` (slash, fires callback + chip d'audit) et
+  `.Directive` (mentions, insère un chip directive dans le composer).
+  Pulled `composer-trigger-popover.tsx` (200L) depuis upstream main du
+  repo.
+- **Audit openclaude** (`D:\bjhunt-engine\src\commands.ts:267`) : 80+
+  commandes 3 types (`local` text-return, `local-jsx` modale React,
+  `prompt` template). Sous-set engine-text user-invocable (~25), modaux
+  `local-jsx` (`/model`, `/agents`, `/permissions`, `/config`) qui doivent
+  être routés vers REST côté SaaS car invisibles au runtime SDK. Aucun
+  ajout de slash command par le pack BJHUNT — tout vient de upstream.
+
+Exécution :
+- **Backend `bjhunt-backend`** :
+  - `src/catalog/commands.ts` (NEW) — array `COMMANDS` 16 entrées sur
+    6 catégories (session / model / audit / reporting / engagement / help),
+    chacune avec `dispatch` typé : `{kind:'engine-text'}` (relayé en
+    plain text via `POST /api/chats/:id/messages`) / `{kind:'rest',
+    method:'PATCH'|'POST', path}` / `{kind:'ui', action:'open-settings'|...}`.
+  - `GET /api/catalog/commands` — sert la liste pour le frontend.
+  - `POST /api/chats/:id/commands` — handler dispatch pour les `rest` :
+    `stop`, `model`, `agents`, `compliance`, `report` (placeholder 501).
+    `withTenant` + audit_log `command.invoked` + best-effort
+    `sendSettingsUpdate` pour live-reload sandbox. Commit `bf71741`.
+- **Frontend `bjhunt-app`** :
+  - `composer-trigger-popover.tsx` posé.
+  - `lib/api.ts` étendu : `CommandMeta`, `ChatLite`, `CommandCategory`,
+    `CommandDispatch`, `api.listCommands()`, `api.invokeCommand(chatId, id, args?)`.
+  - `Thread` accepte maintenant des props `{chatId, commands?, agents?,
+    compliances?, recentChats?}`. Construit deux adapters :
+    `unstable_useSlashCommandAdapter` (mappe chaque CommandMeta vers un
+    `Unstable_SlashCommand` avec `execute()` qui switch sur `dispatch.kind` :
+    `engine-text` → no-op (chip de directive `:command[/foo]{...}` inseré,
+    submit naturel), `ui` → `window.dispatchEvent(new CustomEvent(\`bjhunt:${action}\`))`,
+    `rest` → `api.invokeCommand`) ; `unstable_useMentionAdapter` (3
+    catégories drill-down : Agents, Compliances, Chats récents — items
+    typés `agent:` / `compliance:` / `thread:`).
+  - `<ComposerPrimitive.Unstable_TriggerPopoverRoot>` enveloppe le
+    composer ; deux `<Unstable_TriggerPopover char="/">` (Action) +
+    `<Unstable_TriggerPopover char="@">` (Directive) attachées.
+  - Page `/chats/[chatId]` fetch `Promise.all([listCommands, listAgents,
+    listCompliances])` et passe en props ; écoute
+    `window.addEventListener('bjhunt:open-settings')` pour ouvrir le
+    drawer existant. Commit `57aa1b2`.
+
+**Vérifié Playwright en prod** :
+- `/` palette ouverte au-dessus du composer, items visibles : `Review`
+  (engine), `Security review`, `Dream Diary`, `Knowledge graph`,
+  `Générer le rapport` (placeholder), `Aide` — chacun avec icône, label,
+  description FR.
+- `@` palette : 2 catégories drill-down `Agents` (38 personas BJHUNT —
+  Report-RGPD/GDPR, Report-NIS2, Report-DORA, Report-CIS, Report-MITRE,
+  Report-Executive Summary, etc.) + `Compliances`. Empty state propre
+  si filtre ne matche pas.
+- UserMessage en pill arrondi `bg-muted` aligned-right + ActionBar
+  PencilIcon Edit hover, AssistantMessage avec ActionBar copy/refresh +
+  BranchPicker. Welcome motion staggered.
+
+**Mémoire** : memory `feedback_assistant_ui_reference.md` posée pour
+encoder la règle « pour le chat de bjhunt-app, **toujours** copier
+depuis la registry du fork bjhunt-assistant-ui, jamais réécrire des
+wrappers manuels autour des Primitives ».
+
+### Phase 2.7 — Audit fixes P0/P1/P2 + VPS hardening ✅
+
+**Trigger** : audit complet 6-repos a remonté un backend `unhealthy` en
+prod (healthcheck 503 constant), un RLS bypass dans `sse.ts`, des `.env`
+désynchronisés, un `fly.toml` orphelin, des CSS tokens manquants, et un
+Coolify management UI exposé sur `0.0.0.0:8000` public.
+
+#### P0 — backend healthcheck `unhealthy` (commits `b80f37e`, `3243356`)
+**Cause** : `redis.ping()` mettait 1.5 s à répondre alors que `redis-cli
+ping` direct = 0 ms. `lib/sse.ts:streamEventsToResponse` utilisait le
+singleton `redis` partagé pour `XREAD COUNT 50 BLOCK 15000` — qui
+monopolise la connexion pendant 15 s. Tous les autres usages (le ping
+de health, les XADD du writeEvent) queuaient derrière. Quand un SSE
+stream tournait, le ping queuait jusqu'à ce que XREAD débloque ou hit
+le timeout de 700 ms du healthcheck.
+
+**Fix** : `redis.duplicate()` créé pour le `XREAD` bloquant — partage
+auth/host/db config sans partager le pipeline de commandes. `disconnect()`
+proprement dans le `finally` de la pump.
+
+**Bonus** : timeout du healthcheck 700 ms → 1500 ms (Docker
+HEALTHCHECK timeout total = 5 s, large marge), le 700 ms était
+cliniquement aggressif.
+
+Vérifié post-deploy : 5 ms / 200 OK constant, `redis: ok`, container
+`Up X minutes (healthy)`.
+
+#### P0 — RLS bypass `stream_events` SELECT (commit `b80f37e`)
+**Cause** : `sse.ts:119-126` utilisait `sql\`SELECT ulid, event_type, payload
+FROM stream_events WHERE chat_id = ${chatId} AND ulid > ${lastEventId}\``
+sur le client postgres-js raw, **hors `withTenant()`**. Sous le rôle
+non-superuser `bjhunt_app` (qui force RLS), cette requête retourne 0 row
+parce que `app.org_id` n'est jamais set — et donc le replay
+`Last-Event-ID` ne trouve jamais rien.
+
+**Fix** : ré-écrit en Drizzle query builder (`tx.select().from(streamEvents).
+where(and(eq(chatId), gt(ulid))).orderBy(asc).limit(5000)`) wrapped dans
+`withTenant(orgId, userId, tx => ...)`. Signature
+`streamEventsToResponse` requiert maintenant `userId` ; le caller
+`routes/chat-stream.ts` passe `claims.user_id` (le ticket le porte déjà).
+
+#### P1 — `.env.example` sync + `BJHUNT_SECRET_MASTER_KEY` découplé
+- `.env.example` complètement réécrit pour matcher `env.ts` exactement :
+  ajout de `POSTGRES_URL_ADMIN`, `BJHUNT_SECRET_MASTER_KEY`,
+  `BJHUNT_E2B_MODE` / `_DOCKER_IMAGE` / `_DOCKER_NETWORK`,
+  `E2B_TEMPLATE_BJHUNT_KALI`, `SENTRY_DSN_BACKEND`, `GIT_SHA`. Documentation
+  inline pour chaque section.
+- `env.ts` : `BJHUNT_SECRET_MASTER_KEY` ajouté au schema (optional,
+  `min(32)`) ; `lib/secrets.ts` lit `env.BJHUNT_SECRET_MASTER_KEY ??
+  env.BETTERAUTH_SECRET` (au lieu de `process.env.BJHUNT_SECRET_MASTER_KEY
+  ?? env.BETTERAUTH_SECRET` qui contournait le schema). Découplage du
+  HKDF input vs auth secret en prod.
+
+#### P1 — `mock-relay.ts` posé (commit `b80f37e`)
+`sandbox.ts:spawnMock` retournait `engineEndpoint =
+http://127.0.0.1:8080/__mock_relay/<chatId>` mais le route n'était jamais
+montée. Mode `BJHUNT_E2B_MODE=mock` cassé pour les smoke tests.
+
+`src/lib/mock-relay.ts` (NEW) : route Hono qui satisfait le contrat de
+bridge (long-poll `GET /events?since=` + `POST /control`). Émet un
+script de 5 events (`run.started → agent.started → agent.thinking →
+agent.completed → run.completed`) à chaque chat et acknowledge les
+`inject_message` avec un agent.thinking synthétique. Conditionnellement
+montée dans `index.ts` : `if (env.BJHUNT_E2B_MODE === 'mock')
+app.route('/__mock_relay', mockRelayRoute)`.
+
+#### P1 — README backend resync Phase 2.7 (commit `f8e9b40`)
+Le README décrivait Phase 1.8 stub : 7 routes, deploy Fly.io, fichiers
+absents (`engagements.ts`, `findings.ts`, `reports.ts`, `admin.ts`,
+`rate-limit.ts`) listés comme présents. Réécrit pour la structure réelle
+(routes Phase 2.7 — `chats.ts` consolidé + `catalog.ts` étendu commands +
+`mock-relay.ts`), pattern `withTenant`, deploy VPS via CI, ioredis
+duplicate pour XREAD, SSE event types pointant vers engine main (PR #1
+maintenant mergée).
+
+#### P1 — CSS tokens marketing (commit `0f1c9cd` `bjhunt`)
+`app/globals.css` référençait `--bjhunt-text-inverted` (selection color)
+et `--bjhunt-text-secondary` (.chat-prose em) jamais définis dans
+`design-tokens.css`. Ajout :
+```
+--bjhunt-text-secondary: #B8B3B0;
+--bjhunt-text-inverted:  #07070B;
+```
+
+#### P2 — Engine PR #1 mergée
+`feat/bjhunt-v2.1-pack` → `main` sur `bjhunt-engine`. 38 personas + pack
+BJHUNT V2.1 + 14 templates Typst + 3 hooks .cjs + IDENTITY.md + Phase
+2.7 NL settings parsing (helper `update-chat-settings.sh` côté coordinator)
+maintenant sur `main`.
+
+#### P2 — `fly.toml` supprimé
+Phase 2.0 a pivoté de Fly.io → VPS docker-compose. Le `fly.toml` traînait
+dans le repo backend et faisait croire que Fly était une cible.
+
+#### P2 — VPS hardening (UFW + iptables-persistent + DOCKER-USER)
+- `apt install ufw iptables-persistent`
+- UFW : `default deny incoming`, `allow 22/tcp` (ssh), `allow 80/tcp`,
+  `allow 443/tcp`, `allow 51820/udp` (wireguard), `--force enable`.
+- Coolify management UI était sur `docker-proxy` listening
+  `0.0.0.0:8000`. Tentative de rebind `127.0.0.1:8000:8080` via
+  `APP_PORT` env → format invalide pour la string `${APP_PORT:-8000}:8080`
+  du compose Coolify. Reverted, fait via DOCKER-USER iptables :
+  - `iptables -I DOCKER-USER -d 172.16.1.5/32 -p tcp --dport 8080 -j DROP`
+  - `iptables -I DOCKER-USER -d 172.16.1.5/32 -p tcp --dport 8080 -s
+    127.0.0.0/8 -j ACCEPT`
+  - `iptables -I DOCKER-USER -d 172.16.1.5/32 -p tcp --dport 8080 -s
+    10.7.0.0/24 -j ACCEPT` (wireguard mesh)
+  
+  Ordre final ACCEPT 127.x → ACCEPT 10.7.x → DROP catch-all. Note :
+  filtré sur la **destination IP du container** parce que la DNAT en nat
+  table réécrit le port externe `8000 → 8080` avant que le packet
+  atteigne la chain FORWARD/DOCKER-USER.
+  
+  `netfilter-persistent save` pour persistance reboot.
+  
+  Vérifié : `curl http://82.25.117.79:8000` externe → timeout. `curl
+  http://127.0.0.1:8000` sur VPS → 302 (Coolify redirect login). Wireguard
+  peers → accès depuis `10.7.0.x` OK.
+- `.env` VPS perms : déjà `-rw------- root:root` (chmod 600), pas besoin
+  de toucher.
+
+#### P2 — `bun.lockb` backend (commit `71a4131`)
+Pas de lockfile commité dans `bjhunt-backend` malgré le Dockerfile qui
+fait `COPY package.json bun.lock* ./`. Généré via `docker run --rm -v
+/tmp/bk:/app oven/bun:1.1.42-alpine bun install`, copié en local
+(`bun.lockb` 127 KB), commité.
+
+`bjhunt-v2` (`bun.lock`) et `bjhunt-app` (`package-lock.json`) avaient
+déjà leur lockfile.
+
+#### Vérification end-to-end Playwright
+- Login `admin@bjhunt.com / BjhuntAdmin2026!` → 200 → redirect direct vers
+  `/chats/[id]` (pas de page `/chats` intermédiaire — kill effective).
+- Workspace : sidebar 16rem (logo tile vert + glm-5.1 + Nouveau chat +
+  liste + Paramètres + Déconnexion) + Thread plein largeur. **Aucun
+  panel** à droite.
+- Welcome motion fade-in BJHUNT V2.1 / Décris l'audit en langage naturel.
+- Composer : placeholder FR avec hint `(/ pour commandes, @ pour agents
+  et compliances)`. Send button rond `ArrowUpIcon`.
+- `/` ouvre palette : 16 commandes catégorisées, drill-down, hover green
+  ring, descriptions FR.
+- `@` ouvre palette : drill-down 2 niveaux (Agents → 38 personas,
+  Compliances → 13 frameworks). Empty state si filtre ne matche pas.
+- Backend logs propres : XREAD blocking sur `redis.duplicate()`, ping
+  health 5 ms, RLS scoping correct sur le replay PG.
+
 ### State final — récapitulatif
 
 6 repos posés et synchronisés :
@@ -1271,9 +1569,9 @@ pour visuel `/chats/[chatId]`.
 |---|---|---|---|
 | `bjhuntcom-oss/bjhunt` | public | `D:\bjhunt-v2\` | Marketing + labs/audit POC |
 | `bjhuntcom-oss/bjhunt-legacy-engine` | privé | — | Archive Decepticon (read-only) |
-| `bjhuntcom-oss/bjhunt-engine` | privé | `D:\bjhunt-engine\` | Fork openclaude + pack BJHUNT V2.1 |
+| `bjhuntcom-oss/bjhunt-engine` | privé | `D:\bjhunt-engine\` | Fork openclaude + pack BJHUNT V2.1 (PR #1 **mergée** Phase 2.7) |
 | `bjhuntcom-oss/bjhunt-backend` | privé | `D:\bjhunt-backend\` | Hono+Bun thin SaaS layer |
-| `bjhuntcom-oss/bjhunt-app` | privé | `D:\bjhunt-app\` | Dashboard `app.bjhunt.com` |
+| `bjhuntcom-oss/bjhunt-app` | privé | `D:\bjhunt-app\` | Dashboard `app.bjhunt.com` (assistant-ui Shadcn registry, brand-themed) |
 | `bjhuntcom-oss/bjhunt-assistant-ui` | privé | `D:\bjhunt-assistant-ui\` | Fork assistant-ui — insurance + bench de patches |
 
 ### Reste à faire (Phase 2 — déploiement réel)
