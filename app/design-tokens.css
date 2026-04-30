@@ -22,9 +22,11 @@
 
   /* ── Text ──────────────────────────────────────────── */
   --bjhunt-text:               #F4F4F7;
+  --bjhunt-text-secondary:     #B8B3B0;
   --bjhunt-text-muted:         #A1A1AA;
   --bjhunt-text-subtle:        #52525B;
   --bjhunt-text-disabled:      #3F3F46;
+  --bjhunt-text-inverted:      #07070B;
 
   /* ── Borders (W8 translucent overlays) ──────────────── */
   --bjhunt-border:             rgba(255, 255, 255, 0.06);
