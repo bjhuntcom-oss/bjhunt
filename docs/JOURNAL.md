@@ -1562,6 +1562,61 @@ déjà leur lockfile.
 - Backend logs propres : XREAD blocking sur `redis.duplicate()`, ping
   health 5 ms, RLS scoping correct sur le replay PG.
 
+### Phase 2.8 — Live update_settings + E2E CI + auth fixes ✅
+
+Trois items débloqués en chaîne le **2026-04-30** :
+
+**1. Engine consume `update_settings` (`bjhunt-engine` 5cfedd7 + 4819549)**
+- `bjhunt/docker/event-relay.cjs` : nouveau handler `/control` action
+  `update_settings` qui écrit atomiquement `/chat/scope.json` (lu live par
+  `scope-guard.cjs` à chaque tool call) + `/chat/settings.json` (mergé,
+  appliqué au prochain spawn pour agents/modèles déjà chargés). Pousse un
+  event synthétique `agent.thinking { kind: 'settings_updated' }` pour
+  confirmation user-visible. `inject_message` retourne 202 + raison
+  `print_mode_no_injection` (reroutée Phase 3 via `--input-format
+  stream-json`). Unknown action → 400 explicit.
+- Soft-fail UNIX socket bind si path inaccessible (testabilité win32 +
+  defense in depth si `/tmp/bjhunt` échoue à l'init).
+- `bjhunt/docker/__tests__/relay-update-settings.test.cjs` : 4 cases
+  (happy path, partial scope, unknown, inject_message) — tous passent.
+- Script `bjhunt/scripts/build-e2b-template.sh` pour `e2b template build`
+  reproductible (réutilise alias `bjhunt-kali`, --no-cache, 2 vCPU/4 GB).
+- `bjhunt-backend` : drop le TODO Phase 2.7 dans `chats.ts:264`.
+
+**2. Mock-relay aligné contrat bridge (`bjhunt-backend` f99f4ca + 9efca39)**
+- Mock route `/events?after=&block_ms=N` JSONL (avant : `?since=` JSON
+  array, qui faisait silencieusement échouer mode `BJHUNT_E2B_MODE=mock`).
+- `update_settings` + `kill` + `inject_message` parity avec le vrai relay.
+- `run.completed` retenu jusqu'au kill ou 30s timeout — sinon le bridge
+  voit immédiatement le terminal et le chat passe `completed` avant que
+  le test puisse PATCH.
+
+**3. CI E2E auth + RLS + chat smoke (`bjhunt-backend`)**
+- `tests/chat-flow.test.ts` : 3 tests sur Bun.serve réel (port 18080),
+  Postgres + Redis ephémères. Couvre : sign-up → org-create →
+  set-active → POST /chats → PATCH settings → assertion event
+  `settings_updated` mirroré dans PG `stream_events` ; cross-org GET 404
+  (RLS) ; PATCH sur chat finalisé 4xx.
+- `process.env.PORT` set au module-load (capturé eagerly par `env.ts`)
+  + `spawnMock` lazy-read `process.env.PORT` pour cohérence test/prod.
+- BetterAuth `rateLimit.enabled = false` quand `NODE_ENV=test`.
+- 4 bugs réels surfacés et corrigés en route :
+  - `auth.ts` : org plugin needs son propre `schema.session.fields.activeOrganizationId` mapping
+    (le top-level mapping ne traverse pas les internalAdapter writes du plugin).
+  - `0006_sync_organization_to_orgs.sql` : trigger inverse manquant
+    (`orgs ↔ organization` était unidirectionnel, donc public sign-up
+    cassé en prod ; `pg_trigger_depth() > 1` break la boucle).
+  - `engine-bridge.ts:newStatus` : `'complete'` → `'completed'` (typo,
+    le CHECK constraint n'autorisait pas `complete` ; chats finalisés
+    restaient `running` pour toujours).
+  - `engine-bridge.ts:sendSettingsUpdate` : URL E2B en dur → lookup
+    `getEngineEndpoint(chatId)` via le map des bridges actifs, fallback
+    canonical E2B URL si bridge déjà stoppé. Même fix dans
+    `chats.ts:/messages` inject_message forward.
+- CI vert : Lint+Typecheck, Tests (Postgres+Redis ephemeral), Security
+  scan. Deploy VPS auto-déclenché et propre, prod healthy 5ms, migration
+  0006 appliquée.
+
 ### State final — récapitulatif
 
 6 repos posés et synchronisés :
