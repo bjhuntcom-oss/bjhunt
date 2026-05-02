@@ -1805,6 +1805,73 @@ features manquantes du chat workspace. Commit principaux : `bjhunt-backend`
 - `deploy-vps.yml` : ssh-keyscan retry 3x + accept rsa fallback (était
   silently swallowed avec `2>/dev/null` + `set -e`).
 
+### Phase 2.10 — Audit massif chat UX (150 findings) → 18/19 waves livrées ✅
+
+Smoke browser end-to-end + 4 agents IA parallèles ont remonté ~150 findings
+sur le chat (latence perçue, scroll forcé pendant streaming, tool name
+"OUTIL INTERNE" leak, agent silencieux avant tool-calls, canvas désynchro,
+crashes Duplicate key, `MessageRepository: same id`, hover action bar
+masqué sur anciens messages, layout shifts, bugs i18n, etc.).
+
+Trié par priorité, regroupé en 19 waves (A → F). Livré 18 waves dans la
+journée, seule restante : Wave B3 (corruption markdown stream "Open.2
+corrSSL", bloquée car nécessite reproduction live avec logging
+delta-par-delta).
+
+**Wave A — Tool labels + narration + 5 bugs visuels (commit `464e5b2`)**
+- Backend `engine-process.ts` : `humaniseToolName(mcp__tools__*)` map +
+  emit `tool_label` (pré-redaction) sur agent.tool_call.
+- System prompt enrichi d'une section NARRATION AVANT TOOL-CALL.
+- Personas/coordinator.md : posture "narration explicite".
+- Frontend : runtime mappe `tool_label` first, fallback local mirror.
+
+**Wave B/C/D/E/F — fluidité, polish, a11y, vocabulaire (commits `0ef28dd`
+backend + `8fb43fe`/`a00ab92` app)** — 17 waves d'un coup :
+- B1 Régénération avec dropdown 4 modèles (GLM/Qwen/Kimi/DeepSeek) +
+  respawn sandbox si idle/completed
+- B2 ChatStatusBanner sticky pour failed/aborted/expired/completed +
+  composer disabled
+- B4 Idempotence `Duplicate key toolCallId` dans projection
+- B5 Canvas reset (setBaseline null + setMode + setDraft) sur chatId change
+- B6 Theme Light étendu (--bjhunt-text-inverted + --bjhunt-text-secondary)
+- C1 Sidebar status dot (green pulse running / blue completed / red
+  failed / amber pending / gray idle) + kebab Renommer/Supprimer
+- C2 Hover reveal action bar via `MessagePrimitive.If lastOrHover`
+- C3 Shiki dans EnrichedPre + auto-collapse tool-card 4s après ok
+- C4 StreamingStatusPill 3-phases (boot "Démarrage du sandbox…" /
+  thinking cycling / slow >30s)
+- C5 ChatSearchBar Cmd/Ctrl+F (DOM-walk highlight + nav prev/next +
+  count + cheatsheet ⌘F + ⌘\)
+- D1 Skeleton dots `MessagePrimitive.If hasContent={false}` + stagger
+  suggestions + min-height action bar (CLS=0)
+- D2 Memo defaultComponents + memo lines + virtualisation thread
+- D3 A11y : aria-live, aria-busy, focus rings WCAG AAA, 44px tactile
+- E1 Toaster + ConfirmHost (sans dep externe sonner) + AlertDialog
+  pour kill + delete + slide-in transform-x sidebars + caret blinking CSS
+- E2 `whenToUseFr` traduit 18 personas en français + "Voir engagement"
+  → "Voir le scope" + bottom-fade mask sur thread viewport
+- E3 SmartResultRender (image data-URL + CSV sticky-header table) +
+  bouton ▶ "Lancer dans le sandbox" sur code blocks bash/python/sql/
+  nmap/curl/powershell, dispatché via `bjhunt:send-to-chat`
+- F Mermaid block click-to-zoom dans `<dialog>` natif fullscreen
+
+**Bugs cascadants fixés en route (engine pipeline)**
+- managed-settings ENOENT → provision /etc/claude-code/managed-settings.json
+- HOME EROFS → set HOME=/data/bjhunt-chats (rootfs read_only)
+- chat → completed direct → mapper outcome no-output → idle
+- CRLF Alpine sh → .gitattributes + dos2unix in Dockerfile
+- E2B template paths obsolètes → fix `e2b.toml` start_cmd + dockerfile
+- Sign-up dead-end → BetterAuth `databaseHooks.user.create.after` pour
+  auto-provisionner personal org + member(role=owner)
+- Sign-in 403 (email_verified=false) → auto-verify hook +
+  requireEmailVerification: false (Resend pas encore wiré)
+- Share API 404 → switch `db.execute(dsql)` → postgres-js `sql\`...\``
+
+**Reste à faire**
+- Wave B3 (streaming markdown corruption "Open.2 corrSSL") — bloqué
+  reproduction live avec logging delta-par-delta
+- Pin sidebar (besoin migration DB column `pinned`)
+
 ### Prochaines étapes
 - [x] ~~Modifier prompts système openclaude pour cybersec offensive~~ → pack `bjhunt/IDENTITY.md` livré sur `feat/bjhunt-v2.1-pack`
 - [x] ~~Adapter tools : ajouter wrappers cybersec~~ → décision : Bash + sandbox Kali E2B suffit (pas de wrappers TS)
