@@ -1727,6 +1727,84 @@ JWT · zod · ulid · @aws-sdk/client-s3 (R2).
 - ✅ Redis 7-alpine (port `127.0.0.1:6379`)
 - ✅ LiteLLM 1.82.3 (port `127.0.0.1:4000`, db+cache OK, 4 modèles Ollama Cloud)
 
+### Phase 2.9 — Canvas + history replay + container hardening + audit log viewer ✅
+
+Livré le **2026-05-02**, sept items tirés du dernier audit deep-pass + des
+features manquantes du chat workspace. Commit principaux : `bjhunt-backend`
+`1c20c99`, `bjhunt-app` `49cef41`, `bjhunt-engine` `feat/bjhunt-v2.1-pack`
+`20af2e1`.
+
+**1. Canvas collaboratif (artefact markdown vivant)**
+- Backend : `chats.metadata.canvas` JSON `{content, revision, updated_at, updated_by}`,
+  routes `GET /api/chats/:id/canvas` + `PUT` avec optimistic-lock par révision
+  (409 si conflit, retourne `current` pour merge UI). Helper `applyCanvasUpdate()`
+  partagé entre PUT et le relay socket.
+- Engine : nouvel outil MCP `write_canvas` (sandbox `kali-mcp-server.cjs`) +
+  hook `canvas-broadcast.cjs` PostToolUse qui forward au backend via
+  `BJHUNT_SSE_SOCKET`. NDA system prompt étendu pour expliquer quand utiliser
+  le canvas (brouillon de rapport vs conversation). 6 tests sur le hook.
+- Frontend : 8e onglet du right rail `Canvas`, react-markdown + GFM en mode
+  view, textarea en mode edit, banner non-bloquante quand le moteur écrit
+  pendant l'édition. Live update via nouveau SSE event `agent.canvas`
+  routé dans `useEngagementStream`.
+
+**2. History replay pour chats terminaux (P1 audit)**
+- Backend : `GET /api/chats/:id/history?after=&limit=` (max 5000 events,
+  cursor par ULID). Lit `stream_events` mirror PG, retourne JSON.
+- Frontend : `useEngagementStream` gagne un flag `historyMode` qui skip
+  prepare+SSE et one-shot `getChatHistory`. `useBjhuntRuntime` propage
+  le flag, `app/chats/[chatId]/page.tsx` détecte `chat.status` terminal
+  (`completed`/`aborted`/`failed`/`expired`) et bypasse aussi `prepareSse`
+  pour ne pas générer un 410. Le transcript complet rendu identique au live.
+
+**3. Container hardening (P2 audit)**
+- VPS `docker-compose.yml` : `bjhunt-backend` gagne `read_only: true`,
+  `cap_drop: [ALL]`, `security_opt: no-new-privileges:true`, tmpfs sur
+  `/tmp` (128 MB) et `/opt/openclaude/bjhunt-runtime` (64 MB).
+- `user: '1000:1000'` désactivé en commentaire car build-claude-agents
+  stage les personas dans `/root/.claude` (uid 0). Ticket follow-up pour
+  déplacer le path vers `/var/lib/bjhunt/.claude` chowné 1000.
+- Verification : `docker inspect` montre `ReadonlyRootfs=true CapDrop=[ALL]
+  SecurityOpt=[no-new-privileges:true]`.
+
+**4. Audit log viewer (admin/lead)**
+- Backend : `GET /api/audit?action=&user_id=&target_id=&since=&until=&cursor=&limit=`
+  + `GET /api/audit/actions` distinct, gated owner/admin/lead → 403 sinon.
+  Keyset pagination sur id desc, max 200/page.
+- Frontend : `/admin/audit` page avec filtres URL-synced via search params,
+  payload expand JSON, banner accès restreint pour les rôles non privilégiés.
+  Entrée discrète dans le menu utilisateur sidebar.
+
+**5. Egress filter au bon ordre (P1 audit)**
+- `bjhunt-engine/bjhunt/docker/run-engagement.sh` : invoque
+  `/opt/bjhunt/egress-filter.sh` APRÈS l'écriture de `/chat/scope.json`
+  (avant : ordre inverse → allow-list toujours stale).
+- `egress-filter.sh` rewritten : drop python3 → node inline (Phase 3 image
+  ne ship plus python3). Static deny RFC1918 + cloud metadata + wireguard
+  + BJHUNT VPS public IP. Allow dynamique sur `in_scope` CIDRs.
+- Dockerfile `bjhunt-kali` : COPY + chmod le script.
+
+**6. Hook tests + secrets pipeline**
+- `canvas-broadcast.test.cjs` : 6 cas (named pipes Windows + UNIX socket
+  Linux) — couvre matcher, frame shape, ignore other tools.
+- `BJHUNT_TEST_RELAY_SECRET` set via `gh secret set` (32-hex random) +
+  CI yml lit la secret. `BJHUNT_CHATS_DIR=/tmp` sur le runner GH (le
+  `/data` prod n'est pas writable en CI).
+- VPS env : `BJHUNT_SECRET_MASTER_KEY` (32-hex) ajouté + wired dans
+  compose pour découpler SecretRegistry de la rotation BetterAuth.
+
+**7. Bugs incidents fixés en route**
+- `engine-process.ts` : `BJHUNT_SSE_SOCKET` env var pushed into the
+  openclaude child process — Phase 3 archi ne le faisait plus, donc tous
+  les hooks `.cjs` (scope-guard, evidence-capture, redact-secrets) étaient
+  incapables d'émettre vers la SSE bus. Pipeline restoré.
+- `chat-flow.test.ts` : skip si `BJHUNT_OPENCLAUDE_BIN` absent (CI runner
+  ne ship pas le binaire openclaude — la Phase 3 a remonté ce besoin).
+- `e2b.toml` : `start_cmd` mangled par Git Bash en
+  `C:/Program Files/Git/opt/...` → fixé en `/opt/bjhunt-engine/...`.
+- `deploy-vps.yml` : ssh-keyscan retry 3x + accept rsa fallback (était
+  silently swallowed avec `2>/dev/null` + `set -e`).
+
 ### Prochaines étapes
 - [x] ~~Modifier prompts système openclaude pour cybersec offensive~~ → pack `bjhunt/IDENTITY.md` livré sur `feat/bjhunt-v2.1-pack`
 - [x] ~~Adapter tools : ajouter wrappers cybersec~~ → décision : Bash + sandbox Kali E2B suffit (pas de wrappers TS)
