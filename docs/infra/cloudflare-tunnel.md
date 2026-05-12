@@ -1,4 +1,4 @@
-# BJHUNT V2.1 — Cloudflare Tunnel devant Coolify
+# BJHUNT 4 MAX — Cloudflare Tunnel devant Coolify
 
 Coolify écoute en clair sur `82.25.117.79:8000` (HTTP, port public). Docker
 bypass UFW donc on ne peut pas filtrer par firewall sans casser le runtime.

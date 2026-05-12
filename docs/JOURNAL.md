@@ -224,7 +224,7 @@ Toutes les docs `docs/architecture/*.md` mises à jour pour refléter :
 ### Repos GitHub
 - ✅ `bjhuntcom-oss/bjhunt` (public) — frontend Next.js (marketing + labs/audit POC)
 - ✅ `bjhuntcom-oss/bjhunt-legacy-engine` (privé) — archive Decepticon
-- ✅ `bjhuntcom-oss/bjhunt-engine` (privé) — fork openclaude + pack BJHUNT V2.1
+- ✅ `bjhuntcom-oss/bjhunt-engine` (privé) — fork openclaude + pack BJHUNT 4 MAX
 - ✅ `bjhuntcom-oss/bjhunt-backend` (privé) — Hono+Bun thin SaaS layer
 - ✅ `bjhuntcom-oss/bjhunt-app` (privé) — Next.js dashboard `app.bjhunt.com` (créé 2026-04-29)
 
@@ -245,7 +245,7 @@ Toutes les docs `docs/architecture/*.md` mises à jour pour refléter :
 
 **Note** : `drop_params: true` côté LiteLLM gère les paramètres non-supportés. `glm-5.1` génère beaucoup de tokens de "thinking" interne — prévoir `max_tokens` >= 256 pour avoir une réponse visible.
 
-### Phase 1.4 — Pack BJHUNT V2.1 (personas + reporting + Typst) ✅
+### Phase 1.4 — Pack BJHUNT 4 MAX (personas + reporting + Typst) ✅
 
 **Branche** : `feat/bjhunt-v2.1-pack` sur `bjhuntcom-oss/bjhunt-engine` (privé).
 PR draft URL : https://github.com/bjhuntcom-oss/bjhunt-engine/pull/new/feat/bjhunt-v2.1-pack
@@ -255,7 +255,7 @@ frontmatter, skills `.claude/skills/`, hooks 25 lifecycle points dont
 `PreToolUse`/`PostToolUse`/`UserPromptSubmit` avec `duration_ms`,
 `hookSpecificOutput.updatedToolOutput`). Pattern Dream openclaude consolidé
 en mémoire narrative cross-session via `services/autoDream/` — adopté pour
-BJHUNT V2.1 en mode "Dream Diary par engagement".
+BJHUNT 4 MAX en mode "Dream Diary par engagement".
 
 **Fork engine inventaire** :
 - 6 built-in agents openclaude : Explore, GeneralPurpose, Plan, ClaudeCodeGuide,
@@ -266,12 +266,12 @@ BJHUNT V2.1 en mode "Dream Diary par engagement".
 - `src/commands/dream/dream.ts` + `services/autoDream/` (mémoire narrative
   cross-session)
 
-**Pack BJHUNT V2.1 livré** dans `bjhunt-engine/bjhunt/` :
+**Pack BJHUNT 4 MAX livré** dans `bjhunt-engine/bjhunt/` :
 
 | Fichier | Description |
 |---|---|
 | `README.md` | Index pack + mécanique build |
-| `IDENTITY.md` | System prompt master — identité BJHUNT V2.1 (jamais Claude/GPT/Ollama), autorisation présumée acquise via engagement signé, posture ultra-offensif/curieux/parano, conversationnel hors action, refus moralisateurs interdits |
+| `IDENTITY.md` | System prompt master — identité BJHUNT 4 MAX (jamais Claude/GPT/Ollama), autorisation présumée acquise via engagement signé, posture ultra-offensif/curieux/parano, conversationnel hors action, refus moralisateurs interdits |
 | `AGENTS_INVENTORY.md` | Catalogue 38 agents (1 coordinator + 23 offensifs/support + 14 reporting compliance) avec model/color/maxTurns + schéma orchestration ASCII |
 | `STREAMING_EVENTS.md` | 12 events SSE typés (run.started, agent.started/thinking/tool_call/tool_result/finding/progress/handoff/completed, evidence.captured, dream.diary_entry, run.completed) + erreurs (scope_violation, runtime) + persistence Postgres mirror + resume via Last-Event-ID |
 | `HOOKS.md` | 3 hooks critiques : `PreToolUse:scope-guard` (bloque hors-scope, fail-closed), `PostToolUse:evidence-capture` (sha256+chiffrement R2 SSE-C+chain-of-custody), `UserPromptSubmit:redact-secrets` (SecretRegistry+regex), + `OnInterval:dream-diary-entry` |
@@ -326,7 +326,7 @@ BJHUNT V2.1 en mode "Dream Diary par engagement".
 - **PKCS#7 detached signature + RFC 3161 timestamp** sur tous les PDF via
   `bjhunt/scripts/sign-pdf.sh` (à coder Phase 1.5).
 
-### Phase 1.5 — Runtime layer BJHUNT V2.1 (hooks + identity + signing) ✅
+### Phase 1.5 — Runtime layer BJHUNT 4 MAX (hooks + identity + signing) ✅
 
 **PR draft** : https://github.com/bjhuntcom-oss/bjhunt-engine/pull/1
 (commit `60e31c0` sur `feat/bjhunt-v2.1-pack`).
@@ -335,7 +335,7 @@ BJHUNT V2.1 en mode "Dream Diary par engagement".
 - `getBjhuntIdentitySection()` — retourne le body identité condensé si
   `BJHUNT_MODE=true`, sinon `null`
 - Patch chirurgical sur `getSimpleIntroSection()` : si BJHUNT_MODE → identité
-  BJHUNT V2.1 prend la place du "You are an interactive agent that helps
+  BJHUNT 4 MAX prend la place du "You are an interactive agent that helps
   users with software engineering tasks" upstream
 - Anti-leak : enumération explicite des marques interdites (Claude, Anthropic,
   OpenClaude, GPT, GLM, DeepSeek, Kimi, Ollama)
@@ -386,7 +386,7 @@ BJHUNT V2.1 en mode "Dream Diary par engagement".
 - `src/constants/__tests__/bjhuntIdentity.test.ts` (Bun test) :
   - BJHUNT_MODE off par défaut, helpers retournent null
   - BJHUNT_MODE=true|1 active la section
-  - Body identité : claims "BJHUNT V2.1", négations explicites de chaque
+  - Body identité : claims "BJHUNT 4 MAX", négations explicites de chaque
     marque interdite, refus moralisateurs interdits, autorisation présumée
     acquise, vocabulaire SSE complet, posture ultra-offensif/curieux/parano
 - À exécuter en CI via `bun test`
@@ -512,7 +512,7 @@ Phase 2 quand ce sera shippé).
 ### State final Phase 1.4 → 1.10 (cap atteint)
 
 3 repos posés et synchronisés :
-- `bjhunt-engine` (privé) — fork openclaude + pack BJHUNT V2.1 sur
+- `bjhunt-engine` (privé) — fork openclaude + pack BJHUNT 4 MAX sur
   branche `feat/bjhunt-v2.1-pack` (PR draft #1)
 - `bjhunt-backend` (privé) — Hono+Bun thin SaaS layer
 - `bjhunt` (public) — frontend marketing + labs/audit POC
@@ -567,7 +567,7 @@ Cheminement E2E disponible localement :
 - `src/lib/auth.ts` : email+pwd (autoSignIn, requireEmailVerification
   prod, minPasswordLength 12), sessions 7j cookie `bjhunt_session`
   freshAge 30min, rate-limit 30/min, plugins organization (5 orgs/100
-  membres), twoFactor (TOTP issuer "BJHUNT V2.1"), passkey (WebAuthn
+  membres), twoFactor (TOTP issuer "BJHUNT 4 MAX"), passkey (WebAuthn
   rpID auto), openAPI.
 - `src/routes/auth.ts` : forward `/api/auth/*` → `auth.handler`.
 - `src/middleware/auth.ts` : remplace placeholder JWT par
@@ -671,7 +671,7 @@ headers, `poweredByHeader: false`.
   colonnes :
   - **Gauche (18rem)** : engagement summary + run status pill +
     Stop button + agents actifs (status + tool count) + footer
-    "Identité injectée : BJHUNT V2.1"
+    "Identité injectée : BJHUNT 4 MAX"
   - **Centre (1fr)** : `<AssistantRuntimeProvider>` + `<Thread/>`
   - **Droite (22rem)** : findings (sortées par sévérité, chips
     compliance) + dream diary + evidence (sha256 + bytes) + scope
@@ -1236,7 +1236,7 @@ Typecheck `tsc --noEmit` passe des deux côtés. Bundles Vercel rebuild en
 - ✅ Login `admin@bjhunt.com / BjhuntAdmin2026!` réussit (200 sur
   `POST /api/auth/sign-in/email`), redirige `/chats`.
 - ✅ `/chats` : empty state propre (icône `MessageSquare` mutée, CTA
-  « Démarrer le premier »), header `Console BJHUNT V2.1` eyebrow + H1 +
+  « Démarrer le premier »), header `Console BJHUNT 4 MAX` eyebrow + H1 +
   email/logout discret + bouton inverse.
 - ✅ `/chats/new` : 4 cartes complètes (Cible, Scope, Compliances ×13,
   Modèles & agents ×4 catégories) toutes sur dark surface, labels
@@ -1317,7 +1317,7 @@ largeur, rien d'autre.
   blocks, drawer), `--primary #f2f2f2` (CTA inverse), `--border #3d3a39`
   (warm charcoal), `--ring #00d992` (state-success focus), `--destructive
   #fb565b`. Mode dark hard-codé via `<html className="dark">` (no light).
-- Customizations BJHUNT : welcome motion staggered « BJHUNT V2.1 » + « Décris
+- Customizations BJHUNT : welcome motion staggered « BJHUNT 4 MAX » + « Décris
   l'audit en langage naturel. », 2 suggestions FR (Audit web app.acme.com
   pour OWASP+PCI / Recon non-destructive 10.0.0.0/16), placeholder composer
   FR avec hint trigger chars.
@@ -1332,7 +1332,7 @@ ce qui est là avec machin evidence là, pas besoin de ça ».
 
 - `app/chats/[chatId]/page.tsx` réécrit (357L → 191L). Layout 2-col
   `[16rem_1fr]` :
-  - **Gauche** : sidebar history (BJHUNT V2.1 logo tile + modèle en label,
+  - **Gauche** : sidebar history (BJHUNT 4 MAX logo tile + modèle en label,
     bouton `+ Nouveau chat`, liste de chats avec actif highlighted +
     pulse vert, footer Paramètres ⚙ + Déconnexion ↪). Tokens
     `bg-sidebar` / `text-sidebar-foreground` / `bg-sidebar-accent` /
@@ -1502,7 +1502,7 @@ et `--bjhunt-text-secondary` (.chat-prose em) jamais définis dans
 
 #### P2 — Engine PR #1 mergée
 `feat/bjhunt-v2.1-pack` → `main` sur `bjhunt-engine`. 38 personas + pack
-BJHUNT V2.1 + 14 templates Typst + 3 hooks .cjs + IDENTITY.md + Phase
+BJHUNT 4 MAX + 14 templates Typst + 3 hooks .cjs + IDENTITY.md + Phase
 2.7 NL settings parsing (helper `update-chat-settings.sh` côté coordinator)
 maintenant sur `main`.
 
@@ -1552,7 +1552,7 @@ déjà leur lockfile.
 - Workspace : sidebar 16rem (logo tile vert + glm-5.1 + Nouveau chat +
   liste + Paramètres + Déconnexion) + Thread plein largeur. **Aucun
   panel** à droite.
-- Welcome motion fade-in BJHUNT V2.1 / Décris l'audit en langage naturel.
+- Welcome motion fade-in BJHUNT 4 MAX / Décris l'audit en langage naturel.
 - Composer : placeholder FR avec hint `(/ pour commandes, @ pour agents
   et compliances)`. Send button rond `ArrowUpIcon`.
 - `/` ouvre palette : 16 commandes catégorisées, drill-down, hover green
@@ -1624,7 +1624,7 @@ Trois items débloqués en chaîne le **2026-04-30** :
 |---|---|---|---|
 | `bjhuntcom-oss/bjhunt` | public | `D:\bjhunt-v2\` | Marketing + labs/audit POC |
 | `bjhuntcom-oss/bjhunt-legacy-engine` | privé | — | Archive Decepticon (read-only) |
-| `bjhuntcom-oss/bjhunt-engine` | privé | `D:\bjhunt-engine\` | Fork openclaude + pack BJHUNT V2.1 (PR #1 **mergée** Phase 2.7) |
+| `bjhuntcom-oss/bjhunt-engine` | privé | `D:\bjhunt-engine\` | Fork openclaude + pack BJHUNT 4 MAX (PR #1 **mergée** Phase 2.7) |
 | `bjhuntcom-oss/bjhunt-backend` | privé | `D:\bjhunt-backend\` | Hono+Bun thin SaaS layer |
 | `bjhuntcom-oss/bjhunt-app` | privé | `D:\bjhunt-app\` | Dashboard `app.bjhunt.com` (assistant-ui Shadcn registry, brand-themed) |
 | `bjhuntcom-oss/bjhunt-assistant-ui` | privé | `D:\bjhunt-assistant-ui\` | Fork assistant-ui — insurance + bench de patches |
@@ -1883,3 +1883,41 @@ backend + `8fb43fe`/`a00ab92` app)** — 17 waves d'un coup :
 - [ ] **Phase 1.9** Image sandbox Kali : Dockerfile `bjhunt-kali` + intégration E2B Pro per-engagement
 - [ ] **Phase 1.10** Frontend POC chat UI : EventSource + render des 12 SSE events
 - [ ] **Phase 1.11** Test end-to-end : engagement minimal sur Juice Shop / DVWA / DVNA dans sandbox → findings → rapport PCI-DSS PDF signé
+
+
+---
+
+## 2026-05-12 -- Audit global multi-agents + CLAUDE.md/AGENTS.md optimises + rapport consolide
+
+**5 agents d'audit lances en parallele** :
+- Agent A : Frontend marketing (bjhunt-v2) -- score B+
+- Agent B : Backend (bjhunt-backend) -- score B+ (critical: requireEmailVerification:false, token CLI leak, no SSE rate-limit)
+- Agent C : Engine (bjhunt-engine) -- score B+ (critical: 84% stubs, bridge REPL complexity)
+- Agent D : App dashboard (bjhunt-app + assistant-ui) -- score B- (critical: version not pinned exact, runtime monolith 1342 loc, 0 component tests)
+- Agent E : Infra VPS Hostinger -- score B+ (critical: secrets plain-text .env, WireGuard no peer, dead images 40 GB)
+
+### Livrables produits
+- [x] CLAUDE.md optimises (token-burn reduction) pour bjhunt-v2, bjhunt-backend, bjhunt-app, bjhunt-engine
+- [x] AGENTS.md optimises pour tous les repos (conventions, contacts, context-mode rules)
+- [x] Rapports audit detailles : AUDIT_RAPPORT_2026-05-12.md (engine), docs/AUDIT_UI_UX_2026-05-12.md (app), docs/AUDIT_VPS_2026-05-12.md (infra)
+- [x] Rapport consolide transversal : docs/AUDIT_CONSOLIDATED_2026-05-12.md
+
+### Synthese score global
+**B+** -- Fondation solide (RLS, hooks, SSE, architecture fork) mais 10 risques urgents a traiter avant ouverture publique.
+
+### Top 10 prioritaires
+1. ACTIVER requireEmailVerification: true (ou bloquer signup public)
+2. PASSER token MCP via fichier temporaire (pas CLI args)
+3. PINNER exactement @assistant-ui/react (supprimer ^)
+4. COMPLETER 8 personas offensifs prioritaires (api-pentester, auth-pentester, cloud-aws, cloud-azure, etc.)
+5. RATE-LIMIT SSE /api/chat/stream
+6. MIGRER secrets .env vers sops+Age ou Docker secrets
+7. TESTS E2E bridge reconnect force
+8. REFACTOR lib/bjhunt-runtime.ts en modules
+9. ETENDRE redact-secrets.cjs (+ DB URI, Azure, GitLab, Twilio)
+10. UNIFORMISER indexes Drizzle schema.ts
+
+### Chat UI roadmap
+Reste sur **assistant-ui fork** court terme. Migration progressive vers **Vercel AI SDK UI** planifiee Q4 2026-H1 2027 via ChatRuntimeAdapter abstraction. Cout migration estime 15-20 jours. Voir docs/AUDIT_UI_UX_2026-05-12.md matrix.
+
+---

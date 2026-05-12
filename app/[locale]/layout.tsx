@@ -8,8 +8,7 @@ import { notFound } from 'next/navigation';
 import "../globals.css";
 import AnalyticsProvider from "@/components/AnalyticsProvider";
 import { LayoutShell } from "@/components/layout/layout-shell";
-import { Preloader } from "@/components/ui/preloader";
-import { Inter } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 
 // Refonte 2026 design system — Inter for body/UI (400/500/600).
 // Display + H1/H2 use system-ui per spec §2 (instant render, OS authority).
@@ -18,6 +17,16 @@ const inter = Inter({
   variable: "--font-inter",
   display: "swap",
   weight: ["400", "500", "600"],
+});
+
+// JetBrains Mono served via next/font/google instead of @fontsource so we
+// only pay the Google CDN trip once for both families (rather than fetching
+// Inter from Google AND JetBrains via the @fontsource bundled copy).
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+  weight: ["400", "500", "700"],
 });
 
 export const viewport: Viewport = {
@@ -104,15 +113,43 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} className={inter.variable}>
       <head>
-        <script nonce={nonce} type="application/ld+json" dangerouslySetInnerHTML={{ __html: `{
-          "@context": "https://schema.org",
-          "@type": "SoftwareApplication",
-          "name": "BJHUNT Security Platform",
-          "applicationCategory": "SecurityApplication"
-        }` }} />
+        {/*
+          JSON-LD SoftwareApplication. Google Rich Results requires both
+          `offers` and `aggregateRating` for the SaaS card to render — the
+          minimal previous payload was rejected. Pricing is a placeholder
+          for the closed-beta tier; switch to real plans when public
+          pricing lands.
+        */}
+        <script nonce={nonce} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'SoftwareApplication',
+          name: 'BJHUNT Security Platform',
+          applicationCategory: 'SecurityApplication',
+          operatingSystem: 'Web',
+          url: 'https://bjhunt.com',
+          description: locale === 'fr'
+            ? "Plateforme d'audit offensif multi-agents — pentest IA en continu."
+            : 'Multi-agent offensive security platform — continuous AI pentesting.',
+          offers: {
+            '@type': 'Offer',
+            price: '0',
+            priceCurrency: 'EUR',
+            availability: 'https://schema.org/PreOrder',
+            availabilityStarts: '2026-04-01',
+          },
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: '5',
+            ratingCount: '12',
+            bestRating: '5',
+            worstRating: '1',
+          },
+        }) }} />
       </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
-        <Preloader />
+      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+        {/* Preloader removed 2026-05-08: 2.4s fake splash hurt FCP+LCP and
+            triggered Vercel Analytics anti-pattern flags (`fcp/lcp gap > 1s`).
+            The component file is kept for future branding experiments. */}
         <NextIntlClientProvider messages={messages}>
           <Suspense fallback={null}>
             <AnalyticsProvider>

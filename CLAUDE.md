@@ -1,113 +1,109 @@
-# BJHUNT — multi-repo (état 2026-04-29 — Phase 1.13.d livrée)
+# CLAUDE.md — BJHUNT 4 MAX
 
-Ce repo (`bjhuntcom-oss/bjhunt`, public) est le **frontend marketing** + un POC `/labs/audit` de consommation SSE. Le projet BJHUNT V2.1 vit en réalité sur **6 repos GitHub** working ensemble.
+> Contexte minimal pour agents Claude/GLM. Contexte étendu dans `CLAUDE.md` de chaque repo + `docs/architecture/`.
 
-## 6 repos — vue d'ensemble
+## Vue d'ensemble (1 phrase)
 
-| Repo | Visibilité | Working copy | Rôle |
-|---|---|---|---|
-| `bjhuntcom-oss/bjhunt` | **public** | `D:\bjhunt-v2\` | Frontend marketing Next.js 16 (`bjhunt.com` Vercel) + `/labs/audit` POC SSE consumer |
-| `bjhuntcom-oss/bjhunt-legacy-engine` | privé | — | Archive Decepticon Python (read-only, conservée par subtree split history-preserving) |
-| `bjhuntcom-oss/bjhunt-engine` | privé | `D:\bjhunt-engine\` | **Fork openclaude** (Gitlawb/openclaude, MIT, TS/Bun) + pack BJHUNT V2.1 sur branche `feat/bjhunt-v2.1-pack` (PR #1 draft) |
-| `bjhuntcom-oss/bjhunt-backend` | privé | `D:\bjhunt-backend\` | Thin SaaS layer Hono+Bun (auth, RLS, SSE, sandbox spawn, catalogues) |
-| `bjhuntcom-oss/bjhunt-app` | privé | `D:\bjhunt-app\` | Dashboard `app.bjhunt.com` (Next.js 16, BetterAuth client, assistant-ui chat) |
-| `bjhuntcom-oss/bjhunt-assistant-ui` | privé | `D:\bjhunt-assistant-ui\` | **Fork assistant-ui** (assistant-ui/assistant-ui, MIT) sur branche `feat/bjhunt-pack` ancrée `@assistant-ui/react@0.10.50`. Insurance + bench de patches ; bjhunt-app reste sur npm pinned |
+BJHUNT 4 MAX = moteur d'audit offensif SaaS : fork openclaude (38 personas cyber) → sandbox E2B Kali → SSE live → dashboard Next.js/assistant-ui.
 
-## État après Phase 1.13 (2026-04-29)
+## Accès & credentials
 
-Phases livrées le **2026-04-29** (1 journée intensive) :
+| Ressource | Commande/Path | Notes |
+|---|---|---|
+| VPS Hostinger | `ssh bjhunt-vps` | Clé `C:\Users\CODEUR\.ssh\bjhunt_vps` |
+| DB tunelée | `ssh -L 5432:127.0.0.1:5432 -L 6379:127.0.0.1:6379 -L 4000:127.0.0.1:4000 bjhunt-vps -N` | Postgres 17 + Redis 7 + LiteLLM 4000 |
+| Secrets locaux | `D:\bjhunt-v2\.env.local`, `D:\bjhunt-backend\.env` | Jamais commités |
+| SSH keys supp. | `D:\BJHUNT LLM\` | Archive, pas dans le repo |
+| gh CLI | `gh auth status` | Org `bjhuntcom-oss` |
+| Vercel CLI | `vercel env ls` | Team `bjhunts-projects` |
 
-- **0** — Cleanup total : legacy backend Hono+Bun + engine Decepticon Python purgés. Engine archivé en privé. VPS Hostinger purgé (12 containers + 11 volumes + crons → 0).
-- **1.1** — Credentials E2B / Fly.io / Cloudflare (R2 + 4 buckets `bjhunt-{reports,evidence,backups,assets}`). NS bjhunt.com migrés Vercel→Cloudflare.
-- **1.2** — VPS Hostinger provisionné : Coolify v4 + Postgres 17 + pgvector 0.8.2 + Redis 7 + LiteLLM 1.82.3 (ports 127.0.0.1).
-- **1.3** — Ollama Cloud branché sur LiteLLM (4 modèles : `glm-5.1` défaut, `qwen3-coder`, `kimi-k2-thinking`, `deepseek-v3.2`).
-- **1.4** — **Fork openclaude** privé `bjhunt-engine` + pack BJHUNT V2.1 (38 personas, 14 templates Typst, IDENTITY.md, 12 SSE events, 3 hooks, Dream Diary, Checklist anti-oublis).
-- **1.5** — Runtime layer : injection identité gated par `BJHUNT_MODE`, hooks `.cjs` (scope-guard fail-closed / evidence-capture sha256+redact / redact-secrets 15 patterns), build/install/sign scripts PKCS#7, tests anti-leak.
-- **1.6** — Wireguard mesh actif sur Hostinger (`82.25.117.79:51820/udp`, pubkey `f92v+Q2cnXjq3WwPTxATnBxppU0xpCpGx3cNDvJn9hk=`, CIDR `10.7.0.0/24`, NAT PREROUTING DNAT 5432/6379/4000).
-- **1.7** — Cloudflare Tunnel devant Coolify (token-driven script + 30s manuel browser).
-- **1.8** — `bjhunt-backend` posé : 9 tables RLS FORCE, JWT tickets 5min, `withTenant`, SSE Redis Streams MAXLEN ~10000 + mirror PG + replay Last-Event-ID.
-- **1.9** — E2B client + SecretRegistry HKDF, engine bridge long-poll, routes engagements CRUD + runs spawn/kill, image `bjhunt-kali` (Dockerfile + event-relay.cjs + run-engagement.sh).
-- **1.9.e** — BetterAuth réel : email+pwd, organization, 2FA TOTP, passkey WebAuthn, sessions 7j cookie `bjhunt_session`.
-- **1.10** — POC frontend `/labs/audit` SSE consumer dans ce repo.
-- **1.11** — Smoke E2E + mode tri-backend `BJHUNT_E2B_MODE=e2b|docker|mock`.
-- **1.12** — Squelette `bjhunt-app` (Next.js 16) : `/`, `/login`, `/engagements`, `/engagements/[id]/runs/[runId]/live`.
-- **1.13** — **Catalogues backend + chat assistant-ui full-screen** :
-  - Backend : `GET /api/catalog/{agents,compliances,models}`, `POST /api/runs/:id/messages` → relay E2B `inject_message`, engagement schema étendu (`agents_enabled`, `default_model`, `agent_models`, `asvs_target_level`).
-  - Frontend : **assistant-ui** (`@assistant-ui/react`) avec `ExternalStoreRuntime` mappant les 12 SSE events en `ThreadMessageLike[]`, page chat plein écran 3 colonnes, formulaire complet exposant **tous** les réglages backend (scope, compliances groupées, agents multi-select × 12 catégories avec override modèle par agent, ASVS conditionnel).
-- **1.13.b** — wiring engine BJHUNT_AGENTS_ENABLED / BJHUNT_AGENT_MODELS dans `run-engagement.sh`, GitHub Actions CI sur 3 repos (typecheck + build + tests + gitleaks), egress filtering iptables dans bjhunt-kali.
-- **1.13.c** — **chat-only end-to-end** : tables `engagements` + `runs` collapsed en une seule table `chats` (migration 0004 DROP CASCADE + CREATE), routes consolidées en `/api/chats` (1 POST = insert + sign + spawn + bridge), routes `/engagements/*` + `/chat/[runId]` supprimées côté frontend (URL canonique `/chats/[chatId]`).
-- **1.13.d** — **Fork privé `bjhunt-assistant-ui`** : bare-clone + mirror push d'`assistant-ui/assistant-ui` (MIT) → `bjhuntcom-oss/bjhunt-assistant-ui` privé. Branche `feat/bjhunt-pack` ancrée sur tag `@assistant-ui/react@0.10.50`. Doc `BJHUNT-PACK.md` (purpose, sync workflow, future GH Packages publish). bjhunt-app pinné exact `0.10.50` + `0.10.9` (sans `^`). Le fork = supply-chain insurance + bench de patches ; consommé comme dep seulement quand on patche.
-- **2.0** — **Production en ligne sur infra existante (0 €/mo nouveau)** : pivot anti-Fly.io (trial 7j → CB obligatoire). bjhunt-backend déployé sur VPS Hostinger via service docker-compose intégré au stack `/data/bjhunt-stack/`, Cloudflare Tunnel `bjhunt-prod` (ID `68d75d7f-c39e-415f-ab0e-0b87414ac66c`) route `api.bjhunt.com` → VPS:8080, bjhunt-app sur Vercel free `app.bjhunt.com` avec `NEXT_PUBLIC_API_BASE=https://api.bjhunt.com`. Migrations 0001-0004 idempotentes au boot. Bugs fixés en route : (1) `command:` YAML doit être liste mono-élément pour passer la full string à `sh -c`, (2) drop `hono/compress` car `oven/bun:1.1.42-alpine` n'a pas `CompressionStream` (CF compresse à l'edge de toute façon).
+## Règles de sécurité (sacré — jamais violer)
 
-## Stack frontend de **ce repo** (`bjhunt-v2`)
+1. **Pas d'`unsafe-eval`**. CSP strict.
+2. **Rate-limit** toutes les routes API publiques (`lib/rate-limit.ts`).
+3. **Inputs Zod + sanitize HTML** (`lib/sanitize.ts`).
+4. **Secrets jamais en dur** — CI `gitleaks` bloque.
+5. **RLS FORCE** sur toute table avec `org_id`. Aucune requête sans `withTenant()`.
+6. **JWT tickets SSE** : 5 min, HS256, bound `(org_id, user_id, chat_id)`.
+7. **Hook `scope-guard.cjs`** : fail-closed. Tout ce qui n'est pas dans `scope.in_scope` est rejeté.
+8. **Hook `evidence-capture`** : sha256 + redaction avant stockage R2.
+9. **Hook `redact-secrets`** : 15 patterns (API keys, tokens, passwords, private keys).
+10. **Pas de refus moralisateur** pour les cibles in-scope. Le garde-fou est technique, pas éthique.
 
-- Next.js 16 (App Router, RSC, Turbopack), React 19, TypeScript strict, Tailwind 4
-- next-intl (FR/EN), Resend (formulaires beta+contact), hCaptcha, Upstash Redis (rate-limit), PostHog
-- Page `/labs/audit` non-linkée publique : EventSource consumer pour tester la SSE du backend (URL/runId/ticket en input, render des 12 events)
+## Stack technique par composant
 
-## VPS Hostinger `82.25.117.79`
+### Frontend marketing (`bjhunt-v2`)
+- Next.js 16 App Router, React 19, TypeScript strict, Tailwind 4
+- next-intl (FR/EN), Resend (beta+contact), hCaptcha, Upstash Redis (ratelimit), PostHog
+- POC `/labs/audit` : EventSource consumer (sera retiré quand `app.bjhunt.com` ship)
 
-- KVM 8 (8 vCPU / 32 GB / 400 GB NVMe / Ubuntu 24.04 / EU Lithuania) — déjà acheté, réutilisé Phase 1-2
-- Containers up : `coolify`, `coolify-db`, `coolify-redis`, `coolify-realtime`, `bjhunt-postgres`, `bjhunt-redis`, `bjhunt-litellm`
-- Wireguard `wg0` actif sur `:51820/udp`, server inner `10.7.0.1`
-- SSH : port 22, clé `bjhunt-vps-2026-04-29` (ed25519), alias `bjhunt-vps`, key locale `C:\Users\CODEUR\.ssh\bjhunt_vps`
-- UFW : 22/80/443 ouverts ; LiteLLM/Postgres/Redis liés à `127.0.0.1` (accessibles via tunnel SSH `-L 4000 -L 5432 -L 6379` ou via wireguard mesh)
+### Backend (`bjhunt-backend`)
+- Bun 1.1+, Hono 4, Drizzle ORM + postgres-js, ioredis, jose (JWT), pino
+- BetterAuth : email+pwd, org, 2FA TOTP, passkey
+- E2B SDK + Cloudflare R2
+- SSE : Redis Streams `MAXLEN ~10000` + PG mirror + replay `Last-Event-ID`
+- Routes : `/api/auth/*`, `/api/chats`, `/api/chat/prepare`, `/api/chat/stream/:id`, `/api/catalog/*`
 
-## Vercel envs (frontend marketing)
+### Engine (`bjhunt-engine`)
+- Fork openclaude (MIT, TS/Bun) + pack BJHUNT 4 MAX
+- 38 personas (7 complets, 31 stubs héritant templates)
+- 3 hooks `.cjs` : scope-guard / evidence-capture / redact-secrets
+- `run-engagement.sh` : filtre `BJHUNT_AGENTS_ENABLED` + `BJHUNT_AGENT_MODELS`
+- Build/install/sign scripts PKCS#7, tests anti-leak
 
-- `RESEND_API_KEY`, `NEXT_PUBLIC_HCAPTCHA_SITEKEY`, `HCAPTCHA_SECRET`
-- (`NEXT_PUBLIC_API_URL` retiré post-purge — backend SaaS sur app.bjhunt.com séparé)
+### App dashboard (`bjhunt-app`)
+- Next.js 16 App Router, React 19, Tailwind 4
+- BetterAuth client, assistant-ui pinned `0.10.50`
+- Proxy `/api/*` → backend via `next.config.ts` rewrite (dev)
+- Pages : `/login`, `/chats`, `/chats/[chatId]`
 
-## GitHub
+## Checklist dev local
 
-- 6 repos `bjhuntcom-oss/*` (cf. tableau plus haut). Tous sur branche `main` directe sauf `bjhunt-engine` (`feat/bjhunt-v2.1-pack`, PR #1 draft) et `bjhunt-assistant-ui` (`feat/bjhunt-pack` ancré sur tag upstream `@assistant-ui/react@0.10.50`).
-- Workflows : `bjhunt` (`ci.yml` lint+build+gitleaks frontend) ; `bjhunt-backend`/`bjhunt-app`/`bjhunt-engine` à wirer Phase 2.
-- gh CLI authentifiée (`bjhuntcom-oss`)
+```bash
+# 1. Tunnel SSH
+ssh -L 5432:127.0.0.1:5432 -L 6379:127.0.0.1:6379 -L 4000:127.0.0.1:4000 bjhunt-vps -N
 
-## Outils & accès
+# 2. Backend
+# D:\bjhunt-backend\
+bun install && bun run db:migrate && bun run dev  # port 8080
 
-- Vercel CLI auth (team `bjhunts-projects`) — `vercel env ls`, `vercel deploy`
-- gh CLI auth — `gh repo view`, `gh pr create`, etc.
-- SSH VPS via alias `bjhunt-vps`
-- Playwright MCP autorisé (Hostinger panel, Cloudflare Zero Trust)
-- **Pas d'usage des MCP Vercel/GitHub** — uniquement CLI locales
-- `bun` non installé localement (typecheck via `npx -p typescript tsc --noEmit -p tsconfig.json` quand node_modules présent)
+# 3. App
+# D:\bjhunt-app\
+npm install && npm run dev  # port 3000
 
-## Cheminement E2E local
+# 4. Smoke
+# D:\bjhunt-backend\
+bash tests/smoke/run-e2e.sh
+```
 
-1. SSH tunnel : `ssh bjhunt-vps -L 5432:127.0.0.1:5432 -L 6379:127.0.0.1:6379 -L 4000:127.0.0.1:4000 -N`
-2. `docker build` de l'image `bjhunt-kali` depuis `D:\bjhunt-engine\` (ou laisser `BJHUNT_E2B_MODE=mock` pour smoke)
-3. Backend `D:\bjhunt-backend\` : `bun run dev` (port 8080)
-4. App `D:\bjhunt-app\` : `npm run dev` (port 3000) — proxy `/api/*` vers `localhost:8080` via `next.config.ts` rewrite
-5. Smoke : `bash tests/smoke/run-e2e.sh` (5 étapes, depuis `D:\bjhunt-backend\`)
+## Anti-patterns connus (ne pas reproduire)
 
-## Reste à faire (Phase 1.13.b → 2)
+- `command:` YAML en string unique (doit être liste mono-élément `["sh", "-c", "cmd"]`).
+- `hono/compress` sur `oven/bun:1.1.42-alpine` (pas `CompressionStream`) — laisser CF compresser.
+- `^` devant `@assistant-ui/react` — doit être version exacte pinned.
+- Mettre du state côté client pour des données sensibles — tout passe par le backend.
 
-**1.13.b (court terme)** :
-- `npm install` dans `D:\bjhunt-app\` pour `@assistant-ui/react ^0.10` + peer deps. Vérifier l'API exacte de `ThreadPrimitive`/`MessagePrimitive`/`ComposerPrimitive` car version 0.10 = branche stable jan 2026 (l'API a pu bouger).
-- Brancher `BJHUNT_AGENTS_ENABLED` / `BJHUNT_AGENT_MODELS` dans `bjhunt-engine/bjhunt/docker/run-engagement.sh` (filtrer le `loadAgentsDir.ts` + driver `agentRouting`).
-- Ajouter `GET /api/engagements/:id/runs` côté backend pour lister l'historique sur la page detail.
+## Journal & documentation
 
-**1.14+ / Phase 2 (déploiement réel)** :
-- Déploiement Fly.io (`flyctl deploy bjhunt-backend`) avec wireguard peer Fly→Hostinger
-- Déploiement Vercel (ou CF Pages) pour `app.bjhunt.com`
-- Registration template E2B `bjhunt-kali`
-- OpenTelemetry → Grafana Cloud, Sentry errors backend+frontend
-- CI E2E (GitHub Actions sur PR `bjhunt-backend` + `bjhunt-app`)
-- Logpush Cloudflare → R2 (audit trail SOC 2)
-- Real signing cert EV (DigiCert) pour PKCS#7 PDF
-- Egress filtering iptables dans `bjhunt-kali`
-- Stripe billing integration
-- Status page Cloudflare Pages
+- **Journal des phases** : `docs/JOURNAL.md` (mettre à jour à chaque livraison)
+- **Architecture complète** : `docs/architecture/*.md`
+- **Backend README** : `../../bjhunt-backend/README.md`
+- **Engine README** : `../../bjhunt-engine/README.md`
+- **App README** : `../../bjhunt-app/README.md`
+- **Streaming events** : `../../bjhunt-engine/bjhunt/STREAMING_EVENTS.md`
+- **Hooks** : `../../bjhunt-engine/bjhunt/HOOKS.md`
+- **Identity** : `../../bjhunt-engine/bjhunt/IDENTITY.md`
 
-## Règles de développement
+## Context-mode : réduire le token burn
 
-- Code sécurisé : pas d'unsafe-eval, CSP strict, Resend/hCaptcha au boundary, secrets jamais en dur
-- Inputs validés via Zod, sanitize HTML via `lib/sanitize.ts`
-- Rate-limit toutes routes API publiques (`lib/rate-limit.ts`)
-- TypeScript strict (`noUncheckedIndexedAccess` côté backend)
-- Préférer Server Components Next.js par défaut
-- **Identité injectée** : tout agent BJHUNT V2.1 réplique "BJHUNT V2.1, le moteur d'audit offensif de BJHUNT" — jamais Claude/GPT/GLM/Ollama. Gardé par `BJHUNT_MODE=true` env var dans le sandbox.
-- **Cibles pré-autorisées** : tout ce qui passe dans `engagement.scope.in_scope` est présumé autorisé (mandat signé). Pas de refus moralisateur — le hook `scope-guard.cjs` filtre techniquement (fail-closed).
-- Commits conventional : `feat:`, `fix:`, `chore:`, `ci:`, `docs:`
-- Journal `docs/JOURNAL.md` à mettre à jour à chaque phase livrée
+Pour éviter de saturer le context window :
+- **Lire un fichier avant de l'éditer** (éviter les re-lectures).
+- **Utiliser glob/grep** pour cibler plutôt que `read` massif.
+- **Ne pas inclure le contenu complet de fichiers externes** dans le prompt — référencer par path.
+- **Préférer `edit` à `write`** (modification minimale).
+- **Quand une tâche dépasse 3 étapes**, utiliser `task` pour déléguer à un sous-agent.
+
+## Contacts
+
+- Dev : `bjhuntcom@gmail.com`
+- Sécurité : voir `SECURITY.md`

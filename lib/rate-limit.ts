@@ -10,9 +10,13 @@
  *   - Development (no Upstash configured): in-memory Map fallback so local dev
  *     keeps working. NOT safe across serverless invocations on Vercel.
  *
- * If Upstash is unavailable (network error, quota exceeded), the limiter
- * fails OPEN (request allowed). This protects availability over strict
- * enforcement; we log the failure for observability.
+ * If Upstash is unavailable (network error, quota exceeded):
+ *   - in production: fail CLOSED. Public unauthenticated endpoints like
+ *     /api/beta and /api/contact would otherwise be wide open to spam if
+ *     Upstash hiccups, so we trade availability for safety here.
+ *   - in dev: fail OPEN so local development keeps working without an
+ *     Upstash account.
+ * Same logic applies when the env vars are missing entirely.
  */
 
 import { Ratelimit } from '@upstash/ratelimit'
@@ -93,9 +97,23 @@ export async function rateLimit(
         limit: res.limit,
       }
     } catch (err) {
-      console.error(`[rate-limit] Upstash failure on ${prefix}:${identifier}, failing open`, err)
+      // In production we fail CLOSED on a public unauthenticated endpoint —
+      // fail-open here is an open door for email/signup spam if Upstash
+      // hiccups. In dev we keep the lenient behaviour so the form is testable
+      // without an Upstash account.
+      console.error(`[rate-limit] Upstash failure on ${prefix}:${identifier}`, err)
+      if (process.env.NODE_ENV === 'production') {
+        return { success: false, remaining: 0, resetAt: Date.now() + windowMs, limit }
+      }
       return { success: true, remaining: limit, resetAt: Date.now() + windowMs, limit }
     }
+  }
+  // No Upstash configured. In production this means env vars are missing —
+  // refuse rather than rely on the per-instance memory store (each Vercel
+  // serverless invocation is a fresh process, so memoryStore = no-op).
+  if (process.env.NODE_ENV === 'production' && !upstashEnabled) {
+    console.error(`[rate-limit] No Upstash configured in production for ${prefix}; refusing`)
+    return { success: false, remaining: 0, resetAt: Date.now() + windowMs, limit }
   }
   return memoryLimit(`${prefix}:${identifier}`, limit, windowMs)
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# BJHUNT V2.1 — add a wireguard peer (Fly.io machine, dev laptop, etc.)
+# BJHUNT 4 MAX — add a wireguard peer (Fly.io machine, dev laptop, etc.)
 #
 # Usage on the VPS:
 #   bash /root/add-wireguard-peer.sh fly-cdg-1
@@ -60,7 +60,7 @@ EOF
 # Write the peer-side config file.
 PEER_CFG="${PEER_DIR}/${PEER_NAME}.conf"
 cat > "${PEER_CFG}" <<EOF
-# BJHUNT V2.1 — peer config for ${PEER_NAME}
+# BJHUNT 4 MAX — peer config for ${PEER_NAME}
 # Inner IP ${PEER_IP}, generated $(date -u +%FT%TZ)
 [Interface]
 Address = ${PEER_IP}/32

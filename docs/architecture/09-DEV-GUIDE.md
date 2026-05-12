@@ -23,7 +23,7 @@ cp .env.example .env.local
 bun run dev               # http://localhost:3000
 ```
 
-C'est tout. Pas de Docker, pas de DB, pas de backend à lancer (ce repo est uniquement le frontend marketing — le SaaS BJHUNT V2.1 vit sur les repos privés `bjhunt-engine`, `bjhunt-backend`, `bjhunt-app`).
+C'est tout. Pas de Docker, pas de DB, pas de backend à lancer (ce repo est uniquement le frontend marketing — le SaaS BJHUNT 4 MAX vit sur les repos privés `bjhunt-engine`, `bjhunt-backend`, `bjhunt-app`).
 
 ## Variables d'env minimum pour dev
 

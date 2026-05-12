@@ -66,6 +66,16 @@ export function trackFormSubmission(formName: string, success: boolean): void {
   })
 }
 
+// What we ship to PostHog when consent is granted. The previous payload
+// included userAgent + screenSize + timezone + platform — that quadruple
+// is enough to fingerprint a visitor in many cases (≥30% in the EFF
+// Panopticlick model). The cookie banner only mentions "analytics", not
+// "fingerprinting", so collecting it without explicit disclosure crosses
+// the GDPR line.
+//
+// Stripped to non-fingerprinting essentials. PostHog's auto-capture also
+// captures a coarse session UA on its own — what we control here is what
+// WE emit on top of that. Keep it intentionally thin.
 export function getVisitorInfo(): Record<string, unknown> {
   if (typeof window === 'undefined') return {}
 
@@ -73,16 +83,7 @@ export function getVisitorInfo(): Record<string, unknown> {
   if (!consent?.analytics) return {}
 
   return {
-    userAgent: navigator.userAgent,
     language: navigator.language,
-    languages: navigator.languages,
-    platform: navigator.platform,
-    cookieEnabled: navigator.cookieEnabled,
-    doNotTrack: navigator.doNotTrack,
-    screenWidth: screen.width,
-    screenHeight: screen.height,
-    colorDepth: screen.colorDepth,
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     referrer: document.referrer,
     currentUrl: window.location.href,
     pathname: window.location.pathname,

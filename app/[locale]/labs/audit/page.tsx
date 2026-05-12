@@ -1,5 +1,5 @@
 /**
- * BJHUNT V2.1 — labs/audit POC page
+ * BJHUNT 4 MAX — labs/audit POC page
  *
  * Phase 1.10 minimal UI to consume an SSE engagement stream live.
  * Operator pastes (1) a backend base URL, (2) a runId, (3) a 5-min JWT ticket
@@ -52,7 +52,7 @@ export default function AuditLabsPage() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <header className="mb-6">
-        <h1 className="text-2xl font-semibold text-slate-900">BJHUNT V2.1 — Audit Labs (POC)</h1>
+        <h1 className="text-2xl font-semibold text-slate-900">BJHUNT 4 MAX — Audit Labs (POC)</h1>
         <p className="mt-2 text-sm text-slate-600">
           Smoke test page for the engagement SSE stream. Not production UI.
         </p>

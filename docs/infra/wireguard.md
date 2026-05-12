@@ -1,4 +1,4 @@
-# BJHUNT V2.1 — wireguard mesh
+# BJHUNT 4 MAX — wireguard mesh
 
 Private overlay between Fly.io machines (CDG/AMS) and the Hostinger VPS,
 keeping Postgres/Redis/LiteLLM off the public internet.

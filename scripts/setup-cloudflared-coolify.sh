@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# BJHUNT V2.1 — install cloudflared as a tunnel-token-driven service on Hostinger
+# BJHUNT 4 MAX — install cloudflared as a tunnel-token-driven service on Hostinger
 #
 # Pre-requisite (one-shot, ~30s in browser):
 #   1. Cloudflare dashboard → Zero Trust → Networks → Tunnels → Create Tunnel

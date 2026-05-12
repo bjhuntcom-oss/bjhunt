@@ -40,16 +40,16 @@ export function Footer() {
           </nav>
         </div>
 
-        {/* Développeurs */}
+        {/* Developers / Développeurs */}
         <div className="p-8">
-          <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-[0.2em] mb-5 font-mono">Développeurs</p>
+          <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-[0.2em] mb-5 font-mono">{t("developers")}</p>
           <div className="flex flex-col gap-3">
             {[
-              { href: "/api-docs",           label: "Documentation API" },
-              { href: "/api-docs#auth",      label: "Authentification" },
-              { href: "/api-docs#endpoints", label: "Endpoints" },
-              { href: "/api-docs#webhooks",  label: "Webhooks" },
-              { href: "/beta",               label: "Accès Beta" },
+              { href: "/api-docs",           label: t("apiDocs") },
+              { href: "/api-docs#auth",      label: t("apiAuth") },
+              { href: "/api-docs#endpoints", label: t("apiEndpoints") },
+              { href: "/api-docs#webhooks",  label: t("apiWebhooks") },
+              { href: "/beta",               label: t("apiBetaAccess") },
             ].map(({ href, label }) => (
               <Link
                 key={href}
@@ -64,7 +64,7 @@ export function Footer() {
 
         {/* Contact */}
         <div className="p-8">
-          <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-[0.2em] mb-5 font-mono">Contact</p>
+          <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-[0.2em] mb-5 font-mono">{t("contact")}</p>
           <div className="flex flex-col gap-3 mb-6">
             <a
               href="mailto:contact@bjhunt.com"
@@ -83,19 +83,19 @@ export function Footer() {
             href="mailto:contact@bjhunt.com"
             className="inline-flex items-center gap-2 bg-white text-black px-4 py-2 text-[10px] font-bold uppercase tracking-wider hover:bg-white/90 transition-colors"
           >
-            Écrire →
+            {t("writeUs")}
           </a>
         </div>
 
-        {/* Légal */}
+        {/* Legal / Légal */}
         <div className="p-8">
-          <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-[0.2em] mb-5 font-mono">Légal</p>
+          <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-[0.2em] mb-5 font-mono">{t("legal")}</p>
           <div className="flex flex-col gap-3">
             {[
-              { href: "/legal", label: "Conditions d'utilisation" },
-              { href: "/legal", label: "Confidentialité" },
-              { href: "/legal", label: "RGPD" },
-              { href: "/legal", label: "Mentions légales" },
+              { href: "/legal", label: t("termsOfUse") },
+              { href: "/legal", label: t("privacy") },
+              { href: "/legal", label: t("gdpr") },
+              { href: "/legal", label: t("legalNotice") },
             ].map(({ href, label }) => (
               <Link
                 key={label}

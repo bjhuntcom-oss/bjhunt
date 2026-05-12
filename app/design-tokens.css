@@ -97,7 +97,7 @@
      for UI. The next/font/google loader in app/[locale]/layout.tsx exposes
      `--font-inter`; we fall back to system stacks otherwise. */
   --bjhunt-font-sans:          var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', ui-sans-serif, system-ui, sans-serif;
-  --bjhunt-font-mono:          'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --bjhunt-font-mono:          var(--font-jetbrains-mono), 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --bjhunt-text-xs:            12px;
   --bjhunt-text-sm:            13px;
   --bjhunt-text-base:          14px;

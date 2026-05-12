@@ -5,14 +5,16 @@ import { sanitizeFormData } from '@/lib/sanitize'
 import { rateLimit, getClientIp, rateLimitHeaders } from '@/lib/rate-limit'
 
 async function verifyCaptcha(token: string): Promise<boolean> {
+  const secret = process.env.HCAPTCHA_SECRET
+  if (!secret) {
+    console.error('[captcha] HCAPTCHA_SECRET is not set — refusing all submissions')
+    return false
+  }
   try {
     const res = await fetch('https://api.hcaptcha.com/siteverify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        secret: process.env.HCAPTCHA_SECRET || '',
-        response: token,
-      }),
+      body: new URLSearchParams({ secret, response: token }),
     })
     const data = await res.json()
     return data.success === true

@@ -1,6 +1,7 @@
-@import "@fontsource/jetbrains-mono/400.css";
-@import "@fontsource/jetbrains-mono/500.css";
-@import "@fontsource/jetbrains-mono/700.css";
+/* JetBrains Mono is now loaded via next/font in app/[locale]/layout.tsx —
+   keep the CSS variable mapping in design-tokens.css unchanged but stop
+   importing the @fontsource bundle (it duplicated the family that
+   next/font already serves). Saves ~70KB First Load CSS. */
 
 @import "tailwindcss";
 @import "./design-tokens.css";

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# BJHUNT V2.1 — wireguard server setup on Hostinger VPS (10.7.0.0/24 mesh)
+# BJHUNT 4 MAX — wireguard server setup on Hostinger VPS (10.7.0.0/24 mesh)
 #
 # Run as root on the VPS:
 #   scp scripts/setup-wireguard-hostinger.sh bjhunt-vps:/root/
@@ -37,7 +37,7 @@ SERVER_PUB=$(cat server-public.key)
 
 # 3. Server config
 cat > "$WG_IFACE.conf" <<EOF
-# BJHUNT V2.1 — Hostinger wireguard server
+# BJHUNT 4 MAX — Hostinger wireguard server
 [Interface]
 Address = ${WG_SERVER_IP}/24
 ListenPort = ${WG_PORT}

@@ -1,7 +1,15 @@
 {
   "globalMeta": {
     "title": "BJHUNT — Audit offensif IA pour la cybersécurité",
-    "description": "BJHUNT V2.1 — la plateforme IA d'audit offensif et de pentest continue. 317+ outils orchestrés, conformité PCI-DSS / ISO 27001 / OWASP / NIS2 / DORA, rapports signés."
+    "description": "BJHUNT 4 MAX — la plateforme IA d'audit offensif et de pentest continue. 317+ outils orchestrés, conformité PCI-DSS / ISO 27001 / OWASP / NIS2 / DORA, rapports signés.",
+    "ogTitle": "BJHUNT 4 MAX — Audit offensif IA",
+    "ogDescription": "Plateforme IA de pentest continu : outillage orchestré, rapports compliance signés (PCI-DSS, ISO 27001, NIST CSF 2.0, HIPAA, SOC 2, RGPD), priorisation CVSS 7-10."
+  },
+  "contactMeta": {
+    "title": "Contact — BJHUNT 4 MAX",
+    "description": "Contactez l'équipe BJHUNT pour vos audits sécurité, partenariats et accès beta.",
+    "ogTitle": "Contacter BJHUNT 4 MAX — Audits sécurité IA",
+    "ogDescription": "Joignez l'équipe BJHUNT pour le cadrage d'engagement, l'accès beta ou un partenariat."
   },
   "nav": {
     "home": "Accueil",
@@ -85,7 +93,18 @@
     "tools": "317+ outils. <5% faux positifs.",
     "copyright": "Tous droits réservés",
     "period": "Déc 2023 → Présent",
-    "active": "Actif"
+    "active": "Actif",
+    "developers":         "Développeurs",
+    "apiDocs":            "Documentation API",
+    "apiAuth":            "Authentification",
+    "apiEndpoints":       "Endpoints",
+    "apiWebhooks":        "Webhooks",
+    "apiBetaAccess":      "Accès Beta",
+    "writeUs":            "Écrire →",
+    "termsOfUse":         "Conditions d'utilisation",
+    "privacy":            "Confidentialité",
+    "gdpr":               "RGPD",
+    "legalNotice":        "Mentions légales"
   },
   "contact": {
     "label": "CONTACT",
@@ -127,7 +146,7 @@
     "within48h": "sous 24-48h.",
     "backHome": "Retour à l'accueil",
     "projectStatus": "STATUT DU PROJET",
-    "projectStatusDesc": "BJHUNT est en développement actif. Lancement beta prévu pour Q1 2026.",
+    "projectStatusDesc": "BJHUNT est en développement actif. Lancement beta prévu pour T2 2026.",
     "phase": "Phase",
     "testing": "Tests",
     "avgResponse": "Réponse moyenne",
