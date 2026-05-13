@@ -1,0 +1,191 @@
+# BJHUNT 4 MAX — Infrastructure unifiée (Backend + Orchestrator + Sandbox + Data Layer)
+# Usage : docker compose up -d
+# Le réseau `bjhunt-net` est partagé entre tous les services.
+
+services:
+  # ---------------------------------------------------------------------------
+  # DATA LAYER
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: bjhunt-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bjhunt
+      POSTGRES_USER: bjhunt
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD env var required}
+    volumes:
+      - bjhunt-postgres-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bjhunt -d bjhunt"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bjhunt-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: bjhunt-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD env var required}
+      --appendonly yes
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - bjhunt-redis-data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bjhunt-net
+
+  # ---------------------------------------------------------------------------
+  # SANDBOX (tool execution in isolated Docker containers)
+  # ---------------------------------------------------------------------------
+  sandbox:
+    build:
+      context: ../bjhunt-sandbox
+      dockerfile: sandbox/Dockerfile
+    container_name: bjhunt-sandbox
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8001:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - bjhunt-sandbox-workspaces:/app/workspaces
+    environment:
+      - DEBUG=false
+      - HOST=0.0.0.0
+      - PORT=8000
+      - SANDBOX_NETWORK=bjhunt-sandbox-net
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - BJHUNT_MODE=true
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+    networks:
+      - bjhunt-net
+      - bjhunt-sandbox-net
+
+  # ---------------------------------------------------------------------------
+  # ORCHESTRATOR (LangGraph + FastAPI)
+  # ---------------------------------------------------------------------------
+  orchestrator:
+    build:
+      context: ../bjhunt-orchestrator
+      dockerfile: orchestrator/Dockerfile
+    container_name: bjhunt-orchestrator
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8002:8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - CHECKPOINT_POSTGRES_URI=postgresql://bjhunt:${POSTGRES_PASSWORD}@postgres:5432/bjhunt
+      - BJHUNT_SANDBOX_URL=http://sandbox:8000
+      - BJHUNT_TOOL_TIMEOUT=120
+      - BJHUNT_ORCHESTRATOR_SECRET=${BJHUNT_ORCHESTRATOR_SECRET:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+    networks:
+      - bjhunt-net
+
+  # ---------------------------------------------------------------------------
+  # BACKEND (Hono + Bun)
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ..
+      dockerfile: bjhunt-backend/Dockerfile
+    container_name: bjhunt-backend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      - PORT=8080
+      - NODE_ENV=production
+      - PUBLIC_BASE_URL=https://api.bjhunt.com
+      - POSTGRES_URL=postgresql://bjhunt:${POSTGRES_PASSWORD}@postgres:5432/bjhunt
+      - POSTGRES_URL_ADMIN=postgresql://bjhunt:${POSTGRES_PASSWORD}@postgres:5432/bjhunt
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - LITELLM_URL=http://litellm:4000
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      - JWT_SECRET_TICKET=${JWT_SECRET_TICKET}
+      - BETTERAUTH_SECRET=${BETTERAUTH_SECRET}
+      - BJHUNT_SECRET_MASTER_KEY=${BJHUNT_SECRET_MASTER_KEY}
+      - BJHUNT_RELAY_SECRET=${BJHUNT_RELAY_SECRET}
+      - BJHUNT_ORCHESTRATOR_URL=http://orchestrator:8000
+      - BJHUNT_ORCHESTRATOR_SECRET=${BJHUNT_ORCHESTRATOR_SECRET}
+      - BJHUNT_ENGINE_MODE=${BJHUNT_ENGINE_MODE:-openclaude}
+      - E2B_API_KEY=${E2B_API_KEY}
+      - SENTRY_DSN_BACKEND=${SENTRY_DSN_BACKEND:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      orchestrator:
+        condition: service_started
+      sandbox:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/api/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+    networks:
+      - bjhunt-net
+
+  # ---------------------------------------------------------------------------
+  # LITELLM (proxy LLM — optionnel si déjà déployé séparément)
+  # ---------------------------------------------------------------------------
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: bjhunt-litellm
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4000:4000"
+    environment:
+      - STORE_MODEL_IN_DB=true
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      - DATABASE_URL=postgresql://bjhunt:${POSTGRES_PASSWORD}@postgres:5432/bjhunt
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - bjhunt-net
+
+volumes:
+  bjhunt-postgres-data:
+  bjhunt-redis-data:
+  bjhunt-sandbox-workspaces:
+
+networks:
+  bjhunt-net:
+    driver: bridge
+  bjhunt-sandbox-net:
+    driver: bridge
