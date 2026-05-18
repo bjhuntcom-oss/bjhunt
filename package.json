@@ -23,7 +23,7 @@
     "lucide-react": "1.14.0",
     "next": "16.2.6",
     "next-intl": "4.11.2",
-    "posthog-js": "1.373.3",
+    "posthog-js": "1.373.5",
     "react": "19.2.5",
     "react-dom": "19.2.5",
     "resend": "6.12.3",
