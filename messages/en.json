@@ -140,6 +140,8 @@
     "connectionError": "Connection error. Please retry.",
     "sending": "Sending...",
     "sendBtn": "Send Message",
+    "heading": "Let's Talk",
+    "lede": "A question, a partnership, or a specific need — we respond within 24 business hours.",
     "messageSent": "Message Sent!",
     "thankYou": "Thank you",
     "confirmationMsg": "Your message has been sent. We will respond at",
@@ -304,5 +306,37 @@
         "description": "Remember your choices and personalise your experience."
       }
     }
+  },
+  "beta": {
+    "eyebrow": "07 / Early access",
+    "limitedSeats": "Limited seats",
+    "title": "Join the Beta",
+    "description": "Priority access to new features, direct support from the founding team.",
+    "progressLabel": "Beta progress",
+    "spotsRemaining": "{count} spots remaining out of {limit}",
+    "waitlistActive": "Waitlist — you will be notified",
+    "requestRegistered": "Request registered",
+    "confirmationMsg": "We are currently in closed beta. You will be notified as soon as the platform is fully operational.",
+    "spotsLabel": "Beta spots",
+    "spotsRemainingShort": "{count} spots remaining",
+    "waitlistShort": "Waitlist active",
+    "backHome": "Back to home",
+    "benefitScans": "Unlimited scans during Beta",
+    "benefitApi": "Full API access",
+    "benefitReport": "PDF vulnerability report",
+    "benefitSupport": "Direct support from the founding team",
+    "fullName": "Full name",
+    "namePlaceholder": "John Doe",
+    "professionalEmail": "Professional email",
+    "emailPlaceholder": "john@company.com",
+    "company": "Company",
+    "optional": "optional",
+    "companyPlaceholder": "Your company name",
+    "whyJoin": "Why join the beta?",
+    "whyJoinPlaceholder": "Ex: I'm a pentester and want to test your tools...",
+    "captchaDisabled": "Captcha disabled in development.",
+    "captchaError": "Please solve the captcha.",
+    "submitting": "Submitting…",
+    "requestAccess": "Request access"
   }
 }

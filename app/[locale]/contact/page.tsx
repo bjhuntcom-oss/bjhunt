@@ -119,14 +119,14 @@ export default function ContactPage() {
                 lineHeight: 1.11,
               }}
             >
-              Parlons-nous
+              {t("heading")}
               <em className="not-italic" style={{ color: "var(--bjhunt-text-muted)" }}>.</em>
             </h1>
             <p
               className="mt-6 max-w-md font-normal"
               style={{ fontSize: 16, lineHeight: 1.6, color: "var(--bjhunt-text-muted)" }}
             >
-              Une question, un partenariat, ou un besoin spécifique — réponse sous 24h ouvrées.
+              {t("lede")}
             </p>
           </header>
 
@@ -262,7 +262,7 @@ export default function ContactPage() {
                 }}
               >
                 {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                {loading ? "Envoi…" : "Envoyer le message"}
+                {loading ? t("sending") : t("sendBtn")}
               </button>
             </form>
           </div>

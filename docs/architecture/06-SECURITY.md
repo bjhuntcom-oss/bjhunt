@@ -81,14 +81,21 @@ Toutes les routes publiques + auth ont rate-limit Upstash Redis :
 |---|---|
 | Runtime | Firecracker microVM (E2B managed) |
 | User | non-root (uid 1000) |
-| Capabilities | `cap_drop: ALL` sauf `NET_RAW` (pour `nmap -sS`) |
-| Filesystem | read-only rootfs, tmpfs `/tmp 2G`, `/workspace 10G` |
-| Network | Outbound whitelist target uniquement (configuré per-engagement) |
+| Capabilities | `cap_drop: ALL` (NET_RAW and NET_ADMIN removed — nmap uses connect scan `-sT` instead of SYN scan) |
+| Filesystem | read-only rootfs, tmpfs `/tmp 128MB`, `/data 64MB`, `/workspace 10G` |
+| Network | Outbound whitelist target uniquement (egress-filter.sh per-engagement, applied AFTER scope.json write) |
 | `no-new-privileges` | true |
-| seccomp | default + custom syscall denylist |
+| seccomp | default profile only (`unconfined` removed) |
+| Docker socket | NOT mounted (removed — was a potential container escape) |
+| Auth middleware | HMAC Bearer token on sandbox relay (relay validates HMAC-SHA256 of shared secret + timestamp) |
+| Sandbox port | Bound to `127.0.0.1:8000` only (not `0.0.0.0`) |
 | Resource limits | 2 vCPU, 4 GB RAM, 50 PIDs, 10 GB disk |
-| TTL | 30 min idle → kill automatique |
+| TTL | 30 min idle → kill automatique; auto-terminate on `run.completed`/`run.failed` |
 | Image | `bjhunt-kali:<digest>` pinned, signed cosign, scanned trivy CRITICAL/HIGH = 0 |
+
+> **Audit fix 2026-05-18**: Previously the sandbox had `seccomp:unconfined`, Docker socket mounted, `NET_RAW`/`NET_ADMIN` capabilities, and the relay port bound to `0.0.0.0`. All four have been removed. nmap SYN scans (`-sS`) are replaced by connect scans (`-sT`) which require no special capabilities. The relay now requires HMAC Bearer token auth for all requests except `/healthz`.
+
+> See [13-DUAL-SANDBOX.md](13-DUAL-SANDBOX.md) for the full dual sandbox architecture (E2B production + bjhunt-sandbox reserve) with switching mechanism and migration plan.
 
 ### 8. Database — RLS FORCE
 Cf. [04-MULTI-TENANCY.md](04-MULTI-TENANCY.md). Role app `bjhunt_app` NOSUPERUSER NOBYPASSRLS.
@@ -110,6 +117,30 @@ Cf. [04-MULTI-TENANCY.md](04-MULTI-TENANCY.md). Role app `bjhunt_app` NOSUPERUSE
   - >100 tool calls/heure même org
   - RAM sandbox >80% sur n'importe quel container
   - Spike error rate >10% req/min
+
+## Mesures additionnelles (audit 2026-05-18)
+
+### VPS firewalling
+- **UFW** activé sur le VPS Hostinger : `default deny incoming`, `allow 22/tcp`, `allow 80/tcp`, `allow 443/tcp`, `allow 51820/udp` (WireGuard) uniquement
+- Coolify management UI (port 8000) bloqué publiquement via `DOCKER-USER` iptables chain (ACCEPT from 127.0.0.0/8 + 10.7.0.0/24 WireGuard mesh, DROP catch-all)
+- bjhunt-stack services (Postgres 5432, Redis 6379, LiteLLM 4000, backend 8080) bound to `127.0.0.1` only
+- Cloudflare Tunnel `bjhunt-prod` routes `api.bjhunt.com` → `localhost:8080`
+
+### Sandbox authentication
+- Relay endpoint (`event-relay.cjs`) requires **HMAC Bearer token** on all requests except `/healthz`
+- Token = HMAC-SHA256 of shared secret + timestamp; validated server-side with timing-safe comparison
+- Prevents unauthorized injection of events or control commands into the SSE pipeline
+
+### Backend hardening
+- **1 MB body size limit** on all API requests (prevents oversized payload DoS)
+- **Orchestrator Bearer token auth required** on control/message injection endpoints (`POST /control`, `POST /chat/:id/messages`)
+- Share endpoint uses **admin DB connection** (`POSTGRES_URL_ADMIN`) to bypass RLS for cross-tenant data access (intentional; writes still scoped)
+
+### Email verification
+- **Email verification disabled** (`requireEmailVerification: false`) — no mailer (Resend/SendGrid) wired yet
+- Auto-verify hook on sign-up (`databaseHooks.user.create.after` sets `emailVerified: true`)
+- Account lockout still active (5 échecs / 15min Redis sliding)
+- **Must enable before public launch**
 
 ## CSP — détail au rebuild backend
 

@@ -1921,3 +1921,65 @@ backend + `8fb43fe`/`a00ab92` app)** — 17 waves d'un coup :
 Reste sur **assistant-ui fork** court terme. Migration progressive vers **Vercel AI SDK UI** planifiee Q4 2026-H1 2027 via ChatRuntimeAdapter abstraction. Cout migration estime 15-20 jours. Voir docs/AUDIT_UI_UX_2026-05-12.md matrix.
 
 ---
+
+## 2026-05-18 — Audit sécurité + documentation mise à jour
+
+### Audit findings & fixes appliqués
+
+8 items de sécurité identifiés lors de l'audit deep-pass et corrigés :
+
+1. **UFW activé sur le VPS** — `default deny incoming`, allow 22/80/443/51820 uniquement. Coolify port 8000 bloqué publiquement via `DOCKER-USER` iptables chain (ACCEPT loopback + WireGuard mesh, DROP catch-all).
+
+2. **Sandbox auth middleware (HMAC Bearer token)** — Le relay `event-relay.cjs` valide maintenant un HMAC-SHA256 Bearer token sur toutes les requêtes sauf `/healthz`. Timing-safe comparison. Empêche l'injection non autorisée d'événements ou de commandes de contrôle.
+
+3. **Sandbox port bound to `127.0.0.1:8000` only** — Auparavant `0.0.0.0:8000` (accessible publiquement sur le réseau Docker). Maintenant loopback uniquement.
+
+4. **Docker socket removed from sandbox** — Le socket `/var/run/docker.sock` n'est plus monté dans le conteneur sandbox (risque d'évasion container supprimé).
+
+5. **`seccomp:unconfined` removed** — Le conteneur sandbox utilise maintenant le profil seccomp par défaut de Docker (profile default). L'ancien paramètre `unconfined` désactivait toutes les protections seccomp.
+
+6. **`NET_RAW`/`NET_ADMIN` capabilities removed** — `cap_drop: ALL` sans exception. nmap utilise maintenant `-sT` (connect scan) au lieu de `-sS` (SYN scan qui nécessitait `NET_RAW`).
+
+7. **Backend 1 MB body size limit** — `app.use('*', bodyLimit({ maxSize: 1024 * 1024 }))` ajouté. Prévient les attaques DoS par payload surdimensionné.
+
+8. **Orchestrator Bearer token auth required** — Les endpoints `POST /control` et `POST /chat/:id/messages` exigent maintenant un Bearer token HMAC (même secret que le relay sandbox).
+
+### Documentation mise à jour
+
+- `06-SECURITY.md` — Section 7 (Sandbox isolation) complètement réécrite : Docker socket removed, seccomp default, NET_RAW/NET_ADMIN removed, HMAC auth, 127.0.0.1 binding. Nouvelle section « Mesures additionnelles (audit 2026-05-18) » : UFW, sandbox auth, backend hardening, share endpoint RLS bypass, email verification désactivée.
+- `12-STREAMING_EVENTS.md` (NEW) — Documente les 14 events SSE réels avec leurs shapes JSON exactes, incluant les différences avec l'ancien doc 03-STREAMING.md (qui listait 12 events idéalisés jamais implémentés tels quels). Marqué DRAFT.
+- JOURNAL.md — Cette entrée.
+
+---
+
+## 2026-05-18 (suite) — Réorganisation documentation architecture
+
+### Dated audit files → archive/
+
+15 fichiers datés (audits 2026-05-12/13, décisions Mastra, recherches UI/UX) déplacés de `docs/` vers `docs/archive/` :
+
+- `ARCHITECTURE_CIBLE_HYBRIDE_2026-05-13.md`
+- `AUDIT_BACKEND_DETAILLE_2026-05-13.md`
+- `AUDIT_CONSOLIDATED_2026-05-12.md`
+- `AUDIT_VPS_2026-05-12.md`
+- `DECISION_DUAL_SANDBOX_2026-05-13.md`
+- `DECISION_MASTRA_2026-05-13.md`
+- `JOURNAL_APPEND_2026-05-13.md`
+- `PROMPT_AUDIT_ULTRA_DEEP_2026-05-13.md`
+- `RAPPORT_AUDIT_CONTRATS_API_2026-05-13.md`
+- `RAPPORT_AUDIT_DEPLOIEMENT_2026-05-13.md`
+- `RAPPORT_AUDIT_SSE_UX_2026-05-13.md`
+- `RAPPORT_AUDIT_TYPES_SCHEMAS_2026-05-13.md`
+- `RAPPORT_COHERENCE_BATCHES_2026-05-13.md`
+- `recherche-mastra-complete.md`
+- `research-ui-ux-chat-ia-2025-2026.md`
+
+### Nouveau doc architecture 13-DUAL-SANDBOX.md
+
+Ajouté `architecture/13-DUAL-SANDBOX.md` — synthèse concise de l'architecture double sandbox (E2B production + bjhunt-sandbox réserve), mécanisme de switch, variables d'environnement, hardening sécurité, plan de migration. Remplace le `DECISION_DUAL_SANDBOX_2026-05-13.md` (détaillé mais daté, conservé en archive).
+
+### README.md mis à jour
+
+Index docs mis à jour : ajout 12-STREAMING_EVENTS.md, 13-DUAL-SANDBOX.md, section Infrastructure, section Archive. Retrait de la date « État au 2026-04-29 » (obsolète).
+
+---

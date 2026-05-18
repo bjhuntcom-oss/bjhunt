@@ -19,7 +19,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ['contact',                  'monthly', 0.7],
     ['technology',               'monthly', 0.7],
     ['technology/deep-dive',     'monthly', 0.6],
-    ['labs/audit',               'weekly',  0.7],
     ['legal',                    'yearly',  0.3],
     ['legal/ai-policy',          'yearly',  0.3],
     ['legal/accessibility',      'yearly',  0.3],

@@ -11,6 +11,9 @@ function buildCspHeader(nonce: string): string {
     'https://eu.i.posthog.com',
     'https://app.posthog.com',
     'https://us.i.posthog.com',
+    'https://api.bjhunt.com',
+    'https://chat.bjhunt.com',
+    'wss://chat.bjhunt.com',
   ]
 
   const directives: Record<string, string[] | null> = {
@@ -36,6 +39,7 @@ function buildCspHeader(nonce: string): string {
     'manifest-src': ["'self'"],
     'media-src': ["'self'", 'data:', 'blob:'],
     'upgrade-insecure-requests': [],
+    'report-uri': ['/api/security/csp-report'],
   }
 
   return Object.entries(directives)
@@ -60,6 +64,7 @@ export default async function middleware(request: NextRequest) {
   const response = intlMiddleware(nextRequest)
   response.headers.set('x-nonce', nonce)
   response.headers.set('Content-Security-Policy', buildCspHeader(nonce))
+  response.headers.set('Reporting-Endpoints', 'default="/api/security/csp-report"')
   return response
 }
 

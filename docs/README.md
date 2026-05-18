@@ -1,7 +1,5 @@
 # BJHUNT — Documentation
 
-État au 2026-04-29.
-
 ## Index
 
 ### Architecture
@@ -17,6 +15,17 @@
 - [09 — Guide dev local](architecture/09-DEV-GUIDE.md)
 - [10 — Décisions d'architecture (ADR)](architecture/10-DECISIONS.md)
 - [11 — Roadmap rebuild](architecture/11-ROADMAP.md)
+- [12 — SSE Event Types (wire format)](architecture/12-STREAMING_EVENTS.md)
+- [13 — Dual Sandbox Architecture](architecture/13-DUAL-SANDBOX.md)
+
+### Infrastructure
+- [infra/](infra/) — Cloudflare tunnel, WireGuard, OpenHands migration notes
+
+### Journal
+- [JOURNAL.md](JOURNAL.md) — Chronological action log
+
+### Archive
+- [archive/](archive/) — Dated audit reports, research notes, superseded decisions (2026-05-12 to 2026-05-13)
 
 ## Statut produit
 

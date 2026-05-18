@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
+import { useLocale } from 'next-intl'
+import { useSearchParams } from 'next/navigation'
 import { Check, Loader2, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import HCaptcha from '@hcaptcha/react-hcaptcha'
@@ -20,9 +22,9 @@ const labelClass =
   'uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)]'
 
 export default function BetaPage() {
-  const { locale } = useParams<{ locale: string }>()
+  const t = useTranslations('beta')
+  const locale = useLocale()
   const searchParams = useSearchParams()
-  const isFr = locale === 'fr'
   const justRegistered = searchParams.get('registered') === 'true'
 
   const [formData, setFormData] = useState({ name: '', email: '', company: '', role: '' })
@@ -59,7 +61,7 @@ export default function BetaPage() {
     setError('')
 
     if (HCAPTCHA_SITEKEY && !captchaToken) {
-      setError(isFr ? 'Veuillez valider le captcha.' : 'Please solve the captcha.')
+      setError(t('captchaError'))
       return
     }
 
@@ -104,15 +106,13 @@ export default function BetaPage() {
               lineHeight: 1.11,
             }}
           >
-            {isFr ? 'Demande enregistrée' : 'Request registered'}
+            {t('requestRegistered')}
           </h1>
           <p
             className="m-0 mb-10 mx-auto max-w-md font-normal"
             style={{ fontSize: 16, lineHeight: 1.6, color: 'var(--bjhunt-text-muted)' }}
           >
-            {isFr
-              ? 'Nous sommes en phase beta fermée. Vous serez notifié par email dès que la plateforme sera pleinement opérationnelle.'
-              : 'We are currently in closed beta. You will be notified as soon as the platform is fully operational.'}
+            {t('confirmationMsg')}
           </p>
           {betaCount !== null && (
             <div
@@ -127,7 +127,7 @@ export default function BetaPage() {
                   className="[font-family:var(--bjhunt-font-mono)] uppercase font-semibold"
                   style={{ fontSize: 12, letterSpacing: '0.18em', color: 'var(--bjhunt-text-muted)' }}
                 >
-                  {isFr ? 'Places beta' : 'Beta spots'}
+                  {t('spotsLabel')}
                 </span>
                 <span
                   className="[font-family:var(--bjhunt-font-mono)] font-normal"
@@ -157,8 +157,8 @@ export default function BetaPage() {
                 />
                 <span style={{ fontSize: 13, color: 'var(--bjhunt-text)' }}>
                   {spotsLeft !== null && spotsLeft > 0
-                    ? isFr ? `${spotsLeft} places restantes` : `${spotsLeft} spots remaining`
-                    : isFr ? "Liste d'attente active" : 'Waitlist active'}
+                    ? t('spotsRemainingShort', { count: spotsLeft })
+                    : t('waitlistShort')}
                 </span>
               </p>
             </div>
@@ -169,7 +169,7 @@ export default function BetaPage() {
             style={{ fontSize: 12, letterSpacing: '0.18em', color: 'var(--bjhunt-text-muted)' }}
           >
             <ArrowRight className="h-3 w-3 rotate-180" />
-            {isFr ? "Retour à l'accueil" : 'Back to home'}
+            {t('backHome')}
           </Link>
         </div>
       </div>
@@ -198,7 +198,7 @@ export default function BetaPage() {
               background: 'var(--warning-dim)',
             }}
           >
-            {isFr ? 'Places limitées' : 'Limited seats'}
+            {t('limitedSeats')}
           </span>
         </div>
         <h1
@@ -210,16 +210,14 @@ export default function BetaPage() {
             lineHeight: 1.11,
           }}
         >
-          {isFr ? 'Rejoignez la Beta' : 'Join the Beta'}
+          {t('title')}
           <em className="not-italic" style={{ color: 'var(--bjhunt-text-muted)' }}>.</em>
         </h1>
         <p
           className="mt-6 max-w-xl font-normal"
           style={{ fontSize: 16, lineHeight: 1.6, color: 'var(--bjhunt-text-muted)' }}
         >
-          {isFr
-            ? 'Accès prioritaire aux nouvelles fonctionnalités, support direct de l’équipe fondatrice.'
-            : 'Priority access to new features, direct support from the founding team.'}
+          {t('description')}
         </p>
       </header>
 
@@ -238,7 +236,7 @@ export default function BetaPage() {
                 className="[font-family:var(--bjhunt-font-mono)] uppercase font-semibold"
                 style={{ fontSize: 12, letterSpacing: '0.18em', color: 'var(--bjhunt-text-muted)' }}
               >
-                {isFr ? 'Progression beta' : 'Beta progress'}
+                  {t('progressLabel')}
               </span>
               <span
                 className="[font-family:var(--bjhunt-font-mono)] font-normal"
@@ -266,8 +264,8 @@ export default function BetaPage() {
               />
               <span style={{ color: 'var(--bjhunt-text)' }}>
                 {spotsLeft !== null && spotsLeft > 0
-                  ? isFr ? `${spotsLeft} places restantes sur ${BETA_LIMIT}` : `${spotsLeft} spots remaining out of ${BETA_LIMIT}`
-                  : isFr ? "Liste d'attente — vous serez notifié" : 'Waitlist — you will be notified'}
+                  ? t('spotsRemaining', { count: spotsLeft, limit: BETA_LIMIT })
+                  : t('waitlistActive')}
               </span>
             </p>
           </div>
@@ -275,10 +273,10 @@ export default function BetaPage() {
 
         <ul className="m-0 mb-10 flex flex-col gap-3 p-0 list-none">
           {[
-            isFr ? 'Scans illimités pendant la Beta' : 'Unlimited scans during Beta',
-            isFr ? 'Accès API complet' : 'Full API access',
-            isFr ? 'Rapport de vulnérabilités PDF' : 'PDF vulnerability report',
-            isFr ? "Support direct de l'équipe fondatrice" : 'Direct support from the founding team',
+            t('benefitScans'),
+            t('benefitApi'),
+            t('benefitReport'),
+            t('benefitSupport'),
           ].map((item) => (
             <li
               key={item}
@@ -311,26 +309,26 @@ export default function BetaPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="beta-name" className={labelClass}>{isFr ? 'Nom complet' : 'Full name'} *</label>
+                <label htmlFor="beta-name" className={labelClass}>{t('fullName')} *</label>
                 <input
                   id="beta-name"
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder={isFr ? 'Jean Dupont' : 'John Doe'}
+                  placeholder={t('namePlaceholder')}
                   className={fieldClass}
                 />
               </div>
               <div>
-                <label htmlFor="beta-email" className={labelClass}>{isFr ? 'Email professionnel' : 'Professional email'} *</label>
+                <label htmlFor="beta-email" className={labelClass}>{t('professionalEmail')} *</label>
                 <input
                   id="beta-email"
                   type="email"
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder={isFr ? 'jean@entreprise.com' : 'john@company.com'}
+                  placeholder={t('emailPlaceholder')}
                   className={fieldClass}
                 />
               </div>
@@ -338,9 +336,9 @@ export default function BetaPage() {
 
             <div>
               <label htmlFor="beta-company" className={labelClass}>
-                {isFr ? 'Entreprise' : 'Company'}{' '}
+                {t('company')}{' '}
                 <span style={{ color: 'var(--bjhunt-text-disabled)' }}>
-                  ({isFr ? 'optionnel' : 'optional'})
+                  ({t('optional')})
                 </span>
               </label>
               <input
@@ -348,14 +346,14 @@ export default function BetaPage() {
                 type="text"
                 value={formData.company}
                 onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                placeholder={isFr ? 'Nom de votre entreprise' : 'Your company name'}
+                  placeholder={t('companyPlaceholder')}
                 className={fieldClass}
               />
             </div>
 
             <div>
               <label htmlFor="beta-role" className={labelClass}>
-                {isFr ? 'Pourquoi rejoindre la beta ?' : 'Why join the beta?'} *
+                {t('whyJoin')} *
               </label>
               <textarea
                 id="beta-role"
@@ -363,7 +361,7 @@ export default function BetaPage() {
                 rows={4}
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                placeholder={isFr ? 'Ex: Je suis pentester et je veux tester vos outils...' : "Ex: I'm a pentester and want to test your tools..."}
+                  placeholder={t('whyJoinPlaceholder')}
                 className={`${fieldClass} resize-y leading-relaxed`}
               />
             </div>
@@ -384,7 +382,7 @@ export default function BetaPage() {
                 className="m-0 [font-family:var(--bjhunt-font-mono)] uppercase italic font-medium"
                 style={{ fontSize: 12, letterSpacing: '0.18em', color: 'var(--bjhunt-text-disabled)' }}
               >
-                {isFr ? 'Captcha désactivé en développement.' : 'Captcha disabled in development.'}
+                {t('captchaDisabled')}
               </p>
             )}
 
@@ -425,9 +423,7 @@ export default function BetaPage() {
               }}
             >
               {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-              {submitting
-                ? (isFr ? 'Envoi…' : 'Submitting…')
-                : (isFr ? "Demander l'accès" : 'Request access')}
+              {submitting ? t('submitting') : t('requestAccess')}
             </button>
           </form>
         </div>
