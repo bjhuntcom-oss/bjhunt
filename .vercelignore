@@ -1,0 +1,13 @@
+.pytest_cache/
+__pycache__/
+engine/
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+.DS_Store
+*.log
+*.local
+.env*.local
