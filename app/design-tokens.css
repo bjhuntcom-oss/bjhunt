@@ -1,183 +1,135 @@
 /*
- * BJHUNT — Design tokens per docs/architecture/17-DESIGN-SYSTEM.md
+ * BJHUNT — Unified Design System (2026-05)
  *
- * W8 update (2026-04-26): aligned with `BJHUNT/W8 Design System.html` inspiration —
- * deeper near-black surfaces, Apple system severity palette, Apple/spring easings,
- * extended duration scale. Legacy variables remain as additive aliases so older
- * components continue to inherit the refreshed palette without code edits.
+ * Dark default, white mode via [data-theme="light"].
+ * Inspired by E2B's professional SaaS aesthetic — deep navy/black
+ * surfaces, cyber blue/teal gradient accents, clean sans-serif
+ * typography, hairline borders as depth.
+ *
+ * Single namespace: --bjhunt-*
+ * No W8 legacy aliases, no 2026 refonte split.
  */
 
 :root {
-  /* ── Brand ─────────────────────────────────────────── */
-  --bjhunt-brand-primary:      #6366F1;     /* indigo 500 */
-  --bjhunt-brand-hover:        #818CF8;     /* indigo 400 — W8 hover */
-  --bjhunt-brand-primary-fg:   #FFFFFF;
-  --bjhunt-brand-primary-soft: rgba(99, 102, 241, 0.12);
+  /* ── Surfaces ───────────────────────────────────── */
+  --bjhunt-bg:               #08090D;
+  --bjhunt-bg-secondary:     #0D0E14;
+  --bjhunt-bg-surface:       #111217;
+  --bjhunt-bg-elevated:      #1A1B22;
 
-  /* ── Surfaces (W8 deeper black with hint of indigo) ─── */
-  --bjhunt-bg:                 #07070B;
-  --bjhunt-bg-secondary:       #0C0C12;
-  --bjhunt-bg-tertiary:        #111118;
-  --bjhunt-bg-elevated:        #1B1B24;
+  /* ── Brand (cyber blue + teal) ──────────────────── */
+  --bjhunt-brand:            #00B4D8;
+  --bjhunt-brand-hover:      #48CAE4;
+  --bjhunt-brand-soft:       rgba(0, 180, 216, 0.10);
+  --bjhunt-brand-glow:       rgba(0, 180, 216, 0.20);
+  --bjhunt-accent:           #14B8A6;
+  --bjhunt-accent-soft:      rgba(20, 184, 166, 0.12);
 
-  /* ── Text ──────────────────────────────────────────── */
-  --bjhunt-text:               #F4F4F7;
-  --bjhunt-text-secondary:     #B8B3B0;
-  --bjhunt-text-muted:         #A1A1AA;
-  --bjhunt-text-subtle:        #52525B;
-  --bjhunt-text-disabled:      #3F3F46;
-  --bjhunt-text-inverted:      #07070B;
+  /* ── Text ───────────────────────────────────────── */
+  --bjhunt-text:             #F2F2F4;
+  --bjhunt-text-secondary:   #A1A1AA;
+  --bjhunt-text-muted:       #71717A;
+  --bjhunt-text-disabled:    #3F3F46;
+  --bjhunt-text-inverted:    #08090D;
 
-  /* ── Borders (W8 translucent overlays) ──────────────── */
-  --bjhunt-border:             rgba(255, 255, 255, 0.06);
-  --bjhunt-border-strong:      rgba(255, 255, 255, 0.12);
-  --bjhunt-border-focus:       var(--bjhunt-brand-primary);
+  /* ── Borders ────────────────────────────────────── */
+  --bjhunt-border:           rgba(255, 255, 255, 0.07);
+  --bjhunt-border-strong:    rgba(255, 255, 255, 0.12);
+  --bjhunt-border-focus:     var(--bjhunt-brand);
 
-  /* ── Severity (W8 — Apple system colors) ─────────────
-     Both `--bjhunt-severity-*` and `--sev-*` aliases are exposed because
-     the W8 inspiration components use the short form and existing atomic
-     components use the long form. Keep both for compatibility. */
-  --bjhunt-severity-critical:    #FF453A;
-  --bjhunt-severity-critical-bg: rgba(255, 69, 58, 0.12);
-  --bjhunt-severity-high:        #FF9F0A;
-  --bjhunt-severity-high-bg:     rgba(255, 159, 10, 0.12);
-  --bjhunt-severity-medium:      #FFD60A;
-  --bjhunt-severity-medium-bg:   rgba(255, 214, 10, 0.10);
-  --bjhunt-severity-low:         #30D158;
-  --bjhunt-severity-low-bg:      rgba(48, 209, 88, 0.12);
-  --bjhunt-severity-info:        #64D2FF;
-  --bjhunt-severity-info-bg:     rgba(100, 210, 255, 0.12);
+  /* ── State colors ───────────────────────────────── */
+  --bjhunt-success:          #10B981;
+  --bjhunt-success-tint:     rgba(16, 185, 129, 0.12);
+  --bjhunt-warning:          #F59E0B;
+  --bjhunt-warning-tint:     rgba(245, 158, 11, 0.12);
+  --bjhunt-critical:         #EF4444;
+  --bjhunt-critical-tint:    rgba(239, 68, 68, 0.12);
+  --bjhunt-info:             #3B82F6;
+  --bjhunt-info-tint:        rgba(59, 130, 246, 0.12);
 
-  /* Short-form aliases used by W8 inspiration components */
-  --sev-critical:    var(--bjhunt-severity-critical);
-  --sev-critical-bg: var(--bjhunt-severity-critical-bg);
-  --sev-high:        var(--bjhunt-severity-high);
-  --sev-high-bg:     var(--bjhunt-severity-high-bg);
-  --sev-medium:      var(--bjhunt-severity-medium);
-  --sev-medium-bg:   var(--bjhunt-severity-medium-bg);
-  --sev-low:         var(--bjhunt-severity-low);
-  --sev-low-bg:      var(--bjhunt-severity-low-bg);
-  --sev-info:        var(--bjhunt-severity-info);
-  --sev-info-bg:     var(--bjhunt-severity-info-bg);
+  /* ── Terminal ───────────────────────────────────── */
+  --bjhunt-terminal-bg:      #0A0B10;
+  --bjhunt-terminal-text:    #00FF41;
+  --bjhunt-terminal-prompt:  var(--bjhunt-brand);
+  --bjhunt-terminal-error:   var(--bjhunt-critical);
 
-  /* ── Status ────────────────────────────────────────── */
-  --bjhunt-status-success:     #10B981;
-  --bjhunt-status-warning:     #F59E0B;
-  --bjhunt-status-danger:      #EF4444;
-  --bjhunt-status-info:        #3B82F6;
+  /* ── Radii ──────────────────────────────────────── */
+  --bjhunt-radius-xs:        4px;
+  --bjhunt-radius-sm:        6px;
+  --bjhunt-radius-md:        8px;
+  --bjhunt-radius-lg:        12px;
+  --bjhunt-radius-xl:        16px;
+  --bjhunt-radius-pill:      9999px;
 
-  /* ── Terminal block (per doc 17 §Terminal Block) ───── */
-  --bjhunt-terminal-bg:        #08080C;
-  --bjhunt-terminal-text:      #00FF41;
-  --bjhunt-terminal-prompt:    #6366F1;
-  --bjhunt-terminal-error:     #EF4444;
-  --bjhunt-terminal-warning:   #F59E0B;
+  /* ── Spacing (4px base) ─────────────────────────── */
+  --bjhunt-space-1:          4px;
+  --bjhunt-space-2:          8px;
+  --bjhunt-space-3:          12px;
+  --bjhunt-space-4:          16px;
+  --bjhunt-space-6:          24px;
+  --bjhunt-space-8:          32px;
+  --bjhunt-space-10:         40px;
+  --bjhunt-space-12:         48px;
+  --bjhunt-space-16:         64px;
+  --bjhunt-space-20:         80px;
 
-  /* ── Radii (per doc 17 §Components) ────────────────── */
-  --bjhunt-radius-xs:          2px;
-  --bjhunt-radius-sm:          4px;
-  --bjhunt-radius-md:          8px;       /* cards */
-  --bjhunt-radius-lg:          12px;      /* chat bubbles */
-  --bjhunt-radius-xl:          16px;
-  --bjhunt-radius-pill:        9999px;
+  /* ── Typography ─────────────────────────────────── */
+  --bjhunt-font-sans:        var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', ui-sans-serif, system-ui, sans-serif;
+  --bjhunt-font-display:     system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --bjhunt-font-mono:        var(--font-jetbrains-mono), 'JetBrains Mono', 'SF Mono', SFMono-Regular, Menlo, Monaco, monospace;
 
-  /* ── Spacing scale (4px base) ──────────────────────── */
-  --bjhunt-space-1:            4px;
-  --bjhunt-space-2:            8px;
-  --bjhunt-space-3:            12px;
-  --bjhunt-space-4:            16px;
-  --bjhunt-space-5:            20px;
-  --bjhunt-space-6:            24px;
-  --bjhunt-space-8:            32px;
-  --bjhunt-space-10:           40px;
-  --bjhunt-space-12:           48px;
+  /* ── Motion ─────────────────────────────────────── */
+  --bjhunt-duration-fast:    150ms;
+  --bjhunt-duration-base:    250ms;
+  --bjhunt-duration-slow:    400ms;
+  --bjhunt-ease-out:         cubic-bezier(0.16, 1, 0.3, 1);
+  --bjhunt-ease-in-out:      cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* ── Typography ──────────────────────────────────────
-     W8 leans on Inter weights 200/300 for editorial display + 400/500/600
-     for UI. The next/font/google loader in app/[locale]/layout.tsx exposes
-     `--font-inter`; we fall back to system stacks otherwise. */
-  --bjhunt-font-sans:          var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', ui-sans-serif, system-ui, sans-serif;
-  --bjhunt-font-mono:          var(--font-jetbrains-mono), 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --bjhunt-text-xs:            12px;
-  --bjhunt-text-sm:            13px;
-  --bjhunt-text-base:          14px;
-  --bjhunt-text-lg:            16px;
-  --bjhunt-text-xl:            20px;
-  --bjhunt-text-2xl:           24px;
+  /* ── Status aliases (back-compat) ───────────────── */
+  --state-success:            var(--bjhunt-success);
+  --state-success-tint:       var(--bjhunt-success-tint);
+  --state-warning:            var(--bjhunt-warning);
+  --state-warning-tint:       var(--bjhunt-warning-tint);
+  --state-critical:           var(--bjhunt-critical);
+  --state-critical-tint:      var(--bjhunt-critical-tint);
 
-  /* ── Animation ─────────────────────────────────────── */
-  /* Legacy long-form (kept for back-compat with existing components) */
-  --bjhunt-duration-fast:      120ms;
-  --bjhunt-duration-base:      200ms;
-  --bjhunt-duration-slow:      400ms;
-  --bjhunt-easing-out:         cubic-bezier(0.16, 1, 0.3, 1);
-  --bjhunt-easing-in-out:      cubic-bezier(0.4, 0, 0.2, 1);
+  /* Legacy aliases used by existing components */
+  --success:                  var(--bjhunt-success);
+  --success-dim:              var(--bjhunt-success-tint);
+  --warning:                  var(--bjhunt-warning);
+  --warning-dim:              var(--bjhunt-warning-tint);
+  --severity-critical:        var(--bjhunt-critical);
+  --severity-critical-bg:     var(--bjhunt-critical-tint);
 
-  /* W8 short-form duration + easing tokens */
-  --dur-fast:                  180ms;
-  --dur-base:                  360ms;
-  --dur-slow:                  640ms;
-  --ease-apple:                cubic-bezier(0.25, 0.1, 0.25, 1);
-  --ease-spring:               cubic-bezier(0.34, 1.56, 0.64, 1);
-
-  /* ============================================================
-   * BJHUNT 2026 REFONTE tokens — locked per
-   * docs/refonte-2026/DESIGN-SYSTEM-2026.md
-   *
-   * Additive, namespaced under `--bjhunt-2026-*` and `--state-*`.
-   * Refonte surfaces (marketing landing, technology, investors,
-   * future Wave-A foundation) consume these directly. We do NOT
-   * mutate existing W8 tokens above so other agents' surfaces
-   * (chat, dashboard, admin, etc.) keep their current palette
-   * until Wave A foundation rewrites design-tokens.css.
-   * ============================================================ */
-
-  /* Surfaces — deep black, two-shade */
-  --bjhunt-2026-bg:           #050507;          /* canvas */
-  --bjhunt-2026-bg-surface:   #101010;          /* cards, buttons, code, terminal */
-  --bjhunt-2026-bg-elevated:  #16161a;          /* modals, popovers */
-  --bjhunt-2026-bg-overlay:   rgba(0, 0, 0, 0.7);
-
-  /* Borders — warm charcoal */
-  --bjhunt-2026-border:         #3d3a39;
-  --bjhunt-2026-border-strong:  #5a5654;
-
-  /* Text — off-white */
-  --bjhunt-2026-text:           #f2f2f2;
-  --bjhunt-2026-text-secondary: #b8b3b0;
-  --bjhunt-2026-text-muted:     #8b949e;
-  --bjhunt-2026-text-disabled:  rgba(242, 242, 242, 0.4);
-
-  /* States — the ONLY chromatic accents allowed */
-  --state-success:        #00d992;
-  --state-warning:        #ffba00;
-  --state-critical:       #fb565b;
-  --state-success-tint:   rgba(0, 217, 146, 0.12);
-  --state-warning-tint:   rgba(255, 186, 0, 0.12);
-  --state-critical-tint:  rgba(251, 86, 91, 0.12);
-
-  /* Motion — refonte */
-  --bjhunt-2026-duration-fast: 100ms;
-  --bjhunt-2026-duration-base: 150ms;
-  --bjhunt-2026-duration-slow: 250ms;
-  --bjhunt-2026-ease-out:      cubic-bezier(0.16, 1, 0.3, 1);
-  --bjhunt-2026-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
-
-  /* Typography (refonte) */
-  --bjhunt-2026-font-display: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  --bjhunt-2026-font-sans:    Inter, var(--bjhunt-2026-font-display);
-  --bjhunt-2026-font-mono:    "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  /* Additional surface aliases */
+  --bg:                       var(--bjhunt-bg);
+  --border:                   var(--bjhunt-border);
+  --text-muted:               var(--bjhunt-text-muted);
+  --text-subtle:              var(--bjhunt-text-disabled);
 }
 
-/* Respect prefers-reduced-motion — already enforced globally in globals.css.
-   Reaffirmed here for atomic components that subscribe directly. */
+/* ── White mode ──────────────────────────────────── */
+[data-theme="light"] {
+  --bjhunt-bg:               #FAFAFB;
+  --bjhunt-bg-secondary:     #F4F4F5;
+  --bjhunt-bg-surface:       #FFFFFF;
+  --bjhunt-bg-elevated:      #F0F0F2;
+  --bjhunt-text:             #18181B;
+  --bjhunt-text-secondary:   #52525B;
+  --bjhunt-text-muted:       #A1A1AA;
+  --bjhunt-text-disabled:    #D4D4D8;
+  --bjhunt-text-inverted:    #FAFAFA;
+  --bjhunt-border:           rgba(0, 0, 0, 0.08);
+  --bjhunt-border-strong:    rgba(0, 0, 0, 0.14);
+  --bjhunt-brand-soft:       rgba(0, 180, 216, 0.08);
+  --bjhunt-accent-soft:      rgba(20, 184, 166, 0.08);
+  --bjhunt-terminal-bg:      #1A1B22;
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
-    --bjhunt-duration-fast:    0ms;
-    --bjhunt-duration-base:    0ms;
-    --bjhunt-duration-slow:    0ms;
-    --dur-fast:                0ms;
-    --dur-base:                0ms;
-    --dur-slow:                0ms;
+    --bjhunt-duration-fast: 0ms;
+    --bjhunt-duration-base: 0ms;
+    --bjhunt-duration-slow: 0ms;
   }
 }

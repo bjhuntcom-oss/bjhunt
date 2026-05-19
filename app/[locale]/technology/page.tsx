@@ -1,16 +1,10 @@
-// app/[locale]/technology/page.tsx
-//
-// BJHUNT 2026 refonte — replaces 4 inline neural-net SVGs (~950 LOC)
-// with monospaced ASCII rule-art via <MonoDiagram> + <NetworkTopologySVG>.
-// Token-pinned colors, ghost buttons, no gradients/shadows. <500 LOC target.
-
 "use client";
 
 import { motion } from "framer-motion";
 import { Link } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { MonoDiagram } from "@/components/ui/mono-diagram";
-import { NetworkTopologySVG } from "@/components/animations/network-topology";
 import { StatusDot } from "@/components/ui/status-dot";
 
 const fadeUp = {
@@ -24,22 +18,28 @@ const fadeUp = {
 
 const stagger = { visible: { transition: { staggerChildren: 0.08 } } };
 
-/* Shared section wrapper — applies hairline divider, container, padding. */
-function Section({ children }: { children: React.ReactNode }) {
+function Section({
+  children,
+  last,
+}: {
+  children: React.ReactNode;
+  last?: boolean;
+}) {
   return (
     <section
       className="py-16 md:py-24"
       style={{
-        background: "var(--bjhunt-2026-bg)",
-        borderBottom: "1px solid var(--bjhunt-2026-border)",
+        background: "var(--bjhunt-bg)",
+        borderBottom: last ? undefined : "1px solid var(--bjhunt-border)",
       }}
     >
-      <div className="mx-auto w-full max-w-[1280px] px-6 md:px-8 lg:px-12">{children}</div>
+      <div className="mx-auto w-full max-w-[1280px] px-6 md:px-8 lg:px-12">
+        {children}
+      </div>
     </section>
   );
 }
 
-/* Reusable section header with eyebrow + h2 per spec. */
 function SectionHeader({
   eyebrow,
   title,
@@ -48,416 +48,208 @@ function SectionHeader({
 }: {
   eyebrow: string;
   title: string;
-  highlight?: string;
-  description?: string;
+  highlight: string;
+  description: string;
 }) {
   return (
     <motion.header className="max-w-2xl" variants={fadeUp}>
-      <p
-        className="m-0 mb-4 font-mono uppercase"
-        style={{
-          fontSize: 12,
-          fontWeight: 600,
-          letterSpacing: "0.18em",
-          color: "var(--bjhunt-2026-text-muted)",
-        }}
-      >
+      <p className="mb-4 text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-bjhunt-text-muted m-0">
         {eyebrow}
       </p>
       <h2
         className="m-0"
         style={{
-          fontFamily: "var(--bjhunt-2026-font-display)",
+          fontFamily: "var(--bjhunt-font-display)",
           fontSize: "clamp(28px, 3vw, 36px)",
           fontWeight: 400,
           lineHeight: 1.11,
           letterSpacing: "-0.025em",
-          color: "var(--bjhunt-2026-text)",
+          color: "var(--bjhunt-text)",
         }}
       >
-        {title}
-        {highlight ? (
-          <>
-            <br />
-            <em
-              className="not-italic"
-              style={{ color: "var(--bjhunt-2026-text-secondary)" }}
-            >
-              {highlight}
-            </em>
-          </>
-        ) : null}
+        {title}{" "}
+        <span style={{ color: "var(--bjhunt-brand)" }}>{highlight}</span>
       </h2>
-      {description ? (
-        <p
-          className="mt-4"
-          style={{
-            fontSize: 16,
-            fontWeight: 400,
-            lineHeight: 1.6,
-            color: "var(--bjhunt-2026-text-secondary)",
-          }}
-        >
-          {description}
-        </p>
-      ) : null}
+      <p className="mt-4 text-[16px] font-sans font-normal leading-[1.6] text-bjhunt-text-secondary m-0">
+        {description}
+      </p>
     </motion.header>
   );
 }
 
-/* HERO ───────────────────────────────────────────────────────────── */
-function HeroSection() {
-  return (
-    <section
-      className="py-16 md:py-24"
-      style={{
-        background: "var(--bjhunt-2026-bg)",
-        borderBottom: "1px solid var(--bjhunt-2026-border)",
-      }}
-    >
-      <div className="mx-auto w-full max-w-[1280px] px-6 md:px-8 lg:px-12">
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={stagger}
-          className="grid grid-cols-1 items-end gap-10 md:grid-cols-[1fr_360px] md:gap-16"
-        >
-          <div>
-            <motion.p
-              variants={fadeUp}
-              className="m-0 mb-4 font-mono uppercase"
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                letterSpacing: "0.18em",
-                color: "var(--bjhunt-2026-text-muted)",
-              }}
-            >
-              01 / Technology
-            </motion.p>
-            <motion.h1
-              variants={fadeUp}
-              className="m-0 mb-6"
-              style={{
-                fontFamily: "var(--bjhunt-2026-font-display)",
-                fontSize: "clamp(40px, 5vw, 60px)",
-                fontWeight: 400,
-                lineHeight: 1.0,
-                letterSpacing: "-0.025em",
-                color: "var(--bjhunt-2026-text)",
-              }}
-            >
-              La technologie
-              <br />
-              <em className="not-italic" style={{ color: "var(--bjhunt-2026-text-secondary)" }}>
-                derriere BJHUNT.
-              </em>
-            </motion.h1>
-            <motion.p
-              variants={fadeUp}
-              className="m-0 mb-8 max-w-[560px]"
-              style={{
-                fontSize: 16,
-                fontWeight: 400,
-                lineHeight: 1.6,
-                color: "var(--bjhunt-2026-text-secondary)",
-              }}
-            >
-              17 agents IA autonomes. Un cycle d&apos;attaque-defense continu.
-              La cybersecurite du futur.
-            </motion.p>
-            <motion.div variants={fadeUp}>
-              <Button asChild variant="ghost" size="md">
-                <Link href="/technology/deep-dive">Explorer en detail →</Link>
-              </Button>
-            </motion.div>
-          </div>
+export default function TechnologyPage() {
+  const t = useTranslations("technology");
 
-          <motion.div variants={fadeUp} className="hidden md:block">
-            <NetworkTopologySVG className="h-48 w-full" />
-          </motion.div>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-/* MULTI-AGENT ORCHESTRATION ──────────────────────────────────────── */
-function OrchestrationSection() {
-  const ascii = `
+  const orchestrationAscii = `
                     ┌──────────────────┐
                     │   BJHUNT  CORE   │
-                    │   ORCHESTRATEUR  │
+                    │   ORCHESTRATOR   │
                     └────────┬─────────┘
                              │
        ┌─────────┬───────────┼───────────┬─────────┐
        │         │           │           │         │
   ┌────┴────┐ ┌──┴───┐  ┌────┴────┐ ┌────┴────┐ ┌──┴────┐
-  │ RECON   │ │EXPLT │  │ ANALYST │ │ CLOUD   │ │ DEFEN │
-  └─────────┘ └──────┘  └─────────┘ └─────────┘ └───────┘
-   recon       exploit   analyse     cloud      defense
+  │ RECON   │ │EXPLOIT│ │ ANALYST │ │ CLOUD   │ │ DEFENSE│
+  └─────────┘ └──────┘  └─────────┘ └─────────┘ └────────┘
 `;
 
-  return (
-    <Section>
-      <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-80px" }}
-        variants={stagger}
-      >
-        <SectionHeader
-          eyebrow="02 / Architecture"
-          title="Orchestration"
-          highlight="Multi-agent."
-          description="Nos 17 agents IA specialises travaillent ensemble comme une equipe de pentesters experimentes. Chaque agent maitrise un domaine : reconnaissance, exploitation, analyse, defense."
-        />
-
-        <motion.div variants={fadeUp} className="mt-10 md:mt-12">
-          <MonoDiagram
-            ascii={ascii}
-            highlight={/BJHUNT  CORE/g}
-            caption="HUB & SPOKE — 1 ORCHESTRATEUR · 5 SPECIALISTES"
-          />
-        </motion.div>
-
-        <motion.div
-          variants={fadeUp}
-          className="mt-10 grid max-w-2xl grid-cols-3 gap-px"
-          style={{ background: "var(--bjhunt-2026-border)" }}
-        >
-          {[
-            { value: "17",   label: "AGENTS IA" },
-            { value: "100+", label: "OUTILS" },
-            { value: "24/7", label: "AUTONOME" },
-          ].map(({ value, label }) => (
-            <div
-              key={label}
-              className="px-4 py-5 text-center sm:px-6"
-              style={{ background: "var(--bjhunt-2026-bg-surface)" }}
-            >
-              <div
-                style={{
-                  fontFamily: "var(--bjhunt-2026-font-mono)",
-                  fontSize: 24,
-                  fontWeight: 500,
-                  letterSpacing: "-0.02em",
-                  color: "var(--bjhunt-2026-text)",
-                  lineHeight: 1,
-                }}
-              >
-                {value}
-              </div>
-              <div
-                className="mt-2 font-mono uppercase"
-                style={{
-                  fontSize: 11,
-                  fontWeight: 500,
-                  letterSpacing: "0.18em",
-                  color: "var(--bjhunt-2026-text-muted)",
-                }}
-              >
-                {label}
-              </div>
-            </div>
-          ))}
-        </motion.div>
-      </motion.div>
-    </Section>
-  );
-}
-
-/* VACCINE LOOP ───────────────────────────────────────────────────── */
-function VaccineLoopSection() {
-  const ascii = `
-        ┌─────────────┐         ┌─────────────┐
-        │   ATTACK    │ ──────► │   BRIEF     │
-        └─────────────┘         └──────┬──────┘
-              ▲                        │
-              │                        ▼
-        ┌─────┴───────┐         ┌─────────────┐
-        │   VERIFY    │ ◄────── │   DEFENSE   │
-        └─────────────┘         └─────────────┘
-`;
-
-  return (
-    <Section>
-      <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-80px" }}
-        variants={stagger}
-      >
-        <SectionHeader
-          eyebrow="03 / Processus"
-          title="Le cycle"
-          highlight="Vaccin."
-          description="BJHUNT ne se contente pas de trouver les failles — il les corrige et verifie que la correction tient. Un cycle continu : Attaque → Defense → Verification."
-        />
-
-        <motion.div variants={fadeUp} className="mt-10 md:mt-12">
-          <MonoDiagram
-            ascii={ascii}
-            highlight={/(ATTACK|BRIEF|DEFENSE|VERIFY)/g}
-            caption="ATTACK → BRIEF → DEFENSE → VERIFY · BOUCLE FERMEE"
-          />
-        </motion.div>
-
-        <motion.p
-          variants={fadeUp}
-          className="mx-auto mt-6 max-w-md text-center"
-          style={{
-            fontSize: 13,
-            fontWeight: 400,
-            lineHeight: 1.6,
-            color: "var(--bjhunt-2026-text-muted)",
-          }}
-        >
-          Chaque vulnerabilite decouverte est automatiquement corrigee puis re-testee pour confirmer la correction.
-        </motion.p>
-      </motion.div>
-    </Section>
-  );
-}
-
-/* KNOWLEDGE GRAPH ────────────────────────────────────────────────── */
-function KnowledgeGraphSection() {
-  const legend: Array<{ state: "success" | "warning" | "critical" | "neutral"; label: string }> = [
-    { state: "neutral",  label: "HOTES" },
-    { state: "success",  label: "SERVICES" },
-    { state: "critical", label: "VULNS" },
-    { state: "warning",  label: "CREDENTIALS" },
-  ];
-
-  return (
-    <Section>
-      <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-80px" }}
-        variants={stagger}
-      >
-        <SectionHeader
-          eyebrow="04 / Intelligence"
-          title="Graphe de"
-          highlight="Connaissances."
-          description="Chaque decouverte enrichit un graphe de connaissances en temps reel. BJHUNT construit une carte complete de votre surface d'attaque et identifie les chaines d'exploitation les plus dangereuses."
-        />
-
-        <motion.div variants={fadeUp} className="mt-10 flex justify-center md:mt-12">
-          <NetworkTopologySVG className="h-64 w-full max-w-2xl" />
-        </motion.div>
-
-        <motion.div
-          variants={fadeUp}
-          className="mt-6 flex flex-wrap items-center justify-center gap-6"
-        >
-          {legend.map(({ state, label }) => (
-            <StatusDot key={label} state={state} label={label} mono />
-          ))}
-        </motion.div>
-      </motion.div>
-    </Section>
-  );
-}
-
-/* SANDBOX ISOLATION ──────────────────────────────────────────────── */
-function SandboxSection() {
-  const ascii = `
+  const sandboxAscii = `
                 ┌──────────────────────────────────┐
-                │       KALI LINUX SANDBOX         │
+                │       ISOLATED SANDBOX           │
    TEST  ────►  │  ┌────────────────────────────┐  │  ────►  RESULTS
-                │  │          [SHIELD]          │  │
-                │  │   ISOLATED · EPHEMERAL     │  │
+                │  │        [SHIELD]            │  │
+                │  │   EPHEMERAL · NET-ISOLATED │  │
                 │  └────────────────────────────┘  │
                 └──────────────────────────────────┘
-
-                  VOTRE INFRASTRUCTURE RESTE INTACTE
 `;
 
   return (
-    <Section>
-      <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-80px" }}
-        variants={stagger}
+    <div style={{ background: "var(--bjhunt-bg)" }}>
+      {/* Hero */}
+      <section
+        className="py-16 md:py-24"
+        style={{ borderBottom: "1px solid var(--bjhunt-border)" }}
       >
-        <SectionHeader
-          eyebrow="05 / Securite"
-          title="Isolation"
-          highlight="Totale."
-          description="Chaque test s'execute dans un environnement Kali Linux isole. Aucun risque pour votre infrastructure de production. Tests destructifs possibles en toute securite."
-        />
+        <div className="mx-auto w-full max-w-[1280px] px-6 md:px-8 lg:px-12">
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={stagger}
+            className="grid grid-cols-1 items-end gap-10 lg:grid-cols-[1fr_360px] lg:gap-16"
+          >
+            <div>
+              <motion.p
+                variants={fadeUp}
+                className="mb-4 text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-bjhunt-text-muted m-0"
+              >
+                {t("heroEyebrow")}
+              </motion.p>
+              <motion.h1
+                variants={fadeUp}
+                className="m-0 mb-5"
+                style={{
+                  fontFamily: "var(--bjhunt-font-display)",
+                  fontSize: "clamp(40px, 5vw, 60px)",
+                  fontWeight: 400,
+                  lineHeight: 1.0,
+                  letterSpacing: "-0.025em",
+                  color: "var(--bjhunt-text)",
+                }}
+              >
+                {t("heroTitle")}{" "}
+                <span style={{ color: "var(--bjhunt-brand)" }}>{t("heroHighlight")}</span>
+              </motion.h1>
+              <motion.p
+                variants={fadeUp}
+                className="mb-8 max-w-[560px] text-[16px] font-sans font-normal leading-[1.6] text-bjhunt-text-secondary m-0"
+              >
+                {t("heroDescription")}
+              </motion.p>
+              <motion.div variants={fadeUp}>
+                <Button asChild variant="ghost" size="md">
+                  <Link href="/beta">Request Access →</Link>
+                </Button>
+              </motion.div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
 
-        <motion.div variants={fadeUp} className="mt-10 md:mt-12">
-          <MonoDiagram
-            ascii={ascii}
-            highlight={/(KALI LINUX SANDBOX|TEST|RESULTS)/g}
-            caption="ISOLATION RESEAU · CONTENEUR EPHEMERE · MIDDLEWARE WHITELIST"
+      {/* BJHUNT 27B Model */}
+      <Section>
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }} variants={stagger}>
+          <SectionHeader
+            eyebrow={t("model.eyebrow")}
+            title={t("model.title")}
+            highlight={t("model.titleHighlight")}
+            description={t("model.description")}
           />
         </motion.div>
-      </motion.div>
-    </Section>
-  );
-}
+      </Section>
 
-/* CTA ────────────────────────────────────────────────────────────── */
-function CTASection() {
-  return (
-    <section
-      className="py-20 text-center md:py-24"
-      style={{ background: "var(--bjhunt-2026-bg)" }}
-    >
-      <motion.div
-        className="mx-auto flex w-full max-w-[860px] flex-col items-center gap-8 px-6 md:px-8"
-        initial={{ opacity: 0, y: 16 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      >
-        <h2
-          className="m-0"
-          style={{
-            fontFamily: "var(--bjhunt-2026-font-display)",
-            fontSize: "clamp(28px, 3vw, 36px)",
-            fontWeight: 400,
-            lineHeight: 1.11,
-            letterSpacing: "-0.025em",
-            color: "var(--bjhunt-2026-text)",
-          }}
-        >
-          Pret a securiser
-          <br />
-          <em
-            className="not-italic"
-            style={{ color: "var(--bjhunt-2026-text-secondary)" }}
+      {/* Orchestration */}
+      <Section>
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }} variants={stagger}>
+          <SectionHeader
+            eyebrow={t("orchestration.eyebrow")}
+            title={t("orchestration.title")}
+            highlight={t("orchestration.titleHighlight")}
+            description={t("orchestration.description")}
+          />
+          <motion.div variants={fadeUp} className="mt-10 md:mt-12">
+            <MonoDiagram
+              ascii={orchestrationAscii}
+              highlight={/BJ HUNT  CORE/g}
+              caption="HUB & SPOKE — 1 ORCHESTRATOR · 5 SPECIALISTS"
+            />
+          </motion.div>
+          <motion.div
+            variants={fadeUp}
+            className="mt-10 grid max-w-2xl grid-cols-3 gap-px"
+            style={{ background: "var(--bjhunt-border)" }}
           >
-            votre entreprise ?
-          </em>
-        </h2>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Button asChild variant="ghost" size="md">
-            <Link href="/beta">Rejoindre la beta</Link>
-          </Button>
-          <Button asChild variant="ghost" size="md">
-            <Link href="/contact">Contacter l&apos;equipe →</Link>
-          </Button>
-        </div>
-      </motion.div>
-    </section>
-  );
-}
+            {[
+              { value: "17", label: t("orchestration.stats.agents") },
+              { value: "100+", label: t("orchestration.stats.tools") },
+              { value: "24/7", label: t("orchestration.stats.uptime") },
+            ].map(({ value, label }) => (
+              <div key={label} className="px-4 py-5 text-center sm:px-6" style={{ background: "var(--bjhunt-bg-surface)" }}>
+                <span
+                  style={{
+                    fontFamily: "var(--bjhunt-font-mono)",
+                    fontSize: 24,
+                    fontWeight: 500,
+                    lineHeight: 1,
+                    letterSpacing: "-0.02em",
+                    color: "var(--bjhunt-brand)",
+                  }}
+                >
+                  {value}
+                </span>
+                <p className="mt-2 text-[11px] font-mono font-medium uppercase tracking-[0.18em] text-bjhunt-text-muted m-0">
+                  {label}
+                </p>
+              </div>
+            ))}
+          </motion.div>
+        </motion.div>
+      </Section>
 
-export default function TechnologyPage() {
-  return (
-    <>
-      <HeroSection />
-      <OrchestrationSection />
-      <VaccineLoopSection />
-      <KnowledgeGraphSection />
-      <SandboxSection />
-      <CTASection />
-    </>
+      {/* Sandbox */}
+      <Section>
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }} variants={stagger}>
+          <SectionHeader
+            eyebrow={t("sandbox.eyebrow")}
+            title={t("sandbox.title")}
+            highlight={t("sandbox.titleHighlight")}
+            description={t("sandbox.description")}
+          />
+          <motion.div variants={fadeUp} className="mt-10 md:mt-12">
+            <MonoDiagram
+              ascii={sandboxAscii}
+              highlight={/ISOLATED SANDBOX|TEST|RESULTS/g}
+              caption={t("sandbox.diagramCaption")}
+            />
+          </motion.div>
+        </motion.div>
+      </Section>
+
+      {/* Reporting */}
+      <Section last>
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }} variants={stagger}>
+          <SectionHeader
+            eyebrow={t("reporting.eyebrow")}
+            title={t("reporting.title")}
+            highlight={t("reporting.titleHighlight")}
+            description={t("reporting.description")}
+          />
+          <motion.div variants={fadeUp} className="mt-8 flex flex-wrap gap-3">
+            <Button asChild variant="ghost" size="md">
+              <Link href="/beta">{t("ctaPrimary")}</Link>
+            </Button>
+          </motion.div>
+        </motion.div>
+      </Section>
+    </div>
   );
 }

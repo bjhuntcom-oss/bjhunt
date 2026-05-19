@@ -1,123 +1,277 @@
 {
   "globalMeta": {
-    "title": "BJHUNT — AI-driven offensive security audit",
-    "description": "BJHUNT 4 MAX — the AI-driven continuous pentest platform. 317+ orchestrated tools, PCI-DSS / ISO 27001 / OWASP / NIS2 / DORA compliance reporting, signed deliverables.",
-    "ogTitle": "BJHUNT 4 MAX — AI-driven offensive security audit",
-    "ogDescription": "Continuous AI pentest platform: orchestrated tooling, signed compliance reports (PCI-DSS, ISO 27001, NIST CSF 2.0, HIPAA, SOC 2, GDPR), CVSS 7-10 prioritization."
+    "title": "BJHUNT — AI-Powered Offensive Security Platform",
+    "description": "BJHUNT unifies offensive security tooling, orchestration, and evidence-driven reporting into one AI-powered platform. Enterprise-grade pentesting, zero infrastructure, real-time results.",
+    "ogTitle": "BJHUNT — AI-Powered Offensive Security Platform",
+    "ogDescription": "Integrated offensive security platform. Orchestrated tooling, AI-driven detection, real-time reporting. Built for modern security teams."
   },
   "contactMeta": {
-    "title": "Contact — BJHUNT 4 MAX",
+    "title": "Contact — BJHUNT",
     "description": "Get in touch with the BJHUNT team for security audits, partnerships, and beta access.",
-    "ogTitle": "Contact BJHUNT 4 MAX — AI-driven security audits",
+    "ogTitle": "Contact BJHUNT",
     "ogDescription": "Reach the BJHUNT team for engagement scoping, beta access, or partnership inquiries."
   },
   "nav": {
     "home": "Home",
     "technology": "Technology",
     "pricing": "Pricing",
-    "api": "API",
-    "investors": "Investors",
+    "about": "About",
     "contact": "Contact",
     "signIn": "Sign in",
-    "joinBeta": "Join the beta"
+    "joinBeta": "Request access"
   },
   "hero": {
-    "platform": "AI PLATFORM",
-    "title1": "The ChatGPT",
-    "title2": "of",
-    "title3": "Cybersecurity",
-    "description": "AI-powered vulnerability detection. A conversational interface that orchestrates 317+ security tools for complete audits in hours.",
-    "joinBeta": "Join the Beta",
-    "invest": "Invest",
-    "keyMetrics": "KEY METRICS",
-    "live": "LIVE",
-    "development": "DEVELOPMENT",
-    "betaLaunch": "Beta launch planned Q2 2026",
-    "tools": "TOOLS",
-    "compliance": "COMPLIANCE",
-    "supportedStandards": "SUPPORTED STANDARDS",
-    "confidential": "CONFIDENTIAL",
-    "terminalPrompt": "Audit example.com OWASP Top 10 compliance",
-    "terminalStatus": "Scanning... 47 modules active",
-    "line1": "Hunt",
-    "line2": "Detect",
-    "line3": "Secure",
-    "subtitle": "AI-powered vulnerability detection infrastructure. Automated scans, real-time reports, zero false positives.",
-    "cta_primary": "Beta Access",
-    "cta_secondary": "API Docs"
+    "eyebrow": "AI-Powered Offensive Security",
+    "title": "The Future of Offensive Security",
+    "titleHighlight": "Is Automated.",
+    "description": "BJHUNT unifies offensive tooling, orchestration, and evidence-driven reporting into one intelligent platform. Purpose-built for security teams that demand speed, precision, and scale.",
+    "ctaPrimary": "Start Free",
+    "ctaSecondary": "Watch Demo",
+    "terminalLine1": "> bjhunt scan --target example.com --mode deep",
+    "terminalLine2": "[OK] 47 modules loaded. BJHUNT 27B online.",
+    "terminalLine3": "[>] Scanning surface attack vectors...",
+    "terminalLine4": "[✓] Complete. 3 critical, 7 high, 12 medium.",
+    "stats": {
+      "toolsIntegrated": "Tool Integrations",
+      "falsePositiveRate": "False Positive Rate",
+      "modelSize": "Purpose-Built Model",
+      "timeToScan": "Average Scan Time"
+    }
   },
-  "cta": {
-    "title": "Ready to secure your infrastructure",
-    "titleFaded": "Your Security?",
-    "description": "Join us in building the future of cybersecurity.",
-    "contact": "Contact",
-    "investors": "Investors",
-    "subtitle": "without compromise?",
-    "cta": "Request Beta Access",
-    "note": "Limited access — spots available for teams in Beta phase."
+  "toolsRail": {
+    "eyebrow": "Integrated Toolchain",
+    "title": "No more expensive tools. No more heavy machines.",
+    "titleHighlight": "No more false positives.",
+    "description": "Every major offensive security tool is pre-configured, orchestrated, and ready to execute. No setup, no licensing headaches, no infrastructure.",
+    "tools": [
+      "Nmap", "Nuclei", "Burp Suite", "Nessus", "Invicti",
+      "SQLMap", "Amass", "Wireshark", "Metasploit", "OWASP ZAP",
+      "ffuf", "Subfinder", "Nikto", "Dirsearch", "Gobuster"
+    ]
   },
   "features": {
-    "title": "AI-First Infrastructure for Cybersecurity",
-    "subtitle": "Tools built for DevSecOps teams who don't compromise.",
-    "scan_title": "Automated Scanning",
-    "scan_desc": "Real-time network detection with topological analysis and service discovery.",
-    "cve_title": "CVE Detection",
-    "cve_desc": "Synchronized CVE database, CVSS scoring, severity analysis and automatic prioritization.",
-    "infra_title": "Secure Infrastructure",
-    "infra_desc": "Scan isolation, end-to-end encryption, no data retained on our servers."
+    "eyebrow": "Platform Capabilities",
+    "title": "Everything you need to run",
+    "titleHighlight": "enterprise-grade pentests.",
+    "description": "Six pillars powering the next generation of offensive security operations.",
+    "cards": {
+      "orchestration": {
+        "title": "Intelligent Orchestration",
+        "description": "BJHUNT 27B — a purpose-built model specialized in offensive security. Coordinates multi-agent workflows, tool routing, and evidence collection without human handoffs."
+      },
+      "toolchain": {
+        "title": "Integrated Toolchain",
+        "description": "All major pentest tools pre-configured and ready. Run Nmap, Nuclei, Burp, Nessus, and more — orchestrated from a single command plane."
+      },
+      "reporting": {
+        "title": "Real-Time Reporting",
+        "description": "Professional audit reports in any language. Evidence-backed findings, CVSS scoring, and executive summaries — generated as the scan runs."
+      },
+      "security": {
+        "title": "Enterprise-Grade Security",
+        "description": "Complete tenant isolation, immutable audit trails, SAML/OIDC SSO, and role-based access control. Built for regulated environments."
+      },
+      "infrastructure": {
+        "title": "Zero Infrastructure",
+        "description": "No complex configuration. No heavy local machines. Everything runs from your browser — isolated sandboxes spin up on demand."
+      },
+      "compliance": {
+        "title": "ASVS & Compliance Ready",
+        "description": "OWASP ASVS aligned assessments. PCI-DSS, ISO 27001, SOC 2, and GDPR reporting frameworks built in. Pass audits with signed evidence packages."
+      }
+    }
   },
-  "api_section": {
-    "title": "Complete REST API. Integrate in 5 minutes.",
-    "subtitle": "Documented REST endpoints, available SDKs, real-time webhooks. Integration into your CI/CD pipeline.",
-    "cta": "View documentation"
+  "stats": {
+    "eyebrow": "Industry Context",
+    "title": "The numbers driving",
+    "titleHighlight": "the urgency.",
+    "stat1": {
+      "value": "68%",
+      "label": "Of breaches go undetected for months"
+    },
+    "stat2": {
+      "value": "$4.45M",
+      "label": "Average cost of a data breach (2023)"
+    },
+    "stat3": {
+      "value": "60%",
+      "label": "Reduction in pentest time with automation"
+    },
+    "stat4": {
+      "value": "83%",
+      "label": "Of organizations found critical vulnerabilities"
+    }
   },
-  "footer": {
-    "contact": "Contact",
-    "ready": "Ready to secure",
-    "yourInfra": "your infrastructure?",
-    "partnerships": "Partnerships",
-    "nav": "Nav",
-    "home": "Home",
-    "pricing": "Pricing",
-    "api": "API",
-    "investors": "Investors",
-    "contactLink": "Contact",
-    "legal": "Legal",
-    "status": "Status",
-    "version": "Version",
-    "phase": "Phase",
-    "tests": "Testing",
-    "launch": "Launch",
-    "brand": "Brand",
-    "tagline": "The ChatGPT of Cybersecurity.",
-    "tools": "317+ tools. <5% false positives.",
-    "copyright": "All rights reserved",
-    "period": "Dec 2023 → Present",
-    "active": "Active",
-    "developers":         "Developers",
-    "apiDocs":            "API documentation",
-    "apiAuth":            "Authentication",
-    "apiEndpoints":       "Endpoints",
-    "apiWebhooks":        "Webhooks",
-    "apiBetaAccess":      "Beta access",
-    "writeUs":            "Write us →",
-    "termsOfUse":         "Terms of use",
-    "privacy":            "Privacy",
-    "gdpr":               "GDPR",
-    "legalNotice":        "Legal notice"
+  "cta": {
+    "eyebrow": "Get Started",
+    "title": "Ready to replace fragmented",
+    "titleHighlight": "security operations?",
+    "description": "BJHUNT brings your offensive security workflow into a single, intelligent platform. Early access is limited to selected teams and security leaders.",
+    "cta": "Request Platform Access",
+    "note": "Early access limited to selected teams, security leaders, and pilot programs."
+  },
+  "pricing": {
+    "heroEyebrow": "Pricing",
+    "heroTitle": "Simple, Transparent",
+    "heroHighlight": "Pricing.",
+    "heroDescription": "Start with a free scan. Scale to enterprise-grade coverage. No hidden fees, no surprises.",
+    "free": {
+      "name": "Free",
+      "price": "$0",
+      "period": "/mo",
+      "description": "Try BJHUNT with one free scan included.",
+      "features": [
+        "1 scan per month",
+        "3 AI agents",
+        "Community support",
+        "Basic findings dashboard"
+      ],
+      "cta": "Start Free"
+    },
+    "pro": {
+      "name": "Pro",
+      "price": "$200",
+      "period": "/mo",
+      "description": "For security teams that need regular coverage.",
+      "badge": "Most Popular",
+      "features": [
+        "5 scans per month",
+        "10 AI agents",
+        "Priority email support",
+        "CVE intelligence",
+        "Export Markdown & CSV",
+        "OWASP ASVS alignment"
+      ],
+      "cta": "Start Pro"
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": "$2,000",
+      "period": "/mo",
+      "description": "For organizations operating at scale.",
+      "features": [
+        "20 scans per month",
+        "17 AI agents",
+        "API v1 + Webhooks",
+        "SSO + SAML/OIDC",
+        "Dedicated Slack support",
+        "Knowledge graph",
+        "HackerOne format & executive summaries",
+        "Custom agent configuration"
+      ],
+      "cta": "Contact Sales"
+    },
+    "compareEyebrow": "Compare Plans",
+    "compareTitle": "Detailed",
+    "compareHighlight": "Comparison.",
+    "categories": {
+      "scans": "Scans",
+      "agents": "Agents & AI",
+      "intelligence": "Intelligence",
+      "reports": "Reports",
+      "api": "API & Integration",
+      "support": "Support"
+    },
+    "faqEyebrow": "FAQ",
+    "faqTitle": "Frequently",
+    "faqHighlight": "Asked Questions.",
+    "supportEyebrow": "Support",
+    "supportTitle": "Still Have Questions?",
+    "supportText": "Our team responds within 24 business hours on pricing, migration, and enterprise deployment.",
+    "supportCta": "Contact Us"
+  },
+  "technology": {
+    "heroEyebrow": "Technology",
+    "heroTitle": "The Technology",
+    "heroHighlight": "Behind BJHUNT.",
+    "heroDescription": "A purpose-built orchestration engine, isolated sandbox execution, and a specialized AI model trained for offensive security.",
+    "model": {
+      "eyebrow": "AI Model",
+      "title": "BJHUNT 27B",
+      "titleHighlight": "Purpose-Built.",
+      "description": "A specialized model trained exclusively for offensive security operations. Not a general-purpose chatbot — BJHUNT 27B understands attack surfaces, vulnerability chains, and remediation strategies natively."
+    },
+    "orchestration": {
+      "eyebrow": "Orchestration Engine",
+      "title": "Multi-Agent",
+      "titleHighlight": "Workflow Engine.",
+      "description": "Seventeen specialized agents work together like an experienced pentest team. Each agent masters a domain — reconnaissance, exploitation, analysis, cloud, defense — coordinated by a central orchestrator.",
+      "stats": {
+        "agents": "Specialized Agents",
+        "tools": "Integrated Tools",
+        "uptime": "Autonomous Operation"
+      }
+    },
+    "sandbox": {
+      "eyebrow": "Execution Environment",
+      "title": "Isolated",
+      "titleHighlight": "Sandboxes.",
+      "description": "Every test runs in an ephemeral, isolated environment. Zero risk to production infrastructure. Destructive testing possible with full safety. Network-isolated containers with middleware whitelists.",
+      "diagramCaption": "EPHEMERAL CONTAINER · NETWORK ISOLATION · CLEAN TEARDOWN"
+    },
+    "reporting": {
+      "eyebrow": "Reporting Engine",
+      "title": "Evidence-Driven",
+      "titleHighlight": "Reports.",
+      "description": "Professional reports generated in real-time as scans execute. Evidence-backed findings, CVSS scoring, remediation guidance, and executive summaries — in any language."
+    },
+    "ctaTitle": "Ready to Deploy",
+    "ctaHighlight": "Your Security Platform?",
+    "ctaPrimary": "Request Access",
+    "ctaSecondary": "Talk to Sales"
+  },
+  "about": {
+    "heroEyebrow": "About",
+    "heroTitle": "Redefining Offensive",
+    "heroHighlight": "Security.",
+    "heroDescription": "BJHUNT was founded to solve the fragmentation, cost, and operational overhead that plague modern security teams. We build the platform we wished existed.",
+    "mission": {
+      "eyebrow": "Mission",
+      "title": "Make offensive security",
+      "titleHighlight": "accessible, fast, and precise.",
+      "description": "We believe that every organization deserves enterprise-grade security testing — without the enterprise-grade complexity, cost, or headcount."
+    },
+    "team": {
+      "eyebrow": "Team",
+      "title": "Built by security engineers",
+      "titleHighlight": "for security engineers.",
+      "description": "Our team combines deep offensive security expertise with AI engineering. We've worked on red teams, built security products, and trained models — we know what production pentesting actually requires."
+    }
+  },
+  "security": {
+    "heroEyebrow": "Security & Compliance",
+    "heroTitle": "Security Is",
+    "heroHighlight": "Our Foundation.",
+    "heroDescription": "BJHUNT is built with security-first principles. Every architectural decision starts with the question: what does a production pentest platform need to be safe?",
+    "isolation": {
+      "title": "Tenant Isolation",
+      "description": "Complete data and execution isolation between tenants. Every organization runs in its own logical boundary with dedicated storage, sandbox environments, and API scopes."
+    },
+    "auditTrails": {
+      "title": "Immutable Audit Trails",
+      "description": "Every action — scans, findings, configurations, user operations — is recorded in an immutable audit log. Timestamped, signed, and exportable for compliance evidence."
+    },
+    "sso": {
+      "title": "SSO & RBAC",
+      "description": "SAML/OIDC single sign-on with granular role-based access control. Define who can launch scans, view findings, export reports, or manage configurations."
+    },
+    "encryption": {
+      "title": "Encryption Everywhere",
+      "description": "Data encrypted at rest (AES-256) and in transit (TLS 1.3). API keys hashed with bcrypt. Secrets never logged, never exposed."
+    },
+    "sandboxSecurity": {
+      "title": "Sandbox Security",
+      "description": "Ephemeral containers with network isolation, middleware whitelists, and automatic teardown. No data persists between sessions. No cross-tenant access possible."
+    },
+    "compliance": {
+      "title": "Compliance Ready",
+      "description": "Aligned with OWASP ASVS, PCI-DSS, ISO 27001, SOC 2, and GDPR frameworks. Evidence packages and reporting designed to pass audits without additional tooling."
+    }
   },
   "contact": {
     "label": "CONTACT",
-    "title": "Get in Touch",
-    "imageAlt": "Contact BJHUNT team - Professional cybersecurity customer support",
-    "description": "Questions about BJHUNT? Want to discuss an integration? Our team responds within 24-48 hours.",
-    "directContact": "DIRECT CONTACT",
-    "directDesc": "For urgent requests or technical questions, contact us directly.",
-    "general": "General",
-    "support": "Support",
-    "enterprise": "Enterprise",
-    "sendMessage": "SEND A MESSAGE",
-    "formDesc": "Fill out the form below. We will respond within 24-48h.",
+    "heading": "Let's Talk",
+    "lede": "Questions about BJHUNT? Want to discuss an integration? Our team responds within 24-48 hours.",
     "fullName": "Full name",
     "namePlaceholder": "Your name",
     "professionalEmail": "Professional email",
@@ -133,26 +287,16 @@
     "subjectOther": "Other",
     "message": "Message",
     "messagePlaceholder": "Describe your request in detail...",
-    "consent": "I agree to receive a response from BJHUNT regarding my request.",
-    "privacyPolicy": "privacy policy",
     "captchaError": "Please complete the captcha",
     "genericError": "An error occurred",
     "connectionError": "Connection error. Please retry.",
     "sending": "Sending...",
     "sendBtn": "Send Message",
-    "heading": "Let's Talk",
-    "lede": "A question, a partnership, or a specific need — we respond within 24 business hours.",
     "messageSent": "Message Sent!",
     "thankYou": "Thank you",
     "confirmationMsg": "Your message has been sent. We will respond at",
     "within48h": "within 24-48 hours.",
     "backHome": "Back to home",
-    "projectStatus": "PROJECT STATUS",
-    "projectStatusDesc": "BJHUNT is in active development. Beta launch planned for Q2 2026.",
-    "phase": "Phase",
-    "testing": "Testing",
-    "avgResponse": "Average response",
-    "hours": "hours",
     "faq": "FAQ",
     "faq1q": "What is the average response time?",
     "faq1a": "We respond to all requests within 24-48 business hours. For technical emergencies, use support@bjhunt.com.",
@@ -161,123 +305,57 @@
     "faq3q": "Do you offer special rates for startups?",
     "faq3a": "Yes, contact us with details about your startup. We have preferential programs for early-stage companies."
   },
-  "legal": {
-    "label": "LEGAL",
-    "title": "Legal Mentions",
-    "lastUpdate": "Last update",
-    "companyInfo": "Company Information",
-    "companyName": "Company Name",
-    "legalForm": "Legal Form",
-    "headquarters": "Headquarters",
-    "email": "Email",
-    "intellectualProperty": "Intellectual Property",
-    "ipText": "All content on this site (texts, graphics, logos, images, source code) is the exclusive property of BJHUNT or its partners and is protected by intellectual property laws.",
-    "termsOfUse": "Terms of Use",
-    "termsText": "By using the BJHUNT platform, you agree to use it in accordance with applicable laws. Any use for illegal purposes, including unauthorized penetration testing, is strictly prohibited.",
-    "privacyPolicy": "Privacy Policy",
-    "privacyText": "We collect only the data necessary for the operation of our services. Your data is never sold to third parties. For more information, contact us at privacy@bjhunt.com.",
-    "dataCollection": "Data Collection",
-    "dataCollectionText": "We collect: contact information (name, email), usage data (anonymized), and technical logs for security purposes.",
-    "cookies": "Cookies",
-    "cookiesText": "We use strictly necessary cookies for the operation of the site. No advertising or tracking cookies are used.",
-    "liability": "Limitation of Liability",
-    "liabilityText": "BJHUNT provides its services \"as is\". We cannot guarantee that the platform will be uninterrupted or error-free. Our liability is limited to the amount paid for the services used.",
-    "contactSection": "Contact",
-    "contactText": "For any questions regarding these legal mentions, contact us at:",
-    "confidential": "CONFIDENTIAL",
-    "docRef": "DOC-LEGAL-2026-001",
-    "legalTitle": "LEGAL MENTIONS",
-    "update": "UPD",
-    "rev": "REV",
-    "tabCompany": "COMPANY",
-    "tabProperty": "PROPERTY",
-    "tabTerms": "TERMS",
-    "tabPrivacy": "PRIVACY",
-    "tabLiability": "LIABILITY",
-    "tabContact": "CONTACT",
-    "companySection": "COMPANY INFORMATION",
-    "entity": "Entity",
-    "type": "Type",
-    "techStartup": "Tech Startup",
-    "creation": "Creation",
-    "ceo": "CEO",
-    "contact": "Contact",
-    "partners": "Partners",
-    "ipSection": "INTELLECTUAL PROPERTY",
-    "copyright": "COPYRIGHT",
-    "copyrightText": "All content (texts, graphics, logos, images, software) is exclusive property of BJHUNT. Protected by international laws.",
-    "trademarks": "TRADEMARKS",
-    "trademarksText": "The name \"BJHUNT\", the logo and associated products are registered trademarks. Use prohibited without written authorization.",
-    "aiTech": "AI TECHNOLOGY",
-    "aiTechText": "The BJHUNT model is proprietary and protected by trade secret laws. Unauthorized distribution = PROHIBITED.",
-    "termsSection": "TERMS OF USE",
-    "acceptance": "ACCEPTANCE",
-    "acceptanceText": "Access to the site implies full acceptance of these terms.",
-    "usage": "USAGE",
-    "usageText": "Legal use only. Prohibited: harming others' rights, restricting access, compromising security.",
-    "warning": "WARNING",
-    "warningText": "Information provided \"as is\". No guarantee of completeness, accuracy or availability.",
-    "privacySection": "PRIVACY POLICY",
-    "dataCollected": "DATA COLLECTED",
-    "nameAndContact": "Name and contact details",
-    "companyInformation": "Company information",
-    "emailAddress": "Email address",
-    "customerRequests": "Customer requests",
-    "dataUsage": "USAGE",
-    "respondToRequests": "Respond to requests",
-    "waitlistManagement": "Waitlist management",
-    "productUpdates": "Product updates",
-    "serviceImprovement": "Service improvement",
-    "gdprRights": "GDPR RIGHTS",
-    "gdprText": "Access • Rectification • Deletion • Opposition — Contact us to exercise your rights.",
-    "liabilitySection": "LIMITATION OF LIABILITY",
-    "exclusion": "EXCLUSION",
-    "exclusionText": "BJHUNT, its directors, employees and affiliates cannot be held responsible for:",
-    "indirectDamages": "Indirect damages",
-    "lostProfits": "Lost profits",
-    "dataLoss": "Data loss",
-    "unauthorizedAccess": "Unauthorized access",
-    "general": "GENERAL",
-    "partnerships": "PARTNERSHIPS",
-    "internalDocument": "INTERNAL DOCUMENT",
-    "page": "PAGE"
+  "footer": {
+    "tagline": "AI-powered offensive security, orchestrated.",
+    "nav": {
+      "label": "Product",
+      "home": "Home",
+      "technology": "Technology",
+      "pricing": "Pricing",
+      "about": "About",
+      "contact": "Contact"
+    },
+    "resources": {
+      "label": "Resources",
+      "apiDocs": "API Documentation",
+      "security": "Security",
+      "status": "Status",
+      "blog": "Blog"
+    },
+    "legal": {
+      "label": "Legal",
+      "terms": "Terms of Use",
+      "privacy": "Privacy Policy",
+      "gdpr": "GDPR",
+      "legalNotice": "Legal Notice"
+    },
+    "contact": {
+      "label": "Contact",
+      "general": "contact@bjhunt.com",
+      "partnerships": "partner@bjhunt.com"
+    },
+    "copyright": "BJHUNT. All rights reserved.",
+    "active": "Active",
+    "period": "Dec 2023 → Present"
   },
   "errors": {
     "notFound": {
       "title": "Page Not Found",
-      "description": "The page you're looking for doesn't exist or has been moved. Let's get you back on track.",
-      "scanning": "Scanning requested URL...",
-      "error": "ERROR: Resource not found (404)",
-      "suggestion": "Redirecting to nearest valid endpoint...",
-      "backHome": "Back to Home",
-      "goBack": "Go Back",
-      "autoRedirect": "You will be redirected automatically in 10 seconds...",
-      "links": {
-        "home": "Home",
-        "pricing": "Pricing",
-        "contact": "Contact",
-        "api": "API Docs"
-      }
+      "description": "The page you're looking for doesn't exist or has been moved.",
+      "backHome": "Back to Home"
     },
     "serverError": {
       "title": "Server Error",
-      "description": "Something went wrong on our end. Our team has been notified and is working on it.",
-      "critical": "Critical Error",
-      "errorLog": "Error Log",
-      "timestamp": "Timestamp",
+      "description": "Something went wrong on our end. Our team has been notified.",
       "tryAgain": "Try Again",
       "backHome": "Back to Home",
-      "support": "Need help? Contact us at",
-      "status": {
-        "api": "API: Operational",
-        "app": "App: Recovering"
-      }
+      "support": "Need help? Contact us at"
     }
   },
   "cookies": {
     "title": "Privacy preferences",
     "subtitle": "BJHUNT respects your privacy",
-    "intro": "We use cookies to analyse traffic, improve your experience and personalise content. You can choose which cookies you accept.",
+    "intro": "We use cookies to analyse traffic, improve your experience and personalise content.",
     "close": "Close",
     "required": "Required",
     "customize": "Customise",
@@ -289,26 +367,14 @@
     "footerPolicy": "privacy policy",
     "footerCompliance": "GDPR compliant",
     "categories": {
-      "necessary": {
-        "name": "Essential",
-        "description": "Cookies required for the site to function. Always active."
-      },
-      "analytics": {
-        "name": "Analytics",
-        "description": "Help us understand how you use the site so we can improve it."
-      },
-      "marketing": {
-        "name": "Marketing",
-        "description": "Used to show you relevant advertisements."
-      },
-      "preferences": {
-        "name": "Preferences",
-        "description": "Remember your choices and personalise your experience."
-      }
+      "necessary": { "name": "Essential", "description": "Cookies required for the site to function. Always active." },
+      "analytics": { "name": "Analytics", "description": "Help us understand how you use the site so we can improve it." },
+      "marketing": { "name": "Marketing", "description": "Used to show you relevant advertisements." },
+      "preferences": { "name": "Preferences", "description": "Remember your choices and personalise your experience." }
     }
   },
   "beta": {
-    "eyebrow": "07 / Early access",
+    "eyebrow": "Early access",
     "limitedSeats": "Limited seats",
     "title": "Join the Beta",
     "description": "Priority access to new features, direct support from the founding team.",
@@ -338,5 +404,54 @@
     "captchaError": "Please solve the captcha.",
     "submitting": "Submitting…",
     "requestAccess": "Request access"
+  },
+  "legal": {
+    "title": "Legal Mentions",
+    "companySection": "Company Information",
+    "entity": "Entity",
+    "type": "Type",
+    "techStartup": "Tech Startup",
+    "creation": "Creation",
+    "ceo": "CEO",
+    "general": "General",
+    "partnerships": "Partnerships",
+    "ipSection": "Intellectual Property",
+    "copyright": "Copyright",
+    "copyrightText": "All content (texts, graphics, logos, images, software) is exclusive property of BJHUNT. Protected by international laws.",
+    "trademarks": "Trademarks",
+    "trademarksText": "The name \"BJHUNT\", the logo and associated products are registered trademarks. Use prohibited without written authorization.",
+    "aiTech": "AI Technology",
+    "aiTechText": "The BJHUNT model is proprietary and protected by trade secret laws. Unauthorized distribution is prohibited.",
+    "termsSection": "Terms of Use",
+    "acceptance": "Acceptance",
+    "acceptanceText": "Access to the site implies full acceptance of these terms.",
+    "usage": "Usage",
+    "usageText": "Legal use only. Prohibited: harming others' rights, restricting access, compromising security.",
+    "warning": "Warning",
+    "warningText": "Information provided \"as is\". No guarantee of completeness, accuracy or availability.",
+    "privacySection": "Privacy Policy",
+    "dataCollected": "Data Collected",
+    "nameAndContact": "Name and contact details",
+    "companyInformation": "Company information",
+    "emailAddress": "Email address",
+    "customerRequests": "Customer requests",
+    "dataUsage": "Usage",
+    "respondToRequests": "Respond to requests",
+    "waitlistManagement": "Waitlist management",
+    "productUpdates": "Product updates",
+    "serviceImprovement": "Service improvement",
+    "gdprRights": "GDPR Rights",
+    "gdprText": "Access • Rectification • Deletion • Opposition — Contact us to exercise your rights.",
+    "liabilitySection": "Limitation of Liability",
+    "exclusion": "Exclusion",
+    "exclusionText": "BJHUNT, its directors, employees and affiliates cannot be held responsible for:",
+    "indirectDamages": "Indirect damages",
+    "lostProfits": "Lost profits",
+    "dataLoss": "Data loss",
+    "unauthorizedAccess": "Unauthorized access",
+    "contactSection": "Contact",
+    "internalDocument": "Internal Document",
+    "update": "Updated",
+    "page": "Page"
   }
 }

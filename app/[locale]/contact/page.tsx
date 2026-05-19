@@ -1,20 +1,17 @@
 "use client";
 
 import { useState, useRef } from "react";
-import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { useTranslations } from "next-intl";
+import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { Check, AlertCircle, Loader2 } from "lucide-react";
 
 const fieldClass =
-  "w-full bg-transparent border-0 border-b border-[var(--bjhunt-border)] " +
-  "text-[var(--bjhunt-text)] text-[14px] font-normal py-3 px-0 outline-none " +
+  "w-full bg-transparent border-0 border-b text-[14px] font-normal py-3 px-0 outline-none " +
   "min-h-[44px] md:min-h-[40px] transition-colors " +
-  "focus:border-[var(--success)] placeholder:text-[var(--bjhunt-text-subtle)] " +
-  "[font-family:var(--bjhunt-font-sans)]";
+  "focus:border-bjhunt-brand placeholder:text-bjhunt-text-disabled font-sans";
 
 const labelClass =
-  "block mb-2 [font-family:var(--bjhunt-font-mono)] text-[12px] font-semibold " +
-  "uppercase tracking-[0.18em] text-[var(--bjhunt-text-muted)]";
+  "block mb-2 font-mono text-[12px] font-semibold uppercase tracking-[0.18em] text-bjhunt-text-muted";
 
 export default function ContactPage() {
   const t = useTranslations("contact");
@@ -68,74 +65,48 @@ export default function ContactPage() {
 
   if (submitted) {
     return (
-      <div className="relative min-h-screen pt-20">
-        <div className="relative z-10 mx-auto max-w-xl px-6 py-24 text-center">
-          <div
-            className="mx-auto mb-8 flex h-16 w-16 items-center justify-center"
-            style={{ border: "1px solid var(--success)" }}
-          >
-            <Check className="h-7 w-7" style={{ color: "var(--success)" }} />
+      <div className="relative min-h-screen pt-20" style={{ background: "var(--bjhunt-bg)" }}>
+        <div className="mx-auto max-w-xl px-6 py-24 text-center">
+          <div className="mx-auto mb-8 flex h-16 w-16 items-center justify-center border" style={{ borderColor: "var(--bjhunt-success)" }}>
+            <Check className="h-7 w-7 text-bjhunt-success" />
           </div>
-          <h1
-            className="m-0 mb-4 font-normal"
-            style={{
-              fontFamily: "var(--bjhunt-font-sans)",
-              fontSize: "clamp(28px, 3vw, 36px)",
-              letterSpacing: "-0.025em",
-              lineHeight: 1.11,
-            }}
-          >
+          <h1 className="m-0 mb-4 font-sans font-normal text-[clamp(28px,3vw,36px)] leading-[1.11] tracking-[-0.025em] text-bjhunt-text">
             {t("messageSent")}
           </h1>
-          <p
-            className="m-0 font-normal"
-            style={{ fontSize: 16, lineHeight: 1.6, color: "var(--bjhunt-text-muted)" }}
-          >
+          <p className="m-0 font-sans font-normal text-[16px] leading-[1.6] text-bjhunt-text-muted">
             {t("confirmationMsg")} {formData.email} {t("within48h")}
           </p>
+          <a href="/" className="mt-8 inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.18em] text-bjhunt-text-muted hover:text-bjhunt-brand transition-colors">
+            {t("backHome")} →
+          </a>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative pt-14">
-      <div className="relative z-10 mx-auto max-w-6xl px-6 md:px-12 py-16 md:py-24">
+    <div className="relative pt-14" style={{ background: "var(--bjhunt-bg)", minHeight: "100vh" }}>
+      <div className="mx-auto max-w-6xl px-6 py-16 md:px-12 md:py-24">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
-          {/* Left column — heading + lede */}
           <header>
-            <p
-              className="m-0 mb-6 [font-family:var(--bjhunt-font-mono)] uppercase font-semibold"
-              style={{ fontSize: 12, letterSpacing: "0.18em", color: "var(--bjhunt-text-muted)" }}
-            >
-              06 / Contact
+            <p className="mb-5 font-mono text-[12px] font-semibold uppercase tracking-[0.18em] text-bjhunt-text-muted m-0">
+              Contact
             </p>
-            <h1
-              className="m-0 font-normal"
-              style={{
-                fontFamily: "var(--bjhunt-font-sans)",
-                fontSize: "clamp(28px, 3vw, 36px)",
-                letterSpacing: "-0.025em",
-                lineHeight: 1.11,
-              }}
-            >
+            <h1 className="m-0 font-sans font-normal text-[clamp(28px,3vw,36px)] leading-[1.11] tracking-[-0.025em] text-bjhunt-text">
               {t("heading")}
-              <em className="not-italic" style={{ color: "var(--bjhunt-text-muted)" }}>.</em>
+              <span className="text-bjhunt-text-muted">.</span>
             </h1>
-            <p
-              className="mt-6 max-w-md font-normal"
-              style={{ fontSize: 16, lineHeight: 1.6, color: "var(--bjhunt-text-muted)" }}
-            >
+            <p className="mt-5 max-w-md font-sans text-[16px] font-normal leading-[1.6] text-bjhunt-text-muted m-0">
               {t("lede")}
             </p>
           </header>
 
-          {/* Right column — form card */}
           <div
             className="px-6 md:px-8 py-8"
             style={{
               border: "1px solid var(--bjhunt-border)",
-              background: "var(--bjhunt-bg-secondary)",
+              background: "var(--bjhunt-bg-surface)",
+              borderRadius: "var(--bjhunt-radius-md)",
             }}
           >
             <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
@@ -151,6 +122,7 @@ export default function ContactPage() {
                     placeholder={t("namePlaceholder")}
                     required
                     className={fieldClass}
+                    style={{ borderColor: "var(--bjhunt-border)", color: "var(--bjhunt-text)" }}
                   />
                 </div>
                 <div>
@@ -164,6 +136,7 @@ export default function ContactPage() {
                     placeholder={t("emailPlaceholder")}
                     required
                     className={fieldClass}
+                    style={{ borderColor: "var(--bjhunt-border)", color: "var(--bjhunt-text)" }}
                   />
                 </div>
               </div>
@@ -178,6 +151,7 @@ export default function ContactPage() {
                   onChange={handleChange}
                   placeholder={t("companyPlaceholder")}
                   className={fieldClass}
+                  style={{ borderColor: "var(--bjhunt-border)", color: "var(--bjhunt-text)" }}
                 />
               </div>
 
@@ -190,8 +164,9 @@ export default function ContactPage() {
                   onChange={handleChange}
                   required
                   className={`${fieldClass} appearance-none pr-6`}
+                  style={{ borderColor: "var(--bjhunt-border)", color: "var(--bjhunt-text)" }}
                 >
-                  <option value="">{t("selectSubject")}</option>
+                  <option value="" style={{ color: "var(--bjhunt-text-disabled)" }}>{t("selectSubject")}</option>
                   <option value="demo">{t("subjectDemo")}</option>
                   <option value="pricing">{t("subjectPricing")}</option>
                   <option value="technical">{t("subjectTechnical")}</option>
@@ -211,6 +186,7 @@ export default function ContactPage() {
                   placeholder={t("messagePlaceholder")}
                   required
                   className={`${fieldClass} resize-y leading-relaxed`}
+                  style={{ borderColor: "var(--bjhunt-border)", color: "var(--bjhunt-text)" }}
                 />
               </div>
 
@@ -225,17 +201,8 @@ export default function ContactPage() {
               </div>
 
               {error && (
-                <div
-                  role="alert"
-                  aria-live="polite"
-                  id="contact-error"
-                  className="flex items-center gap-3 px-4 py-3 text-[13px] font-normal"
-                  style={{
-                    border: "1px solid var(--severity-critical)",
-                    background: "var(--severity-critical-bg)",
-                    color: "var(--severity-critical)",
-                  }}
-                >
+                <div role="alert" aria-live="polite" className="flex items-center gap-3 px-4 py-3 text-[13px] font-normal"
+                  style={{ border: "1px solid var(--bjhunt-critical)", background: "var(--bjhunt-critical-tint)", color: "var(--bjhunt-critical)" }}>
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   {error}
                 </div>
@@ -244,21 +211,12 @@ export default function ContactPage() {
               <button
                 type="submit"
                 disabled={loading}
-                aria-describedby={error ? "contact-error" : undefined}
-                className="inline-flex w-full items-center justify-center gap-3 mt-2 px-5 font-medium uppercase tracking-[0.16em] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--success)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bjhunt-bg-secondary)]"
+                className="inline-flex w-full items-center justify-center gap-3 mt-2 px-5 min-h-[44px] font-mono text-[12px] font-medium uppercase tracking-[0.16em] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-bjhunt-brand"
                 style={{
-                  fontSize: 12,
-                  color: "var(--success)",
-                  border: "1px solid var(--success)",
-                  background: "transparent",
-                  minHeight: 44,
-                  fontFamily: "var(--bjhunt-font-mono)",
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) e.currentTarget.style.background = "var(--success-dim)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
+                  color: "var(--bjhunt-text-inverted)",
+                  background: "var(--bjhunt-brand)",
+                  border: "none",
+                  borderRadius: "var(--bjhunt-radius-sm)",
                 }}
               >
                 {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}

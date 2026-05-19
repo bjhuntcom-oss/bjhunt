@@ -1,192 +1,104 @@
-// app/[locale]/investors/page.tsx
-//
-// BJHUNT 2026 refonte — body weight 400 (NOT 200), token colors,
-// clean polyline (no fill area), ghost button.
-
 "use client";
 
-import { GrowthLineSVG } from "@/components/animations/growth-line";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { StatusDot } from "@/components/ui/status-dot";
 
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+  },
+};
+
 export default function InvestorsPage() {
   return (
-    <div style={{ background: "var(--bjhunt-2026-bg)" }}>
-      {/* HERO */}
-      <section
-        className="py-16 md:py-24"
-        style={{ borderBottom: "1px solid var(--bjhunt-2026-border)" }}
-      >
+    <div style={{ background: "var(--bjhunt-bg)" }}>
+      <section className="py-16 md:py-24" style={{ borderBottom: "1px solid var(--bjhunt-border)" }}>
         <div className="mx-auto w-full max-w-[1280px] px-6 md:px-8 lg:px-12">
-          <p
-            className="m-0 mb-4 font-mono uppercase"
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              letterSpacing: "0.18em",
-              color: "var(--bjhunt-2026-text-muted)",
-            }}
-          >
-            01 / Investisseurs
-          </p>
-          <h1
-            className="m-0"
-            style={{
-              fontFamily: "var(--bjhunt-2026-font-display)",
-              fontSize: "clamp(40px, 5vw, 60px)",
-              fontWeight: 400,
-              lineHeight: 1.0,
-              letterSpacing: "-0.025em",
-              color: "var(--bjhunt-2026-text)",
-            }}
-          >
-            Investir dans la
-            <br />
-            <em
-              className="not-italic"
-              style={{ color: "var(--bjhunt-2026-text-secondary)" }}
+          <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.06 } } }}>
+            <motion.p variants={fadeUp} className="mb-4 text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-bjhunt-text-muted m-0">
+              Investors
+            </motion.p>
+            <motion.h1
+              variants={fadeUp}
+              className="m-0"
+              style={{
+                fontFamily: "var(--bjhunt-font-display)",
+                fontSize: "clamp(40px, 5vw, 60px)",
+                fontWeight: 400,
+                lineHeight: 1.0,
+                letterSpacing: "-0.025em",
+                color: "var(--bjhunt-text)",
+              }}
             >
-              cybersecurite AI-First.
-            </em>
-          </h1>
+              Invest in the
+              <br />
+              <span style={{ color: "var(--bjhunt-brand)" }}>AI-first security.</span>
+            </motion.h1>
+          </motion.div>
         </div>
       </section>
 
-      {/* KPI STRIP — 4 cells, hairline grid */}
-      <section style={{ borderBottom: "1px solid var(--bjhunt-2026-border)" }}>
+      <section style={{ borderBottom: "1px solid var(--bjhunt-border)" }}>
         <div className="mx-auto w-full max-w-[1280px]">
-          <div
-            className="grid grid-cols-2 gap-px md:grid-cols-4"
-            style={{ background: "var(--bjhunt-2026-border)" }}
-          >
+          <div className="grid grid-cols-2 gap-px md:grid-cols-4" style={{ background: "var(--bjhunt-border)" }}>
             {[
-              { value: "2026", label: "LANCEMENT" },
-              { value: "Beta", label: "PHASE ACTUELLE" },
-              { value: "10B€", label: "MARCHE ADRESSABLE" },
-              { value: "0",    label: "FAUX POSITIFS" },
+              { value: "2026", label: "LAUNCH" },
+              { value: "Beta", label: "CURRENT PHASE" },
+              { value: "10B€", label: "ADDRESSABLE MARKET" },
+              { value: "0", label: "FALSE POSITIVES" },
             ].map(({ value, label }) => (
-              <div
-                key={label}
-                className="flex flex-col gap-1 p-6 md:p-8"
-                style={{ background: "var(--bjhunt-2026-bg)" }}
-              >
-                <div
-                  style={{
-                    fontFamily: "var(--bjhunt-2026-font-mono)",
-                    fontSize: 28,
-                    fontWeight: 500,
-                    letterSpacing: "-0.02em",
-                    color: "var(--bjhunt-2026-text)",
-                    lineHeight: 1,
-                  }}
-                >
+              <div key={label} className="flex flex-col gap-1 p-6 md:p-8" style={{ background: "var(--bjhunt-bg)" }}>
+                <span className="font-mono text-[clamp(24px,3vw,32px)] font-semibold leading-none tracking-[-0.02em] text-bjhunt-brand">
                   {value}
-                </div>
-                <div
-                  className="font-mono uppercase"
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 500,
-                    letterSpacing: "0.18em",
-                    color: "var(--bjhunt-2026-text-muted)",
-                  }}
-                >
+                </span>
+                <span className="text-[11px] font-mono font-medium uppercase tracking-[0.18em] text-bjhunt-text-muted">
                   {label}
-                </div>
+                </span>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* WHY BJHUNT + GROWTH POLYLINE */}
-      <section style={{ borderBottom: "1px solid var(--bjhunt-2026-border)" }}>
-        <div className="mx-auto grid w-full max-w-[1280px] grid-cols-1 lg:grid-cols-2">
-          <div className="flex flex-col gap-6 px-6 py-12 md:px-8 md:py-16 lg:px-12">
-            <p
-              className="m-0 font-mono uppercase"
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                letterSpacing: "0.18em",
-                color: "var(--bjhunt-2026-text-muted)",
-              }}
-            >
-              02 / Pourquoi BJHUNT
-            </p>
-            <h2
-              className="m-0"
-              style={{
-                fontFamily: "var(--bjhunt-2026-font-display)",
-                fontSize: "clamp(22px, 2.4vw, 24px)",
-                fontWeight: 600,
-                lineHeight: 1.33,
-                letterSpacing: "-0.025em",
-                color: "var(--bjhunt-2026-text)",
-              }}
-            >
-              Le marche de la securite AI evolue. Nous sommes en avance.
-            </h2>
-            <ul className="m-0 flex flex-col gap-3 p-0" style={{ listStyle: "none" }}>
-              {[
-                "Detection CVE en temps reel sans agent",
-                "API-first, integration CI/CD native",
-                "Zero faux positifs grace au modele AI proprietaire",
-              ].map((point) => (
-                <li key={point} className="flex items-start gap-3">
-                  <StatusDot state="success" />
-                  <span
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 400,
-                      lineHeight: 1.6,
-                      color: "var(--bjhunt-2026-text-secondary)",
-                    }}
-                  >
-                    {point}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div
-            className="flex items-center justify-center px-6 py-12 md:px-8 md:py-16 lg:px-12"
-            style={{ borderTop: "1px solid var(--bjhunt-2026-border)", minHeight: 280 }}
-          >
-            <GrowthLineSVG className="w-full max-w-md" />
-          </div>
+      <section style={{ borderBottom: "1px solid var(--bjhunt-border)" }}>
+        <div className="mx-auto w-full max-w-[1280px] py-12 px-6 md:px-8 md:py-16 lg:px-12">
+          <p className="mb-4 text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-bjhunt-text-muted m-0">
+            Why BJHUNT
+          </p>
+          <h2 className="font-display font-semibold text-[clamp(22px,2.4vw,24px)] leading-[1.33] tracking-[-0.025em] text-bjhunt-text mb-6 m-0">
+            The AI security market is evolving.<br />We are ahead.
+          </h2>
+          <ul className="flex flex-col gap-3 list-none p-0 m-0">
+            {[
+              "Real-time CVE detection without agents",
+              "API-first, native CI/CD integration",
+              "Zero false positives with proprietary AI model",
+            ].map((point) => (
+              <li key={point} className="flex items-start gap-3">
+                <StatusDot state="success" />
+                <span className="text-[14px] font-sans font-normal leading-[1.6] text-bjhunt-text-secondary">
+                  {point}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
-      {/* INVESTOR CONTACT CTA */}
       <section className="py-16 md:py-20">
         <div className="mx-auto flex w-full max-w-[1280px] flex-col items-start gap-4 px-6 md:px-8 lg:px-12">
-          <p
-            className="m-0 font-mono uppercase"
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              letterSpacing: "0.18em",
-              color: "var(--bjhunt-2026-text-muted)",
-            }}
-          >
-            03 / Contact investisseurs
+          <p className="text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-bjhunt-text-muted m-0">
+            Investor Contact
           </p>
-          <h2
-            className="m-0"
-            style={{
-              fontFamily: "var(--bjhunt-2026-font-display)",
-              fontSize: "clamp(22px, 2.4vw, 24px)",
-              fontWeight: 600,
-              lineHeight: 1.33,
-              letterSpacing: "-0.025em",
-              color: "var(--bjhunt-2026-text)",
-            }}
-          >
-            Interesse par BJHUNT ?
+          <h2 className="font-display font-semibold text-[clamp(22px,2.4vw,24px)] leading-[1.33] tracking-[-0.025em] text-bjhunt-text m-0">
+            Interested in BJHUNT?
           </h2>
           <Button asChild variant="ghost" size="md">
-            <a href="mailto:partner@bjhunt.com">Contacter l&apos;equipe →</a>
+            <a href="mailto:partner@bjhunt.com">Contact the team →</a>
           </Button>
         </div>
       </section>

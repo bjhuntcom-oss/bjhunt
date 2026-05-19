@@ -30,7 +30,7 @@ export default async function ApiDocsPage({
   const { locale } = await params
   const isFr = locale === 'fr'
 
-  const sections: SectionDef[] = [
+    const sections: SectionDef[] = [
     {
       id: 'auth',
       title: isFr ? 'Authentification' : 'Authentication',

@@ -1,8 +1,3 @@
-// app/[locale]/_components/cta-section.tsx
-//
-// BJHUNT 2026 refonte — flat canvas, hero-style 2-line H1 60px system-ui,
-// single ghost button. NO ambient gradient.
-
 "use client";
 
 import { motion } from "framer-motion";
@@ -16,74 +11,52 @@ export function CTASection() {
     <section
       className="py-20 text-center sm:py-24 md:py-28"
       style={{
-        background: "var(--bjhunt-2026-bg)",
-        borderTop: "1px solid var(--bjhunt-2026-border)",
+        background: "var(--bjhunt-bg)",
+        borderTop: "1px solid var(--bjhunt-border)",
       }}
     >
       <motion.div
-        className="mx-auto flex w-full max-w-[860px] flex-col items-center gap-8 px-6 md:px-8"
+        className="mx-auto flex w-full max-w-[760px] flex-col items-center gap-6 px-6 md:px-8"
         initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
       >
-        <p
-          className="m-0 font-mono uppercase"
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            letterSpacing: "0.18em",
-            color: "var(--bjhunt-2026-text-muted)",
-          }}
-        >
-          05 / Get started
+        <p className="text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-bjhunt-text-muted m-0">
+          {t("eyebrow")}
         </p>
 
         <h2
           className="m-0"
           style={{
-            fontFamily: "var(--bjhunt-2026-font-display)",
-            fontSize: "clamp(40px, 5vw, 60px)",
+            fontFamily: "var(--bjhunt-font-display)",
+            fontSize: "clamp(32px, 4.5vw, 52px)",
             fontWeight: 400,
-            lineHeight: 1.0,
+            lineHeight: 1.05,
             letterSpacing: "-0.025em",
-            color: "var(--bjhunt-2026-text)",
+            color: "var(--bjhunt-text)",
           }}
         >
-          {t("title")}
-          <br />
-          <em
-            className="not-italic"
-            style={{ color: "var(--bjhunt-2026-text-secondary)" }}
-          >
-            {t("subtitle")}
-          </em>
+          {t("title")}{" "}
+          <span style={{ color: "var(--bjhunt-brand)" }}>{t("titleHighlight")}</span>
         </h2>
+
+        <p className="text-[16px] font-sans font-normal leading-[1.6] text-bjhunt-text-secondary max-w-[520px] m-0">
+          {t("description")}
+        </p>
 
         <Link
           href="/beta"
-          className="inline-flex h-11 items-center gap-3 rounded-md border px-5 transition-colors"
+          className="mt-2 inline-flex h-11 items-center gap-2 rounded-md px-5 text-[13px] font-medium transition-all duration-200"
           style={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: "var(--bjhunt-2026-text)",
-            borderColor: "var(--bjhunt-2026-border)",
-            background: "transparent",
+            background: "var(--bjhunt-brand)",
+            color: "var(--bjhunt-text-inverted)",
           }}
         >
-          {t("cta")}
-          <span aria-hidden>→</span>
+          {t("cta")} →
         </Link>
 
-        <p
-          className="m-0 font-mono uppercase"
-          style={{
-            fontSize: 11,
-            fontWeight: 500,
-            letterSpacing: "0.18em",
-            color: "var(--bjhunt-2026-text-muted)",
-          }}
-        >
+        <p className="text-[12px] font-mono font-medium uppercase tracking-[0.12em] text-bjhunt-text-muted m-0">
           {t("note")}
         </p>
       </motion.div>

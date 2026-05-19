@@ -23,35 +23,15 @@ export default function Error({
   }, [error]);
 
   return (
-    <main
-      className="min-h-screen flex items-center justify-center px-6 py-16"
-      style={{
-        backgroundColor: "var(--bjhunt-bg)",
-        color: "var(--bjhunt-text)",
-      }}
-    >
+    <main className="min-h-screen flex items-center justify-center px-6 py-16 bg-bjhunt-bg text-bjhunt-text">
       <Card padding="loose" className="w-full max-w-lg text-center">
-        <Eyebrow className="text-[var(--state-critical)]">
-          ERREUR / 500
-        </Eyebrow>
-
-        <H1 className="mt-4 mb-4">{t("serverError.title")}</H1>
-
-        <Body className="text-[var(--bjhunt-text-muted)] leading-[1.6] mb-8">
-          {t("serverError.description")}
-        </Body>
+        <Eyebrow className="text-bjhunt-critical">ERROR / 500</Eyebrow>
+        <H1 className="mt-4 mb-4">{t("title")}</H1>
+        <Body className="text-bjhunt-text-muted leading-[1.6] mb-8">{t("description")}</Body>
 
         {isDev && error?.message && (
-          <pre
-            className="text-left mb-8 p-4 rounded-[var(--bjhunt-radius)] overflow-x-auto text-[12px] leading-[1.5]"
-            style={{
-              backgroundColor: "var(--bjhunt-bg-surface)",
-              border: "1px solid var(--bjhunt-border)",
-              fontFamily: "var(--bjhunt-font-mono)",
-              color: "var(--state-critical)",
-            }}
-          >
-            <Code className="text-[var(--state-critical)]">
+          <pre className="text-left mb-8 p-4 rounded-md overflow-x-auto text-[12px] leading-[1.5] bg-bjhunt-bg border border-bjhunt-border font-mono text-bjhunt-critical">
+            <Code className="text-bjhunt-critical">
               {error.message}
               {error.digest && `\n\ndigest: ${error.digest}`}
               {error.stack && `\n\n${error.stack}`}
@@ -60,31 +40,19 @@ export default function Error({
         )}
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button
-            variant="state"
-            state="success"
-            size="lg"
-            onClick={reset}
-            className="gap-2"
-          >
+          <Button variant="state" state="success" size="lg" onClick={reset} className="gap-2">
             <RefreshCw className="w-4 h-4" />
-            {t("serverError.tryAgain")}
+            {t("tryAgain")}
           </Button>
           <Button asChild variant="ghost" size="lg">
-            <Link href="/">{t("serverError.backHome")}</Link>
+            <Link href="/">{t("backHome")}</Link>
           </Button>
         </div>
 
-        <div
-          className="mt-10 pt-6 text-[13px]"
-          style={{ borderTop: "1px solid var(--bjhunt-border)" }}
-        >
-          <Body className="text-[var(--bjhunt-text-muted)]">
-            {t("serverError.support")}{" "}
-            <a
-              href="mailto:support@bjhunt.com"
-              className="text-[var(--state-success)] underline underline-offset-2 hover:no-underline"
-            >
+        <div className="mt-10 pt-6 border-t border-bjhunt-border text-[13px]">
+          <Body className="text-bjhunt-text-muted">
+            {t("support")}{" "}
+            <a href="mailto:support@bjhunt.com" className="text-bjhunt-brand underline underline-offset-2 hover:no-underline">
               support@bjhunt.com
             </a>
           </Body>
