@@ -24,7 +24,7 @@
     "eyebrow": "Sécurité Offensive Augmentée par IA",
     "title": "Le Futur de la Sécurité",
     "titleHighlight": "Offensive Est Automatisé.",
-    "description": "BJHUNT réunit l'outillage offensif, l'orchestration et la restitution pilotée par la preuve dans une plateforme intelligente. Conçue pour les équipes sécurité qui exigent rapidité, précision et échelle.",
+    "description": "BJHUNT réunit l'outillage offensif, l'orchestration intelligente et la restitution pilotée par la preuve dans une plateforme conçue pour la vitesse et la précision. Grâce au modèle spécialisé BJHUNT 27B entraîné sur des milliards de données cyber, nous éliminons les faux positifs et réduisons le temps de détection à quelques minutes. Zéro infrastructure à gérer, zéro configuration complexe : tout s'exécute depuis votre navigateur, avec des sandboxes isolées lancées à la demande.",
     "ctaPrimary": "Essai Gratuit",
     "ctaSecondary": "Voir la Démo",
     "terminalLine1": "> bjhunt scan --target exemple.com --mode complet",
@@ -42,7 +42,7 @@
     "eyebrow": "Outillage Intégré",
     "title": "Plus d'outils coûteux. Plus de machines lourdes.",
     "titleHighlight": "Plus de faux positifs.",
-    "description": "Chaque outil majeur de sécurité offensive est pré-configuré, orchestré et prêt à exécuter. Aucune configuration, aucun casse-tête de licence, aucune infrastructure.",
+    "description": "15 outils de sécurité pré-configurés et orchestrés depuis une interface unique. Pas d'installation, pas de licence complexe, pas de VM à gérer.",
     "tools": [
       "Nmap", "Nuclei", "Burp Suite", "Nessus", "Invicti",
       "SQLMap", "Amass", "Wireshark", "Metasploit", "OWASP ZAP",
@@ -57,27 +57,27 @@
     "cards": {
       "orchestration": {
         "title": "Orchestration Intelligente",
-        "description": "BJHUNT 27B — un modèle spécialisé conçu pour la sécurité offensive. Coordonne les workflows multi-agents, le routage d'outils et la collecte de preuves sans intervention humaine."
+        "description": "BJHUNT 27B coordonne les workflows multi-agents, le routage d'outils et la collecte de preuves sans intervention manuelle. Le modèle analyse la surface d'attaque en temps réel, détermine la séquence optimale d'exécution et adapte dynamiquement le scope selon les findings intermédiaires. Résultat : une chaîne offensive fluide, cohérente et entièrement documentée."
       },
       "toolchain": {
         "title": "Outillage Intégré",
-        "description": "Tous les outils majeurs de pentest pré-configurés et prêts à l'emploi. Lancez Nmap, Nuclei, Burp, Nessus et plus — orchestrés depuis un plan de contrôle unique."
+        "description": "Nmap, Nuclei, Burp Suite, Nessus, Invicti et dix autres outils majeurs sont pré-configurés et orchestrés depuis un plan de contrôle unique. Plus besoin de gérer des licences multiples, des mises à jour manuelles ou des dépendances système. Chaque outil est lancé dans son environnement isolé, versionné et prêt à l'emploi."
       },
       "reporting": {
         "title": "Reporting en Temps Réel",
-        "description": "Rapports d'audit professionnels dans toutes les langues. Findings appuyés par la preuve, scoring CVSS et résumés exécutifs — générés pendant l'exécution du scan."
+        "description": "Des rapports d'audit professionnels sont générés pendant l'exécution du scan, dans toutes les langues. Chaque finding est appuyé par une preuve réplicable, un scoring CVSS précis et une fiche de remédiation actionnable. Les résumés exécutifs et les packages de conformité sont produits automatiquement, sans travail de rédaction manuel."
       },
       "security": {
         "title": "Sécurité Niveau Entreprise",
-        "description": "Isolation complète des tenants, pistes d'audit immuables, SSO SAML/OIDC et contrôle d'accès par rôle. Conçu pour les environnements réglementés."
+        "description": "Isolation complète des tenants avec stockage dédié, sandboxes éphémères et périmètres API distincts. Chaque action est tracée dans une piste d'audit immuable, horodatée et signée. L'authentification SSO SAML/OIDC et le contrôle d'accès par rôle garantissent une gouvernance adaptée aux environnements réglementés."
       },
       "infrastructure": {
         "title": "Zéro Infrastructure",
-        "description": "Aucune configuration complexe. Pas de machines locales lourdes. Tout s'exécute depuis votre navigateur — des sandboxes isolées se lancent à la demande."
+        "description": "Aucune machine locale à provisionner, aucune image Docker à maintenir, aucun réseau à configurer. Les scans se lancent directement depuis le navigateur dans des sandboxes isolées, hébergées et gérées par BJHUNT. Vous vous concentrez sur les résultats, nous gérons l'infrastructure invisible."
       },
       "compliance": {
         "title": "Conformité ASVS & Prête",
-        "description": "Évaluations alignées OWASP ASVS. Frameworks de reporting PCI-DSS, ISO 27001, SOC 2 et RGPD intégrés. Passez vos audits avec des packages de preuves signés."
+        "description": "Les évaluations sont alignées sur le standard OWASP ASVS avec des frameworks de reporting intégrés pour PCI-DSS, ISO 27001, SOC 2 et RGPD. Chaque livrable inclut des packages de preuves signés, traçables et directement utilisables pour vos audits externes, sans outillage supplémentaire."
       }
     }
   },
@@ -86,20 +86,20 @@
     "title": "Les chiffres qui",
     "titleHighlight": "imposent l'urgence.",
     "stat1": {
-      "value": "68 %",
-      "label": "Des brèches passent inaperçues pendant des mois"
+      "value": "94 %",
+      "label": "des entreprises subissent des attaques ciblées chaque année"
     },
     "stat2": {
-      "value": "4,45 M$",
-      "label": "Coût moyen d'une fuite de données (2023)"
+      "value": "207 jours",
+      "label": "moyens avant détection d'une intrusion (IBM 2024)"
     },
     "stat3": {
-      "value": "60 %",
-      "label": "De réduction du temps de pentest avec l'automatisation"
+      "value": "4,45 M$",
+      "label": "coût moyen d'une fuite de données"
     },
     "stat4": {
       "value": "83 %",
-      "label": "Des organisations ont trouvé des vulnérabilités critiques"
+      "label": "des failles critiques sont découvertes en moins de 24h avec l'automatisation"
     }
   },
   "cta": {

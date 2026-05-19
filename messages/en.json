@@ -24,7 +24,7 @@
     "eyebrow": "AI-Powered Offensive Security",
     "title": "The Future of Offensive Security",
     "titleHighlight": "Is Automated.",
-    "description": "BJHUNT unifies offensive tooling, orchestration, and evidence-driven reporting into one intelligent platform. Purpose-built for security teams that demand speed, precision, and scale.",
+    "description": "BJHUNT unifies offensive tooling, intelligent orchestration, and evidence-driven reporting into a platform engineered for speed and precision. Powered by the specialized BJHUNT 27B model trained on billions of cybersecurity data points, we eliminate false positives and reduce detection time to minutes. Zero infrastructure to manage, zero complex setup: everything runs from your browser, with isolated sandboxes spun up on demand.",
     "ctaPrimary": "Start Free",
     "ctaSecondary": "Watch Demo",
     "terminalLine1": "> bjhunt scan --target example.com --mode deep",
@@ -42,7 +42,7 @@
     "eyebrow": "Integrated Toolchain",
     "title": "No more expensive tools. No more heavy machines.",
     "titleHighlight": "No more false positives.",
-    "description": "Every major offensive security tool is pre-configured, orchestrated, and ready to execute. No setup, no licensing headaches, no infrastructure.",
+    "description": "15 offensive security tools pre-configured and orchestrated from a single interface. No installation, no complex licensing, no VMs to manage.",
     "tools": [
       "Nmap", "Nuclei", "Burp Suite", "Nessus", "Invicti",
       "SQLMap", "Amass", "Wireshark", "Metasploit", "OWASP ZAP",
@@ -57,27 +57,27 @@
     "cards": {
       "orchestration": {
         "title": "Intelligent Orchestration",
-        "description": "BJHUNT 27B — a purpose-built model specialized in offensive security. Coordinates multi-agent workflows, tool routing, and evidence collection without human handoffs."
+        "description": "BJHUNT 27B coordinates multi-agent workflows, tool routing, and evidence collection with zero manual handoffs. The model analyzes attack surfaces in real time, determines the optimal execution sequence, and dynamically adapts scope based on intermediate findings. The result is a fluid, coherent, and fully documented offensive chain."
       },
       "toolchain": {
         "title": "Integrated Toolchain",
-        "description": "All major pentest tools pre-configured and ready. Run Nmap, Nuclei, Burp, Nessus, and more — orchestrated from a single command plane."
+        "description": "Nmap, Nuclei, Burp Suite, Nessus, Invicti, and ten other major tools are pre-configured and orchestrated from a single control plane. No more juggling multiple licenses, manual updates, or system dependencies. Each tool launches in its own isolated, versioned environment, ready to run."
       },
       "reporting": {
         "title": "Real-Time Reporting",
-        "description": "Professional audit reports in any language. Evidence-backed findings, CVSS scoring, and executive summaries — generated as the scan runs."
+        "description": "Professional audit reports are generated while the scan runs, in any language. Every finding is backed by reproducible evidence, precise CVSS scoring, and actionable remediation guidance. Executive summaries and compliance packages are produced automatically, with no manual writing required."
       },
       "security": {
         "title": "Enterprise-Grade Security",
-        "description": "Complete tenant isolation, immutable audit trails, SAML/OIDC SSO, and role-based access control. Built for regulated environments."
+        "description": "Complete tenant isolation with dedicated storage, ephemeral sandboxes, and distinct API boundaries. Every action is traced in an immutable audit trail, timestamped and signed. SAML/OIDC single sign-on and role-based access control provide governance suited to regulated environments."
       },
       "infrastructure": {
         "title": "Zero Infrastructure",
-        "description": "No complex configuration. No heavy local machines. Everything runs from your browser — isolated sandboxes spin up on demand."
+        "description": "No local machines to provision, no Docker images to maintain, no networks to configure. Scans launch directly from the browser into isolated sandboxes, hosted and managed by BJHUNT. You focus on results; we handle the invisible infrastructure."
       },
       "compliance": {
         "title": "ASVS & Compliance Ready",
-        "description": "OWASP ASVS aligned assessments. PCI-DSS, ISO 27001, SOC 2, and GDPR reporting frameworks built in. Pass audits with signed evidence packages."
+        "description": "Assessments are aligned with the OWASP ASVS standard, with built-in reporting frameworks for PCI-DSS, ISO 27001, SOC 2, and GDPR. Every deliverable includes signed, traceable evidence packages ready for external auditors, with no additional tooling needed."
       }
     }
   },
@@ -86,20 +86,20 @@
     "title": "The numbers driving",
     "titleHighlight": "the urgency.",
     "stat1": {
-      "value": "68%",
-      "label": "Of breaches go undetected for months"
+      "value": "94%",
+      "label": "of businesses face targeted attacks every year"
     },
     "stat2": {
-      "value": "$4.45M",
-      "label": "Average cost of a data breach (2023)"
+      "value": "207 days",
+      "label": "average time to detect a breach (IBM 2024)"
     },
     "stat3": {
-      "value": "60%",
-      "label": "Reduction in pentest time with automation"
+      "value": "$4.45M",
+      "label": "average cost of a data breach"
     },
     "stat4": {
       "value": "83%",
-      "label": "Of organizations found critical vulnerabilities"
+      "label": "of critical flaws discovered in under 24h with automation"
     }
   },
   "cta": {
