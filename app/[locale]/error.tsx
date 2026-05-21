@@ -62,7 +62,7 @@ export default function Error({
           <pre
             className="text-left mb-8 p-4 overflow-x-auto rounded-[6px] m-0"
             style={{
-              background: "#0a0a0a",
+              background: "var(--bjhunt-terminal-bg)",
               border: "1px solid var(--bjhunt-border)",
               color: "var(--bjhunt-critical)",
               fontFamily: "var(--bjhunt-font-mono)",

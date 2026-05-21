@@ -283,8 +283,8 @@ export function Header() {
                 fontSize: "12px",
                 fontWeight: 500,
                 letterSpacing: "0.05em",
-                backgroundColor: "#000",
-                color: "#fff",
+                backgroundColor: "var(--bjhunt-cta-primary)",
+                color: "var(--bjhunt-cta-primary-foreground, var(--bjhunt-text-inverted))",
                 height: "52px",
                 borderRadius: 0,
               }}

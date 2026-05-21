@@ -122,8 +122,8 @@ export default function ContactPage() {
 
   const inputStyle: React.CSSProperties = {
     width: "100%",
-    border: "1px solid #ebebeb",
-    background: "#ebebeb",
+    border: "1px solid var(--bjhunt-border)",
+    background: "var(--bjhunt-bg-surface)",
     borderRadius: 0,
     height: 40,
     padding: "0 0.75rem",
@@ -142,7 +142,7 @@ export default function ContactPage() {
     fontWeight: 600,
     textTransform: "uppercase",
     letterSpacing: "0.18em",
-    color: "var(--bjhunt-text-muted)",
+    color: "var(--bjhunt-text-secondary)",
   };
 
   return (
@@ -272,13 +272,19 @@ export default function ContactPage() {
               </div>
 
               <div style={{ paddingTop: "0.5rem", overflowX: "auto" }}>
-                <HCaptcha
-                  sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITEKEY || ""}
-                  onVerify={(token) => setCaptchaToken(token)}
-                  onExpire={() => setCaptchaToken("")}
-                  ref={captchaRef}
-                  theme="light"
-                />
+                {process.env.NEXT_PUBLIC_HCAPTCHA_SITEKEY ? (
+                  <HCaptcha
+                    sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITEKEY}
+                    onVerify={(token) => setCaptchaToken(token)}
+                    onExpire={() => setCaptchaToken("")}
+                    ref={captchaRef}
+                    theme={typeof document !== "undefined" && document.documentElement.classList.contains("dark") ? "dark" : "light"}
+                  />
+                ) : (
+                  <p style={{ fontSize: 11, color: "var(--bjhunt-text-muted)", fontFamily: "var(--bjhunt-font-mono)" }}>
+                    hCaptcha disabled (no sitekey configured)
+                  </p>
+                )}
               </div>
 
               {error && (
@@ -319,8 +325,8 @@ export default function ContactPage() {
                   textTransform: "uppercase",
                   borderRadius: 0,
                   border: "none",
-                  background: "#000",
-                  color: "#fff",
+                  background: "var(--bjhunt-brand)",
+                  color: "var(--bjhunt-bg-surface)",
                   cursor: loading ? "not-allowed" : "pointer",
                   opacity: loading ? 0.5 : 1,
                   marginTop: "0.5rem",
