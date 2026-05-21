@@ -1,0 +1,27 @@
+- generic [active] [ref=e1] [box=0,-1600,1265,2735]:
+  - generic [ref=e2] [box=0,-1600,1265,2735]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer] [box=-1,-1601,1,1]:
+      - /url: "#content-area"
+    - generic [ref=e6] [box=0,-1600,1265,2735]:
+      - generic [ref=e7] [box=0,0,304,580]:
+        - generic [ref=e8] [box=0,0,303,491]:
+          - generic [ref=e9] [box=28,24,247,28]
+          - generic [ref=e27] [box=28,76,247,36]
+          - generic [ref=e39] [box=16,144,271,3916]
+        - list [ref=e607] [box=0,491,303,89]:
+          - listitem [ref=e608] [box=16,504,271,32]
+          - listitem [ref=e617] [cursor=pointer] [box=16,536,271,32]
+          - listitem [box=16,568,271,0]
+      - generic [ref=e624] [box=304,-1600,961,2735]:
+        - generic [ref=e625] [box=368,-1560,521,2695]:
+          - banner [ref=e626] [box=368,-1560,521,113]
+          - generic [ref=e641] [box=368,-1415,521,2031]
+          - generic [ref=e811] [box=368,672,521,69]
+          - link "Running your first Sandbox This guide will show you how to start your first E2B Sandbox. Next" [ref=e833] [cursor=pointer] [box=372,809,513,64]:
+            - /url: /docs/quickstart
+          - generic [ref=e844] [box=369,495,519,60]
+          - contentinfo [ref=e849] [box=368,963,521,173]
+        - navigation "On this page" [ref=e880] [box=961,40,264,184]:
+          - heading "On this page" [level=2] [ref=e881] [box=961,40,264,24]
+          - list [ref=e886] [box=961,64,264,160]
+  - alert [ref=e897] [box=-1,1134,1,1]

@@ -1,0 +1,376 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e6]: "***"
+      - link "We raised $21M Series A Learn what’s next →" [ref=e7] [cursor=pointer]:
+        - /url: /blog/series-a
+        - generic [ref=e8]: We raised $21M Series A
+        - generic [ref=e10]: Learn what’s next →
+      - generic [ref=e12]: "***"
+    - banner [ref=e14]:
+      - generic [ref=e15]:
+        - link "logo" [ref=e17] [cursor=pointer]:
+          - /url: /
+          - img [ref=e19]
+        - navigation [ref=e21]:
+          - generic [ref=e22]:
+            - link "Product" [ref=e23] [cursor=pointer]:
+              - /url: /
+              - generic [ref=e24]: Product
+            - link "Pricing" [ref=e25] [cursor=pointer]:
+              - /url: /pricing
+              - generic [ref=e26]: Pricing
+            - generic [ref=e28] [cursor=pointer]: Resources
+            - link "ENTERPRISE" [ref=e29] [cursor=pointer]:
+              - /url: /enterprise
+              - generic [ref=e30]: ENTERPRISE
+            - link "BOOK A CALL" [ref=e31] [cursor=pointer]:
+              - /url: /contact
+              - generic [ref=e32]: BOOK A CALL
+          - generic [ref=e33]:
+            - link "CAREERS" [ref=e35] [cursor=pointer]:
+              - /url: /careers
+              - generic [ref=e36]: CAREERS
+            - generic [ref=e38]:
+              - link "github link" [ref=e39] [cursor=pointer]:
+                - /url: https://github.com/e2b-dev
+                - img [ref=e41]
+              - link "discord link" [ref=e43] [cursor=pointer]:
+                - /url: https://discord.com/invite/U7KEcGErtQ
+                - img [ref=e45]
+              - link "linkedin link" [ref=e47] [cursor=pointer]:
+                - /url: https://www.linkedin.com/company/e2b-dev/
+                - img [ref=e49]
+              - link "x link" [ref=e51] [cursor=pointer]:
+                - /url: https://x.com/e2b
+                - img [ref=e53]
+            - button "View Dark Mode" [ref=e56] [cursor=pointer]:
+              - img [ref=e58]
+            - generic [ref=e60]:
+              - link "SIGN UP" [ref=e61] [cursor=pointer]:
+                - /url: /auth/sign-up
+              - link "SIGN IN" [ref=e62] [cursor=pointer]:
+                - /url: /auth/sign-in
+  - generic [ref=e65]:
+    - generic [ref=e67]:
+      - link "Book A 30-MIN CALL TODAY" [ref=e69] [cursor=pointer]:
+        - /url: "#book-now"
+        - generic [ref=e70]: Book A 30-MIN CALL TODAY
+      - heading "BUILD SECURE AI AGENTS AT SCALE WITH E2B" [level=1] [ref=e71]
+      - generic [ref=e72]: Open-source cloud infrastructure purpose-built for AI agents. Rapidly deploy, securely manage, and seamlessly scale millions of agentic workflows—just like hyper-growth AI startups and Fortune 100 enterprises.
+      - generic [ref=e73]:
+        - link "Book a call" [ref=e74] [cursor=pointer]:
+          - /url: "#book-now"
+        - link "Get started" [ref=e75] [cursor=pointer]:
+          - /url: /docs
+      - generic [ref=e76]:
+        - generic [ref=e77]: TRUSTED BY
+        - generic [ref=e79]:
+          - link [ref=e80] [cursor=pointer]:
+            - /url: /blog/how-hugging-face-is-using-e2b-to-replicate-deepseek-r1
+            - img [ref=e82]
+          - img [ref=e90]
+          - img [ref=e114]
+          - link [ref=e116] [cursor=pointer]:
+            - /url: /blog/how-manus-uses-e2b-to-provide-agents-with-virtual-computers
+            - img [ref=e118]
+          - link [ref=e135] [cursor=pointer]:
+            - /url: /blog/groqs-compound-ai-models-are-powered-by-e2b
+            - img [ref=e137]
+          - link [ref=e143] [cursor=pointer]:
+            - /url: /blog/lindy-powers-ai-workflows-with-e2b-code-action
+            - img [ref=e145]
+    - generic [ref=e153]:
+      - generic [ref=e154]:
+        - generic [ref=e155]: 94%
+        - generic [ref=e156]: of Fortune 100 COMPANIES
+      - generic [ref=e157]:
+        - generic [ref=e158]: 3M+
+        - generic [ref=e159]: MONTHLY DOWNLOADS
+      - generic [ref=e160]:
+        - generic [ref=e161]: 1B+
+        - generic [ref=e162]: STARTED SANDBOXES
+    - generic [ref=e165]:
+      - generic [ref=e166]:
+        - generic [ref=e167]:
+          - generic [ref=e168]:
+            - generic [ref=e169]: "["
+            - generic [ref=e170]: FEATURES
+            - generic [ref=e171]: "]"
+          - generic [ref=e172]:
+            - generic [ref=e174]: ENTERPRISE-READY
+            - heading "ENTERPRISE-READY, DEVELOPER-FIRST" [level=2] [ref=e175]:
+              - generic [ref=e176]:
+                - text: ENTERPRISE-READY,
+                - text: DEVELOPER-FIRST
+          - generic [ref=e177]: Open-source architecture delivering best-in-class performance, designed specifically for AI agents and the developers who build them.
+        - generic [ref=e178]: "> DSCVR ALL (↓↓)"
+        - generic [ref=e179]: "> B3NTO (9×)"
+      - generic [ref=e180]:
+        - generic [ref=e181]:
+          - img [ref=e184]
+          - generic [ref=e188]:
+            - heading "BYOC + On-prem" [level=3] [ref=e189]
+            - generic [ref=e190]: E2B works where you do - deploy us securely in your own cloud or on premises.
+            - link "TALK TO OUR EXPERTS" [ref=e192] [cursor=pointer]:
+              - /url: /contact
+        - generic [ref=e193]:
+          - img [ref=e196]
+          - generic [ref=e202]:
+            - heading "Secure & battle-tested" [level=3] [ref=e203]
+            - generic [ref=e204]: Enterprise-grade security features to protect your data, workloads, and credentials.
+            - generic [ref=e205]: SECURITY FIRST
+        - generic [ref=e206]:
+          - generic [ref=e207]:
+            - heading "Role-based access control" [level=3] [ref=e208]
+            - generic [ref=e209]: Define granular permissions for your team & transfer them from your cloud provider.
+            - link "TALK TO OUR EXPERTS" [ref=e211] [cursor=pointer]:
+              - /url: /contact
+          - generic [ref=e212]:
+            - img [ref=e214]
+            - generic [ref=e216]: SOON
+          - img [ref=e219]
+        - generic [ref=e232]:
+          - img [ref=e235]
+          - generic [ref=e240]:
+            - heading "Built to scale" [level=3] [ref=e241]
+            - generic [ref=e242]: E2B is the only provider proven to scale to hundreds of millions of sandboxes.
+            - link "LEARN HOW GROQ SCALES WITH E2B" [ref=e244] [cursor=pointer]:
+              - /url: /blog/groqs-compound-ai-models-are-powered-by-e2b
+        - generic [ref=e245]:
+          - generic [ref=e246]:
+            - heading "Leader in open-source" [level=3] [ref=e247]
+            - generic [ref=e248]: Open-source infrastructure, SDKs, and observability dashboard.
+            - link "EXPLORE GITHUB" [ref=e250] [cursor=pointer]:
+              - /url: https://github.com/e2b-dev
+          - img [ref=e253]
+        - generic [ref=e255]:
+          - img [ref=e258]
+          - generic [ref=e263]:
+            - heading "Isolation" [level=3] [ref=e264]
+            - generic [ref=e265]: Total isolation to protect your infrastructure and data from LLM-generated, unsecured code.
+            - link "How Groq Uses E2B Securely" [ref=e267] [cursor=pointer]:
+              - /url: https://www.e2b.dev/blog/groqs-compound-ai-models-are-powered-by-e2b
+        - generic [ref=e268]:
+          - img [ref=e271]
+          - generic [ref=e278]:
+            - heading "SLA" [level=3] [ref=e279]
+            - generic [ref=e280]: Guaranteed uptime and support levels tailored to your operational needs.
+            - link "STATUS PAGE" [ref=e282] [cursor=pointer]:
+              - /url: https://status.e2b.dev/
+        - generic [ref=e283]:
+          - img [ref=e286]
+          - generic [ref=e294]:
+            - heading "US & EU Regions" [level=3] [ref=e295]
+            - generic [ref=e296]: Data and compute within the EU to comply with data residency regulations and the EU AI Act.
+            - link "TALK TO OUR EXPERTS" [ref=e298] [cursor=pointer]:
+              - /url: /contact
+        - generic [ref=e299]:
+          - generic [ref=e301]:
+            - generic [ref=e302]:
+              - generic [ref=e303]: "*"
+              - generic [ref=e304]: ·
+            - generic [ref=e305]:
+              - generic [ref=e306]: "*"
+              - generic [ref=e307]: ·
+            - generic [ref=e308]:
+              - generic [ref=e309]: "*"
+              - generic [ref=e310]: ·
+            - generic [ref=e311]:
+              - generic [ref=e312]: "*"
+              - generic [ref=e313]: ·
+          - generic [ref=e314]:
+            - heading "Self-hosting" [level=3] [ref=e315]
+            - generic [ref=e316]: Not ready to commit to an enterprise plan? Self-host E2B in your cloud of choice.
+            - link "self-hosting guide" [ref=e318] [cursor=pointer]:
+              - /url: https://github.com/e2b-dev/e2b?tab=readme-ov-file#self-hosting
+    - generic [ref=e321]:
+      - generic [ref=e322]:
+        - generic [ref=e323]:
+          - generic [ref=e324]:
+            - generic [ref=e325]: "["
+            - generic [ref=e326]: CUSTOMERS
+            - generic [ref=e327]: "]"
+          - generic [ref=e328]:
+            - generic [ref=e330]: RUN ON E2B
+            - heading "TOP COMPANIES RUN ON E2B" [level=2] [ref=e331]:
+              - text: TOP COMPANIES
+              - text: RUN ON E2B
+          - generic [ref=e332]: From running short AI-generated code snippets, up to fully autonomous AI agents.
+        - generic [ref=e333]:
+          - generic [ref=e334]: /print("
+          - img [ref=e336]
+          - generic [ref=e338]: "\")"
+        - generic [ref=e339]: (↓↓)
+      - generic [ref=e340]:
+        - generic [ref=e341]:
+          - img [ref=e343]
+          - generic [ref=e354]:
+            - text: "\"E2B lets us scale to"
+            - strong [ref=e355]: thousands of concurrent sessions
+            - text: ", and we couldn't have hit $250M ARR if five of our FTEs were building sandboxes instead.”"
+            - text: — Kay Zhu Co-founder & CTO
+          - generic [ref=e356]:
+            - generic [ref=e357]:
+              - link "Read THE CASE STUDY" [ref=e358] [cursor=pointer]:
+                - /url: /blog/genspark
+              - text: →
+            - generic [ref=e361]: Agentic workspace
+        - generic [ref=e362]:
+          - img [ref=e364]
+          - generic [ref=e371]:
+            - text: “E2B allows us to scale-out training runs by launching hundreds of sandboxes in our experiments, which was essential in Open R1.”
+            - text: — Lewis Tunstall, Research Engineer
+          - generic [ref=e372]:
+            - generic [ref=e373]:
+              - link "Read THE CASE STUDY" [ref=e374] [cursor=pointer]:
+                - /url: /blog/how-hugging-face-is-using-e2b-to-replicate-deepseek-r1
+              - text: →
+            - generic [ref=e375]:
+              - generic [ref=e377]: CODE TESTS
+              - generic [ref=e379]: REINFORCEMENT LEARNING
+        - generic [ref=e380]:
+          - img [ref=e382]
+          - generic [ref=e385]:
+            - text: “E2B has revolutionized our agents' capabilities. This advanced alternative to OpenAI's Code Interpreter helps us focus on our unique product.”
+            - text: — Kevin J. Scott, CTO/CIO
+          - generic [ref=e388]: AI CHATBOT
+        - generic [ref=e389]:
+          - img [ref=e391]
+          - generic [ref=e408]:
+            - text: “Manus doesn’t just run some pieces of code. It uses 27 different tools, and it needs E2B to have a full virtual computer to work as a real human.”
+            - text: — Tao Zhang, Co-founder
+          - generic [ref=e409]:
+            - generic [ref=e410]:
+              - link "Read THE CASE STUDY" [ref=e411] [cursor=pointer]:
+                - /url: /blog/how-manus-uses-e2b-to-provide-agents-with-virtual-computers
+              - text: →
+            - generic [ref=e414]: DEEP RESEARCH
+        - generic [ref=e415]:
+          - img [ref=e417]
+          - generic [ref=e425]:
+            - text: “We
+            - strong [ref=e426]: integrated E2B in a week
+            - text: ", with an engineer working on that in spare time. Building this in-house would take us a weeks with multiple people.”"
+            - text: — Luiz Scheidegger, Head of Engineering at Lindy
+          - generic [ref=e427]:
+            - generic [ref=e428]:
+              - link "Read THE CASE STUDY" [ref=e429] [cursor=pointer]:
+                - /url: /blog/lindy-powers-ai-workflows-with-e2b-code-action
+              - text: →
+            - generic [ref=e432]:
+              - text: AI
+              - strong [ref=e433]: executive assistant
+        - generic [ref=e434]:
+          - img [ref=e436]
+          - generic [ref=e442]:
+            - text: “We needed a
+            - strong [ref=e443]: fast, secure, and scalable
+            - text: way for code execution. E2B’s API interface made their infrastructure almost effortless to integrate.”
+            - text: — Benjamin Klieger, Compound AI Lead
+          - generic [ref=e444]:
+            - generic [ref=e445]:
+              - link "Read THE CASE STUDY" [ref=e446] [cursor=pointer]:
+                - /url: /blog/groqs-compound-ai-models-are-powered-by-e2b
+              - text: →
+            - generic [ref=e449]: COMPOUND AI SYSTEM
+    - generic [ref=e452]:
+      - generic [ref=e453]:
+        - generic [ref=e454]:
+          - generic [ref=e455]: "["
+          - generic [ref=e456]: BOOK A CALL
+          - generic [ref=e457]: "]"
+        - generic [ref=e458]:
+          - heading "Book a free GenAI Blueprint Consultation" [level=2] [ref=e459]
+          - generic [ref=e461]: BOOK A FREE
+      - iframe [ref=e465]:
+        
+    - generic [ref=e468]:
+      - generic [ref=e470]:
+        - generic [ref=e471]:
+          - generic [ref=e473]: TOP INVESTORS
+          - heading "BACKED BY TOP INVESTORS" [level=2] [ref=e474]:
+            - text: BACKED BY
+            - text: TOP INVESTORS
+        - generic [ref=e477]:
+          - img [ref=e479]
+          - img [ref=e484]
+          - img [ref=e504]
+          - img [ref=e519]
+      - generic [ref=e527]:
+        - generic [ref=e529]:
+          - generic [ref=e532]: (=^･^=)
+          - generic [ref=e533]:
+            - heading "Github" [level=3] [ref=e534]
+            - generic [ref=e535]: See our complete codebase, Cookbook examples, and more — all in one place.
+          - link "STAR (12.2K+) ↗" [ref=e536] [cursor=pointer]:
+            - /url: https://github.com/e2b-dev
+        - generic [ref=e538]:
+          - generic [ref=e541]: (o_o)
+          - generic [ref=e542]:
+            - heading "Join our Discord" [level=3] [ref=e543]
+            - generic [ref=e544]: Become part of AI developers community & get support from the E2B team.
+          - link "Join Today ↗" [ref=e545] [cursor=pointer]:
+            - /url: https://discord.com/invite/U7KEcGErtQ
+        - generic [ref=e547]:
+          - generic [ref=e548]: "[===]"
+          - generic [ref=e549]:
+            - heading "Docs" [level=3] [ref=e550]
+            - generic [ref=e551]: See the walkthrough of how E2B works, including hello world examples.
+          - link "Browse" [ref=e552] [cursor=pointer]:
+            - /url: /docs
+  - generic [ref=e555]:
+    - generic [ref=e556]:
+      - generic [ref=e557]:
+        - generic [ref=e558]: Site
+        - generic [ref=e559]:
+          - link "Product" [ref=e560] [cursor=pointer]:
+            - /url: /
+          - link "Pricing" [ref=e561] [cursor=pointer]:
+            - /url: /pricing
+          - link "Cookbook" [ref=e562] [cursor=pointer]:
+            - /url: https://github.com/e2b-dev/e2b-cookbook
+          - link "Docs" [ref=e563] [cursor=pointer]:
+            - /url: /docs?ref=footer
+          - link "Blog" [ref=e564] [cursor=pointer]:
+            - /url: /blog
+      - generic [ref=e565]:
+        - generic [ref=e566]: Company
+        - generic [ref=e567]:
+          - link "Careers" [ref=e568] [cursor=pointer]:
+            - /url: /careers
+          - link "Contact" [ref=e569] [cursor=pointer]:
+            - /url: /contact
+          - link "Privacy Policy" [ref=e570] [cursor=pointer]:
+            - /url: /privacy
+          - link "Terms of Service" [ref=e571] [cursor=pointer]:
+            - /url: /terms
+      - generic [ref=e572]:
+        - generic [ref=e573]: Social
+        - generic [ref=e574]:
+          - link "Github" [ref=e575] [cursor=pointer]:
+            - /url: https://github.com/e2b-dev
+          - link "X" [ref=e576] [cursor=pointer]:
+            - /url: https://x.com/e2b
+          - link "Discord" [ref=e577] [cursor=pointer]:
+            - /url: https://discord.com/invite/U7KEcGErtQ
+          - link "LinkedIn" [ref=e578] [cursor=pointer]:
+            - /url: https://www.linkedin.com/company/e2b-dev/
+      - generic [ref=e579]:
+        - generic [ref=e580]: Status
+        - link "Check system status" [ref=e582] [cursor=pointer]:
+          - /url: https://status.e2b.dev/
+    - generic [ref=e584]:
+      - generic [ref=e585]:
+        - link [ref=e586] [cursor=pointer]:
+          - /url: https://trust.e2b.dev/
+          - img [ref=e588]
+        - link [ref=e592] [cursor=pointer]:
+          - /url: https://trust.e2b.dev/
+          - img [ref=e594]
+      - generic [ref=e598]:
+        - text: Build and run AI agents with confidence. Your data is protected with
+        - link "enterprise-grade security" [ref=e599] [cursor=pointer]:
+          - /url: https://trust.e2b.dev/
+        - text: .
+    - generic [ref=e601]: ©2026 ✶ FoundryLabs, Inc.

@@ -1,0 +1,20 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e5]:
+      - img [ref=e6]
+      - generic [ref=e9]: BJHUNT
+    - generic [ref=e10]:
+      - heading "Connexion" [level=1] [ref=e11]
+      - paragraph [ref=e12]: Accede a la console des audits.
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - generic [ref=e15]: Email
+          - textbox "Email" [ref=e16]
+        - generic [ref=e17]:
+          - generic [ref=e18]: Mot de passe (min 12 caracteres)
+          - textbox "Mot de passe (min 12 caracteres)" [ref=e19]
+        - button "Se connecter" [ref=e20]
+      - button "Pas de compte ? Creer un compte." [ref=e21]
+    - paragraph [ref=e22]:
+      - link "Retour bjhunt.com" [ref=e23] [cursor=pointer]:
+        - /url: https://bjhunt.com

@@ -1,0 +1,159 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e6]: "***"
+      - link "We raised $21M Series A Learn what’s next →" [ref=e7] [cursor=pointer]:
+        - /url: /blog/series-a
+        - generic [ref=e8]: We raised $21M Series A
+        - generic [ref=e10]: Learn what’s next →
+      - generic [ref=e12]: "***"
+    - banner [ref=e14]:
+      - generic [ref=e15]:
+        - link "logo" [ref=e17] [cursor=pointer]:
+          - /url: /
+          - img [ref=e19]
+        - navigation [ref=e21]:
+          - generic [ref=e22]
+          - generic [ref=e33]
+  - generic [ref=e65]:
+    - generic [ref=e66]:
+      - generic [ref=e67]:
+        - generic [ref=e68]:
+          - generic [ref=e70]: NEW
+          - link "JOIN STARTUPS PROGRAM" [ref=e72] [cursor=pointer]:
+            - /url: /startups
+        - heading "Pricing" [level=1] [ref=e73]
+        - generic [ref=e74]:
+          - text: Free Hobby tier, and paid upgrades to cover all needs.
+          - text: Separate usage costs.
+      - link "Pricing estimate calculator" [ref=e75] [cursor=pointer]:
+        - /url: http://pricing.e2b.dev/
+      - generic [ref=e76]: "> HOVER (↓↓)"
+      - generic [ref=e77]: /PRINT("$")
+    - generic [ref=e78]:
+      - generic [ref=e80]:
+        - generic [ref=e81]:
+          - generic [ref=e82]: Hobby
+          - generic [ref=e83]: Free
+          - generic [ref=e85]: + Usage Costs
+        - generic [ref=e86]:
+          - list [ref=e87]
+          - generic [ref=e108]
+      - generic [ref=e112]:
+        - generic [ref=e113]:
+          - generic [ref=e114]: Pro
+          - generic [ref=e115]
+          - generic [ref=e119]: + Usage Costs
+        - generic [ref=e120]:
+          - list [ref=e121]
+          - generic [ref=e148]
+      - generic [ref=e152]:
+        - generic [ref=e153]:
+          - generic [ref=e154]: Ultimate
+          - generic [ref=e155]: Enterprise
+          - generic [ref=e157]: + Usage Costs
+        - generic [ref=e158]:
+          - generic [ref=e159]: Contact us for custom solution with special pricing.
+          - generic [ref=e160]
+    - generic [ref=e165]:
+      - generic [ref=e166]: Used by
+      - generic [ref=e168]:
+        - link [ref=e169] [cursor=pointer]:
+          - /url: /blog/how-hugging-face-is-using-e2b-to-replicate-deepseek-r1
+          - img [ref=e171]
+        - img [ref=e179]
+        - img [ref=e203]
+        - link [ref=e205] [cursor=pointer]:
+          - /url: /blog/how-manus-uses-e2b-to-provide-agents-with-virtual-computers
+          - img [ref=e207]
+        - link [ref=e224] [cursor=pointer]:
+          - /url: /blog/groqs-compound-ai-models-are-powered-by-e2b
+          - img [ref=e226]
+        - link [ref=e232] [cursor=pointer]:
+          - /url: /blog/lindy-powers-ai-workflows-with-e2b-code-action
+          - img [ref=e234]
+      - generic [ref=e242]: and more.
+    - generic [ref=e243]:
+      - generic [ref=e244]:
+        - generic [ref=e245]:
+          - heading "Usage Cost Calculator" [level=2] [ref=e246]
+          - generic [ref=e247]
+          - link "CALCULATE YOUR COSTS" [ref=e248] [cursor=pointer]:
+            - /url: http://pricing.e2b.dev/
+        - generic [ref=e249]: +
+        - generic [ref=e250]: "-"
+        - generic [ref=e251]: =
+        - generic [ref=e252]: +
+        - generic [ref=e253]: "-"
+        - generic [ref=e254]: =
+      - generic [ref=e255]:
+        - tablist [ref=e256]:
+          - tab "CPU" [selected] [ref=e257] [cursor=pointer]
+          - tab "RAM" [ref=e259] [cursor=pointer]
+          - tab "STORAGE" [ref=e261] [cursor=pointer]
+        - tabpanel "CPU" [ref=e264]:
+          - generic [ref=e265]
+          - generic [ref=e269]
+          - generic [ref=e273]
+          - generic [ref=e277]
+          - generic [ref=e281]
+          - generic [ref=e285]
+      - generic [ref=e290]:
+        - link "Let us know" [ref=e291] [cursor=pointer]:
+          - /url: mailto:hello@e2b.dev
+        - text: if you need more powerful compute.
+  - generic [ref=e293]:
+    - generic [ref=e294]:
+      - generic [ref=e295]:
+        - generic [ref=e296]: Site
+        - generic [ref=e297]:
+          - link "Product" [ref=e298] [cursor=pointer]:
+            - /url: /
+          - link "Pricing" [ref=e299] [cursor=pointer]:
+            - /url: /pricing
+          - link "Cookbook" [ref=e300] [cursor=pointer]:
+            - /url: https://github.com/e2b-dev/e2b-cookbook
+          - link "Docs" [ref=e301] [cursor=pointer]:
+            - /url: /docs?ref=footer
+          - link "Blog" [ref=e302] [cursor=pointer]:
+            - /url: /blog
+      - generic [ref=e303]:
+        - generic [ref=e304]: Company
+        - generic [ref=e305]:
+          - link "Careers" [ref=e306] [cursor=pointer]:
+            - /url: /careers
+          - link "Contact" [ref=e307] [cursor=pointer]:
+            - /url: /contact
+          - link "Privacy Policy" [ref=e308] [cursor=pointer]:
+            - /url: /privacy
+          - link "Terms of Service" [ref=e309] [cursor=pointer]:
+            - /url: /terms
+      - generic [ref=e310]:
+        - generic [ref=e311]: Social
+        - generic [ref=e312]:
+          - link "Github" [ref=e313] [cursor=pointer]:
+            - /url: https://github.com/e2b-dev
+          - link "X" [ref=e314] [cursor=pointer]:
+            - /url: https://x.com/e2b
+          - link "Discord" [ref=e315] [cursor=pointer]:
+            - /url: https://discord.com/invite/U7KEcGErtQ
+          - link "LinkedIn" [ref=e316] [cursor=pointer]:
+            - /url: https://www.linkedin.com/company/e2b-dev/
+      - generic [ref=e317]:
+        - generic [ref=e318]: Status
+        - link "Check system status" [ref=e320] [cursor=pointer]:
+          - /url: https://status.e2b.dev/
+    - generic [ref=e322]:
+      - generic [ref=e323]:
+        - link [ref=e324] [cursor=pointer]:
+          - /url: https://trust.e2b.dev/
+          - img [ref=e326]
+        - link [ref=e330] [cursor=pointer]:
+          - /url: https://trust.e2b.dev/
+          - img [ref=e332]
+      - generic [ref=e336]:
+        - text: Build and run AI agents with confidence. Your data is protected with
+        - link "enterprise-grade security" [ref=e337] [cursor=pointer]:
+          - /url: https://trust.e2b.dev/
+        - text: .
+    - generic [ref=e339]: ©2026 ✶ FoundryLabs, Inc.

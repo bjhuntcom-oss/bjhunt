@@ -1,0 +1,721 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#content-area"
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - generic [ref=e9]:
+            - link "E2B Docs home page light logo" [ref=e10] [cursor=pointer]:
+              - /url: /
+              - generic [ref=e11]: E2B Docs home page
+              - img "light logo" [ref=e12]
+            - button "Toggle dark mode" [ref=e13] [cursor=pointer]:
+              - generic [ref=e14]:
+                - img [ref=e15]
+                - img [ref=e22]
+          - generic [ref=e27]:
+            - button "Open search" [ref=e28] [cursor=pointer]:
+              - generic [ref=e29]:
+                - img [ref=e30]
+                - generic [ref=e33]: Search...
+              - generic [ref=e34]: Ctrl K
+            - button "Toggle assistant panel" [ref=e35] [cursor=pointer]:
+              - img [ref=e36]
+          - generic [ref=e39]:
+            - list [ref=e40]:
+              - listitem [ref=e41]:
+                - link "Documentation" [ref=e42] [cursor=pointer]:
+                  - /url: /docs
+                  - img [ref=e43]
+                  - generic [ref=e44]: Documentation
+              - listitem [ref=e45]:
+                - link "SDK Reference" [ref=e46] [cursor=pointer]:
+                  - /url: /docs/sdk-reference/js-sdk/v2.14.1/errors
+                  - img [ref=e47]
+                  - generic [ref=e48]: SDK Reference
+              - listitem [ref=e49]:
+                - link "API reference" [ref=e50] [cursor=pointer]:
+                  - /url: /docs/api-reference/sandboxes/list-sandboxes
+                  - img [ref=e51]
+                  - generic [ref=e52]: API reference
+            - generic [ref=e53]:
+              - heading "Getting started" [level=5] [ref=e55]
+              - list [ref=e56]:
+                - listitem [ref=e57]:
+                  - link "Home" [ref=e58] [cursor=pointer]:
+                    - /url: /docs
+                    - img [ref=e60]
+                    - generic [ref=e63]: Home
+                - listitem [ref=e64]:
+                  - button "Toggle Quickstart section" [ref=e65] [cursor=pointer]:
+                    - img [ref=e67]
+                    - generic [ref=e68]: Quickstart
+                    - img [ref=e70]
+                - listitem [ref=e72]:
+                  - link "API key" [ref=e73] [cursor=pointer]:
+                    - /url: /docs/api-key
+                    - img [ref=e75]
+                    - generic [ref=e78]: API key
+                - listitem [ref=e79]:
+                  - link "Cookbook" [ref=e80] [cursor=pointer]:
+                    - /url: https://github.com/e2b-dev/e2b-cookbook
+                    - img [ref=e82]
+                    - generic [ref=e83]:
+                      - generic [ref=e85]: Cookbook
+                      - img [ref=e87]
+                - listitem [ref=e89]:
+                  - link "Need help?" [ref=e90] [cursor=pointer]:
+                    - /url: /docs/support
+                    - img [ref=e92]
+                    - generic [ref=e95]: Need help?
+                - listitem [ref=e96]:
+                  - link "Billing & limits" [ref=e97] [cursor=pointer]:
+                    - /url: /docs/billing
+                    - img [ref=e99]
+                    - generic [ref=e102]: Billing & limits
+            - generic [ref=e103]:
+              - heading "Use cases" [level=5] [ref=e105]
+              - list [ref=e106]:
+                - listitem [ref=e107]:
+                  - link "Coding Agents" [ref=e108] [cursor=pointer]:
+                    - /url: /docs/use-cases/coding-agents
+                    - img [ref=e110]
+                    - generic [ref=e113]: Coding Agents
+                - listitem [ref=e114]:
+                  - link "Computer use" [ref=e115] [cursor=pointer]:
+                    - /url: /docs/use-cases/computer-use
+                    - img [ref=e117]
+                    - generic [ref=e120]: Computer use
+                - listitem [ref=e121]:
+                  - link "GitHub Actions CI/CD" [ref=e122] [cursor=pointer]:
+                    - /url: /docs/use-cases/ci-cd
+                    - img [ref=e124]
+                    - generic [ref=e127]: GitHub Actions CI/CD
+                - listitem [ref=e128]:
+                  - link "Cloud browser" [ref=e129] [cursor=pointer]:
+                    - /url: /docs/use-cases/remote-browser
+                    - img [ref=e131]
+                    - generic [ref=e134]: Cloud browser
+            - generic [ref=e135]:
+              - heading "Agents in sandbox" [level=5] [ref=e137]
+              - list [ref=e138]:
+                - listitem [ref=e139]:
+                  - link "https://mintlify.s3.us-west-1.amazonaws.com/e2b/images/icons/amp.svg Amp" [ref=e140] [cursor=pointer]:
+                    - /url: /docs/agents/amp
+                    - img "https://mintlify.s3.us-west-1.amazonaws.com/e2b/images/icons/amp.svg" [ref=e142]
+                    - generic [ref=e145]: Amp
+                - listitem [ref=e146]:
+                  - link "https://mintlify.s3.us-west-1.amazonaws.com/e2b/images/icons/claude-code.svg Claude Code" [ref=e147] [cursor=pointer]:
+                    - /url: /docs/agents/claude-code
+                    - img "https://mintlify.s3.us-west-1.amazonaws.com/e2b/images/icons/claude-code.svg" [ref=e149]
+                    - generic [ref=e152]: Claude Code
+                - listitem [ref=e153]:
+                  - link "https://mintlify.s3.us-west-1.amazonaws.com/e2b/images/icons/codex.svg Codex" [ref=e154] [cursor=pointer]:
+                    - /url: /docs/agents/codex
+                    - img "https://mintlify.s3.us-west-1.amazonaws.com/e2b/images/icons/codex.svg" [ref=e156]
+                    - generic [ref=e159]: Codex
+                - listitem [ref=e160]:
+                  - link "https://mintlify.s3.us-west-1.amazonaws.com/e2b/images/icons/devin.svg Devin" [ref=e161] [cursor=pointer]:
+                    - /url: /docs/agents/devin
+                    - img "https://mintlify.s3.us-west-1.amazonaws.com/e2b/images/icons/devin.svg" [ref=e163]
+                    - generic [ref=e166]: Devin
+                - listitem [ref=e167]:
+                  - link "https://mintlify.s3.us-west-1.amazonaws.com/e2b/images/icons/openai-agents-sdk.svg OpenAI Agents SDK" [ref=e168] [cursor=pointer]:
+                    - /url: /docs/agents/openai-agents-sdk
+                    - img "https://mintlify.s3.us-west-1.amazonaws.com/e2b/images/icons/openai-agents-sdk.svg" [ref=e170]
+                    - generic [ref=e173]: OpenAI Agents SDK
+                - listitem [ref=e174]:
+                  - button "Toggle OpenClaw section" [ref=e175] [cursor=pointer]:
+                    - img "https://mintlify.s3.us-west-1.amazonaws.com/e2b-openclaw-icon/images/icons/openclaw.svg" [ref=e177]
+                    - generic [ref=e178]: OpenClaw
+                    - img [ref=e180]
+                - listitem [ref=e182]:
+                  - link "https://mintlify.s3.us-west-1.amazonaws.com/e2b/images/icons/opencode.svg OpenCode" [ref=e183] [cursor=pointer]:
+                    - /url: /docs/agents/opencode
+                    - img "https://mintlify.s3.us-west-1.amazonaws.com/e2b/images/icons/opencode.svg" [ref=e185]
+                    - generic [ref=e188]: OpenCode
+            - generic [ref=e189]:
+              - heading "Code interpreting" [level=5] [ref=e191]
+              - list [ref=e192]:
+                - listitem [ref=e193]:
+                  - button "Toggle Analyze data with AI section" [ref=e194] [cursor=pointer]:
+                    - generic [ref=e195]: Analyze data with AI
+                    - img [ref=e197]
+                - listitem [ref=e199]:
+                  - button "Toggle Charts & visualizations section" [ref=e200] [cursor=pointer]:
+                    - generic [ref=e201]: Charts & visualizations
+                    - img [ref=e203]
+                - listitem [ref=e205]:
+                  - link "Streaming" [ref=e206] [cursor=pointer]:
+                    - /url: /docs/code-interpreting/streaming
+                    - generic [ref=e209]: Streaming
+                - listitem [ref=e210]:
+                  - link "Code contexts" [ref=e211] [cursor=pointer]:
+                    - /url: /docs/code-interpreting/contexts
+                    - generic [ref=e214]: Code contexts
+                - listitem [ref=e215]:
+                  - button "Toggle Supported languages section" [ref=e216] [cursor=pointer]:
+                    - generic [ref=e217]: Supported languages
+                    - img [ref=e219]
+            - generic [ref=e221]:
+              - heading "Sandbox" [level=5] [ref=e223]
+              - list [ref=e224]:
+                - listitem [ref=e225]:
+                  - link "Lifecycle" [ref=e226] [cursor=pointer]:
+                    - /url: /docs/sandbox
+                    - generic [ref=e229]: Lifecycle
+                - listitem [ref=e230]:
+                  - link "Lifecycle events API" [ref=e231] [cursor=pointer]:
+                    - /url: /docs/sandbox/lifecycle-events-api
+                    - generic [ref=e234]: Lifecycle events API
+                - listitem [ref=e235]:
+                  - link "Lifecycle events webhooks" [ref=e236] [cursor=pointer]:
+                    - /url: /docs/sandbox/lifecycle-events-webhooks
+                    - generic [ref=e239]: Lifecycle events webhooks
+                - listitem [ref=e240]:
+                  - link "Persistence" [ref=e241] [cursor=pointer]:
+                    - /url: /docs/sandbox/persistence
+                    - generic [ref=e244]: Persistence
+                - listitem [ref=e245]:
+                  - link "Snapshots" [ref=e246] [cursor=pointer]:
+                    - /url: /docs/sandbox/snapshots
+                    - generic [ref=e249]: Snapshots
+                - listitem [ref=e250]:
+                  - link "Auto-resume on request" [ref=e251] [cursor=pointer]:
+                    - /url: /docs/sandbox/auto-resume
+                    - generic [ref=e254]: Auto-resume on request
+                - listitem [ref=e255]:
+                  - link "Git integration" [ref=e256] [cursor=pointer]:
+                    - /url: /docs/sandbox/git-integration
+                    - generic [ref=e259]: Git integration
+                - listitem [ref=e260]:
+                  - link "Metrics" [ref=e261] [cursor=pointer]:
+                    - /url: /docs/sandbox/metrics
+                    - generic [ref=e264]: Metrics
+                - listitem [ref=e265]:
+                  - link "OTel telemetry export" [ref=e266] [cursor=pointer]:
+                    - /url: /docs/sandbox/otel-telemetry-export
+                    - generic [ref=e269]: OTel telemetry export
+                - listitem [ref=e270]:
+                  - link "Metadata" [ref=e271] [cursor=pointer]:
+                    - /url: /docs/sandbox/metadata
+                    - generic [ref=e274]: Metadata
+                - listitem [ref=e275]:
+                  - link "Environment variables" [ref=e276] [cursor=pointer]:
+                    - /url: /docs/sandbox/environment-variables
+                    - generic [ref=e279]: Environment variables
+                - listitem [ref=e280]:
+                  - link "List sandboxes" [ref=e281] [cursor=pointer]:
+                    - /url: /docs/sandbox/list
+                    - generic [ref=e284]: List sandboxes
+                - listitem [ref=e285]:
+                  - link "Connect to running sandbox" [ref=e286] [cursor=pointer]:
+                    - /url: /docs/sandbox/connect
+                    - generic [ref=e289]: Connect to running sandbox
+                - listitem [ref=e290]:
+                  - link "Internet access" [ref=e291] [cursor=pointer]:
+                    - /url: /docs/sandbox/internet-access
+                    - generic [ref=e294]: Internet access
+                - listitem [ref=e295]:
+                  - link "Interactive terminal" [ref=e296] [cursor=pointer]:
+                    - /url: /docs/sandbox/pty
+                    - generic [ref=e299]: Interactive terminal
+                - listitem [ref=e300]:
+                  - link "SSH access" [ref=e301] [cursor=pointer]:
+                    - /url: /docs/sandbox/ssh-access
+                    - generic [ref=e304]: SSH access
+                - listitem [ref=e305]:
+                  - link "Connecting storage bucket" [ref=e306] [cursor=pointer]:
+                    - /url: /docs/sandbox/connect-bucket
+                    - generic [ref=e309]: Connecting storage bucket
+                - listitem [ref=e310]:
+                  - link "Secured access" [ref=e311] [cursor=pointer]:
+                    - /url: /docs/sandbox/secured-access
+                    - generic [ref=e314]: Secured access
+                - listitem [ref=e315]:
+                  - link "Proxy tunneling" [ref=e316] [cursor=pointer]:
+                    - /url: /docs/sandbox/ip-tunneling
+                    - generic [ref=e319]: Proxy tunneling
+                - listitem [ref=e320]:
+                  - link "Custom domain" [ref=e321] [cursor=pointer]:
+                    - /url: /docs/sandbox/custom-domain
+                    - generic [ref=e324]: Custom domain
+            - generic [ref=e325]:
+              - heading "Templates" [level=5] [ref=e327]
+              - list [ref=e328]:
+                - listitem [ref=e329]:
+                  - link "Quickstart" [ref=e330] [cursor=pointer]:
+                    - /url: /docs/template/quickstart
+                    - generic [ref=e333]: Quickstart
+                - listitem [ref=e334]:
+                  - link "How it works" [ref=e335] [cursor=pointer]:
+                    - /url: /docs/template/how-it-works
+                    - generic [ref=e338]: How it works
+                - listitem [ref=e339]:
+                  - link "User and workdir" [ref=e340] [cursor=pointer]:
+                    - /url: /docs/template/user-and-workdir
+                    - generic [ref=e343]: User and workdir
+                - listitem [ref=e344]:
+                  - link "Caching" [ref=e345] [cursor=pointer]:
+                    - /url: /docs/template/caching
+                    - generic [ref=e348]: Caching
+                - listitem [ref=e349]:
+                  - link "Base image" [ref=e350] [cursor=pointer]:
+                    - /url: /docs/template/base-image
+                    - generic [ref=e353]: Base image
+                - listitem [ref=e354]:
+                  - link "Private registries" [ref=e355] [cursor=pointer]:
+                    - /url: /docs/template/private-registries
+                    - generic [ref=e358]: Private registries
+                - listitem [ref=e359]:
+                  - link "Defining template" [ref=e360] [cursor=pointer]:
+                    - /url: /docs/template/defining-template
+                    - generic [ref=e363]: Defining template
+                - listitem [ref=e364]:
+                  - link "Start & ready commands" [ref=e365] [cursor=pointer]:
+                    - /url: /docs/template/start-ready-command
+                    - generic [ref=e368]: Start & ready commands
+                - listitem [ref=e369]:
+                  - link "Build" [ref=e370] [cursor=pointer]:
+                    - /url: /docs/template/build
+                    - generic [ref=e373]: Build
+                - listitem [ref=e374]:
+                  - link "Names" [ref=e375] [cursor=pointer]:
+                    - /url: /docs/template/names
+                    - generic [ref=e378]: Names
+                - listitem [ref=e379]:
+                  - link "Tags & versioning" [ref=e380] [cursor=pointer]:
+                    - /url: /docs/template/tags
+                    - generic [ref=e383]: Tags & versioning
+                - listitem [ref=e384]:
+                  - link "Logging" [ref=e385] [cursor=pointer]:
+                    - /url: /docs/template/logging
+                    - generic [ref=e388]: Logging
+                - listitem [ref=e389]:
+                  - link "Error handling" [ref=e390] [cursor=pointer]:
+                    - /url: /docs/template/error-handling
+                    - generic [ref=e393]: Error handling
+                - listitem [ref=e394]:
+                  - button "Toggle Examples section" [ref=e395] [cursor=pointer]:
+                    - generic [ref=e396]: Examples
+                    - img [ref=e398]
+                - listitem [ref=e400]:
+                  - link "V2 migration guide" [ref=e401] [cursor=pointer]:
+                    - /url: /docs/template/migration-v2
+                    - generic [ref=e404]: V2 migration guide
+            - generic [ref=e405]:
+              - heading "Filesystem" [level=5] [ref=e407]
+              - list [ref=e408]:
+                - listitem [ref=e409]:
+                  - link "Overview" [ref=e410] [cursor=pointer]:
+                    - /url: /docs/filesystem
+                    - generic [ref=e413]: Overview
+                - listitem [ref=e414]:
+                  - link "Read & write" [ref=e415] [cursor=pointer]:
+                    - /url: /docs/filesystem/read-write
+                    - generic [ref=e418]: Read & write
+                - listitem [ref=e419]:
+                  - link "File & directory metadata" [ref=e420] [cursor=pointer]:
+                    - /url: /docs/filesystem/info
+                    - generic [ref=e423]: File & directory metadata
+                - listitem [ref=e424]:
+                  - link "Watch directory for changes" [ref=e425] [cursor=pointer]:
+                    - /url: /docs/filesystem/watch
+                    - generic [ref=e428]: Watch directory for changes
+                - listitem [ref=e429]:
+                  - link "Upload data" [ref=e430] [cursor=pointer]:
+                    - /url: /docs/filesystem/upload
+                    - generic [ref=e433]: Upload data
+                - listitem [ref=e434]:
+                  - link "Download data" [ref=e435] [cursor=pointer]:
+                    - /url: /docs/filesystem/download
+                    - generic [ref=e438]: Download data
+            - generic [ref=e439]:
+              - heading "Volumes" [level=5] [ref=e441]
+              - list [ref=e442]:
+                - listitem [ref=e443]:
+                  - link "Overview" [ref=e444] [cursor=pointer]:
+                    - /url: /docs/volumes
+                    - generic [ref=e447]: Overview
+                - listitem [ref=e448]:
+                  - link "Managing volumes" [ref=e449] [cursor=pointer]:
+                    - /url: /docs/volumes/manage
+                    - generic [ref=e452]: Managing volumes
+                - listitem [ref=e453]:
+                  - link "Mounting volumes" [ref=e454] [cursor=pointer]:
+                    - /url: /docs/volumes/mount
+                    - generic [ref=e457]: Mounting volumes
+                - listitem [ref=e458]:
+                  - link "Read & write" [ref=e459] [cursor=pointer]:
+                    - /url: /docs/volumes/read-write
+                    - generic [ref=e462]: Read & write
+                - listitem [ref=e463]:
+                  - link "File & directory metadata" [ref=e464] [cursor=pointer]:
+                    - /url: /docs/volumes/info
+                    - generic [ref=e467]: File & directory metadata
+                - listitem [ref=e468]:
+                  - link "Upload data" [ref=e469] [cursor=pointer]:
+                    - /url: /docs/volumes/upload
+                    - generic [ref=e472]: Upload data
+                - listitem [ref=e473]:
+                  - link "Download data" [ref=e474] [cursor=pointer]:
+                    - /url: /docs/volumes/download
+                    - generic [ref=e477]: Download data
+            - generic [ref=e478]:
+              - heading "Commands" [level=5] [ref=e480]
+              - list [ref=e481]:
+                - listitem [ref=e482]:
+                  - link "Overview" [ref=e483] [cursor=pointer]:
+                    - /url: /docs/commands
+                    - generic [ref=e486]: Overview
+                - listitem [ref=e487]:
+                  - link "Streaming" [ref=e488] [cursor=pointer]:
+                    - /url: /docs/commands/streaming
+                    - generic [ref=e491]: Streaming
+                - listitem [ref=e492]:
+                  - link "Run commands in background" [ref=e493] [cursor=pointer]:
+                    - /url: /docs/commands/background
+                    - generic [ref=e496]: Run commands in background
+            - generic [ref=e497]:
+              - heading "MCP gateway" [level=5] [ref=e499]
+              - list [ref=e500]:
+                - listitem [ref=e501]:
+                  - link "Overview" [ref=e502] [cursor=pointer]:
+                    - /url: /docs/mcp
+                    - generic [ref=e505]: Overview
+                - listitem [ref=e506]:
+                  - link "Quickstart" [ref=e507] [cursor=pointer]:
+                    - /url: /docs/mcp/quickstart
+                    - generic [ref=e510]: Quickstart
+                - listitem [ref=e511]:
+                  - link "Available servers" [ref=e512] [cursor=pointer]:
+                    - /url: /docs/mcp/available-servers
+                    - generic [ref=e515]: Available servers
+                - listitem [ref=e516]:
+                  - link "Custom templates" [ref=e517] [cursor=pointer]:
+                    - /url: /docs/mcp/custom-templates
+                    - generic [ref=e520]: Custom templates
+                - listitem [ref=e521]:
+                  - link "Custom servers" [ref=e522] [cursor=pointer]:
+                    - /url: /docs/mcp/custom-servers
+                    - generic [ref=e525]: Custom servers
+                - listitem [ref=e526]:
+                  - link "Examples" [ref=e527] [cursor=pointer]:
+                    - /url: /docs/mcp/examples
+                    - generic [ref=e530]: Examples
+            - generic [ref=e531]:
+              - heading "CLI" [level=5] [ref=e533]
+              - list [ref=e534]:
+                - listitem [ref=e535]:
+                  - link "Installation" [ref=e536] [cursor=pointer]:
+                    - /url: /docs/cli
+                    - generic [ref=e539]: Installation
+                - listitem [ref=e540]:
+                  - link "Authentication" [ref=e541] [cursor=pointer]:
+                    - /url: /docs/cli/auth
+                    - generic [ref=e544]: Authentication
+                - listitem [ref=e545]:
+                  - link "List sandboxes" [ref=e546] [cursor=pointer]:
+                    - /url: /docs/cli/list-sandboxes
+                    - generic [ref=e549]: List sandboxes
+                - listitem [ref=e550]:
+                  - link "Create sandbox" [ref=e551] [cursor=pointer]:
+                    - /url: /docs/cli/create-sandbox
+                    - generic [ref=e554]: Create sandbox
+                - listitem [ref=e555]:
+                  - link "Connect to sandbox" [ref=e556] [cursor=pointer]:
+                    - /url: /docs/cli/connect-to-sandbox
+                    - generic [ref=e559]: Connect to sandbox
+                - listitem [ref=e560]:
+                  - link "Execute commands in sandbox" [ref=e561] [cursor=pointer]:
+                    - /url: /docs/cli/exec-command
+                    - generic [ref=e564]: Execute commands in sandbox
+                - listitem [ref=e565]:
+                  - link "Shutdown running sandboxes" [ref=e566] [cursor=pointer]:
+                    - /url: /docs/cli/shutdown-sandboxes
+                    - generic [ref=e569]: Shutdown running sandboxes
+            - generic [ref=e570]:
+              - heading "Deployment" [level=5] [ref=e572]
+              - list [ref=e573]:
+                - listitem [ref=e574]:
+                  - link "Bring Your Own Cloud" [ref=e575] [cursor=pointer]:
+                    - /url: /docs/byoc
+                    - generic [ref=e578]: Bring Your Own Cloud
+            - generic [ref=e579]:
+              - heading "Migration" [level=5] [ref=e581]
+              - list [ref=e582]:
+                - listitem [ref=e583]:
+                  - link "SDK v2 migration guide" [ref=e584] [cursor=pointer]:
+                    - /url: /docs/migration/v2
+                    - generic [ref=e587]: SDK v2 migration guide
+            - generic [ref=e588]:
+              - heading "Troubleshooting" [level=5] [ref=e590]
+              - list [ref=e591]:
+                - listitem [ref=e592]:
+                  - link "Build authentication error" [ref=e593] [cursor=pointer]:
+                    - /url: /docs/troubleshooting/templates/build-authentication-error
+                    - generic [ref=e596]: Build authentication error
+                - listitem [ref=e597]:
+                  - link "The sandbox is running but port is not open - 49999" [ref=e598] [cursor=pointer]:
+                    - /url: /docs/troubleshooting/templates/49999-port-not-open
+                    - generic [ref=e601]: The sandbox is running but port is not open - 49999
+                - listitem [ref=e602]:
+                  - link "pip install fails during template build" [ref=e603] [cursor=pointer]:
+                    - /url: /docs/troubleshooting/pip-install-error
+                    - generic [ref=e606]: pip install fails during template build
+        - list [ref=e607]:
+          - listitem [ref=e608]:
+            - link "Dashboard" [ref=e609] [cursor=pointer]:
+              - /url: https://e2b.dev/dashboard
+              - generic [ref=e612]: Dashboard
+              - img [ref=e614]
+          - listitem [ref=e617] [cursor=pointer]:
+            - link "e2b-dev/e2b 12 290" [ref=e898]:
+              - /url: https://github.com/e2b-dev/e2b
+              - generic [ref=e619]:
+                - generic [ref=e620]:
+                  - img [ref=e621]
+                  - generic [ref=e623]: e2b-dev/e2b
+                - generic [ref=e899]:
+                  - img [ref=e900]
+                  - generic [ref=e901]: 12 290
+          - listitem
+      - generic [ref=e624]:
+        - generic [ref=e625]:
+          - banner [ref=e626]:
+            - generic [ref=e627]:
+              - generic [ref=e628]: Getting started
+              - generic [ref=e629]:
+                - heading "E2B Documentation" [level=1] [ref=e630]
+                - generic [ref=e902]:
+                  - button "Copy page" [ref=e903] [cursor=pointer]:
+                    - generic [ref=e904]:
+                      - img [ref=e905]
+                      - generic [ref=e908]: Copy page
+                  - button "More actions" [ref=e909] [cursor=pointer]:
+                    - img [ref=e910]
+          - generic [ref=e641]:
+            - blockquote [ref=e642]:
+              - heading "Documentation Index" [level=2] [ref=e643]
+              - paragraph [ref=e644]:
+                - text: "Fetch the complete documentation index at:"
+                - link "https://e2b.mintlify.app/llms.txt" [ref=e645] [cursor=pointer]:
+                  - /url: https://e2b.mintlify.app/llms.txt
+              - paragraph [ref=e646]: Use this file to discover all available pages before exploring further.
+            - heading "Navigate to header What is E2B?" [level=2] [ref=e647]:
+              - link "Navigate to header" [ref=e648] [cursor=pointer]:
+                - /url: "#what-is-e2b"
+                - img [ref=e650]
+              - generic [ref=e652] [cursor=pointer]: What is E2B?
+            - generic [ref=e653]: E2B provides isolated sandboxes that let agents safely execute code, process data, and run tools. Our SDKs make it easy to start and manage these environments.
+            - generic [ref=e654]: "Start a sandbox and run code in a few lines:"
+            - generic [ref=e655]:
+              - generic [ref=e656]:
+                - tablist [ref=e657]:
+                  - tab "JavaScript & TypeScript" [selected] [ref=e658] [cursor=pointer]:
+                    - generic [ref=e659]: JavaScript & TypeScript
+                  - tab "Python" [ref=e661] [cursor=pointer]:
+                    - generic [ref=e662]: Python
+                - generic [ref=e663]:
+                  - button "Copy the contents from the code block" [ref=e665] [cursor=pointer]:
+                    - img [ref=e666]
+                  - button "Ask AI" [ref=e670] [cursor=pointer]:
+                    - img [ref=e671]
+              - tabpanel "JavaScript & TypeScript" [ref=e675]:
+                - code [ref=e679]:
+                  - generic [ref=e680]: npm i e2b
+            - generic [ref=e681]:
+              - generic [ref=e682]:
+                - tablist [ref=e683]:
+                  - tab "JavaScript & TypeScript" [selected] [ref=e684] [cursor=pointer]:
+                    - generic [ref=e685]: JavaScript & TypeScript
+                  - tab "Python" [ref=e687] [cursor=pointer]:
+                    - generic [ref=e688]: Python
+                - generic [ref=e689]:
+                  - button "Copy the contents from the code block" [ref=e691] [cursor=pointer]:
+                    - img [ref=e692]
+                  - button "Ask AI" [ref=e696] [cursor=pointer]:
+                    - img [ref=e697]
+              - tabpanel "JavaScript & TypeScript" [ref=e701]:
+                - code [ref=e705]:
+                  - generic [ref=e706]: "import { Sandbox } from 'e2b'"
+                  - generic [ref=e707]: const sandbox = await Sandbox.create() // Needs E2B_API_KEY environment variable
+                  - generic [ref=e708]: const result = await sandbox.commands.run('echo "Hello from E2B Sandbox!"')
+                  - generic [ref=e709]: console.log(result.stdout)
+            - heading "Navigate to header E2B building blocks" [level=2] [ref=e710]:
+              - link "Navigate to header" [ref=e711] [cursor=pointer]:
+                - /url: "#e2b-building-blocks"
+                - img [ref=e713]
+              - generic [ref=e715] [cursor=pointer]: E2B building blocks
+            - generic [ref=e716]: A quick overview of the core building blocks you’ll interact with when using E2B.
+            - list [ref=e717]:
+              - listitem [ref=e718]:
+                - generic [ref=e719]:
+                  - link "Sandbox" [ref=e720] [cursor=pointer]:
+                    - /url: /docs/sandbox
+                    - strong [ref=e721]: Sandbox
+                  - text: — A fast, secure Linux VM created on demand for your agent
+              - listitem [ref=e722]:
+                - generic [ref=e723]:
+                  - link "Template" [ref=e724] [cursor=pointer]:
+                    - /url: /docs/template/quickstart
+                    - strong [ref=e725]: Template
+                  - text: — Defines what environment a sandbox starts with
+            - heading "Navigate to header How to use the docs" [level=2] [ref=e726]:
+              - link "Navigate to header" [ref=e727] [cursor=pointer]:
+                - /url: "#how-to-use-the-docs"
+                - img [ref=e729]
+              - generic [ref=e731] [cursor=pointer]: How to use the docs
+            - generic [ref=e732]: "The documentation is split into three main sections:"
+            - list [ref=e733]:
+              - listitem [ref=e734]:
+                - generic [ref=e735]:
+                  - link "Quickstart" [ref=e736] [cursor=pointer]:
+                    - /url: "#quickstart"
+                    - strong [ref=e737]: Quickstart
+                  - text: — Step-by-step tutorials that walk you through creating your first E2B sandboxes.
+              - listitem [ref=e738]:
+                - generic [ref=e739]:
+                  - link "Examples" [ref=e740] [cursor=pointer]:
+                    - /url: "#examples"
+                    - strong [ref=e741]: Examples
+                  - text: — In-depth tutorials focused on specific use cases. Pick the topics that match what you’re building.
+              - listitem [ref=e742]:
+                - generic [ref=e743]:
+                  - link "SDK Reference" [ref=e744] [cursor=pointer]:
+                    - /url: https://e2b.dev/docs/sdk-reference
+                    - strong [ref=e745]: SDK Reference
+                  - text: — A complete technical reference for every SDK method, parameter, and configuration option.
+            - heading "Navigate to header Quickstart" [level=2] [ref=e746]:
+              - link "Navigate to header" [ref=e747] [cursor=pointer]:
+                - /url: "#quickstart"
+                - img [ref=e749]
+              - generic [ref=e751] [cursor=pointer]: Quickstart
+            - generic [ref=e752]:
+              - link [ref=e753] [cursor=pointer]:
+                - link [ref=e755]:
+                  - /url: /docs/quickstart
+                  - img [ref=e757]
+                  - generic [ref=e758]:
+                    - heading [level=2] [ref=e759]: Running your first Sandbox
+                    - generic [ref=e760]: Learn how to start your first E2B Sandbox with our Python or JavaScript SDK.
+              - link [ref=e761] [cursor=pointer]:
+                - link [ref=e763]:
+                  - /url: /docs/quickstart/connect-llms
+                  - img [ref=e765]
+                  - generic [ref=e766]:
+                    - heading [level=2] [ref=e767]: Connecting LLMs to E2B
+                    - generic [ref=e768]: Connect your favorite LLM to E2B to run AI-generated code inside the Sandbox.
+              - link [ref=e769] [cursor=pointer]:
+                - link [ref=e771]:
+                  - /url: /docs/quickstart/upload-download-files
+                  - img [ref=e773]
+                  - generic [ref=e774]:
+                    - heading [level=2] [ref=e775]: Uploading & downloading files
+                    - generic [ref=e776]: A quick guide on how to upload and download files to and from the Sandbox.
+              - link [ref=e777] [cursor=pointer]:
+                - link [ref=e779]:
+                  - /url: /docs/quickstart/install-custom-packages
+                  - img [ref=e781]
+                  - generic [ref=e782]:
+                    - heading [level=2] [ref=e783]: Install custom packages
+                    - generic [ref=e784]: Customize your Sandbox with third-party packages.
+            - heading "Navigate to header Examples" [level=2] [ref=e785]:
+              - link "Navigate to header" [ref=e786] [cursor=pointer]:
+                - /url: "#examples"
+                - img [ref=e788]
+              - generic [ref=e790] [cursor=pointer]: Examples
+            - generic [ref=e791]:
+              - link [ref=e792] [cursor=pointer]:
+                - link [ref=e794]:
+                  - /url: /docs/use-cases/computer-use
+                  - img [ref=e796]
+                  - generic [ref=e797]:
+                    - heading [level=2] [ref=e798]: Computer Use
+                    - generic [ref=e800]: Build AI agents that see, understand, and control virtual Linux desktops using E2B Desktop sandboxes.
+              - link [ref=e801] [cursor=pointer]:
+                - link [ref=e803]:
+                  - /url: /docs/use-cases/ci-cd
+                  - img [ref=e805]
+                  - generic [ref=e806]:
+                    - heading [level=2] [ref=e807]: GitHub Actions CI/CD
+                    - generic [ref=e809]: Use E2B sandboxes in your GitHub Actions workflows to run testing, validation, and AI code reviews.
+          - generic [ref=e811]:
+            - paragraph [ref=e812]: Was this page helpful?
+            - generic [ref=e813]:
+              - generic [ref=e814]:
+                - button "Yes" [ref=e815] [cursor=pointer]:
+                  - img [ref=e816]
+                  - generic [ref=e818]: "Yes"
+                - button "No" [ref=e819] [cursor=pointer]:
+                  - img [ref=e820]
+                  - generic [ref=e822]: "No"
+              - generic [ref=e823]:
+                - link "Suggest edits" [ref=e824] [cursor=pointer]:
+                  - /url: https://github.com/e2b-dev/docs/edit/main/docs.mdx
+                  - img [ref=e825]
+                  - generic [ref=e827]: Suggest edits
+                - link "Raise issue" [ref=e828] [cursor=pointer]:
+                  - /url: "https://github.com/e2b-dev/docs/issues/new?title=Issue on docs&body=Path: /docs"
+                  - img [ref=e829]
+                  - generic [ref=e831]: Raise issue
+          - link "Running your first Sandbox This guide will show you how to start your first E2B Sandbox. Next" [ref=e833] [cursor=pointer]:
+            - /url: /docs/quickstart
+            - generic [ref=e834]:
+              - generic [ref=e835]:
+                - generic [ref=e836]: Running your first Sandbox
+                - generic [ref=e837]: This guide will show you how to start your first E2B Sandbox.
+              - generic [ref=e839]:
+                - generic [ref=e840]: Next
+                - img [ref=e841]
+          - generic [ref=e844]:
+            - textbox "Ask a question..." [ref=e845]
+            - generic: Ctrl+I
+            - button "Send message" [disabled] [ref=e846]:
+              - img [ref=e847]
+          - contentinfo [ref=e849]:
+            - generic [ref=e850]:
+              - link "website" [ref=e851] [cursor=pointer]:
+                - /url: https://e2b.dev
+                - generic [ref=e852]: website
+                - img [ref=e853]
+              - link "x" [ref=e854] [cursor=pointer]:
+                - /url: https://x.com/e2b
+                - generic [ref=e855]: x
+                - img [ref=e856]
+              - link "discord" [ref=e857] [cursor=pointer]:
+                - /url: https://discord.gg/e2b
+                - generic [ref=e858]: discord
+                - img [ref=e859]
+              - link "linkedin" [ref=e860] [cursor=pointer]:
+                - /url: https://linkedin.com/company/e2b-dev
+                - generic [ref=e861]: linkedin
+                - img [ref=e862]
+            - link "Powered by This documentation is built and hosted on Mintlify, a developer documentation platform" [ref=e865] [cursor=pointer]:
+              - /url: https://www.mintlify.com?utm_campaign=poweredBy&utm_medium=referral&utm_source=e2b
+              - generic [ref=e866]: Powered by
+              - img [ref=e867]
+              - generic [ref=e876]: This documentation is built and hosted on Mintlify, a developer documentation platform
+        - navigation "On this page" [ref=e880]:
+          - heading "On this page" [level=2] [ref=e881]:
+            - button "On this page" [ref=e882] [cursor=pointer]:
+              - img [ref=e883]
+              - generic [ref=e884]: On this page
+          - list [ref=e886]:
+            - listitem [ref=e887]:
+              - link "What is E2B?" [ref=e888] [cursor=pointer]:
+                - /url: "#what-is-e2b"
+            - listitem [ref=e889]:
+              - link "E2B building blocks" [ref=e890] [cursor=pointer]:
+                - /url: "#e2b-building-blocks"
+            - listitem [ref=e891]:
+              - link "How to use the docs" [ref=e892] [cursor=pointer]:
+                - /url: "#how-to-use-the-docs"
+            - listitem [ref=e893]:
+              - link "Quickstart" [ref=e894] [cursor=pointer]:
+                - /url: "#quickstart"
+            - listitem [ref=e895]:
+              - link "Examples" [ref=e896] [cursor=pointer]:
+                - /url: "#examples"
+  - alert [ref=e897]

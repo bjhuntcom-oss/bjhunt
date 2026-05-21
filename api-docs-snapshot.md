@@ -1,0 +1,91 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - link [ref=e5] [cursor=pointer]:
+        - /url: /en
+        - img [ref=e6]
+      - navigation [ref=e9]:
+        - link "Home" [ref=e11] [cursor=pointer]:
+          - /url: /en
+        - link "Technology" [ref=e14] [cursor=pointer]:
+          - /url: /en/technology
+        - link "Pricing" [ref=e17] [cursor=pointer]:
+          - /url: /en/pricing
+        - link "About" [ref=e20] [cursor=pointer]:
+          - /url: /en/about
+        - link "Contact" [ref=e23] [cursor=pointer]:
+          - /url: /en/contact
+      - generic [ref=e24]:
+        - link "Sign In" [ref=e25] [cursor=pointer]:
+          - /url: https://app.bjhunt.com/login
+        - button "Switch to dark mode" [ref=e27] [cursor=pointer]: ☾
+        - link "Get Started" [ref=e28] [cursor=pointer]:
+          - /url: /en/beta
+        - generic [ref=e30]:
+          - button "FR" [ref=e31] [cursor=pointer]
+          - button "EN" [disabled] [ref=e32]
+  - main [ref=e33]:
+    - generic [ref=e34]:
+      - generic [ref=e35]:
+        - link "B BJHUNT" [ref=e36] [cursor=pointer]:
+          - /url: /en
+          - generic [ref=e38]: B
+          - generic [ref=e39]: BJHUNT
+        - button [ref=e40] [cursor=pointer]:
+          - img [ref=e41]
+      - generic [ref=e43]:
+        - complementary [ref=e44]:
+          - generic [ref=e46] [cursor=pointer]
+          - navigation [ref=e52]
+          - generic [ref=e114]
+        - main [ref=e124]:
+          - generic [ref=e125]
+        - complementary [ref=e417]:
+          - paragraph [ref=e418]
+          - navigation [ref=e420]
+  - contentinfo [ref=e430]:
+    - generic [ref=e432]:
+      - generic [ref=e433]:
+        - generic [ref=e434]:
+          - img [ref=e435]
+          - generic [ref=e438]: BJHUNT
+        - paragraph [ref=e439]: Offensive audit, powered by intelligence.
+      - generic [ref=e440]:
+        - paragraph [ref=e441]: Product
+        - navigation [ref=e442]:
+          - link "Home" [ref=e443] [cursor=pointer]:
+            - /url: /en
+          - link "Technology" [ref=e444] [cursor=pointer]:
+            - /url: /en/technology
+          - link "Pricing" [ref=e445] [cursor=pointer]:
+            - /url: /en/pricing
+          - link "About" [ref=e446] [cursor=pointer]:
+            - /url: /en/about
+          - link "Contact" [ref=e447] [cursor=pointer]:
+            - /url: /en/contact
+      - generic [ref=e448]:
+        - paragraph [ref=e449]: Resources
+        - navigation [ref=e450]:
+          - link "API Documentation" [ref=e451] [cursor=pointer]:
+            - /url: /en/api-docs
+          - link "Security" [ref=e452] [cursor=pointer]:
+            - /url: /en/security
+      - generic [ref=e453]:
+        - paragraph [ref=e454]: Legal
+        - navigation [ref=e455]:
+          - link "Terms of Service" [ref=e456] [cursor=pointer]:
+            - /url: /en/legal
+          - link "Privacy Policy" [ref=e457] [cursor=pointer]:
+            - /url: /en/legal
+          - link "GDPR" [ref=e458] [cursor=pointer]:
+            - /url: /en/legal
+          - link "Legal Notice" [ref=e459] [cursor=pointer]:
+            - /url: /en/legal
+    - generic [ref=e461]:
+      - generic [ref=e462]: © 2026 BJHUNT. All rights reserved.
+      - generic [ref=e465]: Operational
+  - button "Open Next.js Dev Tools" [ref=e471] [cursor=pointer]:
+    - img [ref=e472]
+  - alert [ref=e475]

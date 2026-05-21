@@ -8,8 +8,8 @@ export function AnnouncementBanner() {
   return (
     <div
       style={{
-        background: "#000",
-        color: "#fff",
+        background: "#ffffff",
+        color: "#000000",
         height: "32px",
         display: "flex",
         alignItems: "center",
@@ -19,6 +19,7 @@ export function AnnouncementBanner() {
         fontWeight: 500,
         letterSpacing: "0.05em",
         gap: "8px",
+        borderBottom: "1px solid var(--bjhunt-border)",
       }}
     >
       <span style={{ color: "#f80" }}>***</span>

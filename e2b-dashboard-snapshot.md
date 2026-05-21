@@ -1,0 +1,148 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - generic [ref=e9]:
+          - generic [ref=e11]:
+            - img [ref=e12]
+            - generic [ref=e14]: E2B
+          - button [ref=e15] [cursor=pointer]:
+            - img
+        - list [ref=e16]:
+          - listitem [ref=e17]:
+            - button "J TEAM J.i.ml.2.53.39's Team" [ref=e18] [cursor=pointer]:
+              - generic [ref=e20]: J
+              - generic [ref=e21]:
+                - generic [ref=e22]: TEAM
+                - generic [ref=e23]: J.i.ml.2.53.39's Team
+              - img [ref=e24]
+          - listitem [ref=e26]:
+            - button "> Go to Ctrl K" [ref=e27] [cursor=pointer]:
+              - generic [ref=e28]: "> Go to"
+              - generic:
+                - generic: Ctrl K
+      - generic [ref=e29]:
+        - list [ref=e31]:
+          - listitem [ref=e32]:
+            - link "Sandboxes" [ref=e33] [cursor=pointer]:
+              - /url: /dashboard/jiml25339/sandboxes/monitoring
+              - img [ref=e34]
+              - generic [ref=e36]: Sandboxes
+          - listitem [ref=e37]:
+            - link "Templates" [ref=e38] [cursor=pointer]:
+              - /url: /dashboard/jiml25339/templates/list
+              - img [ref=e39]
+              - generic [ref=e44]: Templates
+        - generic [ref=e45]:
+          - generic [ref=e46]: integration
+          - list [ref=e47]:
+            - listitem [ref=e48]:
+              - link "Webhooks" [ref=e49] [cursor=pointer]:
+                - /url: /dashboard/jiml25339/webhooks
+                - img [ref=e50]
+                - generic [ref=e55]: Webhooks
+        - generic [ref=e56]:
+          - generic [ref=e57]: team
+          - list [ref=e58]:
+            - listitem [ref=e59]:
+              - link "General" [ref=e60] [cursor=pointer]:
+                - /url: /dashboard/jiml25339/general
+                - img [ref=e61]
+                - generic [ref=e64]: General
+            - listitem [ref=e65]:
+              - link "API Keys" [ref=e66] [cursor=pointer]:
+                - /url: /dashboard/jiml25339/keys
+                - img [ref=e67]
+                - generic [ref=e70]: API Keys
+            - listitem [ref=e71]:
+              - link "Members" [ref=e72] [cursor=pointer]:
+                - /url: /dashboard/jiml25339/members
+                - img [ref=e73]
+                - generic [ref=e75]: Members
+        - generic [ref=e76]:
+          - generic [ref=e77]: billing
+          - list [ref=e78]:
+            - listitem [ref=e79]:
+              - link "Usage" [ref=e80] [cursor=pointer]:
+                - /url: /dashboard/jiml25339/usage
+                - img [ref=e81]
+                - generic [ref=e83]: Usage
+            - listitem [ref=e84]:
+              - link "Limits" [ref=e85] [cursor=pointer]:
+                - /url: /dashboard/jiml25339/limits
+                - img [ref=e86]
+                - generic [ref=e88]: Limits
+            - listitem [ref=e89]:
+              - link "Billing" [ref=e90] [cursor=pointer]:
+                - /url: /dashboard/jiml25339/billing
+                - img [ref=e91]
+                - generic [ref=e93]: Billing
+      - list [ref=e96]:
+        - listitem [ref=e97]:
+          - link "GitHub" [ref=e98] [cursor=pointer]:
+            - /url: https://github.com/e2b-dev
+            - img [ref=e99]
+            - text: GitHub
+            - img [ref=e101]
+        - listitem [ref=e103]:
+          - link "Documentation" [ref=e104] [cursor=pointer]:
+            - /url: /docs
+            - img [ref=e105]
+            - text: Documentation
+            - img [ref=e109]
+      - list [ref=e111]:
+        - listitem [ref=e112]:
+          - button "Feedback" [ref=e113] [cursor=pointer]
+        - listitem [ref=e114]:
+          - button "Support" [ref=e115] [cursor=pointer]
+      - button "Toggle Sidebar" [ref=e116]
+    - main [ref=e117]:
+      - generic [ref=e118]:
+        - generic [ref=e120]:
+          - heading "Sandboxes" [level=1] [ref=e122]
+          - button [ref=e124] [cursor=pointer]:
+            - img
+        - generic [ref=e126]:
+          - tablist [ref=e128]:
+            - tab "Monitoring" [selected] [ref=e130] [cursor=pointer]:
+              - img
+              - text: Monitoring
+            - tab "List" [ref=e133] [cursor=pointer]:
+              - img
+              - text: List
+          - generic [ref=e134]:
+            - generic [ref=e135]:
+              - generic [ref=e136]:
+                - generic [ref=e137]: LIVE
+                - button "Failed" [ref=e140]
+                - generic [ref=e145]
+              - generic [ref=e146]:
+                - generic [ref=e147]: LIVE
+                - button "Failed" [ref=e150]
+                - generic [ref=e155]
+              - generic [ref=e156]:
+                - button "Failed" [ref=e157]
+                - generic [ref=e162]
+            - generic [ref=e163]:
+              - generic [ref=e164]:
+                - generic [ref=e165]: Concurrent
+                - generic [ref=e168]: Average over range
+                - img [ref=e173]
+              - generic [ref=e179]:
+                - generic [ref=e180]: Start Rate per Second
+                - generic [ref=e183]: Median over range
+                - img [ref=e188]
+        - generic [ref=e194]:
+          - generic [ref=e195]: ">_j.i.ml.2.53.39@gmail.com:Sandboxes"
+          - generic [ref=e196]:
+            - img [ref=e197]
+            - generic [ref=e199]:
+              - text: Verification required.
+              - button "Complete verification." [ref=e200] [cursor=pointer]
+          - 'link "System status: ALL SYSTEMS OPERATIONAL" [ref=e202] [cursor=pointer]':
+            - /url: https://status.e2b.dev
+            - generic [ref=e205]: ALL SYSTEMS OPERATIONAL
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T"
+  - alert [ref=e206]: Dashboard - E2B

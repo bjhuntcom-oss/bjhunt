@@ -1,0 +1,33 @@
+Total messages: 12 (Errors: 10, Warnings: 0)
+
+[ERROR] Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'unsafe-eval''. Either the 'unsafe-inline' keyword, a hash ('sha256-OPkBdRTlFJicM/PwPJ0Ow0kPAbLwErSTgJpvRxHE0pA='), or a nonce ('nonce-...') is required to enable inline execution. The action has been blocked. @ http://localhost:3001/login:0
+[ERROR] Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'unsafe-eval''. Either the 'unsafe-inline' keyword, a hash ('sha256-9I6vNZ/RnSXMmg8fcPTX2nxlFELnNk0lYwTkHlXqDAw='), or a nonce ('nonce-...') is required to enable inline execution. The action has been blocked. @ http://localhost:3001/login:12
+[ERROR] Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'unsafe-eval''. Either the 'unsafe-inline' keyword, a hash ('sha256-OBTN3RiyCV4Bq7dFqZ5a2pAXjnCcCYeTJMO2I/LYKeo='), or a nonce ('nonce-...') is required to enable inline execution. The action has been blocked. @ http://localhost:3001/login:12
+[ERROR] Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'unsafe-eval''. Either the 'unsafe-inline' keyword, a hash ('sha256-zBrGQC6c2tJo+i8ocaB3MlPclNccsVe9SlLAmpyYDno='), or a nonce ('nonce-...') is required to enable inline execution. The action has been blocked. @ http://localhost:3001/login:12
+[ERROR] Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'unsafe-eval''. Either the 'unsafe-inline' keyword, a hash ('sha256-rzw0sSuGFSS+QeNPpu1Ud0F5B8YblUdUllaK35iGgYs='), or a nonce ('nonce-...') is required to enable inline execution. The action has been blocked. @ http://localhost:3001/login:12
+[ERROR] Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'unsafe-eval''. Either the 'unsafe-inline' keyword, a hash ('sha256-qIwg+WowfgJvv+0ojY6tuF+v2iOzCI5gUFSNGuDvjvE='), or a nonce ('nonce-...') is required to enable inline execution. The action has been blocked. @ http://localhost:3001/login:12
+[ERROR] Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'unsafe-eval''. Either the 'unsafe-inline' keyword, a hash ('sha256-q81ZpePA4jlzlRIvnF6uK/MzWjkq7rYiZwo3nT2IwZU='), or a nonce ('nonce-...') is required to enable inline execution. The action has been blocked. @ http://localhost:3001/login:12
+[ERROR] Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'unsafe-eval''. Either the 'unsafe-inline' keyword, a hash ('sha256-MoRZzftlyIQ88uba042Ary7C/ACD//qkK1tMWt8YJkM='), or a nonce ('nonce-...') is required to enable inline execution. The action has been blocked. @ http://localhost:3001/login:12
+[ERROR] Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'unsafe-eval''. Either the 'unsafe-inline' keyword, a hash ('sha256-bTBkg5NhhUb0ojnJ63iQDCnb1Bg+vn3c5Z5sDx98tkI='), or a nonce ('nonce-...') is required to enable inline execution. The action has been blocked. @ http://localhost:3001/login:12
+[VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3001/login:0
+[INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_115brz8._.js:2477
+InvariantError: Invariant: Expected a request ID to be defined for the document via self.__next_r. This is a bug in Next.js.
+    at createDebugChannel (http://localhost:3001/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:7827:41)
+    at module evaluation (http://localhost:3001/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:15067:20)
+    at http://localhost:3001/_next/static/chunks/turbopack-_0p44nws._.js:1307:27
+    at runModuleExecutionHooks (http://localhost:3001/_next/static/chunks/turbopack-_0p44nws._.js:1636:13)
+    at instantiateModuleShared (http://localhost:3001/_next/static/chunks/turbopack-_0p44nws._.js:1305:9)
+    at instantiateModule (http://localhost:3001/_next/static/chunks/turbopack-_0p44nws._.js:1621:12)
+    at getOrInstantiateModuleFromParent (http://localhost:3001/_next/static/chunks/turbopack-_0p44nws._.js:1604:12)
+    at DevContext.commonJsRequire [as r] (http://localhost:3001/_next/static/chunks/turbopack-_0p44nws._.js:299:12)
+    at http://localhost:3001/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:15224:47
+    at http://localhost:3001/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:194:9
+    at loadScriptsInSequence (http://localhost:3001/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:158:16)
+    at appBootstrap (http://localhost:3001/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:187:5)
+    at module evaluation (http://localhost:3001/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:15223:32)
+    at http://localhost:3001/_next/static/chunks/turbopack-_0p44nws._.js:1307:27
+    at runModuleExecutionHooks (http://localhost:3001/_next/static/chunks/turbopack-_0p44nws._.js:1636:13)
+    at instantiateModuleShared (http://localhost:3001/_next/static/chunks/turbopack-_0p44nws._.js:1305:9)
+    at instantiateModule (http://localhost:3001/_next/static/chunks/turbopack-_0p44nws._.js:1621:12)
+    at getOrInstantiateRuntimeModule (http://localhost:3001/_next/static/chunks/turbopack-_0p44nws._.js:1582:12)
+    at Object.registerChunk (http://localhost:3001/_next/static/chunks/turbopack-_0p44nws._.js:1988:21)
