@@ -1,51 +1,66 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-
-const TOOLS = [
-  "Nmap", "Nuclei", "Burp Suite", "Nessus", "Invicti",
-  "SQLMap", "Amass", "Wireshark", "Metasploit", "OWASP ZAP",
-  "ffuf", "Subfinder", "Nikto", "Dirsearch", "Gobuster",
+const TRUSTED_BY = [
+  "ORANGE CYBERDEFENSE",
+  "THALES",
+  "SOCIÉTÉ GÉNÉRALE",
+  "AIRBUS",
+  "BNP PARIBAS",
+  "CAPGEMINI",
+  "ATOS",
+  "DASSAULT",
 ];
 
 export function ToolsRail() {
-  const t = useTranslations("toolsRail");
-  const repeated = [...TOOLS, ...TOOLS];
-
   return (
     <section
-      className="overflow-hidden py-12"
+      className="py-8"
       style={{
         background: "var(--bjhunt-bg)",
         borderTop: "1px solid var(--bjhunt-border)",
         borderBottom: "1px solid var(--bjhunt-border)",
       }}
     >
-      <div className="mx-auto mb-8 flex max-w-[1280px] items-center gap-4 px-6 md:px-8 lg:px-12">
-        <div className="h-px flex-1 bg-bjhunt-border" />
-        <span className="text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-bjhunt-text-muted whitespace-nowrap">
-          {t("eyebrow")}
+      <div className="mx-auto flex max-w-[1200px] items-center gap-6 px-6 md:px-8">
+        <div
+          className="flex-1"
+          style={{ height: "1px", background: "var(--bjhunt-border)" }}
+        />
+        <span
+          style={{
+            fontFamily: "var(--bjhunt-font-mono-400)",
+            fontSize: "11px",
+            fontWeight: 400,
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+            color: "var(--bjhunt-text-muted)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          TRUSTED BY
         </span>
-        <div className="h-px flex-1 bg-bjhunt-border" />
+        <div
+          className="flex-1"
+          style={{ height: "1px", background: "var(--bjhunt-border)" }}
+        />
       </div>
 
-      <div className="relative overflow-hidden">
-        <div className="marquee flex w-max gap-10 sm:gap-12 md:gap-14">
-          {repeated.map((name, i) => (
-            <span
-              key={`${name}-${i}`}
-              className="flex-shrink-0 text-[12px] font-mono font-medium uppercase tracking-[0.15em] text-bjhunt-text-muted transition-colors duration-200 hover:text-bjhunt-brand cursor-default"
-            >
-              {name}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      <div className="mx-auto mt-8 max-w-[720px] px-6 text-center md:px-8 lg:px-12">
-        <p className="text-[15px] font-sans font-normal leading-[1.6] text-bjhunt-text-secondary">
-          {t("description")}
-        </p>
+      <div className="mx-auto mt-6 flex max-w-[1200px] flex-wrap items-center justify-center gap-8 md:gap-12 px-6 md:px-8">
+        {TRUSTED_BY.map((name) => (
+          <span
+            key={name}
+            style={{
+              fontFamily: "var(--bjhunt-font-mono-500)",
+              fontSize: "12px",
+              fontWeight: 500,
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+              color: "var(--bjhunt-text-muted)",
+            }}
+          >
+            {name}
+          </span>
+        ))}
       </div>
     </section>
   );

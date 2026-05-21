@@ -45,7 +45,7 @@ export function Terminal({ lines, className, autoPlay = true, showCursor = true 
     <div
       className={cn(
         "bg-[var(--bjhunt-bg-surface)] border border-[var(--bjhunt-border)] p-4 font-mono text-[11px] leading-relaxed",
-        "rounded-[var(--bjhunt-radius-md)]",
+        "rounded-none",
         className
       )}
     >

@@ -1983,3 +1983,27 @@ Ajouté `architecture/13-DUAL-SANDBOX.md` — synthèse concise de l'architectur
 Index docs mis à jour : ajout 12-STREAMING_EVENTS.md, 13-DUAL-SANDBOX.md, section Infrastructure, section Archive. Retrait de la date « État au 2026-04-29 » (obsolète).
 
 ---
+
+## 2026-05-19 — Configuration MCP Playwright dans Antigravity
+
+### Configuration du serveur MCP Playwright
+
+Ajout de la configuration du serveur MCP officiel `@playwright/mcp` dans le fichier de configuration globale d'Antigravity :
+- Fichier créé : `C:\Users\BEYONCE\.gemini\antigravity\mcp_config.json`
+- Configuration ajoutée :
+  ```json
+  {
+    "mcpServers": {
+      "playwright": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@playwright/mcp"
+        ]
+      }
+    }
+  }
+  ```
+
+---
+

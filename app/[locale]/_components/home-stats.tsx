@@ -1,8 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { SectionHeader } from "@/components/marketing/section-header";
-import { StatsSection } from "@/components/marketing/stats-section";
 
 export function HomeStats() {
   const t = useTranslations("stats");
@@ -16,19 +14,52 @@ export function HomeStats() {
 
   return (
     <section
-      className="py-16 md:py-24"
       style={{
-        background: "var(--bjhunt-bg)",
-        borderBottom: "1px solid var(--bjhunt-border)",
+        background: "#0a0a0a",
+        height: "7.5rem",
+        borderTop: "1px solid #292929",
       }}
     >
-      <div className="mx-auto w-full max-w-[1280px] px-6 md:px-8 lg:px-12">
-        <SectionHeader
-          eyebrow={t("eyebrow")}
-          title={t("title")}
-          highlight={t("titleHighlight")}
-        />
-        <StatsSection stats={stats} />
+      <div
+        className="mx-auto flex h-full max-w-[1200px] items-stretch"
+        style={{ padding: "0 1.5rem" }}
+      >
+        {stats.map((stat, i) => (
+          <div
+            key={stat.label}
+            className="flex flex-1 flex-col items-center justify-center"
+            style={{
+              borderLeft: i > 0 ? "1px solid #292929" : "none",
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "var(--bjhunt-font-mono-700)",
+                fontSize: "clamp(24px, 3vw, 40px)",
+                fontWeight: 700,
+                lineHeight: 1,
+                color: "#fff",
+                textTransform: "uppercase",
+              }}
+              className="tabular-nums"
+            >
+              {stat.value}
+            </span>
+            <span
+              style={{
+                fontFamily: "var(--bjhunt-font-sans)",
+                fontSize: "13px",
+                lineHeight: "18px",
+                color: "#999",
+                textAlign: "center",
+                marginTop: "4px",
+                maxWidth: "160px",
+              }}
+            >
+              {stat.label}
+            </span>
+          </div>
+        ))}
       </div>
     </section>
   );

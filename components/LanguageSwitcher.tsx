@@ -11,32 +11,47 @@ export function LanguageSwitcher() {
   const [isPending, startTransition] = useTransition();
 
   const switchLocale = (newLocale: 'fr' | 'en') => {
+    if (newLocale === locale) return;
     startTransition(() => {
       router.replace(pathname, { locale: newLocale });
     });
   };
 
   return (
-    <div className="flex items-center gap-1 text-[10px] font-mono">
+    <div style={{ display: "flex", alignItems: "center", gap: "2px", fontFamily: "var(--bjhunt-font-mono)", fontSize: "10px" }}>
       <button
         onClick={() => switchLocale('fr')}
-        disabled={isPending}
-        className={`px-2 py-1 transition-colors ${
-          locale === 'fr' 
-            ? 'bg-white text-black' 
-            : 'text-white/50 hover:text-white hover:bg-white/10'
-        }`}
+        disabled={isPending || locale === 'fr'}
+        style={{
+          padding: "4px 8px",
+          border: "1px solid var(--bjhunt-border)",
+          borderRadius: 0,
+          background: locale === 'fr' ? "var(--bjhunt-text)" : "transparent",
+          color: locale === 'fr' ? "var(--bjhunt-bg)" : "var(--bjhunt-text-muted)",
+          cursor: locale === 'fr' ? "default" : "pointer",
+          fontFamily: "var(--bjhunt-font-mono)",
+          fontSize: "10px",
+          fontWeight: locale === 'fr' ? 700 : 400,
+          transition: "all 0.15s",
+        }}
       >
         FR
       </button>
       <button
         onClick={() => switchLocale('en')}
-        disabled={isPending}
-        className={`px-2 py-1 transition-colors ${
-          locale === 'en' 
-            ? 'bg-white text-black' 
-            : 'text-white/50 hover:text-white hover:bg-white/10'
-        }`}
+        disabled={isPending || locale === 'en'}
+        style={{
+          padding: "4px 8px",
+          border: "1px solid var(--bjhunt-border)",
+          borderRadius: 0,
+          background: locale === 'en' ? "var(--bjhunt-text)" : "transparent",
+          color: locale === 'en' ? "var(--bjhunt-bg)" : "var(--bjhunt-text-muted)",
+          cursor: locale === 'en' ? "default" : "pointer",
+          fontFamily: "var(--bjhunt-font-mono)",
+          fontSize: "10px",
+          fontWeight: locale === 'en' ? 700 : 400,
+          transition: "all 0.15s",
+        }}
       >
         EN
       </button>

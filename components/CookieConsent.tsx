@@ -115,12 +115,12 @@ export default function CookieConsentBanner() {
         }`}
       >
         <div className="max-w-4xl mx-auto">
-          <div className="bg-[var(--bjhunt-bg-surface)] border border-[var(--bjhunt-border)] rounded-[var(--bjhunt-radius-md)] shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
+          <div className="bg-[var(--bjhunt-bg-surface)] border border-[var(--bjhunt-border)] rounded-none shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
             {/* Header */}
             <div className="p-4 md:p-6 border-b border-[var(--bjhunt-border)]">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[var(--bjhunt-bg)] border border-[var(--bjhunt-border-strong)] rounded-[var(--bjhunt-radius-sm)] flex items-center justify-center">
+                   <div className="w-10 h-10 bg-[var(--bjhunt-bg)] border border-[var(--bjhunt-border-strong)] rounded-none flex items-center justify-center">
                     <Cookie className="w-5 h-5 text-[var(--bjhunt-text)]" />
                   </div>
                   <div>
@@ -134,7 +134,7 @@ export default function CookieConsentBanner() {
                 </div>
                 <button
                   onClick={handleRejectAll}
-                  className="p-2 rounded-[var(--bjhunt-radius-sm)] hover:bg-white/[0.04] transition-colors"
+                  className="p-2 rounded-none hover:bg-white/[0.04] transition-colors"
                   aria-label={t('close')}
                 >
                   <X className="w-4 h-4 text-[var(--bjhunt-text-muted)]" />
@@ -159,7 +159,7 @@ export default function CookieConsentBanner() {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 flex items-center justify-center border rounded-[var(--bjhunt-radius-sm)] ${
+                      <div className={`w-8 h-8 flex items-center justify-center border rounded-none ${
                         consent[option.id]
                           ? 'border-[var(--bjhunt-border-strong)] text-[var(--bjhunt-text)]'
                           : 'border-[var(--bjhunt-border)] text-[var(--bjhunt-text-muted)]'
@@ -172,7 +172,7 @@ export default function CookieConsentBanner() {
                             {t(`categories.${option.id}.name`)}
                           </span>
                           {option.required && (
-                            <span className="font-mono font-semibold text-[10px] px-1.5 py-0.5 border border-[var(--bjhunt-border)] rounded-[var(--bjhunt-radius-xs)] text-[var(--bjhunt-text-muted)] uppercase tracking-[0.18em]">
+                            <span className="font-mono font-semibold text-[10px] px-1.5 py-0.5 border border-[var(--bjhunt-border)] rounded-none text-[var(--bjhunt-text-muted)] uppercase tracking-[0.18em]">
                               {t('required')}
                             </span>
                           )}

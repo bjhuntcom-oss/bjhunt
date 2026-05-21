@@ -15,7 +15,7 @@ const badgeVariants = cva(
   cn(
     "inline-flex items-center px-2 py-0.5 border",
     "text-[10px] font-semibold uppercase tracking-[0.18em] font-mono",
-    "rounded-[var(--bjhunt-radius-sm)]"
+    "rounded-none"
   ),
   {
     variants: {

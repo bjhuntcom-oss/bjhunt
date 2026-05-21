@@ -47,7 +47,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
     ref
   ) => {
     const base = cn(
-      "rounded-[var(--bjhunt-radius-md)]",
+      "rounded-none",
       "bg-[var(--bjhunt-bg-surface)] text-[var(--bjhunt-text)]",
       "transition-colors",
       PADDING[padding]

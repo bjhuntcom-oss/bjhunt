@@ -1,13 +1,13 @@
 "use client";
 
+import { usePathname } from "@/i18n/routing";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { AnnouncementBanner } from "@/components/layout/announcement-banner";
 import CookieConsentBanner from "@/components/CookieConsent";
 
-/**
- * Skip-to-main link — WCAG 2.4.1 (Bypass Blocks).
- * Hidden until focused via Tab from the very top of the page.
- */
+const DOCS_PATHS = ["/api-docs"];
+
 function SkipToMain() {
   return (
     <a
@@ -20,11 +20,19 @@ function SkipToMain() {
 }
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isDocs = DOCS_PATHS.some((p) => pathname.startsWith(p));
+
+  if (isDocs) {
+    return <>{children}</>;
+  }
+
   return (
     <>
       <SkipToMain />
+      <AnnouncementBanner />
       <Header />
-      <main id="main" className="pt-14">{children}</main>
+      <main id="main">{children}</main>
       <Footer />
       <CookieConsentBanner />
     </>
