@@ -1,11 +1,316 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
-import HCaptcha from "@hcaptcha/react-hcaptcha";
-import { Check, AlertCircle, Loader2, ChevronDown } from "lucide-react";
+import { Mail, Users, MapPin, ArrowUpRight } from "lucide-react";
 
 export default function ContactPage() {
+  const t = useTranslations("contact");
+  const isFr = typeof document !== "undefined" && document.documentElement.lang === "fr";
+
+  return (
+    <div style={{ background: "var(--bjhunt-bg)", color: "var(--bjhunt-text)", minHeight: "100vh" }}>
+      {/* Hero Section */}
+      <div
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          padding: "6.25rem 1.25rem 3.25rem",
+          borderBottom: "1px solid var(--bjhunt-border)",
+          textAlign: "center",
+        }}
+      >
+        <span
+          style={{
+            display: "inline-block",
+            fontSize: 12,
+            fontFamily: "var(--bjhunt-font-mono)",
+            fontWeight: 400,
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+            color: "var(--bjhunt-text-muted)",
+            marginBottom: "0.5rem",
+          }}
+        >
+          {t("heroLabel")}
+        </span>
+
+        <h1
+          style={{
+            fontFamily: "var(--bjhunt-font-mono)",
+            fontWeight: 700,
+            fontSize: "clamp(2rem, 5vw, 3.75rem)",
+            lineHeight: 1.05,
+            letterSpacing: "-0.03em",
+            textTransform: "uppercase",
+            margin: "0 auto 1rem",
+            maxWidth: 800,
+          }}
+        >
+          {t("heroTitle")}
+        </h1>
+
+        <p
+          style={{
+            fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
+            color: "var(--bjhunt-text)",
+            fontSize: 16,
+            fontWeight: 500,
+            lineHeight: 1.5,
+            maxWidth: 640,
+            margin: "0 auto 1.5rem",
+          }}
+        >
+          {t("heroSubtitle")}
+        </p>
+
+        {/* CTA Button */}
+        <a
+          href="#book-call"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: 48,
+            padding: "0 24px",
+            fontFamily: "var(--bjhunt-font-mono)",
+            fontSize: 12,
+            fontWeight: 500,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            background: "var(--bjhunt-text)",
+            color: "var(--bjhunt-bg)",
+            textDecoration: "none",
+            borderRadius: 0,
+          }}
+        >
+          {t("bookCallBtn")}
+        </a>
+      </div>
+
+      {/* Contact Cards Section */}
+      <div
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          borderTop: "1px solid var(--bjhunt-border)",
+        }}
+      >
+        <div style={{ display: "flex", flexWrap: "wrap" }}>
+          {/* Email Card */}
+          <div
+            style={{
+              flex: "1 1 300px",
+              padding: "2.5rem 2rem",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+              gap: "1rem",
+              borderRight: "1px solid var(--bjhunt-border)",
+              borderBottom: "1px solid var(--bjhunt-border)",
+            }}
+          >
+            <Mail className="w-5 h-5" style={{ color: "var(--bjhunt-brand)" }} />
+            <h3
+              style={{
+                fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
+                fontSize: 16,
+                fontWeight: 700,
+                margin: 0,
+              }}
+            >
+              {t("emailTitle")}
+            </h3>
+            <p
+              style={{
+                fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
+                fontSize: 14,
+                lineHeight: 1.4,
+                color: "var(--bjhunt-text-secondary)",
+                margin: 0,
+                maxWidth: 280,
+              }}
+            >
+              {t("emailDesc")}
+            </p>
+            <a
+              href="mailto:hello@bjhunt.com"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                height: 40,
+                padding: "0 16px",
+                fontFamily: "var(--bjhunt-font-mono)",
+                fontSize: 12,
+                fontWeight: 500,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                background: "var(--bjhunt-text)",
+                color: "var(--bjhunt-bg)",
+                textDecoration: "none",
+                borderRadius: 0,
+              }}
+            >
+              {t("emailCta")} <ArrowUpRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
+
+          {/* Careers Card */}
+          <div
+            style={{
+              flex: "1 1 300px",
+              padding: "2.5rem 2rem",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+              gap: "1rem",
+              borderRight: "1px solid var(--bjhunt-border)",
+              borderBottom: "1px solid var(--bjhunt-border)",
+            }}
+          >
+            <Users className="w-5 h-5" style={{ color: "var(--bjhunt-brand)" }} />
+            <h3
+              style={{
+                fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
+                fontSize: 16,
+                fontWeight: 700,
+                margin: 0,
+              }}
+            >
+              {t("careersTitle")}
+            </h3>
+            <p
+              style={{
+                fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
+                fontSize: 14,
+                lineHeight: 1.4,
+                color: "var(--bjhunt-text-secondary)",
+                margin: 0,
+                maxWidth: 280,
+              }}
+            >
+              {t("careersDesc")}
+            </p>
+            <a
+              href="/careers"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                height: 40,
+                padding: "0 16px",
+                fontFamily: "var(--bjhunt-font-mono)",
+                fontSize: 12,
+                fontWeight: 500,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                background: "var(--bjhunt-text)",
+                color: "var(--bjhunt-bg)",
+                textDecoration: "none",
+                borderRadius: 0,
+              }}
+            >
+              {t("careersCta")} <ArrowUpRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
+
+          {/* Location Card */}
+          <div
+            style={{
+              flex: "1 1 300px",
+              padding: "2.5rem 2rem",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+              gap: "1rem",
+              borderBottom: "1px solid var(--bjhunt-border)",
+            }}
+          >
+            <MapPin className="w-5 h-5" style={{ color: "var(--bjhunt-brand)" }} />
+            <h3
+              style={{
+                fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
+                fontSize: 16,
+                fontWeight: 700,
+                margin: 0,
+              }}
+            >
+              {t("locationTitle")}
+            </h3>
+            <p
+              style={{
+                fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
+                fontSize: 14,
+                lineHeight: 1.4,
+                color: "var(--bjhunt-text-secondary)",
+                margin: 0,
+                maxWidth: 280,
+              }}
+            >
+              {t("locationDesc")}
+            </p>
+            <a
+              href="https://maps.google.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                height: 40,
+                padding: "0 16px",
+                fontFamily: "var(--bjhunt-font-mono)",
+                fontSize: 12,
+                fontWeight: 500,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                background: "var(--bjhunt-text)",
+                color: "var(--bjhunt-bg)",
+                textDecoration: "none",
+                borderRadius: 0,
+              }}
+            >
+              {t("locationCta")} <ArrowUpRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Contact Form Section */}
+      <div
+        id="book-call"
+        style={{
+          maxWidth: 800,
+          margin: "0 auto",
+          padding: "5rem 1.25rem 6.25rem",
+        }}
+      >
+        <h2
+          style={{
+            fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
+            fontSize: 24,
+            fontWeight: 700,
+            textAlign: "center",
+            marginBottom: "2.5rem",
+          }}
+        >
+          {t("formTitle")}
+        </h2>
+
+        <ContactForm />
+      </div>
+    </div>
+  );
+}
+
+function ContactForm() {
   const t = useTranslations("contact");
   const [formData, setFormData] = useState({
     name: "",
@@ -17,22 +322,16 @@ export default function ContactPage() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
-  const [captchaToken, setCaptchaToken] = useState("");
-  const captchaRef = useRef<HCaptcha>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!captchaToken) {
-      setError(t("captchaError"));
-      return;
-    }
     setLoading(true);
     setError("");
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, captchaToken }),
+        body: JSON.stringify(formData),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -45,8 +344,6 @@ export default function ContactPage() {
       setError(t("connectionError"));
     }
     setLoading(false);
-    setCaptchaToken("");
-    captchaRef.current?.resetCaptcha();
   };
 
   const handleChange = (
@@ -55,361 +352,164 @@ export default function ContactPage() {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const isFr = typeof document !== "undefined" && document.documentElement.lang === "fr";
-
   if (submitted) {
     return (
-      <div style={{ background: "var(--bjhunt-bg)", color: "var(--bjhunt-text)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ maxWidth: 1200, width: "100%", padding: "0 1.25rem", textAlign: "center" as const }}>
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 2rem",
-              border: "1px solid var(--bjhunt-border)",
-              borderRadius: 0,
-            }}
-          >
-            <Check style={{ width: 24, height: 24 }} />
-          </div>
-          <h1
-            style={{
-              fontFamily: "var(--bjhunt-font-mono)",
-              fontWeight: 700,
-              fontSize: "clamp(1.75rem, 3vw, 2.25rem)",
-              lineHeight: 1.11,
-              letterSpacing: "-0.02rem",
-              textTransform: "uppercase",
-              margin: 0,
-            }}
-          >
-            {t("messageSent")}
-          </h1>
-          <p style={{ fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)", color: "var(--bjhunt-text-muted)", fontSize: 14, lineHeight: "1.5rem", marginTop: "1rem", marginBottom: 0 }}>
-            {t("confirmationMsg")} {formData.email} {t("within48h")}
-          </p>
-          <a
-            href="/"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              fontFamily: "var(--bjhunt-font-mono)",
-              fontSize: 11,
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.18em",
-              color: "var(--bjhunt-text-muted)",
-              textDecoration: "none",
-              marginTop: "2rem",
-            }}
-          >
-            {t("backHome")} →
-          </a>
-        </div>
+      <div style={{ textAlign: "center", padding: "3rem 0" }}>
+        <p
+          style={{
+            fontFamily: "var(--bjhunt-font-mono)",
+            fontSize: 14,
+            color: "var(--bjhunt-text)",
+          }}
+        >
+          {t("messageSent")}
+        </p>
       </div>
     );
   }
 
-  const faqs = [
-    { q: isFr ? "Quels services proposez-vous ?" : "What services do you offer?", a: isFr ? "BJHUNT propose des audits de sécurité offensifs autonomes propulsés par IA." : "BJHUNT provides autonomous offensive security audits powered by AI." },
-    { q: isFr ? "Comment fonctionne la plateforme ?" : "How does the platform work?", a: isFr ? "Vous définissez une cible, notre orchestrateur IA déploie les agents spécialisés dans une sandbox isolée, et vous recevez un rapport détaillé." : "You define a target, our AI orchestrator deploys specialized agents in an isolated sandbox, and you receive a detailed report." },
-    { q: isFr ? "Est-ce que BJHUNT remplace un pentester humain ?" : "Does BJHUNT replace human pentesters?", a: isFr ? "BJHUNT complète le travail des équipes de sécurité en automatisant les tâches répétitives." : "BJHUNT complements security teams by automating repetitive tasks." },
-  ];
-
   const inputStyle: React.CSSProperties = {
     width: "100%",
     border: "1px solid var(--bjhunt-border)",
-    background: "var(--bjhunt-bg-surface)",
+    background: "var(--bjhunt-bg)",
     borderRadius: 0,
-    height: 40,
+    height: 44,
     padding: "0 0.75rem",
     fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
     fontSize: 14,
-    lineHeight: "1.25rem",
     color: "var(--bjhunt-text)",
     outline: "none",
   };
 
   const labelStyle: React.CSSProperties = {
     display: "block",
-    marginBottom: "0.5rem",
+    marginBottom: "0.375rem",
     fontFamily: "var(--bjhunt-font-mono)",
     fontSize: 11,
-    fontWeight: 600,
+    fontWeight: 500,
     textTransform: "uppercase",
-    letterSpacing: "0.18em",
-    color: "var(--bjhunt-text-secondary)",
+    letterSpacing: "0.08em",
+    color: "var(--bjhunt-text-muted)",
   };
 
   return (
-    <div style={{ background: "var(--bjhunt-bg)", color: "var(--bjhunt-text)", minHeight: "100vh" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "6.25rem 1.25rem" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4rem" }}>
-          <div>
-            <span
-              style={{
-                color: "var(--bjhunt-text-muted)",
-                fontSize: 11,
-                fontFamily: "var(--bjhunt-font-mono)",
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: "0.18em",
-              }}
-            >
-              [CONTACT]
-            </span>
-            <h1
-              style={{
-                fontFamily: "var(--bjhunt-font-mono)",
-                fontWeight: 700,
-                fontSize: "clamp(1.75rem, 5vw, 3rem)",
-                lineHeight: 1,
-                letterSpacing: "-0.02rem",
-                textTransform: "uppercase",
-                marginTop: "1rem",
-                marginBottom: 0,
-              }}
-            >
-              {t("heading")}
-              <span style={{ color: "var(--bjhunt-text-muted)" }}>.</span>
-            </h1>
-            <p style={{ fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)", color: "var(--bjhunt-text-muted)", fontSize: 14, lineHeight: "1.5rem", maxWidth: 400, marginTop: "1rem", marginBottom: 0 }}>
-              {t("lede")}
-            </p>
-          </div>
-
-          <div
-            style={{
-              border: "1px solid var(--bjhunt-border)",
-              background: "var(--bjhunt-bg)",
-              padding: "2.75rem 2.5rem",
-              borderRadius: 0,
-            }}
-          >
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }} noValidate>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
-                <div>
-                  <label htmlFor="contact-name" style={labelStyle}>{t("fullName")} *</label>
-                  <input
-                    id="contact-name"
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder={t("namePlaceholder")}
-                    required
-                    style={inputStyle}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="contact-email" style={labelStyle}>{t("professionalEmail")} *</label>
-                  <input
-                    id="contact-email"
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder={t("emailPlaceholder")}
-                    required
-                    style={inputStyle}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="contact-company" style={labelStyle}>{t("company")}</label>
-                <input
-                  id="contact-company"
-                  type="text"
-                  name="company"
-                  value={formData.company}
-                  onChange={handleChange}
-                  placeholder={t("companyPlaceholder")}
-                  style={inputStyle}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="contact-subject" style={labelStyle}>{t("subject")} *</label>
-                <select
-                  id="contact-subject"
-                  name="subject"
-                  value={formData.subject}
-                  onChange={handleChange}
-                  required
-                  style={{ ...inputStyle, appearance: "none" as const }}
-                >
-                  <option value="">{t("selectSubject")}</option>
-                  <option value="demo">{t("subjectDemo")}</option>
-                  <option value="pricing">{t("subjectPricing")}</option>
-                  <option value="technical">{t("subjectTechnical")}</option>
-                  <option value="partnership">{t("subjectPartnership")}</option>
-                  <option value="other">{t("subjectOther")}</option>
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="contact-message" style={labelStyle}>{t("message")} *</label>
-                <textarea
-                  id="contact-message"
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  rows={5}
-                  placeholder={t("messagePlaceholder")}
-                  required
-                  style={{
-                    ...inputStyle,
-                    height: "auto",
-                    padding: "0.75rem",
-                    resize: "vertical" as const,
-                  }}
-                />
-              </div>
-
-              <div style={{ paddingTop: "0.5rem", overflowX: "auto" }}>
-                {process.env.NEXT_PUBLIC_HCAPTCHA_SITEKEY ? (
-                  <HCaptcha
-                    sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITEKEY}
-                    onVerify={(token) => setCaptchaToken(token)}
-                    onExpire={() => setCaptchaToken("")}
-                    ref={captchaRef}
-                    theme={typeof document !== "undefined" && document.documentElement.classList.contains("dark") ? "dark" : "light"}
-                  />
-                ) : (
-                  <p style={{ fontSize: 11, color: "var(--bjhunt-text-muted)", fontFamily: "var(--bjhunt-font-mono)" }}>
-                    hCaptcha disabled (no sitekey configured)
-                  </p>
-                )}
-              </div>
-
-              {error && (
-                <div
-                  role="alert"
-                  aria-live="polite"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.75rem",
-                    padding: "0.75rem 1rem",
-                    fontSize: 13,
-                    borderRadius: 0,
-                    border: "1px solid var(--bjhunt-critical)",
-                    background: "var(--bjhunt-critical-tint)",
-                    color: "var(--bjhunt-critical)",
-                  }}
-                >
-                  <AlertCircle style={{ width: 16, height: 16, flexShrink: 0 }} />
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "0.75rem",
-                  width: "100%",
-                  height: 52,
-                  fontFamily: "var(--bjhunt-font-mono)",
-                  fontSize: 12,
-                  fontWeight: 500,
-                  lineHeight: "0.875rem",
-                  textTransform: "uppercase",
-                  borderRadius: 0,
-                  border: "none",
-                  background: "var(--bjhunt-brand)",
-                  color: "var(--bjhunt-bg-surface)",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  opacity: loading ? 0.5 : 1,
-                  marginTop: "0.5rem",
-                }}
-              >
-                {loading ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} /> : null}
-                {loading ? t("sending") : t("sendBtn")}
-              </button>
-            </form>
-          </div>
+    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }} noValidate>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
+        <div>
+          <label htmlFor="contact-name" style={labelStyle}>{t("fullName")} *</label>
+          <input
+            id="contact-name"
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            placeholder={t("namePlaceholder")}
+            required
+            style={inputStyle}
+          />
+        </div>
+        <div>
+          <label htmlFor="contact-email" style={labelStyle}>{t("professionalEmail")} *</label>
+          <input
+            id="contact-email"
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder={t("emailPlaceholder")}
+            required
+            style={inputStyle}
+          />
         </div>
       </div>
 
-      <section style={{ borderTop: "1px solid var(--bjhunt-border)", paddingTop: "6.25rem", paddingBottom: "6.25rem" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", paddingLeft: "1.25rem", paddingRight: "1.25rem" }}>
-          <span
-            style={{
-              color: "var(--bjhunt-text-muted)",
-              fontSize: 11,
-              fontFamily: "var(--bjhunt-font-mono)",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.18em",
-            }}
-          >
-            [FAQ]
-          </span>
-          <div style={{ marginTop: "1rem" }}>
-            <h2
-              style={{
-                fontFamily: "var(--bjhunt-font-mono)",
-                fontWeight: 700,
-                fontSize: "clamp(1.75rem, 3vw, 2.25rem)",
-                lineHeight: 1.1,
-                letterSpacing: "-0.02rem",
-                textTransform: "uppercase",
-                margin: 0,
-              }}
-            >
-              {isFr ? "Questions" : "Frequently"} <span style={{ color: "var(--bjhunt-brand)" }}>{isFr ? "Fréquentes" : "Asked"}</span>
-            </h2>
-          </div>
-          <div style={{ marginTop: "2.5rem", borderTop: "1px solid var(--bjhunt-border)" }}>
-            {faqs.map((faq) => (
-              <details
-                key={faq.q}
-                style={{ borderBottom: "1px solid var(--bjhunt-border)" }}
-              >
-                <summary
-                  style={{
-                    display: "flex",
-                    cursor: "pointer",
-                    listStyle: "none",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "1rem",
-                    padding: "1.25rem 0",
-                    fontSize: 16,
-                    fontWeight: 600,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  <span>{faq.q}</span>
-                  <ChevronDown style={{ width: 16, height: 16, flexShrink: 0, color: "var(--bjhunt-text-muted)" }} />
-                </summary>
-                <p
-                  style={{
-                    fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
-                    color: "var(--bjhunt-text-muted)",
-                    fontSize: 14,
-                    lineHeight: "1.5rem",
-                    maxWidth: 640,
-                    marginTop: 0,
-                    marginBottom: "1rem",
-                  }}
-                >
-                  {faq.a}
-                </p>
-              </details>
-            ))}
-          </div>
-        </div>
-      </section>
-    </div>
+      <div>
+        <label htmlFor="contact-company" style={labelStyle}>{t("company")}</label>
+        <input
+          id="contact-company"
+          type="text"
+          name="company"
+          value={formData.company}
+          onChange={handleChange}
+          placeholder={t("companyPlaceholder")}
+          style={inputStyle}
+        />
+      </div>
+
+      <div>
+        <label htmlFor="contact-subject" style={labelStyle}>{t("subject")} *</label>
+        <select
+          id="contact-subject"
+          name="subject"
+          value={formData.subject}
+          onChange={handleChange}
+          required
+          style={{ ...inputStyle, appearance: "none" as const }}
+        >
+          <option value="">{t("selectSubject")}</option>
+          <option value="demo">{t("subjectDemo")}</option>
+          <option value="pricing">{t("subjectPricing")}</option>
+          <option value="technical">{t("subjectTechnical")}</option>
+          <option value="partnership">{t("subjectPartnership")}</option>
+          <option value="other">{t("subjectOther")}</option>
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="contact-message" style={labelStyle}>{t("message")} *</label>
+        <textarea
+          id="contact-message"
+          name="message"
+          value={formData.message}
+          onChange={handleChange}
+          rows={5}
+          placeholder={t("messagePlaceholder")}
+          required
+          style={{
+            ...inputStyle,
+            height: "auto",
+            padding: "0.75rem",
+            resize: "vertical" as const,
+          }}
+        />
+      </div>
+
+      {error && (
+        <p
+          style={{
+            fontSize: 13,
+            color: "var(--bjhunt-critical)",
+            fontFamily: "var(--bjhunt-font-sans)",
+            margin: 0,
+          }}
+        >
+          {error}
+        </p>
+      )}
+
+      <button
+        type="submit"
+        disabled={loading}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: 48,
+          fontFamily: "var(--bjhunt-font-mono)",
+          fontSize: 12,
+          fontWeight: 500,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          borderRadius: 0,
+          border: "none",
+          background: "var(--bjhunt-text)",
+          color: "var(--bjhunt-bg)",
+          cursor: loading ? "not-allowed" : "pointer",
+          opacity: loading ? 0.5 : 1,
+        }}
+      >
+        {loading ? t("sending") : t("sendBtn")}
+      </button>
+    </form>
   );
 }
