@@ -19,7 +19,7 @@ export default function CookieConsentBanner() {
       setTimeout(() => {
         setIsVisible(true)
         setIsAnimating(true)
-      }, 800)
+      }, 500)
     } else {
       setConsentState(existingConsent)
       if (existingConsent.analytics) {
@@ -87,52 +87,42 @@ export default function CookieConsentBanner() {
         isAnimating ? 'opacity-100' : 'opacity-0'
       }`}
       style={{
-        background: 'rgba(0, 0, 0, 0.4)',
-        backdropFilter: 'blur(2px)',
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleRejectAll()
+        background: 'rgba(0, 0, 0, 0.5)',
+        backdropFilter: 'blur(4px)',
       }}
     >
       <div
-        className="w-full max-w-[480px]"
+        className="w-full max-w-lg"
         style={{
           background: '#ffffff',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.12)',
+          border: '1px solid #e0e0e0',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
         }}
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between px-6 pt-6 pb-4"
-          style={{ borderBottom: '1px solid #eeeeee' }}
+          className="flex items-center justify-between px-6 py-4"
+          style={{ borderBottom: '1px solid #e8e8e8' }}
         >
-          <div>
-            <h3
-              className="font-mono text-[14px] font-semibold tracking-[0.1em]"
-              style={{ color: '#111111' }}
-            >
-              {t('title')}
-            </h3>
-            <p
-              className="font-sans text-[12px] mt-1"
-              style={{ color: '#888888' }}
-            >
-              {t('subtitle')}
-            </p>
-          </div>
+          <h3
+            className="font-mono text-[13px] font-semibold uppercase tracking-[0.15em]"
+            style={{ color: '#111111' }}
+          >
+            {t('title')}
+          </h3>
           <button
             onClick={handleRejectAll}
-            className="p-1.5 transition-colors hover:bg-gray-50"
+            className="p-1 transition-colors hover:bg-gray-100"
             aria-label={t('close')}
           >
-            <X className="w-4 h-4" style={{ color: '#aaaaaa' }} />
+            <X className="w-4 h-4" style={{ color: '#999999' }} />
           </button>
         </div>
 
         {/* Body */}
         <div className="px-6 py-5">
           <p
-            className="font-sans text-[13px] leading-[1.6]"
+            className="font-sans text-[14px] leading-relaxed mb-5"
             style={{ color: '#555555' }}
           >
             {t('intro')}
@@ -140,7 +130,10 @@ export default function CookieConsentBanner() {
 
           {/* Options détaillées */}
           {showDetails && (
-            <div className="mt-5 space-y-0">
+            <div
+              className="mb-5"
+              style={{ borderTop: '1px solid #e8e8e8', borderBottom: '1px solid #e8e8e8' }}
+            >
               {[
                 { id: 'necessary' as const, label: t('categories.necessary.name'), desc: t('categories.necessary.description'), required: true },
                 { id: 'analytics' as const, label: t('categories.analytics.name'), desc: t('categories.analytics.description'), required: false },
@@ -149,16 +142,15 @@ export default function CookieConsentBanner() {
               ].map((option, index) => (
                 <div
                   key={option.id}
-                  className="flex items-center justify-between py-3"
+                  className="flex items-center justify-between py-3.5"
                   style={{
-                    borderTop: index === 0 ? '1px solid #eeeeee' : 'none',
-                    borderBottom: '1px solid #f5f5f5',
+                    borderBottom: index < 3 ? '1px solid #f0f0f0' : 'none',
                   }}
                 >
                   <div className="flex-1 pr-4">
-                    <div className="flex items-center gap-2 mb-0.5">
+                    <div className="flex items-center gap-2 mb-1">
                       <span
-                        className="font-mono text-[12px] font-medium"
+                        className="font-mono text-[12px] font-medium uppercase tracking-[0.1em]"
                         style={{ color: '#111111' }}
                       >
                         {option.label}
@@ -168,7 +160,7 @@ export default function CookieConsentBanner() {
                           className="font-mono text-[9px] px-1.5 py-0.5"
                           style={{
                             background: '#f5f5f5',
-                            color: '#999999',
+                            color: '#888888',
                           }}
                         >
                           {t('required')}
@@ -176,7 +168,7 @@ export default function CookieConsentBanner() {
                       )}
                     </div>
                     <p
-                      className="font-sans text-[11px] leading-relaxed"
+                      className="font-sans text-[12px] leading-relaxed"
                       style={{ color: '#777777' }}
                     >
                       {option.desc}
@@ -185,18 +177,18 @@ export default function CookieConsentBanner() {
                   <button
                     onClick={() => toggleOption(option.id)}
                     disabled={option.required}
-                    className={`w-9 h-5 relative transition-colors shrink-0 ${
+                    className={`w-10 h-5 relative transition-colors shrink-0 rounded-full ${
                       option.required ? 'cursor-not-allowed opacity-30' : 'cursor-pointer'
                     }`}
                     style={{
-                      background: consent[option.id] ? '#e56f00' : '#d8d8d8',
+                      background: consent[option.id] ? '#e56f00' : '#d0d0d0',
                     }}
                   >
                     <div
-                      className="absolute top-0.5 w-4 h-4 transition-all bg-white"
+                      className="absolute top-0.5 w-4 h-4 rounded-full transition-all bg-white"
                       style={{
-                        left: consent[option.id] ? '18px' : '2px',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                        left: consent[option.id] ? '22px' : '2px',
+                        boxShadow: consent[option.id] ? 'none' : '0 1px 2px rgba(0,0,0,0.15)',
                       }}
                     />
                   </button>
@@ -206,54 +198,72 @@ export default function CookieConsentBanner() {
           )}
 
           {/* Actions */}
-          <div className="mt-5 flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <button
               onClick={() => setShowDetails(!showDetails)}
-              className="font-mono text-[11px] tracking-[0.1em] transition-colors hover:text-[#555555]"
+              className="font-mono text-[11px] uppercase tracking-[0.15em] transition-colors order-3 sm:order-1 text-center sm:text-left"
               style={{
-                color: '#999999',
+                color: '#888888',
               }}
             >
               {showDetails ? t('hide') : t('customize')}
             </button>
 
-            <div className="flex-1" />
+            <div className="flex-1 order-1 sm:order-2" />
 
-            <button
-              onClick={handleRejectAll}
-              className="font-mono text-[11px] font-medium tracking-[0.1em] transition-colors hover:text-[#555555]"
-              style={{
-                color: '#777777',
-              }}
-            >
-              {t('rejectAll')}
-            </button>
-
-            <button
-              onClick={showDetails ? handleSavePreferences : handleAcceptAll}
-              className="flex items-center gap-1.5 px-5 py-2 font-mono text-[11px] font-semibold tracking-[0.1em] transition-colors"
-              style={{
-                background: '#e56f00',
-                color: '#ffffff',
-              }}
-            >
-              <Check className="w-3.5 h-3.5" />
-              {showDetails ? t('save') : t('acceptAll')}
-            </button>
+            <div className="flex gap-2 order-2 sm:order-3 w-full sm:w-auto">
+              {showDetails ? (
+                <button
+                  onClick={handleSavePreferences}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 h-10 px-6 font-mono text-[11px] font-semibold uppercase tracking-[0.15em] transition-colors"
+                  style={{
+                    background: '#e56f00',
+                    color: '#ffffff',
+                  }}
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  {t('save')}
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleRejectAll}
+                    className="flex-1 sm:flex-none flex items-center justify-center h-10 px-5 font-mono text-[11px] font-semibold uppercase tracking-[0.15em] transition-colors"
+                    style={{
+                      border: '1px solid #d0d0d0',
+                      color: '#555555',
+                      background: '#ffffff',
+                    }}
+                  >
+                    {t('rejectAll')}
+                  </button>
+                  <button
+                    onClick={handleAcceptAll}
+                    className="flex-1 sm:flex-none flex items-center justify-center h-10 px-5 font-mono text-[11px] font-semibold uppercase tracking-[0.15em] transition-colors"
+                    style={{
+                      background: '#e56f00',
+                      color: '#ffffff',
+                    }}
+                  >
+                    {t('acceptAll')}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Footer */}
         <div
           className="px-6 py-3 flex items-center justify-between"
-          style={{ borderTop: '1px solid #eeeeee' }}
+          style={{ borderTop: '1px solid #e8e8e8' }}
         >
           <p
-            className="font-mono text-[10px] tracking-[0.1em]"
-            style={{ color: '#aaaaaa' }}
+            className="font-mono text-[10px] tracking-[0.15em] uppercase"
+            style={{ color: '#999999' }}
           >
             {t('footerLearnMore')}{' '}
-            <a href="/legal" className="underline hover:text-[#777777] transition-colors">
+            <a href="/legal" className="underline hover:text-[#555555] transition-colors">
               {t('footerPolicy')}
             </a>
           </p>
