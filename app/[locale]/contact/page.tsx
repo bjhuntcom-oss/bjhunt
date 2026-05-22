@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Mail, Users, MapPin, ArrowUpRight } from "lucide-react";
+import { Mail, Users, MapPin, ArrowUpRight, Loader2 } from "lucide-react";
 
 export default function ContactPage() {
   const t = useTranslations("contact");
@@ -16,10 +16,10 @@ export default function ContactPage() {
           maxWidth: 1200,
           margin: "0 auto",
           padding: "6.25rem 1.25rem 3.25rem",
-          borderBottom: "1px solid var(--bjhunt-border)",
           textAlign: "center",
         }}
       >
+        {/* Promo Label */}
         <span
           style={{
             display: "inline-block",
@@ -27,14 +27,17 @@ export default function ContactPage() {
             fontFamily: "var(--bjhunt-font-mono)",
             fontWeight: 400,
             textTransform: "uppercase",
-            letterSpacing: "0.1em",
+            letterSpacing: "0.08em",
             color: "var(--bjhunt-text-muted)",
-            marginBottom: "0.5rem",
+            marginBottom: "1rem",
+            textDecoration: "underline",
+            textUnderlineOffset: "3px",
           }}
         >
           {t("heroLabel")}
         </span>
 
+        {/* H1 Title */}
         <h1
           style={{
             fontFamily: "var(--bjhunt-font-mono)",
@@ -44,12 +47,13 @@ export default function ContactPage() {
             letterSpacing: "-0.03em",
             textTransform: "uppercase",
             margin: "0 auto 1rem",
-            maxWidth: 800,
+            maxWidth: 900,
           }}
         >
           {t("heroTitle")}
         </h1>
 
+        {/* Subtitle */}
         <p
           style={{
             fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
@@ -57,35 +61,134 @@ export default function ContactPage() {
             fontSize: 16,
             fontWeight: 500,
             lineHeight: 1.5,
-            maxWidth: 640,
+            maxWidth: 680,
             margin: "0 auto 1.5rem",
           }}
         >
           {t("heroSubtitle")}
         </p>
 
-        {/* CTA Button */}
-        <a
-          href="#book-call"
+        {/* Case Study Card */}
+        <div
           style={{
             display: "inline-flex",
             alignItems: "center",
-            justifyContent: "center",
-            height: 48,
-            padding: "0 24px",
-            fontFamily: "var(--bjhunt-font-mono)",
-            fontSize: 12,
-            fontWeight: 500,
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            background: "var(--bjhunt-text)",
-            color: "var(--bjhunt-bg)",
-            textDecoration: "none",
-            borderRadius: 0,
+            background: "var(--bjhunt-bg-surface)",
+            border: "1px solid var(--bjhunt-border)",
+            padding: "0.5rem 0.5rem 0.5rem 1rem",
+            gap: "0.75rem",
+            maxWidth: 480,
+            margin: "0 auto 2rem",
           }}
         >
-          {t("bookCallBtn")}
-        </a>
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              background: "var(--bjhunt-bg)",
+              border: "1px solid var(--bjhunt-border)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--bjhunt-brand)" }}>
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <div style={{ textAlign: "left", flex: 1 }}>
+            <p style={{ fontFamily: "var(--bjhunt-font-sans)", fontSize: 14, fontWeight: 600, margin: 0, lineHeight: 1.3 }}>
+              {isFr ? "Audit complet en 48h" : "Full audit in 48h"}
+            </p>
+            <p style={{ fontFamily: "var(--bjhunt-font-sans)", fontSize: 12, color: "var(--bjhunt-text-muted)", margin: 0 }}>
+              {isFr ? "Étude de cas · 3 min" : "Case study · 3 min read"}
+            </p>
+          </div>
+          <a
+            href="/case-study"
+            style={{
+              fontFamily: "var(--bjhunt-font-mono)",
+              fontSize: 11,
+              fontWeight: 500,
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              color: "var(--bjhunt-text)",
+              textDecoration: "none",
+              padding: "0.5rem 0.75rem",
+              borderLeft: "1px solid var(--bjhunt-border)",
+            }}
+          >
+            {isFr ? "LIRE" : "READ"}
+          </a>
+        </div>
+
+        {/* Trusted By */}
+        <div style={{ marginTop: "1.5rem" }}>
+          <p
+            style={{
+              fontFamily: "var(--bjhunt-font-mono)",
+              fontSize: 11,
+              fontWeight: 400,
+              textTransform: "uppercase",
+              letterSpacing: "0.15em",
+              color: "var(--bjhunt-text-muted)",
+              marginBottom: "1rem",
+            }}
+          >
+            {t("trustedBy")}
+          </p>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "2rem",
+              flexWrap: "wrap",
+              opacity: 0.5,
+            }}
+          >
+            {["Hugging Face", "Gumloop", "Manus", "Groq", "Lindy"].map((name) => (
+              <span
+                key={name}
+                style={{
+                  fontFamily: "var(--bjhunt-font-sans)",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "var(--bjhunt-text)",
+                }}
+              >
+                {name}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Calendly/Form Section */}
+      <div
+        id="book-call"
+        style={{
+          maxWidth: 800,
+          margin: "0 auto",
+          padding: "3rem 1.25rem 4rem",
+        }}
+      >
+        <h2
+          style={{
+            fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
+            fontSize: 16,
+            fontWeight: 700,
+            textAlign: "center",
+            marginBottom: "2rem",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+          }}
+        >
+          {t("formTitle")}
+        </h2>
+
+        <ContactForm />
       </div>
 
       {/* Contact Cards Section */}
@@ -107,9 +210,8 @@ export default function ContactPage() {
               alignItems: "center",
               justifyContent: "center",
               textAlign: "center",
-              gap: "1rem",
+              gap: "0.75rem",
               borderRight: "1px solid var(--bjhunt-border)",
-              borderBottom: "1px solid var(--bjhunt-border)",
             }}
           >
             <Mail className="w-5 h-5" style={{ color: "var(--bjhunt-brand)" }} />
@@ -130,7 +232,7 @@ export default function ContactPage() {
                 lineHeight: 1.4,
                 color: "var(--bjhunt-text-secondary)",
                 margin: 0,
-                maxWidth: 280,
+                maxWidth: 260,
               }}
             >
               {t("emailDesc")}
@@ -140,11 +242,11 @@ export default function ContactPage() {
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: "0.5rem",
-                height: 40,
-                padding: "0 16px",
+                gap: "0.375rem",
+                height: 36,
+                padding: "0 14px",
                 fontFamily: "var(--bjhunt-font-mono)",
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: 500,
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
@@ -152,9 +254,10 @@ export default function ContactPage() {
                 color: "var(--bjhunt-bg)",
                 textDecoration: "none",
                 borderRadius: 0,
+                marginTop: "0.25rem",
               }}
             >
-              {t("emailCta")} <ArrowUpRight className="w-3.5 h-3.5" />
+              {t("emailCta")} <ArrowUpRight className="w-3 h-3" />
             </a>
           </div>
 
@@ -168,9 +271,8 @@ export default function ContactPage() {
               alignItems: "center",
               justifyContent: "center",
               textAlign: "center",
-              gap: "1rem",
+              gap: "0.75rem",
               borderRight: "1px solid var(--bjhunt-border)",
-              borderBottom: "1px solid var(--bjhunt-border)",
             }}
           >
             <Users className="w-5 h-5" style={{ color: "var(--bjhunt-brand)" }} />
@@ -191,7 +293,7 @@ export default function ContactPage() {
                 lineHeight: 1.4,
                 color: "var(--bjhunt-text-secondary)",
                 margin: 0,
-                maxWidth: 280,
+                maxWidth: 260,
               }}
             >
               {t("careersDesc")}
@@ -201,11 +303,11 @@ export default function ContactPage() {
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: "0.5rem",
-                height: 40,
-                padding: "0 16px",
+                gap: "0.375rem",
+                height: 36,
+                padding: "0 14px",
                 fontFamily: "var(--bjhunt-font-mono)",
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: 500,
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
@@ -213,9 +315,10 @@ export default function ContactPage() {
                 color: "var(--bjhunt-bg)",
                 textDecoration: "none",
                 borderRadius: 0,
+                marginTop: "0.25rem",
               }}
             >
-              {t("careersCta")} <ArrowUpRight className="w-3.5 h-3.5" />
+              {t("careersCta")} <ArrowUpRight className="w-3 h-3" />
             </a>
           </div>
 
@@ -229,8 +332,7 @@ export default function ContactPage() {
               alignItems: "center",
               justifyContent: "center",
               textAlign: "center",
-              gap: "1rem",
-              borderBottom: "1px solid var(--bjhunt-border)",
+              gap: "0.75rem",
             }}
           >
             <MapPin className="w-5 h-5" style={{ color: "var(--bjhunt-brand)" }} />
@@ -251,7 +353,7 @@ export default function ContactPage() {
                 lineHeight: 1.4,
                 color: "var(--bjhunt-text-secondary)",
                 margin: 0,
-                maxWidth: 280,
+                maxWidth: 260,
               }}
             >
               {t("locationDesc")}
@@ -263,11 +365,11 @@ export default function ContactPage() {
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: "0.5rem",
-                height: 40,
-                padding: "0 16px",
+                gap: "0.375rem",
+                height: 36,
+                padding: "0 14px",
                 fontFamily: "var(--bjhunt-font-mono)",
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: 500,
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
@@ -275,36 +377,13 @@ export default function ContactPage() {
                 color: "var(--bjhunt-bg)",
                 textDecoration: "none",
                 borderRadius: 0,
+                marginTop: "0.25rem",
               }}
             >
-              {t("locationCta")} <ArrowUpRight className="w-3.5 h-3.5" />
+              {t("locationCta")} <ArrowUpRight className="w-3 h-3" />
             </a>
           </div>
         </div>
-      </div>
-
-      {/* Contact Form Section */}
-      <div
-        id="book-call"
-        style={{
-          maxWidth: 800,
-          margin: "0 auto",
-          padding: "5rem 1.25rem 6.25rem",
-        }}
-      >
-        <h2
-          style={{
-            fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
-            fontSize: 24,
-            fontWeight: 700,
-            textAlign: "center",
-            marginBottom: "2.5rem",
-          }}
-        >
-          {t("formTitle")}
-        </h2>
-
-        <ContactForm />
       </div>
     </div>
   );
@@ -494,6 +573,7 @@ function ContactForm() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          gap: "0.5rem",
           height: 48,
           fontFamily: "var(--bjhunt-font-mono)",
           fontSize: 12,
@@ -508,6 +588,7 @@ function ContactForm() {
           opacity: loading ? 0.5 : 1,
         }}
       >
+        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
         {loading ? t("sending") : t("sendBtn")}
       </button>
     </form>
