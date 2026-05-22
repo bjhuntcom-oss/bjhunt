@@ -173,19 +173,17 @@ export default function ContactPage() {
           </p>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1.5rem", flexWrap: "wrap", opacity: 0.6 }}>
             {[
-              { name: "Nmap", svg: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6.5 6.5M3 12h9"/></svg> },
-              { name: "Metasploit", svg: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2L4 6v6c0 5.25 3.4 10.15 8 11.25 4.6-1.1 8-6 8-11.25V6l-8-4z"/><path d="M9 12l2 2 4-4"/></svg> },
-              { name: "Burp Suite", svg: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg> },
-              { name: "Nuclei", svg: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="10"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg> },
-              { name: "BloodHound", svg: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="8" r="5"/><path d="M7 13c-2 2-3 5-3 8h16c0-3-1-6-3-8"/><circle cx="9" cy="8" r="1" fill="currentColor"/><circle cx="15" cy="8" r="1" fill="currentColor"/></svg> },
-              { name: "Wireshark", svg: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 12h4l2-6 3 12 2-6h9"/></svg> },
-              { name: "SQLMap", svg: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><ellipse cx="12" cy="6" rx="9" ry="3"/><path d="M3 6v6c0 1.66 4 3 9 3s9-1.34 9-3V6"/><path d="M3 12v6c0 1.66 4 3 9 3s9-1.34 9-3v-6"/></svg> },
-              { name: "Frida", svg: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 8l8 8M16 8l-8 8"/></svg> },
-              { name: "ffuf", svg: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 4h4v4H4zM10 4h4v4h-4zM16 4h4v4h-4zM4 10h4v4H4zM10 10h4v4h-4zM16 10h4v4h-4zM4 16h4v4H4zM10 16h4v4h-4zM16 16h4v4h-4z"/></svg> },
-              { name: "Gobuster", svg: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 21l-6-6m6 6v-4.8m0 4.8h-4.8M3 3l6 6M3 3v4.8M3 3h4.8"/><circle cx="12" cy="12" r="3"/></svg> },
+              { name: "Metasploit", src: "/tools/metasploit.svg" },
+              { name: "Burp Suite", src: "/tools/burpsuite.svg" },
+              { name: "Wireshark", src: "/tools/wireshark.svg" },
+              { name: "OWASP", src: "/tools/owasp.svg" },
+              { name: "Kali Linux", src: "/tools/kalilinux.svg" },
+              { name: "Hack The Box", src: "/tools/hackthebox.svg" },
+              { name: "TryHackMe", src: "/tools/tryhackme.svg" },
+              { name: "PortSwigger", src: "/tools/portswigger.svg" },
             ].map((tool) => (
               <div key={tool.name} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.375rem" }}>
-                <div style={{ color: "var(--bjhunt-brand)" }}>{tool.svg}</div>
+                <img src={tool.src} alt={tool.name} width={28} height={28} style={{ color: "var(--bjhunt-brand)" }} />
                 <span style={{ fontFamily: "var(--bjhunt-font-mono)", fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--bjhunt-text-muted)" }}>
                   {tool.name}
                 </span>
