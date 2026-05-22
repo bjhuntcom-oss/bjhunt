@@ -1,24 +1,62 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
-import { Mail, Users, MapPin, ArrowUpRight } from "lucide-react";
+import { Mail, Users, MapPin, ArrowUpRight, Check, Loader2 } from "lucide-react";
 
 export default function ContactPage() {
   const t = useTranslations("contact");
-  const isFr = typeof document !== "undefined" && document.documentElement.lang === "fr";
+  const [isPending, startTransition] = useTransition();
+  const [formState, setFormState] = useState<"idle" | "success" | "error">("idle");
+  const [formData, setFormData] = useState({ name: "", email: "", company: "", subject: "", message: "" });
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    height: 44,
+    padding: "0 0.75rem",
+    fontFamily: "var(--bjhunt-font-mono)",
+    fontSize: 13,
+    fontWeight: 400,
+    background: "var(--bjhunt-bg-surface)",
+    border: "1px solid var(--bjhunt-border)",
+    color: "var(--bjhunt-text)",
+    outline: "none",
+    borderRadius: 0,
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: "block",
+    fontFamily: "var(--bjhunt-font-mono)",
+    fontSize: 11,
+    fontWeight: 500,
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.08em",
+    color: "var(--bjhunt-text-muted)",
+    marginBottom: "0.375rem",
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/contact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+        if (!res.ok) throw new Error("Failed");
+        setFormState("success");
+        setFormData({ name: "", email: "", company: "", subject: "", message: "" });
+      } catch {
+        setFormState("error");
+      }
+    });
+  };
 
   return (
     <div style={{ background: "var(--bjhunt-bg)", color: "var(--bjhunt-text)", minHeight: "100vh" }}>
-      {/* Hero Section */}
-      <div
-        style={{
-          maxWidth: 1200,
-          margin: "0 auto",
-          padding: "6.25rem 1.25rem 3.25rem",
-          textAlign: "center",
-        }}
-      >
-        {/* Promo Label */}
+      {/* Hero */}
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "6.25rem 1.25rem 3.25rem", textAlign: "center" }}>
         <span
           style={{
             display: "inline-block",
@@ -36,7 +74,6 @@ export default function ContactPage() {
           {t("heroLabel")}
         </span>
 
-        {/* H1 Title */}
         <h1
           style={{
             fontFamily: "var(--bjhunt-font-mono)",
@@ -52,7 +89,6 @@ export default function ContactPage() {
           {t("heroTitle")}
         </h1>
 
-        {/* Subtitle */}
         <p
           style={{
             fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
@@ -98,14 +134,13 @@ export default function ContactPage() {
           </div>
           <div style={{ textAlign: "left", flex: 1 }}>
             <p style={{ fontFamily: "var(--bjhunt-font-sans)", fontSize: 14, fontWeight: 600, margin: 0, lineHeight: 1.3 }}>
-              {isFr ? "Audit complet en 48h" : "Full audit in 48h"}
+              {t("subjectDemo")}
             </p>
             <p style={{ fontFamily: "var(--bjhunt-font-sans)", fontSize: 12, color: "var(--bjhunt-text-muted)", margin: 0 }}>
-              {isFr ? "Étude de cas · 3 min" : "Case study · 3 min read"}
+              Case study · 3 min read
             </p>
           </div>
-          <a
-            href="/case-study"
+          <span
             style={{
               fontFamily: "var(--bjhunt-font-mono)",
               fontSize: 11,
@@ -113,13 +148,12 @@ export default function ContactPage() {
               textTransform: "uppercase",
               letterSpacing: "0.08em",
               color: "var(--bjhunt-text)",
-              textDecoration: "none",
               padding: "0.5rem 0.75rem",
               borderLeft: "1px solid var(--bjhunt-border)",
             }}
           >
-            {isFr ? "LIRE" : "READ"}
-          </a>
+            LEARN HOW
+          </span>
         </div>
 
         {/* Trusted By */}
@@ -137,26 +171,9 @@ export default function ContactPage() {
           >
             {t("trustedBy")}
           </p>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "2rem",
-              flexWrap: "wrap",
-              opacity: 0.5,
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "2rem", flexWrap: "wrap", opacity: 0.5 }}>
             {["Hugging Face", "Gumloop", "Manus", "Groq", "Lindy"].map((name) => (
-              <span
-                key={name}
-                style={{
-                  fontFamily: "var(--bjhunt-font-sans)",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: "var(--bjhunt-text)",
-                }}
-              >
+              <span key={name} style={{ fontFamily: "var(--bjhunt-font-sans)", fontSize: 14, fontWeight: 600, color: "var(--bjhunt-text)" }}>
                 {name}
               </span>
             ))}
@@ -164,257 +181,180 @@ export default function ContactPage() {
         </div>
       </div>
 
-      {/* Book a Call Section */}
-      <div
-        id="book-call"
-        style={{
-          maxWidth: 800,
-          margin: "0 auto",
-          padding: "3rem 1.25rem 4rem",
-          textAlign: "center",
-        }}
-      >
-        <h2
-          style={{
-            fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
-            fontSize: 16,
-            fontWeight: 700,
-            marginBottom: "1.5rem",
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-          }}
-        >
-          {t("bookCallTitle")}
-        </h2>
-        <p
-          style={{
-            fontFamily: "var(--bjhunt-font-sans)",
-            fontSize: 14,
-            color: "var(--bjhunt-text-secondary)",
-            marginBottom: "2rem",
-            maxWidth: 480,
-            margin: "0 auto 2rem",
-            lineHeight: 1.5,
-          }}
-        >
-          {t("bookCallDesc")}
-        </p>
-        <a
-          href="mailto:hello@bjhunt.com"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "0.5rem",
-            height: 48,
-            padding: "0 32px",
-            fontFamily: "var(--bjhunt-font-mono)",
-            fontSize: 12,
-            fontWeight: 500,
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            background: "var(--bjhunt-text)",
-            color: "var(--bjhunt-bg)",
-            textDecoration: "none",
-            borderRadius: 0,
-          }}
-        >
-          {t("bookCallBtn")} <ArrowUpRight className="w-4 h-4" />
-        </a>
+      {/* Form Section */}
+      <div style={{ maxWidth: 640, margin: "0 auto", padding: "3rem 1.25rem 4rem" }}>
+        {formState === "success" ? (
+          <div style={{ padding: "2rem", textAlign: "center", background: "var(--bjhunt-bg-surface)", border: "1px solid var(--bjhunt-border)" }}>
+            <Check className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--bjhunt-brand)" }} />
+            <p style={{ fontFamily: "var(--bjhunt-font-sans)", fontSize: 16, fontWeight: 600 }}>{t("messageSent")}</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <h2
+              style={{
+                fontFamily: "var(--bjhunt-font-mono)",
+                fontSize: 13,
+                fontWeight: 500,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                color: "var(--bjhunt-text-muted)",
+                textAlign: "center",
+                marginBottom: "2rem",
+              }}
+            >
+              {t("formTitle")}
+            </h2>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+              <div>
+                <label style={labelStyle}>{t("firstName")}</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder={t("namePlaceholder")}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>{t("companyEmail")}</label>
+                <input
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder={t("emailPlaceholder")}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: "1rem" }}>
+              <label style={labelStyle}>{t("company")}</label>
+              <input
+                type="text"
+                value={formData.company}
+                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                placeholder={t("companyPlaceholder")}
+                style={inputStyle}
+              />
+            </div>
+
+            <div style={{ marginBottom: "1rem" }}>
+              <label style={labelStyle}>{t("subject")}</label>
+              <select
+                value={formData.subject}
+                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
+              >
+                <option value="">{t("selectSubject")}</option>
+                <option value="demo">{t("subjectDemo")}</option>
+                <option value="pricing">{t("subjectPricing")}</option>
+                <option value="technical">{t("subjectTechnical")}</option>
+                <option value="partnership">{t("subjectPartnership")}</option>
+                <option value="other">{t("subjectOther")}</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: "1.5rem" }}>
+              <label style={labelStyle}>{t("message")}</label>
+              <textarea
+                required
+                rows={5}
+                value={formData.message}
+                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                placeholder={t("messagePlaceholder")}
+                style={{ ...inputStyle, height: "auto", padding: "0.75rem", resize: "vertical", fontFamily: "var(--bjhunt-font-mono)" }}
+              />
+            </div>
+
+            {formState === "error" && (
+              <p style={{ color: "#ef4444", fontSize: 13, marginBottom: "1rem", fontFamily: "var(--bjhunt-font-sans)" }}>
+                {t("connectionError")}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={isPending}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.5rem",
+                height: 44,
+                padding: "0 32px",
+                fontFamily: "var(--bjhunt-font-mono)",
+                fontSize: 12,
+                fontWeight: 500,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                background: "var(--bjhunt-text)",
+                color: "var(--bjhunt-bg)",
+                border: "none",
+                cursor: isPending ? "wait" : "pointer",
+                width: "100%",
+                borderRadius: 0,
+              }}
+            >
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : t("sendBtn")}
+            </button>
+          </form>
+        )}
       </div>
 
-      {/* Contact Cards Section */}
-      <div
-        style={{
-          maxWidth: 1200,
-          margin: "0 auto",
-          borderTop: "1px solid var(--bjhunt-border)",
-        }}
-      >
+      {/* Contact Cards */}
+      <div style={{ maxWidth: 1200, margin: "0 auto", borderTop: "1px solid var(--bjhunt-border)" }}>
         <div style={{ display: "flex", flexWrap: "wrap" }}>
-          {/* Email Card */}
-          <div
-            style={{
-              flex: "1 1 300px",
-              padding: "2.5rem 2rem",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              textAlign: "center",
-              gap: "0.75rem",
-              borderRight: "1px solid var(--bjhunt-border)",
-            }}
-          >
-            <Mail className="w-5 h-5" style={{ color: "var(--bjhunt-brand)" }} />
-            <h3
+          {[
+            { icon: <Mail className="w-5 h-5" style={{ color: "var(--bjhunt-brand)" }} />, title: t("emailTitle"), desc: t("emailDesc"), cta: t("emailCta"), href: "mailto:hello@bjhunt.com" },
+            { icon: <Users className="w-5 h-5" style={{ color: "var(--bjhunt-brand)" }} />, title: t("careersTitle"), desc: t("careersDesc"), cta: t("careersCta"), href: "/careers" },
+            { icon: <MapPin className="w-5 h-5" style={{ color: "var(--bjhunt-brand)" }} />, title: t("locationTitle"), desc: t("locationDesc"), cta: t("locationCta"), href: "https://maps.google.com" },
+          ].map((card, i) => (
+            <div
+              key={i}
               style={{
-                fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
-                fontSize: 16,
-                fontWeight: 700,
-                margin: 0,
-              }}
-            >
-              {t("emailTitle")}
-            </h3>
-            <p
-              style={{
-                fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
-                fontSize: 14,
-                lineHeight: 1.4,
-                color: "var(--bjhunt-text-secondary)",
-                margin: 0,
-                maxWidth: 260,
-              }}
-            >
-              {t("emailDesc")}
-            </p>
-            <a
-              href="mailto:hello@bjhunt.com"
-              style={{
-                display: "inline-flex",
+                flex: "1 1 300px",
+                padding: "2.5rem 2rem",
+                display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
-                gap: "0.375rem",
-                height: 36,
-                padding: "0 14px",
-                fontFamily: "var(--bjhunt-font-mono)",
-                fontSize: 11,
-                fontWeight: 500,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                background: "var(--bjhunt-text)",
-                color: "var(--bjhunt-bg)",
-                textDecoration: "none",
-                borderRadius: 0,
-                marginTop: "0.25rem",
+                justifyContent: "center",
+                textAlign: "center",
+                gap: "0.75rem",
+                borderRight: i < 2 ? "1px solid var(--bjhunt-border)" : undefined,
               }}
             >
-              {t("emailCta")} <ArrowUpRight className="w-3 h-3" />
-            </a>
-          </div>
-
-          {/* Careers Card */}
-          <div
-            style={{
-              flex: "1 1 300px",
-              padding: "2.5rem 2rem",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              textAlign: "center",
-              gap: "0.75rem",
-              borderRight: "1px solid var(--bjhunt-border)",
-            }}
-          >
-            <Users className="w-5 h-5" style={{ color: "var(--bjhunt-brand)" }} />
-            <h3
-              style={{
-                fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
-                fontSize: 16,
-                fontWeight: 700,
-                margin: 0,
-              }}
-            >
-              {t("careersTitle")}
-            </h3>
-            <p
-              style={{
-                fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
-                fontSize: 14,
-                lineHeight: 1.4,
-                color: "var(--bjhunt-text-secondary)",
-                margin: 0,
-                maxWidth: 260,
-              }}
-            >
-              {t("careersDesc")}
-            </p>
-            <a
-              href="/careers"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.375rem",
-                height: 36,
-                padding: "0 14px",
-                fontFamily: "var(--bjhunt-font-mono)",
-                fontSize: 11,
-                fontWeight: 500,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                background: "var(--bjhunt-text)",
-                color: "var(--bjhunt-bg)",
-                textDecoration: "none",
-                borderRadius: 0,
-                marginTop: "0.25rem",
-              }}
-            >
-              {t("careersCta")} <ArrowUpRight className="w-3 h-3" />
-            </a>
-          </div>
-
-          {/* Location Card */}
-          <div
-            style={{
-              flex: "1 1 300px",
-              padding: "2.5rem 2rem",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              textAlign: "center",
-              gap: "0.75rem",
-            }}
-          >
-            <MapPin className="w-5 h-5" style={{ color: "var(--bjhunt-brand)" }} />
-            <h3
-              style={{
-                fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
-                fontSize: 16,
-                fontWeight: 700,
-                margin: 0,
-              }}
-            >
-              {t("locationTitle")}
-            </h3>
-            <p
-              style={{
-                fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
-                fontSize: 14,
-                lineHeight: 1.4,
-                color: "var(--bjhunt-text-secondary)",
-                margin: 0,
-                maxWidth: 260,
-              }}
-            >
-              {t("locationDesc")}
-            </p>
-            <a
-              href="https://maps.google.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.375rem",
-                height: 36,
-                padding: "0 14px",
-                fontFamily: "var(--bjhunt-font-mono)",
-                fontSize: 11,
-                fontWeight: 500,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                background: "var(--bjhunt-text)",
-                color: "var(--bjhunt-bg)",
-                textDecoration: "none",
-                borderRadius: 0,
-                marginTop: "0.25rem",
-              }}
-            >
-              {t("locationCta")} <ArrowUpRight className="w-3 h-3" />
-            </a>
-          </div>
+              {card.icon}
+              <h3 style={{ fontFamily: "var(--bjhunt-font-sans)", fontSize: 16, fontWeight: 700, margin: 0 }}>{card.title}</h3>
+              <p style={{ fontFamily: "var(--bjhunt-font-sans)", fontSize: 14, lineHeight: 1.4, color: "var(--bjhunt-text-secondary)", margin: 0, maxWidth: 260 }}>{card.desc}</p>
+              <a
+                href={card.href}
+                target={card.href.startsWith("http") ? "_blank" : undefined}
+                rel={card.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.375rem",
+                  height: 36,
+                  padding: "0 14px",
+                  fontFamily: "var(--bjhunt-font-mono)",
+                  fontSize: 11,
+                  fontWeight: 500,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  background: "var(--bjhunt-text)",
+                  color: "var(--bjhunt-bg)",
+                  textDecoration: "none",
+                  borderRadius: 0,
+                  marginTop: "0.25rem",
+                }}
+              >
+                {card.cta} <ArrowUpRight className="w-3 h-3" />
+              </a>
+            </div>
+          ))}
         </div>
       </div>
     </div>
