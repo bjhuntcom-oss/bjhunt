@@ -213,7 +213,7 @@ export default function ContactPage() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder={t("namePlaceholder")}
+                  placeholder={t("firstNamePlaceholder")}
                   style={inputStyle}
                 />
               </div>
