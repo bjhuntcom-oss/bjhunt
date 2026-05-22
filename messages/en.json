@@ -382,6 +382,8 @@
     "heroLabel": "Book a 30-min call",
     "heroTitle": "OFFENSIVE AUDIT POWERED BY ARTIFICIAL INTELLIGENCE",
     "heroSubtitle": "Describe your target in natural language. BJHUNT 27B orchestrates specialists, runs the audit, and delivers signed reports across 13 frameworks. Book a call to learn more.",
+    "bookCallTitle": "Book an introduction call",
+    "bookCallDesc": "Talk with our team to discover how BJHUNT can transform your offensive security operations. 30-minute call, no commitment.",
     "bookCallBtn": "Book a call",
     "trustedBy": "Trusted by",
     "formTitle": "Send us a message",

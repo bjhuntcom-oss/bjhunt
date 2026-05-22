@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Mail, Users, MapPin, ArrowUpRight, Loader2 } from "lucide-react";
+import { Mail, Users, MapPin, ArrowUpRight } from "lucide-react";
 
 export default function ContactPage() {
   const t = useTranslations("contact");
@@ -165,13 +164,14 @@ export default function ContactPage() {
         </div>
       </div>
 
-      {/* Calendly/Form Section */}
+      {/* Book a Call Section */}
       <div
         id="book-call"
         style={{
           maxWidth: 800,
           margin: "0 auto",
           padding: "3rem 1.25rem 4rem",
+          textAlign: "center",
         }}
       >
         <h2
@@ -179,16 +179,48 @@ export default function ContactPage() {
             fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
             fontSize: 16,
             fontWeight: 700,
-            textAlign: "center",
-            marginBottom: "2rem",
+            marginBottom: "1.5rem",
             textTransform: "uppercase",
             letterSpacing: "0.05em",
           }}
         >
-          {t("formTitle")}
+          {t("bookCallTitle")}
         </h2>
-
-        <ContactForm />
+        <p
+          style={{
+            fontFamily: "var(--bjhunt-font-sans)",
+            fontSize: 14,
+            color: "var(--bjhunt-text-secondary)",
+            marginBottom: "2rem",
+            maxWidth: 480,
+            margin: "0 auto 2rem",
+            lineHeight: 1.5,
+          }}
+        >
+          {t("bookCallDesc")}
+        </p>
+        <a
+          href="mailto:hello@bjhunt.com"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.5rem",
+            height: 48,
+            padding: "0 32px",
+            fontFamily: "var(--bjhunt-font-mono)",
+            fontSize: 12,
+            fontWeight: 500,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            background: "var(--bjhunt-text)",
+            color: "var(--bjhunt-bg)",
+            textDecoration: "none",
+            borderRadius: 0,
+          }}
+        >
+          {t("bookCallBtn")} <ArrowUpRight className="w-4 h-4" />
+        </a>
       </div>
 
       {/* Contact Cards Section */}
@@ -386,211 +418,5 @@ export default function ContactPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-function ContactForm() {
-  const t = useTranslations("contact");
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    company: "",
-    subject: "",
-    message: "",
-  });
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || t("genericError"));
-        setLoading(false);
-        return;
-      }
-      setSubmitted(true);
-    } catch {
-      setError(t("connectionError"));
-    }
-    setLoading(false);
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
-  ) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  if (submitted) {
-    return (
-      <div style={{ textAlign: "center", padding: "3rem 0" }}>
-        <p
-          style={{
-            fontFamily: "var(--bjhunt-font-mono)",
-            fontSize: 14,
-            color: "var(--bjhunt-text)",
-          }}
-        >
-          {t("messageSent")}
-        </p>
-      </div>
-    );
-  }
-
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    border: "1px solid var(--bjhunt-border)",
-    background: "var(--bjhunt-bg)",
-    borderRadius: 0,
-    height: 44,
-    padding: "0 0.75rem",
-    fontFamily: "var(--bjhunt-font-sans, IBM Plex Sans, sans-serif)",
-    fontSize: 14,
-    color: "var(--bjhunt-text)",
-    outline: "none",
-  };
-
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    marginBottom: "0.375rem",
-    fontFamily: "var(--bjhunt-font-mono)",
-    fontSize: 11,
-    fontWeight: 500,
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-    color: "var(--bjhunt-text-muted)",
-  };
-
-  return (
-    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }} noValidate>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
-        <div>
-          <label htmlFor="contact-name" style={labelStyle}>{t("fullName")} *</label>
-          <input
-            id="contact-name"
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            placeholder={t("namePlaceholder")}
-            required
-            style={inputStyle}
-          />
-        </div>
-        <div>
-          <label htmlFor="contact-email" style={labelStyle}>{t("professionalEmail")} *</label>
-          <input
-            id="contact-email"
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder={t("emailPlaceholder")}
-            required
-            style={inputStyle}
-          />
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="contact-company" style={labelStyle}>{t("company")}</label>
-        <input
-          id="contact-company"
-          type="text"
-          name="company"
-          value={formData.company}
-          onChange={handleChange}
-          placeholder={t("companyPlaceholder")}
-          style={inputStyle}
-        />
-      </div>
-
-      <div>
-        <label htmlFor="contact-subject" style={labelStyle}>{t("subject")} *</label>
-        <select
-          id="contact-subject"
-          name="subject"
-          value={formData.subject}
-          onChange={handleChange}
-          required
-          style={{ ...inputStyle, appearance: "none" as const }}
-        >
-          <option value="">{t("selectSubject")}</option>
-          <option value="demo">{t("subjectDemo")}</option>
-          <option value="pricing">{t("subjectPricing")}</option>
-          <option value="technical">{t("subjectTechnical")}</option>
-          <option value="partnership">{t("subjectPartnership")}</option>
-          <option value="other">{t("subjectOther")}</option>
-        </select>
-      </div>
-
-      <div>
-        <label htmlFor="contact-message" style={labelStyle}>{t("message")} *</label>
-        <textarea
-          id="contact-message"
-          name="message"
-          value={formData.message}
-          onChange={handleChange}
-          rows={5}
-          placeholder={t("messagePlaceholder")}
-          required
-          style={{
-            ...inputStyle,
-            height: "auto",
-            padding: "0.75rem",
-            resize: "vertical" as const,
-          }}
-        />
-      </div>
-
-      {error && (
-        <p
-          style={{
-            fontSize: 13,
-            color: "var(--bjhunt-critical)",
-            fontFamily: "var(--bjhunt-font-sans)",
-            margin: 0,
-          }}
-        >
-          {error}
-        </p>
-      )}
-
-      <button
-        type="submit"
-        disabled={loading}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "0.5rem",
-          height: 48,
-          fontFamily: "var(--bjhunt-font-mono)",
-          fontSize: 12,
-          fontWeight: 500,
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          borderRadius: 0,
-          border: "none",
-          background: "var(--bjhunt-text)",
-          color: "var(--bjhunt-bg)",
-          cursor: loading ? "not-allowed" : "pointer",
-          opacity: loading ? 0.5 : 1,
-        }}
-      >
-        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-        {loading ? t("sending") : t("sendBtn")}
-      </button>
-    </form>
   );
 }
